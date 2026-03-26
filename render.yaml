@@ -1,0 +1,13 @@
+# Social Mix Relay Server
+# https://render.com/docs/deploy-node-express-app
+
+services:
+  - type: web
+    name: socialmix-relay
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Social Mix — Rejoins la soirée</title>
+    <meta name="description" content="Social Mix — Rejoins la soirée, vote pour la musique et vis l'ambiance en direct">
+    <meta name="theme-color" content="#0a0e14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ═══ JOIN SCREEN ═══ -->
+    <div id="join-screen" class="screen active">
+        <div class="join-container">
+            <div class="join-logo">
+                <div class="logo-icon">🎧</div>
+                <h1>SOCIAL MIX</h1>
+                <p class="subtitle">REJOINS LA SOIRÉE</p>
+            </div>
+
+            <div class="join-form">
+                <div class="field">
+                    <label>TON PRÉNOM</label>
+                    <input type="text" id="guest-name" placeholder="Ex: Marie" autocomplete="given-name">
+                </div>
+                <div class="field">
+                    <label>CODE SOIRÉE</label>
+                    <input type="text" id="party-code" placeholder="Ex: TEUF2025" class="code-input" autocapitalize="characters">
+                </div>
+                <button id="join-btn" class="cta-btn">
+                    <span>🎉</span> REJOINDRE
+                </button>
+            </div>
+
+            <p class="join-footer">Pas besoin de compte · Rejoins en 2 secondes</p>
+        </div>
+    </div>
+
+    <!-- ═══ COCKPIT SCREEN ═══ -->
+    <div id="cockpit-screen" class="screen">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <span class="header-icon">🎧</span>
+                <div>
+                    <div class="header-title">SOCIAL MIX</div>
+                    <div class="header-greeting" id="greeting">Hey !</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="trending-badge" id="trending-badge">
+                    <span class="crown">👑</span>
+                    <span id="trending-genre">Electro</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- DJ Live Banner (hidden by default) -->
+        <div id="dj-live-banner" class="dj-live-banner hidden">
+            <div class="dj-live-wave">〰️</div>
+            <div class="dj-live-text">
+                <div class="dj-live-title">LE DJ EST AUX PLATINES</div>
+                <div class="dj-live-sub">Titre identifié en direct</div>
+            </div>
+            <div class="live-badge">
+                <span class="live-dot"></span> LIVE
+            </div>
+        </div>
+
+        <!-- Now Playing -->
+        <div class="card now-playing" id="now-playing">
+            <div class="np-artwork" id="np-artwork">
+                <span class="np-icon">🎵</span>
+            </div>
+            <div class="np-info">
+                <div class="np-label">EN ÉCOUTE</div>
+                <div class="np-title" id="np-title">En attente...</div>
+                <div class="np-artist" id="np-artist">—</div>
+                <div class="np-meta">
+                    <span class="np-badge" id="np-bpm">— BPM</span>
+                    <span class="np-genre" id="np-genre">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vote Buttons -->
+        <div class="card vote-section">
+            <div class="vote-label">TON AVIS SUR CE TITRE</div>
+            <div class="vote-buttons">
+                <button class="vote-btn bof" id="vote-meh" data-vote="meh">
+                    <span class="vote-icon">👎</span>
+                    <span class="vote-text">BOF</span>
+                </button>
+                <button class="vote-btn top" id="vote-like" data-vote="like">
+                    <span class="vote-icon">👍</span>
+                    <span class="vote-text">TOP</span>
+                </button>
+                <button class="vote-btn feu" id="vote-fire" data-vote="fire">
+                    <span class="vote-icon">🔥</span>
+                    <span class="vote-text">LE FEU</span>
+                </button>
+            </div>
+            <div class="vote-status" id="vote-status"></div>
+        </div>
+
+        <!-- Genre Trends -->
+        <div class="card trends-section">
+            <div class="section-header">
+                <span class="section-icon">📊</span>
+                <span class="section-title">VOTE TENDANCE</span>
+            </div>
+            <div class="genre-grid" id="genre-grid">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <!-- Genre Chart -->
+        <div class="card chart-section" id="chart-section">
+            <div class="section-header">
+                <span class="section-icon">📈</span>
+                <span class="section-title">TENDANCES LIVE</span>
+            </div>
+            <div class="chart-bars" id="chart-bars">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <!-- Suggest Track -->
+        <div class="card suggest-section">
+            <div class="section-header">
+                <span class="section-icon">✨</span>
+                <span class="section-title">SUGGÉRER UN TITRE AU DJ</span>
+            </div>
+            <div class="suggest-input-row">
+                <input type="text" id="suggest-input" placeholder="Titre ou artiste..." class="suggest-field">
+                <button id="suggest-btn" class="suggest-send" disabled>
+                    <span>📤</span> ENVOYER
+                </button>
+            </div>
+            <div id="suggestions-list" class="suggestions-list"></div>
+        </div>
+
+        <!-- Track History -->
+        <div class="card history-section">
+            <div class="section-header">
+                <span class="section-icon">⏱️</span>
+                <span class="section-title">HISTORIQUE</span>
+                <span class="history-count" id="history-count">0 titres</span>
+            </div>
+            <div id="history-list" class="history-list">
+                <div class="empty-state">Aucun titre joué pour le moment</div>
+            </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="connection-bar" id="connection-bar">
+            <span class="conn-dot" id="conn-dot"></span>
+            <span id="conn-text">Connexion...</span>
+        </div>
+    </div>
+
+    <!-- Socket.IO client (loaded from relay server) -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
