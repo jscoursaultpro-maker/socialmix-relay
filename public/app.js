@@ -1,19 +1,25 @@
 /* ═══════════════════════════════════════════
-   SOCIAL MIX — Guest Web App
-   Socket.IO connection + UI Logic
+   SOCIAL MIX — Guest Web App v2
+   5-screen architecture with Profile + Social Hub
    ═══════════════════════════════════════════ */
 
 // ─── Config ──────────────────────────────────────────
-const RELAY_PORT = 3069;
 const STORAGE_KEY = 'socialmix_guest';
+const PROFILE_KEY = 'socialmix_profile';
 const GENRES = ['Electro', 'Disco', 'Hip-Hop', 'Latino', 'Pop', 'Rock'];
+const EMOJIS = ['🎉','🕺','💃','🎶','🌟','🤩','😎','🎭','🔥','💪','✨','💫','🎵','🥳','😈','🦄'];
 
 // ─── State ───────────────────────────────────────────
 let socket = null;
+let currentScreen = 'landing';
 let state = {
   guestId: null,
   guestName: '',
+  guestLastName: '',
   guestEmoji: '🎉',
+  guestPhoto: null,
+  guestPhone: '',
+  guestInsta: '',
   partyCode: '',
   currentVote: null,
   selectedGenre: null,
@@ -22,18 +28,54 @@ let state = {
   suggestions: [],
   currentTrack: null,
   mode: 'appMix',
-  connected: false
+  connected: false,
+  diapoPhotos: []
 };
 
-// ─── DOM Elements ────────────────────────────────────
+// ─── DOM Helper ──────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 
-// ─── LocalStorage Persistence ────────────────────────
+// ─── URL Params ──────────────────────────────────────
+function getURLParams() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    code: params.get('code'),
+    name: params.get('name'),
+    emoji: params.get('emoji')
+  };
+}
+
+// ─── LocalStorage ────────────────────────────────────
+function saveProfile() {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify({
+    firstName: state.guestName,
+    lastName: state.guestLastName,
+    emoji: state.guestEmoji,
+    photo: state.guestPhoto,
+    phone: state.guestPhone,
+    instagram: state.guestInsta
+  }));
+}
+
+function loadProfile() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROFILE_KEY));
+    if (saved) {
+      state.guestName = saved.firstName || '';
+      state.guestLastName = saved.lastName || '';
+      state.guestEmoji = saved.emoji || '🎉';
+      state.guestPhoto = saved.photo || null;
+      state.guestPhone = saved.phone || '';
+      state.guestInsta = saved.instagram || '';
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
 function saveSession() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     guestId: state.guestId,
-    guestName: state.guestName,
-    guestEmoji: state.guestEmoji,
     partyCode: state.partyCode,
     suggestions: state.suggestions,
     trackHistory: state.trackHistory
@@ -45,22 +87,192 @@ function loadSession() {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (saved) {
       state.guestId = saved.guestId;
-      state.guestName = saved.guestName || '';
-      state.guestEmoji = saved.guestEmoji || '🎉';
       state.partyCode = saved.partyCode || '';
       state.suggestions = saved.suggestions || [];
       state.trackHistory = saved.trackHistory || [];
       return true;
     }
-  } catch (e) {}
+  } catch(e) {}
   return false;
+}
+
+// ─── Screen Navigation ──────────────────────────────
+function showScreen(name) {
+  const previous = document.querySelector('.screen.active');
+  const next = $(name + '-screen');
+  
+  if (previous) previous.classList.remove('active');
+  if (next) {
+    next.classList.add('active');
+    next.scrollTop = 0;
+  }
+  currentScreen = name;
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 1: LANDING
+// ═══════════════════════════════════════════
+function setupLanding() {
+  const params = getURLParams();
+  
+  // Show party name if code in URL
+  if (params.code) {
+    $('landing-party-name').textContent = `SOIRÉE ${params.code}`;
+  }
+  
+  $('landing-cta').addEventListener('click', () => {
+    showScreen('profile');
+  });
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 2: PROFILE
+// ═══════════════════════════════════════════
+function setupProfile() {
+  // Pre-fill if profile exists
+  if (state.guestName) $('profile-firstname').value = state.guestName;
+  if (state.guestLastName) $('profile-lastname').value = state.guestLastName;
+  if (state.guestPhone) $('profile-phone').value = state.guestPhone;
+  if (state.guestInsta) $('profile-instagram').value = state.guestInsta;
+  if (state.guestPhoto) {
+    $('profile-photo-preview').src = state.guestPhoto;
+    $('profile-photo-preview').classList.remove('hidden');
+    $('photo-placeholder').style.display = 'none';
+    $('profile-photo-circle').classList.add('has-photo');
+    $('photo-delete').classList.remove('hidden');
+  }
+  
+  // Emoji grid
+  setupEmojiGrid();
+  
+  // Photo handlers
+  $('camera-input').addEventListener('change', handlePhotoInput);
+  $('gallery-input').addEventListener('change', handlePhotoInput);
+  $('photo-delete').addEventListener('click', () => {
+    state.guestPhoto = null;
+    $('profile-photo-preview').classList.add('hidden');
+    $('photo-placeholder').style.display = '';
+    $('profile-photo-circle').classList.remove('has-photo');
+    $('photo-delete').classList.add('hidden');
+  });
+  
+  // Back
+  $('profile-back').addEventListener('click', () => {
+    showScreen('landing');
+  });
+  
+  // Save
+  $('profile-save').addEventListener('click', () => {
+    state.guestName = $('profile-firstname').value.trim() || 'Guest';
+    state.guestLastName = $('profile-lastname').value.trim();
+    state.guestPhone = $('profile-phone').value.trim();
+    state.guestInsta = $('profile-instagram').value.trim();
+    saveProfile();
+    
+    const params = getURLParams();
+    if (params.code) {
+      state.partyCode = params.code.toUpperCase();
+      enterCockpit();
+    } else {
+      showScreen('code');
+    }
+  });
+}
+
+function handlePhotoInput(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    // Resize to save localStorage space
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const size = 200;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      
+      // Center crop
+      const minDim = Math.min(img.width, img.height);
+      const sx = (img.width - minDim) / 2;
+      const sy = (img.height - minDim) / 2;
+      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+      
+      state.guestPhoto = canvas.toDataURL('image/jpeg', 0.7);
+      $('profile-photo-preview').src = state.guestPhoto;
+      $('profile-photo-preview').classList.remove('hidden');
+      $('photo-placeholder').style.display = 'none';
+      $('profile-photo-circle').classList.add('has-photo');
+      $('photo-delete').classList.remove('hidden');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setupEmojiGrid() {
+  const grid = $('emoji-grid');
+  grid.innerHTML = '';
+  
+  EMOJIS.forEach(emoji => {
+    const cell = document.createElement('button');
+    cell.className = 'emoji-cell' + (state.guestEmoji === emoji ? ' selected' : '');
+    cell.textContent = emoji;
+    cell.addEventListener('click', () => {
+      state.guestEmoji = emoji;
+      grid.querySelectorAll('.emoji-cell').forEach(c => c.classList.remove('selected'));
+      cell.classList.add('selected');
+    });
+    grid.appendChild(cell);
+  });
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 3: CODE ENTRY
+// ═══════════════════════════════════════════
+function setupCodeScreen() {
+  $('code-back').addEventListener('click', () => {
+    showScreen('profile');
+  });
+  
+  $('code-join-btn').addEventListener('click', () => {
+    state.partyCode = $('party-code').value.trim().toUpperCase() || 'TEUF2025';
+    enterCockpit();
+  });
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 4: COCKPIT (enter)
+// ═══════════════════════════════════════════
+function enterCockpit() {
+  showScreen('cockpit');
+  
+  $('greeting').textContent = `Hey ${state.guestName} !`;
+  
+  setupVoteButtons();
+  setupGenreTrends();
+  setupSuggest();
+  updateHistory();
+  
+  // Hub buttons
+  $('hub-btn').addEventListener('click', () => showScreen('hub'));
+  $('hub-card-btn').addEventListener('click', () => showScreen('hub'));
+  
+  // Quit button → shows modal
+  $('quit-btn').addEventListener('click', () => {
+    $('exit-modal').classList.remove('hidden');
+  });
+  
+  // Connect
+  connectToRelay();
+  saveSession();
 }
 
 // ─── Socket.IO Connection ────────────────────────────
 function connectToRelay() {
-  // Connect to the same server that's hosting this page
   const url = window.location.origin;
-  
   updateConnection('connecting', 'Connexion...');
   
   socket = io(url, {
@@ -75,10 +287,11 @@ function connectToRelay() {
     state.guestId = socket.id;
     updateConnection('connected', 'Connecté');
     
-    // Re-join party on reconnection
     socket.emit('guest:join', {
       name: state.guestName,
+      lastName: state.guestLastName,
       emoji: state.guestEmoji,
+      photo: state.guestPhoto,
       partyCode: state.partyCode
     });
   });
@@ -93,63 +306,42 @@ function connectToRelay() {
   });
 
   // ═══ HOST → GUEST Events ═══
-
-  // Full state on join
-  socket.on('party:state', (partyState) => {
-    if (partyState.currentTrack) {
-      state.currentTrack = partyState.currentTrack;
-      updateNowPlaying(partyState.currentTrack);
-    }
-    if (partyState.genreVotes) {
-      state.genreVotes = partyState.genreVotes;
-      updateGenreChart();
-    }
-    if (partyState.trackHistory) {
-      state.trackHistory = partyState.trackHistory;
-      updateHistory();
-    }
-    if (partyState.mode) {
-      state.mode = partyState.mode;
-      updateDJMode();
-    }
+  socket.on('party:state', (ps) => {
+    if (ps.currentTrack) { state.currentTrack = ps.currentTrack; updateNowPlaying(ps.currentTrack); }
+    if (ps.genreVotes) { state.genreVotes = ps.genreVotes; updateGenreChart(); }
+    if (ps.trackHistory) { state.trackHistory = ps.trackHistory; updateHistory(); }
+    if (ps.mode) { state.mode = ps.mode; updateDJMode(); }
     saveSession();
   });
 
-  // Track update
   socket.on('track:update', (track) => {
     state.currentTrack = track;
-    state.currentVote = null; // Reset vote on new track
+    state.currentVote = null;
     updateNowPlaying(track);
     updateVoteButtons();
     saveSession();
   });
 
-  // Mode change
   socket.on('mode:change', (data) => {
     state.mode = data.mode;
     updateDJMode();
   });
 
-  // Vote results
   socket.on('votes:update', (data) => {
     state.genreVotes = data.genreVotes || {};
     updateGenreChart();
   });
 
-  // History update
   socket.on('history:update', (history) => {
     state.trackHistory = history;
     updateHistory();
     saveSession();
   });
 
-  // Another guest's vote received
-  socket.on('vote:received', (data) => {
-    // Could show a real-time vote indicator
-  });
+  socket.on('vote:received', () => {});
 }
 
-// ─── UI: Connection Status ───────────────────────────
+// ─── UI Updates ──────────────────────────────────────
 function updateConnection(status, text) {
   const dot = $('conn-dot');
   const txt = $('conn-text');
@@ -157,7 +349,6 @@ function updateConnection(status, text) {
   txt.textContent = text;
 }
 
-// ─── UI: Now Playing ─────────────────────────────────
 function updateNowPlaying(track) {
   if (!track) return;
   $('np-title').textContent = track.title || 'En attente...';
@@ -165,7 +356,6 @@ function updateNowPlaying(track) {
   $('np-bpm').textContent = `${track.bpm || '—'} BPM`;
   $('np-genre').textContent = (track.genre || '—').toUpperCase();
   
-  // Artwork
   const artworkEl = $('np-artwork');
   if (track.artworkURL) {
     artworkEl.innerHTML = `<img src="${track.artworkURL}" alt="cover">`;
@@ -174,24 +364,25 @@ function updateNowPlaying(track) {
   }
 }
 
-// ─── UI: DJ Mode Banner ─────────────────────────────
 function updateDJMode() {
   const banner = $('dj-live-banner');
-  if (state.mode === 'djLive') {
-    banner.classList.remove('hidden');
-  } else {
-    banner.classList.add('hidden');
-  }
+  if (state.mode === 'djLive') banner.classList.remove('hidden');
+  else banner.classList.add('hidden');
 }
 
-// ─── UI: Vote Buttons ────────────────────────────────
+// ─── Vote Buttons ────────────────────────────────────
 function setupVoteButtons() {
   ['meh', 'like', 'fire'].forEach(type => {
-    $(`vote-${type}`).addEventListener('click', () => {
+    const btn = $(`vote-${type}`);
+    // Remove old listeners by cloning
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    newBtn.addEventListener('click', () => {
+      if (state.currentVote) return; // Already voted
       state.currentVote = type;
       updateVoteButtons();
       
-      // Send vote to server
       if (socket && socket.connected) {
         socket.emit('guest:vote', {
           type,
@@ -210,11 +401,16 @@ function setupVoteButtons() {
 function updateVoteButtons() {
   ['meh', 'like', 'fire'].forEach(type => {
     const btn = $(`vote-${type}`);
-    btn.classList.toggle('selected', state.currentVote === type);
+    btn.classList.remove('selected', 'dimmed');
+    if (state.currentVote === type) {
+      btn.classList.add('selected');
+    } else if (state.currentVote) {
+      btn.classList.add('dimmed');
+    }
   });
 }
 
-// ─── UI: Genre Trends ────────────────────────────────
+// ─── Genre Trends ────────────────────────────────────
 function setupGenreTrends() {
   const grid = $('genre-grid');
   grid.innerHTML = '';
@@ -228,30 +424,21 @@ function setupGenreTrends() {
     `;
     btn.addEventListener('click', () => {
       state.selectedGenre = genre;
-      setupGenreTrends(); // Re-render
-      
+      setupGenreTrends();
       if (socket && socket.connected) {
-        socket.emit('guest:genreVote', {
-          genre,
-          guestName: state.guestName,
-          guestId: state.guestId
-        });
+        socket.emit('guest:genreVote', { genre, guestName: state.guestName, guestId: state.guestId });
       }
     });
     grid.appendChild(btn);
   });
 }
 
-// ─── UI: Genre Chart ─────────────────────────────────
 function updateGenreChart() {
   const container = $('chart-bars');
   const maxVotes = Math.max(...Object.values(state.genreVotes), 1);
-  
   container.innerHTML = '';
   
-  const sorted = Object.entries(state.genreVotes)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6);
+  const sorted = Object.entries(state.genreVotes).sort((a,b) => b[1] - a[1]).slice(0, 6);
   
   sorted.forEach(([genre, votes]) => {
     const pct = (votes / maxVotes * 100).toFixed(0);
@@ -267,52 +454,48 @@ function updateGenreChart() {
     container.appendChild(row);
   });
   
-  // Update trending badge
-  if (sorted.length > 0) {
-    $('trending-genre').textContent = sorted[0][0];
-  }
-  
-  // Update genre buttons counts
+  if (sorted.length > 0) $('trending-genre').textContent = sorted[0][0];
   setupGenreTrends();
 }
 
-// ─── UI: Suggest Track ───────────────────────────────
+// ─── Suggest ─────────────────────────────────────────
 function setupSuggest() {
   const input = $('suggest-input');
   const btn = $('suggest-btn');
   
-  input.addEventListener('input', () => {
-    btn.disabled = input.value.trim() === '';
-  });
+  // Clone to remove old listeners
+  const newInput = input.cloneNode(true);
+  const newBtn = btn.cloneNode(true);
+  input.parentNode.replaceChild(newInput, input);
+  newBtn.parentNode || btn.parentNode.replaceChild(newBtn, btn);
   
-  btn.addEventListener('click', () => {
-    const query = input.value.trim();
+  const si = $('suggest-input');
+  const sb = $('suggest-btn');
+  
+  si.addEventListener('input', () => { sb.disabled = si.value.trim() === ''; });
+  
+  sb.addEventListener('click', () => {
+    const query = si.value.trim();
     if (!query) return;
     
     state.suggestions.push(query);
-    
     if (socket && socket.connected) {
-      socket.emit('guest:suggest', {
-        query,
-        guestName: state.guestName,
-        guestId: state.guestId
-      });
+      socket.emit('guest:suggest', { query, guestName: state.guestName, guestId: state.guestId });
     }
     
-    // Show in UI
     const list = $('suggestions-list');
     const item = document.createElement('div');
     item.className = 'suggestion-item';
     item.innerHTML = `<span class="suggestion-check">✅</span> ${query} — envoyé`;
     list.appendChild(item);
     
-    input.value = '';
-    btn.disabled = true;
+    si.value = '';
+    sb.disabled = true;
     saveSession();
   });
 }
 
-// ─── UI: Track History ───────────────────────────────
+// ─── History ─────────────────────────────────────────
 function updateHistory() {
   const list = $('history-list');
   const count = $('history-count');
@@ -329,7 +512,6 @@ function updateHistory() {
   state.trackHistory.forEach((track, i) => {
     const item = document.createElement('div');
     item.className = 'history-item';
-    
     const query = encodeURIComponent(`${track.artist} ${track.title}`);
     
     item.innerHTML = `
@@ -348,74 +530,251 @@ function updateHistory() {
   });
 }
 
-// ─── JOIN Flow ───────────────────────────────────────
-function setupJoinFlow() {
-  const nameInput = $('guest-name');
-  const codeInput = $('party-code');
-  const joinBtn = $('join-btn');
+// ═══════════════════════════════════════════
+// SCREEN 5: SOCIAL HUB
+// ═══════════════════════════════════════════
+function setupSocialHub() {
+  // Back button
+  $('hub-back').addEventListener('click', () => showScreen('cockpit'));
   
-  // Pre-fill from saved session
-  if (state.guestName) nameInput.value = state.guestName;
-  if (state.partyCode) codeInput.value = state.partyCode;
+  // Populate mock data
+  populateTrombinoscope();
+  populateEngagement();
+  populateKaraoke();
+  populateCostumes();
+  populateMissions();
   
-  joinBtn.addEventListener('click', () => {
-    state.guestName = nameInput.value.trim() || 'Guest';
-    state.partyCode = codeInput.value.trim().toUpperCase() || 'TEUF2025';
+  // Diapo photo upload
+  $('diapo-input').addEventListener('change', handleDiapoPhoto);
+}
+
+function populateTrombinoscope() {
+  const grid = $('trombi-grid');
+  const users = [
+    { name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto },
+    { name: 'Marie', emoji: '🎉', photo: null },
+    { name: 'Lucas', emoji: '🕺', photo: null },
+    { name: 'Emma', emoji: '💃', photo: null },
+    { name: 'Hugo', emoji: '🎶', photo: null },
+    { name: 'Léa', emoji: '🌟', photo: null },
+    { name: 'Tom', emoji: '🤩', photo: null },
+    { name: 'Julie', emoji: '😎', photo: null }
+  ];
+  
+  grid.innerHTML = '';
+  users.forEach(u => {
+    const item = document.createElement('div');
+    item.className = 'trombi-item';
     
-    enterCockpit();
+    const bgColor = u.photo ? 'transparent' : `rgba(59, 130, 246, 0.3)`;
+    const content = u.photo
+      ? `<img src="${u.photo}" alt="${u.name}">`
+      : u.emoji;
+    
+    item.innerHTML = `
+      <div class="trombi-avatar" style="background: ${bgColor}">${content}</div>
+      <div class="trombi-name">${u.name}</div>
+    `;
+    grid.appendChild(item);
   });
 }
 
-function enterCockpit() {
-  // Switch to cockpit
-  $('join-screen').classList.remove('active');
-  $('cockpit-screen').classList.add('active');
+function populateEngagement() {
+  // Top Liked
+  const topLiked = [
+    { title: 'Alors On Danse', artist: 'Stromae', value: 24 },
+    { title: 'September', artist: 'Earth, Wind & Fire', value: 21 },
+    { title: 'Lose Yourself', artist: 'Eminem', value: 18 },
+    { title: 'Despacito', artist: 'Luis Fonsi', value: 15 },
+    { title: "Can't Hold Us", artist: 'Macklemore', value: 12 }
+  ];
+  renderRankedList('top-liked', topLiked, '🔥', 'var(--turquoise)');
   
-  // Update greeting
-  $('greeting').textContent = `Hey ${state.guestName} !`;
+  // Top Hated
+  const topHated = [
+    { title: 'Highway to Hell', artist: "AC/DC", value: 8 },
+    { title: 'Zouk la Ce Sel', artist: "Kassav'", value: 6 },
+    { title: 'Ai Se Eu Te Pego', artist: 'Michel Teló', value: 5 }
+  ];
+  renderRankedList('top-hated', topHated, '👎', 'var(--danger)');
   
-  // Initialize UI
-  setupVoteButtons();
-  setupGenreTrends();
-  setupSuggest();
-  updateHistory();
+  // Stats
+  $('likers-count').textContent = '23';
+  $('haters-count').textContent = '4';
   
-  // Wire quit button
-  $('quit-btn').addEventListener('click', quitParty);
+  // Active users
+  const active = [
+    { name: 'Marie 🎉', emoji: '🔥', value: '12 votes' },
+    { name: 'Lucas 🕺', emoji: '💪', value: '10 votes' },
+    { name: 'Emma 💃', emoji: '✨', value: '9 votes' },
+    { name: 'Hugo 🎶', emoji: '🎵', value: '7 votes' },
+    { name: 'Léa 🌟', emoji: '💫', value: '6 votes' }
+  ];
+  renderUserList('active-users', active, false);
   
-  // Connect to relay server
-  connectToRelay();
-  saveSession();
+  // Ghosts
+  const ghosts = [
+    { name: 'Thomas 😴', emoji: '👻', value: 'il y a 15min' },
+    { name: 'Julie 🥱', emoji: '👻', value: 'il y a 22min' }
+  ];
+  renderUserList('ghost-users', ghosts, true);
 }
 
-// ─── Quit Party ──────────────────────────────────────
-function quitParty() {
-  // Disconnect socket
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-  }
+function renderRankedList(containerId, items, icon, color) {
+  const container = $(containerId);
+  container.innerHTML = '';
+  items.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'ranked-item';
+    el.innerHTML = `
+      <span class="ranked-num" style="color: ${color}">#${i + 1}</span>
+      <div class="ranked-info">
+        <div class="ranked-title">${item.title}</div>
+        ${item.artist ? `<div class="ranked-subtitle">${item.artist}</div>` : ''}
+      </div>
+      <div class="ranked-value" style="color: ${color}">
+        <span>${icon}</span>
+        <span>${item.value}</span>
+      </div>
+    `;
+    container.appendChild(el);
+  });
+}
+
+function renderUserList(containerId, users, isGhost) {
+  const container = $(containerId);
+  container.innerHTML = '';
+  users.forEach(u => {
+    const el = document.createElement('div');
+    el.className = 'user-item';
+    el.innerHTML = `
+      <span class="user-emoji">${u.emoji}</span>
+      <span class="user-name" style="${isGhost ? 'color: var(--text-dim)' : ''}">${u.name}</span>
+      <span class="user-value ${isGhost ? 'ghost' : ''}">${u.value}</span>
+    `;
+    container.appendChild(el);
+  });
+}
+
+function populateKaraoke() {
+  const queue = [
+    { title: '🎤 Marie — Bohemian Rhapsody' },
+    { title: '🎤 Lucas — Living On A Prayer' },
+    { title: '🎤 Emma — Shallow' }
+  ];
+  const container = $('karaoke-queue');
+  container.innerHTML = '';
+  queue.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'ranked-item';
+    el.innerHTML = `
+      <span class="ranked-num" style="color: var(--turquoise)">${i + 1}</span>
+      <div class="ranked-info">
+        <div class="ranked-title">${item.title}</div>
+      </div>
+    `;
+    container.appendChild(el);
+  });
+}
+
+function populateCostumes() {
+  const costumes = [
+    { emoji: '🧛', name: 'Dracula', votes: 18 },
+    { emoji: '🧟', name: 'Zombie', votes: 15 },
+    { emoji: '🦸', name: 'SuperHero', votes: 12 },
+    { emoji: '🧙', name: 'Wizard', votes: 9 },
+    { emoji: '👻', name: 'Ghost', votes: 7 },
+    { emoji: '🤡', name: 'Joker', votes: 3 }
+  ];
+  const grid = $('costume-grid');
+  grid.innerHTML = '';
+  costumes.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'costume-item';
+    item.innerHTML = `
+      <div class="costume-avatar">${c.emoji}</div>
+      <div class="costume-name">${c.name}</div>
+      <div class="costume-votes">${c.votes} votes</div>
+    `;
+    grid.appendChild(item);
+  });
+}
+
+function populateMissions() {
+  const missions = [
+    { icon: '🎤', title: 'Karaoké Master', desc: 'Chante 3 chansons ce soir' },
+    { icon: '📸', title: 'Paparazzi', desc: 'Prends 5 photos de la soirée' },
+    { icon: '🕺', title: 'Dance Machine', desc: 'Vote pour 10 titres' },
+    { icon: '🎭', title: 'Social Butterfly', desc: 'Parle à 5 personnes différentes' },
+    { icon: '🏆', title: 'Trendsetter', desc: 'Fais voter ta tendance en n°1' }
+  ];
+  const list = $('missions-list');
+  list.innerHTML = '';
+  missions.forEach(m => {
+    const item = document.createElement('div');
+    item.className = 'mission-item';
+    item.innerHTML = `
+      <div class="mission-icon">${m.icon}</div>
+      <div class="mission-info">
+        <div class="mission-title">${m.title}</div>
+        <div class="mission-desc">${m.desc}</div>
+      </div>
+      <button class="mission-check" onclick="this.classList.toggle('done'); this.textContent = this.classList.contains('done') ? '✓' : ''">
+      </button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function handleDiapoPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    state.diapoPhotos.push(ev.target.result);
+    const grid = $('diapo-grid');
+    const thumb = document.createElement('div');
+    thumb.className = 'diapo-thumb';
+    thumb.innerHTML = `<img src="${ev.target.result}" alt="photo">`;
+    grid.appendChild(thumb);
+  };
+  reader.readAsDataURL(file);
+}
+
+// ═══════════════════════════════════════════
+// EXIT MODAL
+// ═══════════════════════════════════════════
+function setupExitModal() {
+  $('modal-stay').addEventListener('click', () => {
+    $('exit-modal').classList.add('hidden');
+  });
   
-  // Clear session
+  $('modal-hub').addEventListener('click', () => {
+    $('exit-modal').classList.add('hidden');
+    showScreen('hub');
+  });
+  
+  $('modal-leave').addEventListener('click', () => {
+    $('exit-modal').classList.add('hidden');
+    quitParty();
+  });
+}
+
+function quitParty() {
+  if (socket) { socket.disconnect(); socket = null; }
   localStorage.removeItem(STORAGE_KEY);
   
-  // Reset state
-  state = {
-    guestId: null,
-    guestName: '',
-    guestEmoji: '🎉',
-    partyCode: '',
-    currentVote: null,
-    selectedGenre: null,
-    genreVotes: {},
-    trackHistory: [],
-    suggestions: [],
-    currentTrack: null,
-    mode: 'appMix',
-    connected: false
-  };
+  state.partyCode = '';
+  state.currentVote = null;
+  state.selectedGenre = null;
+  state.genreVotes = {};
+  state.trackHistory = [];
+  state.suggestions = [];
+  state.currentTrack = null;
+  state.mode = 'appMix';
+  state.connected = false;
   
-  // Reset UI elements
+  // Reset cockpit UI
   $('np-title').textContent = 'En attente...';
   $('np-artist').textContent = '—';
   $('np-bpm').textContent = '— BPM';
@@ -424,30 +783,36 @@ function quitParty() {
   $('vote-status').textContent = '';
   $('suggestions-list').innerHTML = '';
   $('dj-live-banner').classList.add('hidden');
-  updateConnection('connecting', 'Connexion...');
   
-  // Clear inputs
-  $('guest-name').value = '';
-  $('party-code').value = '';
-  
-  // Switch back to join screen
-  $('cockpit-screen').classList.remove('active');
-  $('join-screen').classList.add('active');
+  showScreen('landing');
 }
 
-// ─── Auto-Rejoin on Page Load ────────────────────────
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
 function init() {
+  const hasProfile = loadProfile();
   const hasSession = loadSession();
+  const params = getURLParams();
   
-  // Always set up join flow (needed after quit too)
-  setupJoinFlow();
+  // Apply URL params
+  if (params.name) state.guestName = params.name;
+  if (params.emoji) state.guestEmoji = params.emoji;
+  if (params.code) state.partyCode = params.code.toUpperCase();
   
-  if (hasSession && state.partyCode && state.guestName) {
-    // Auto-rejoin: skip join screen
+  // Setup all screens
+  setupLanding();
+  setupProfile();
+  setupCodeScreen();
+  setupSocialHub();
+  setupExitModal();
+  
+  // Auto-rejoin if session + profile exist
+  if (hasSession && hasProfile && state.partyCode && state.guestName) {
     enterCockpit();
+  } else {
+    showScreen('landing');
   }
 }
 
-// ─── Start ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
-
