@@ -362,44 +362,92 @@ function setupJoinFlow() {
     state.guestName = nameInput.value.trim() || 'Guest';
     state.partyCode = codeInput.value.trim().toUpperCase() || 'TEUF2025';
     
-    // Switch to cockpit
-    $('join-screen').classList.remove('active');
-    $('cockpit-screen').classList.add('active');
-    
-    // Update greeting
-    $('greeting').textContent = `Hey ${state.guestName} !`;
-    
-    // Initialize UI
-    setupVoteButtons();
-    setupGenreTrends();
-    setupSuggest();
-    updateHistory();
-    
-    // Connect to relay server
-    connectToRelay();
-    saveSession();
+    enterCockpit();
   });
+}
+
+function enterCockpit() {
+  // Switch to cockpit
+  $('join-screen').classList.remove('active');
+  $('cockpit-screen').classList.add('active');
+  
+  // Update greeting
+  $('greeting').textContent = `Hey ${state.guestName} !`;
+  
+  // Initialize UI
+  setupVoteButtons();
+  setupGenreTrends();
+  setupSuggest();
+  updateHistory();
+  
+  // Wire quit button
+  $('quit-btn').addEventListener('click', quitParty);
+  
+  // Connect to relay server
+  connectToRelay();
+  saveSession();
+}
+
+// ─── Quit Party ──────────────────────────────────────
+function quitParty() {
+  // Disconnect socket
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+  
+  // Clear session
+  localStorage.removeItem(STORAGE_KEY);
+  
+  // Reset state
+  state = {
+    guestId: null,
+    guestName: '',
+    guestEmoji: '🎉',
+    partyCode: '',
+    currentVote: null,
+    selectedGenre: null,
+    genreVotes: {},
+    trackHistory: [],
+    suggestions: [],
+    currentTrack: null,
+    mode: 'appMix',
+    connected: false
+  };
+  
+  // Reset UI elements
+  $('np-title').textContent = 'En attente...';
+  $('np-artist').textContent = '—';
+  $('np-bpm').textContent = '— BPM';
+  $('np-genre').textContent = '—';
+  $('np-artwork').innerHTML = '<span class="np-icon">🎵</span>';
+  $('vote-status').textContent = '';
+  $('suggestions-list').innerHTML = '';
+  $('dj-live-banner').classList.add('hidden');
+  updateConnection('connecting', 'Connexion...');
+  
+  // Clear inputs
+  $('guest-name').value = '';
+  $('party-code').value = '';
+  
+  // Switch back to join screen
+  $('cockpit-screen').classList.remove('active');
+  $('join-screen').classList.add('active');
 }
 
 // ─── Auto-Rejoin on Page Load ────────────────────────
 function init() {
   const hasSession = loadSession();
   
+  // Always set up join flow (needed after quit too)
+  setupJoinFlow();
+  
   if (hasSession && state.partyCode && state.guestName) {
     // Auto-rejoin: skip join screen
-    $('join-screen').classList.remove('active');
-    $('cockpit-screen').classList.add('active');
-    $('greeting').textContent = `Hey ${state.guestName} !`;
-    
-    setupVoteButtons();
-    setupGenreTrends();
-    setupSuggest();
-    updateHistory();
-    connectToRelay();
-  } else {
-    setupJoinFlow();
+    enterCockpit();
   }
 }
 
 // ─── Start ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
+

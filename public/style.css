@@ -872,6 +872,33 @@ body {
   font-style: italic;
 }
 
+/* ═══ QUIT BUTTON ═══ */
+.quit-btn {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid rgba(255, 59, 92, 0.15);
+  border-radius: var(--radius-md);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 900;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.quit-btn:active {
+  background: var(--danger-glow);
+  border-color: var(--danger);
+  color: var(--danger);
+  transform: scale(0.97);
+}
+
 /* ═══ CONNECTION BAR ═══ */
 .connection-bar {
   position: fixed;
