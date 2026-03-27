@@ -159,7 +159,12 @@ function setupProfile() {
   
   // Back
   $('profile-back').addEventListener('click', () => {
-    showScreen('landing');
+    if (state.editingFromCockpit) {
+      state.editingFromCockpit = false;
+      showScreen('cockpit');
+    } else {
+      showScreen('landing');
+    }
   });
   
   // Save
@@ -170,12 +175,28 @@ function setupProfile() {
     state.guestInsta = $('profile-instagram').value.trim();
     saveProfile();
     
-    const params = getURLParams();
-    if (params.code) {
-      state.partyCode = params.code.toUpperCase();
-      enterCockpit();
+    if (state.editingFromCockpit) {
+      // Return to cockpit and update greeting
+      state.editingFromCockpit = false;
+      showScreen('cockpit');
+      $('greeting').textContent = `Hey ${state.guestName} !`;
+      // Re-emit join with updated profile
+      if (socket && socket.connected) {
+        socket.emit('guest:join', {
+          name: state.guestName,
+          emoji: state.guestEmoji,
+          photo: state.guestPhoto,
+          partyCode: state.partyCode
+        });
+      }
     } else {
-      showScreen('code');
+      const params = getURLParams();
+      if (params.code) {
+        state.partyCode = params.code.toUpperCase();
+        enterCockpit();
+      } else {
+        showScreen('code');
+      }
     }
   });
 }
@@ -263,6 +284,7 @@ function enterCockpit() {
   
   // Profile edit button → go to profile screen for editing
   $('edit-profile-btn').addEventListener('click', () => {
+    state.editingFromCockpit = true;
     showScreen('profile');
     setupProfile();
   });
