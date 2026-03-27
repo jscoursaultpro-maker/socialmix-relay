@@ -707,6 +707,7 @@ function quitParty() {
   if (socket) { socket.disconnect(); socket = null; }
   localStorage.removeItem(STORAGE_KEY);
   
+  // Reset all state
   state.partyCode = '';
   state.currentVote = null;
   state.selectedGenre = null;
@@ -717,12 +718,19 @@ function quitParty() {
   state.mode = 'appMix';
   state.connected = false;
   
+  // Also clear profile for clean restart
+  state.guestName = '';
+  state.guestEmoji = '';
+  state.guestPhoto = null;
+  localStorage.removeItem('socialmix-profile');
+  
   // Reset cockpit UI
   $('np-title').textContent = 'En attente...';
   $('np-artist').textContent = '—';
   $('np-bpm').textContent = '— BPM';
   $('np-genre').textContent = '—';
-  $('np-artwork').innerHTML = '<span class="np-icon">🎵</span>';
+  const vinylLabel = $('vinyl-label');
+  if (vinylLabel) vinylLabel.innerHTML = '<span class="vinyl-note">♪</span>';
   $('vote-status').textContent = '';
   $('suggestions-list').innerHTML = '';
   $('dj-live-banner').classList.add('hidden');
