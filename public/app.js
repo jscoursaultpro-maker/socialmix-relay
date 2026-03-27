@@ -537,7 +537,7 @@ function setupSocialHub() {
   // Back button
   $('hub-back').addEventListener('click', () => showScreen('cockpit'));
   
-  // Populate mock data
+  // Populate sections (real data from server, start empty)
   populateTrombinoscope();
   populateEngagement();
   populateKaraoke();
@@ -551,14 +551,7 @@ function setupSocialHub() {
 function populateTrombinoscope() {
   const grid = $('trombi-grid');
   const users = [
-    { name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto },
-    { name: 'Marie', emoji: '🎉', photo: null },
-    { name: 'Lucas', emoji: '🕺', photo: null },
-    { name: 'Emma', emoji: '💃', photo: null },
-    { name: 'Hugo', emoji: '🎶', photo: null },
-    { name: 'Léa', emoji: '🌟', photo: null },
-    { name: 'Tom', emoji: '🤩', photo: null },
-    { name: 'Julie', emoji: '😎', photo: null }
+    { name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto }
   ];
   
   grid.innerHTML = '';
@@ -580,43 +573,23 @@ function populateTrombinoscope() {
 }
 
 function populateEngagement() {
-  // Top Liked
-  const topLiked = [
-    { title: 'Alors On Danse', artist: 'Stromae', value: 24 },
-    { title: 'September', artist: 'Earth, Wind & Fire', value: 21 },
-    { title: 'Lose Yourself', artist: 'Eminem', value: 18 },
-    { title: 'Despacito', artist: 'Luis Fonsi', value: 15 },
-    { title: "Can't Hold Us", artist: 'Macklemore', value: 12 }
-  ];
-  renderRankedList('top-liked', topLiked, '🔥', 'var(--turquoise)');
+  // Start with empty data — will be populated from live votes
+  const topLiked = [];
+  renderRankedList('top-liked', topLiked, '\u{1F525}', 'var(--turquoise)');
   
-  // Top Hated
-  const topHated = [
-    { title: 'Highway to Hell', artist: "AC/DC", value: 8 },
-    { title: 'Zouk la Ce Sel', artist: "Kassav'", value: 6 },
-    { title: 'Ai Se Eu Te Pego', artist: 'Michel Teló', value: 5 }
-  ];
-  renderRankedList('top-hated', topHated, '👎', 'var(--danger)');
+  const topHated = [];
+  renderRankedList('top-hated', topHated, '\u{1F44E}', 'var(--danger)');
   
   // Stats
-  $('likers-count').textContent = '23';
-  $('haters-count').textContent = '4';
+  $('likers-count').textContent = '0';
+  $('haters-count').textContent = '0';
   
-  // Active users
-  const active = [
-    { name: 'Marie 🎉', emoji: '🔥', value: '12 votes' },
-    { name: 'Lucas 🕺', emoji: '💪', value: '10 votes' },
-    { name: 'Emma 💃', emoji: '✨', value: '9 votes' },
-    { name: 'Hugo 🎶', emoji: '🎵', value: '7 votes' },
-    { name: 'Léa 🌟', emoji: '💫', value: '6 votes' }
-  ];
+  // Active users — empty until guests interact
+  const active = [];
   renderUserList('active-users', active, false);
   
   // Ghosts
-  const ghosts = [
-    { name: 'Thomas 😴', emoji: '👻', value: 'il y a 15min' },
-    { name: 'Julie 🥱', emoji: '👻', value: 'il y a 22min' }
-  ];
+  const ghosts = [];
   renderUserList('ghost-users', ghosts, true);
 }
 
@@ -657,47 +630,17 @@ function renderUserList(containerId, users, isGhost) {
 }
 
 function populateKaraoke() {
-  const queue = [
-    { title: '🎤 Marie — Bohemian Rhapsody' },
-    { title: '🎤 Lucas — Living On A Prayer' },
-    { title: '🎤 Emma — Shallow' }
-  ];
+  // Start empty — populated when guests add songs
+  const queue = [];
   const container = $('karaoke-queue');
-  container.innerHTML = '';
-  queue.forEach((item, i) => {
-    const el = document.createElement('div');
-    el.className = 'ranked-item';
-    el.innerHTML = `
-      <span class="ranked-num" style="color: var(--turquoise)">${i + 1}</span>
-      <div class="ranked-info">
-        <div class="ranked-title">${item.title}</div>
-      </div>
-    `;
-    container.appendChild(el);
-  });
+  container.innerHTML = '<div class="ranked-item" style="opacity: 0.5; justify-content: center;">Aucune chanson en attente</div>';
 }
 
 function populateCostumes() {
-  const costumes = [
-    { emoji: '🧛', name: 'Dracula', votes: 18 },
-    { emoji: '🧟', name: 'Zombie', votes: 15 },
-    { emoji: '🦸', name: 'SuperHero', votes: 12 },
-    { emoji: '🧙', name: 'Wizard', votes: 9 },
-    { emoji: '👻', name: 'Ghost', votes: 7 },
-    { emoji: '🤡', name: 'Joker', votes: 3 }
-  ];
+  // Start empty — populated when costume voting is activated
+  const costumes = [];
   const grid = $('costume-grid');
-  grid.innerHTML = '';
-  costumes.forEach(c => {
-    const item = document.createElement('div');
-    item.className = 'costume-item';
-    item.innerHTML = `
-      <div class="costume-avatar">${c.emoji}</div>
-      <div class="costume-name">${c.name}</div>
-      <div class="costume-votes">${c.votes} votes</div>
-    `;
-    grid.appendChild(item);
-  });
+  grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); font-size: 11px; padding: 12px;">Aucun participant pour le moment</div>';
 }
 
 function populateMissions() {
