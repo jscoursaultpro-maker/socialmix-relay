@@ -91,8 +91,8 @@
                 </div>
                 <p class="form-hint">Partage tes infos pour rester en contact après la soirée</p>
                 <div class="form-field">
-                    <label>TÉLÉPHONE / WHATSAPP</label>
-                    <input type="tel" id="profile-phone" placeholder="+33 6 12 34 56 78" autocomplete="tel">
+                    <label>EMAIL</label>
+                    <input type="email" id="profile-email" placeholder="marie@example.com" autocomplete="email">
                 </div>
                 <div class="form-field" style="margin-top: 10px">
                     <label>INSTAGRAM</label>
@@ -144,6 +144,7 @@
                     <span class="crown">👑</span>
                     <span id="trending-genre">Electro</span>
                 </div>
+                <button id="edit-profile-btn" class="hub-shortcut-btn">✏️</button>
                 <button id="hub-btn" class="hub-shortcut-btn">✨</button>
             </div>
         </div>
@@ -362,11 +363,27 @@
         <!-- Vote Déguisement -->
         <div class="hub-card">
             <div class="hub-card-header purple">
-                <span>🎭</span> VOTE MEILLEUR DÉGUISEMENT
+                <span>🎭</span> CONCOURS MEILLEUR DÉGUISEMENT
             </div>
             <div class="hub-card-body">
-                <p class="hub-text">Votez pour le meilleur costume !</p>
-                <div class="costume-grid" id="costume-grid"></div>
+                <!-- Participate section -->
+                <div id="costume-participate" class="costume-participate">
+                    <p class="hub-text">Participe au concours du meilleur déguisement !</p>
+                    <div class="hub-actions">
+                        <label class="hub-action-btn green" id="costume-enter-label" for="costume-photo-input">🎭 JE PARTICIPE !</label>
+                        <input type="file" id="costume-photo-input" accept="image/*" capture="user" hidden>
+                    </div>
+                    <div id="costume-my-entry" class="costume-my-entry hidden">
+                        <img id="costume-my-photo" class="costume-entry-photo" alt="Mon déguisement">
+                        <span class="costume-entry-label">✅ Ta photo est soumise !</span>
+                    </div>
+                </div>
+                <!-- Voting grid -->
+                <div class="hub-divider"></div>
+                <p class="hub-text">Vote pour ton déguisement préféré !</p>
+                <div class="costume-grid" id="costume-grid">
+                    <div style="text-align: center; color: var(--text-dim); font-size: 11px; padding: 12px;">Aucun participant pour le moment</div>
+                </div>
             </div>
         </div>
 

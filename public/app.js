@@ -18,7 +18,7 @@ let state = {
   guestLastName: '',
   guestEmoji: '🎉',
   guestPhoto: null,
-  guestPhone: '',
+  guestEmail: '',
   guestInsta: '',
   partyCode: '',
   currentVote: null,
@@ -52,7 +52,7 @@ function saveProfile() {
     lastName: state.guestLastName,
     emoji: state.guestEmoji,
     photo: state.guestPhoto,
-    phone: state.guestPhone,
+    email: state.guestEmail,
     instagram: state.guestInsta
   }));
 }
@@ -65,7 +65,7 @@ function loadProfile() {
       state.guestLastName = saved.lastName || '';
       state.guestEmoji = saved.emoji || '🎉';
       state.guestPhoto = saved.photo || null;
-      state.guestPhone = saved.phone || '';
+      state.guestEmail = saved.email || saved.phone || '';
       state.guestInsta = saved.instagram || '';
       return true;
     }
@@ -132,7 +132,7 @@ function setupProfile() {
   // Pre-fill if profile exists
   if (state.guestName) $('profile-firstname').value = state.guestName;
   if (state.guestLastName) $('profile-lastname').value = state.guestLastName;
-  if (state.guestPhone) $('profile-phone').value = state.guestPhone;
+  if (state.guestEmail) $('profile-email').value = state.guestEmail;
   if (state.guestInsta) $('profile-instagram').value = state.guestInsta;
   if (state.guestPhoto) {
     $('profile-photo-preview').src = state.guestPhoto;
@@ -165,7 +165,7 @@ function setupProfile() {
   $('profile-save').addEventListener('click', () => {
     state.guestName = $('profile-firstname').value.trim() || 'Guest';
     state.guestLastName = $('profile-lastname').value.trim();
-    state.guestPhone = $('profile-phone').value.trim();
+    state.guestEmail = $('profile-email').value.trim();
     state.guestInsta = $('profile-instagram').value.trim();
     saveProfile();
     
@@ -259,6 +259,12 @@ function enterCockpit() {
   // Hub buttons
   $('hub-btn').addEventListener('click', () => showScreen('hub'));
   $('hub-card-btn').addEventListener('click', () => showScreen('hub'));
+  
+  // Profile edit button → go to profile screen for editing
+  $('edit-profile-btn').addEventListener('click', () => {
+    showScreen('profile');
+    setupProfile();
+  });
   
   // Quit button → shows modal
   $('quit-btn').addEventListener('click', () => {
@@ -664,10 +670,88 @@ function populateKaraoke() {
 }
 
 function populateCostumes() {
-  // Start empty — populated when costume voting is activated
-  const costumes = [];
+  state.costumeEntries = state.costumeEntries || [];
+  state.costumeVoted = state.costumeVoted || null;
+  
+  // "Je participe" — photo upload
+  const photoInput = $('costume-photo-input');
+  if (photoInput) {
+    photoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataURL = ev.target.result;
+        // Show my entry
+        $('costume-my-photo').src = dataURL;
+        $('costume-my-entry').classList.remove('hidden');
+        $('costume-enter-label').textContent = '✅ INSCRIT !';
+        $('costume-enter-label').style.opacity = '0.6';
+        
+        // Emit to server
+        if (socket && socket.connected) {
+          socket.emit('costume:enter', {
+            guestName: state.guestName,
+            guestId: state.guestId,
+            photo: dataURL,
+            emoji: state.guestEmoji
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  
+  // Listen for costume entries from server
+  if (socket) {
+    socket.on('costume:entries', (entries) => {
+      state.costumeEntries = entries;
+      renderCostumeEntries();
+    });
+  }
+  
+  renderCostumeEntries();
+}
+
+function renderCostumeEntries() {
   const grid = $('costume-grid');
-  grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); font-size: 11px; padding: 12px;">Aucun participant pour le moment</div>';
+  const entries = state.costumeEntries || [];
+  
+  if (!entries.length) {
+    grid.innerHTML = '<div style="text-align: center; color: var(--text-dim); font-size: 11px; padding: 12px;">Aucun participant pour le moment</div>';
+    return;
+  }
+  
+  grid.innerHTML = '';
+  entries.forEach(entry => {
+    const card = document.createElement('div');
+    card.className = 'costume-card' + (state.costumeVoted === entry.guestId ? ' voted' : '');
+    const isMe = entry.guestId === state.guestId;
+    card.innerHTML = `
+      <img src="${entry.photo}" alt="${entry.guestName}" class="costume-photo">
+      <div class="costume-name">${entry.emoji || '🎭'} ${entry.guestName}${isMe ? ' (toi)' : ''}</div>
+      <div class="costume-votes">${entry.votes || 0} vote${(entry.votes || 0) > 1 ? 's' : ''}</div>
+      ${!isMe && !state.costumeVoted ? '<button class="costume-vote-btn">👍 VOTER</button>' : ''}
+      ${state.costumeVoted === entry.guestId ? '<span class="costume-voted-label">✅ Voté</span>' : ''}
+    `;
+    
+    const voteBtn = card.querySelector('.costume-vote-btn');
+    if (voteBtn) {
+      voteBtn.addEventListener('click', () => {
+        state.costumeVoted = entry.guestId;
+        if (socket && socket.connected) {
+          socket.emit('costume:vote', {
+            voterId: state.guestId,
+            voterName: state.guestName,
+            targetId: entry.guestId,
+            targetName: entry.guestName
+          });
+        }
+        renderCostumeEntries();
+      });
+    }
+    grid.appendChild(card);
+  });
 }
 
 function populateMissions() {

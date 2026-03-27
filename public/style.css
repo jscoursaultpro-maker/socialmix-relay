@@ -1102,3 +1102,100 @@ html, body {
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
   }
 }
+
+/* ─── Costume Contest ──────────────────── */
+.costume-participate { text-align: center; }
+.hub-actions { display: flex; justify-content: center; margin: 10px 0; }
+.hub-action-btn {
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+.hub-action-btn.green {
+  background: linear-gradient(135deg, var(--turquoise), #00b894);
+  color: var(--bg-dark);
+}
+.hub-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 12px 0;
+}
+.costume-my-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  margin-top: 8px;
+  background: var(--turquoise-glow);
+  border-radius: 10px;
+  border: 1px solid var(--border-glow);
+}
+.costume-entry-photo {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.costume-entry-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--turquoise);
+}
+.costume-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+.costume-card {
+  background: var(--surface);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  text-align: center;
+  padding-bottom: 8px;
+  transition: border-color 0.2s;
+}
+.costume-card.voted {
+  border-color: var(--turquoise);
+  box-shadow: 0 0 12px var(--turquoise-glow);
+}
+.costume-photo {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+.costume-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  padding: 6px 4px 2px;
+}
+.costume-votes {
+  font-size: 10px;
+  color: var(--turquoise);
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.costume-vote-btn {
+  background: var(--turquoise);
+  color: var(--bg-dark);
+  border: none;
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.costume-vote-btn:active { transform: scale(0.94); }
+.costume-voted-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--turquoise);
+}

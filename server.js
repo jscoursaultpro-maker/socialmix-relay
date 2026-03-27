@@ -33,7 +33,8 @@ const partyState = {
   guestVotes: {},         // {guestId: {trackId: voteType}}
   suggestions: [],        // [{query, guestName, sentAt}]
   hostProfile: null,      // {name, emoji}
-  photos: []              // [{dataURL, guestName, sentAt}]
+  photos: [],              // [{dataURL, guestName, sentAt}]
+  costumeEntries: []       // [{guestId, guestName, emoji, photo, votes}]
 };
 
 // ─── Helper: get local IP ───────────────────────────────────────────
@@ -186,11 +187,39 @@ io.on('connection', (socket) => {
       sentAt: new Date().toISOString()
     };
     partyState.photos.push(photo);
-    // Broadcast to all guests (including sender for confirmation)
     io.to('guests').emit('photo:shared', photo);
-    // Notify host
     io.to('host').emit('guest:photo', photo);
     console.log(`📸 Photo shared by ${photo.guestName}`);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // COSTUME CONTEST
+  // ═══════════════════════════════════════════════════════════════════
+
+  socket.on('costume:enter', (data) => {
+    // Prevent duplicates
+    partyState.costumeEntries = partyState.costumeEntries.filter(e => e.guestId !== data.guestId);
+    partyState.costumeEntries.push({
+      guestId: data.guestId || socket.id,
+      guestName: data.guestName || 'Guest',
+      emoji: data.emoji || '🎭',
+      photo: data.photo,
+      votes: 0
+    });
+    // Broadcast all entries to all guests
+    io.to('guests').emit('costume:entries', partyState.costumeEntries);
+    io.to('host').emit('costume:entries', partyState.costumeEntries);
+    console.log(`🎭 Costume entry: ${data.guestName}`);
+  });
+
+  socket.on('costume:vote', (data) => {
+    const entry = partyState.costumeEntries.find(e => e.guestId === data.targetId);
+    if (entry) {
+      entry.votes = (entry.votes || 0) + 1;
+    }
+    io.to('guests').emit('costume:entries', partyState.costumeEntries);
+    io.to('host').emit('costume:entries', partyState.costumeEntries);
+    console.log(`👍 Costume vote: ${data.voterName} → ${data.targetName}`);
   });
 
   // ═══════════════════════════════════════════════════════════════════
