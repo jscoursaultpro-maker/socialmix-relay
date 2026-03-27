@@ -491,38 +491,89 @@ html, body {
 
 /* Now Playing */
 .now-playing {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; align-items: center; gap: 16px;
   position: relative; overflow: hidden;
+  background: linear-gradient(135deg, rgba(30,58,138,0.15), var(--surface), rgba(59,130,246,0.08));
+  border: 1px solid rgba(59,130,246,0.15);
 }
 .now-playing::before {
   content: '';
   position: absolute; right: -30px; top: -20px;
-  width: 120px; height: 120px;
-  background: radial-gradient(circle, var(--turquoise-glow), transparent 70%);
-  filter: blur(30px); opacity: 0.5;
+  width: 140px; height: 140px;
+  background: radial-gradient(circle, rgba(59,130,246,0.25), rgba(0,224,195,0.1), transparent 70%);
+  filter: blur(35px); opacity: 0.7;
+  animation: glowPulse 3s ease-in-out infinite;
 }
-.np-artwork {
-  width: 72px; height: 72px;
-  background: linear-gradient(135deg, var(--turquoise-glow), var(--surface));
-  border-radius: var(--radius-md);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; overflow: hidden;
-  border: 1px solid var(--border-glow);
+
+/* Vinyl Disc */
+.vinyl-container {
   position: relative; z-index: 1;
+  width: 80px; height: 80px;
+  flex-shrink: 0;
 }
-.np-artwork img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-md); }
-.np-icon { font-size: 28px; }
-.np-info { position: relative; z-index: 1; }
+.vinyl-disc {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    #1a1a2e 0%, #0d0d1a 15%,
+    #1a1a2e 16%, #111128 30%,
+    #1a1a2e 31%, #0d0d1a 45%,
+    #1a1a2e 46%, #111128 100%
+  );
+  position: relative;
+  border: 2px solid rgba(59,130,246,0.2);
+  box-shadow:
+    0 0 12px rgba(59,130,246,0.15),
+    inset 0 0 15px rgba(0,0,0,0.5);
+  animation: vinylSpin 3s linear infinite;
+}
+.vinyl-disc.paused { animation-play-state: paused; }
+.vinyl-groove {
+  position: absolute; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.vinyl-groove:first-child { inset: 8px; }
+.vinyl-groove.groove-2 { inset: 16px; border-color: rgba(59,130,246,0.06); }
+.vinyl-groove.groove-3 { inset: 24px; border-color: rgba(255,255,255,0.03); }
+.vinyl-label {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #1e3a8a);
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid rgba(59,130,246,0.5);
+  box-shadow: 0 0 8px rgba(59,130,246,0.3);
+}
+.vinyl-note {
+  font-size: 11px; color: white; font-weight: bold;
+  animation: vinylSpinReverse 3s linear infinite;
+}
+.vinyl-glow {
+  position: absolute;
+  top: -6px; left: -6px; right: -6px; bottom: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59,130,246,0.2), transparent 60%);
+  animation: glowPulse 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes vinylSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes vinylSpinReverse { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+@keyframes glowPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+
+.np-info { position: relative; z-index: 1; flex: 1; min-width: 0; }
 .np-label {
-  font-size: 8px; font-weight: 900; color: var(--turquoise);
+  font-size: 8px; font-weight: 900; color: #3b82f6;
   letter-spacing: 1px;
   display: flex; align-items: center; gap: 4px;
 }
 .np-label::before {
-  content: ''; width: 4px; height: 4px;
-  background: var(--turquoise); border-radius: 50%;
+  content: ''; width: 5px; height: 5px;
+  background: #3b82f6; border-radius: 50%;
   animation: liveBlink 1.5s ease-in-out infinite;
-  box-shadow: 0 0 4px var(--turquoise);
+  box-shadow: 0 0 6px #3b82f6;
 }
 .np-title {
   font-size: 16px; font-weight: 900; color: var(--text-white);
@@ -533,10 +584,10 @@ html, body {
 .np-artist { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .np-meta { display: flex; gap: 6px; margin-top: 6px; }
 .np-badge {
-  font-size: 9px; font-weight: 900; color: var(--turquoise);
-  background: var(--surface); padding: 3px 8px;
+  font-size: 9px; font-weight: 900; color: #3b82f6;
+  background: rgba(59,130,246,0.1); padding: 3px 8px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(59,130,246,0.2);
   font-family: 'SF Mono', monospace;
 }
 .np-genre {
