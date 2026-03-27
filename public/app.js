@@ -408,7 +408,8 @@ function setupVoteButtons() {
           type,
           guestId: state.guestId,
           guestName: state.guestName,
-          trackId: state.currentTrack?.title || 'current'
+          trackId: state.currentTrack?.title || 'current',
+          trackTitle: state.currentTrack?.title || ''
         });
       }
       
