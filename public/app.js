@@ -29,7 +29,8 @@ let state = {
   currentTrack: null,
   mode: 'appMix',
   connected: false,
-  diapoPhotos: []
+  diapoPhotos: [],
+  allVotes: []
 };
 
 // ─── DOM Helper ──────────────────────────────────────
@@ -363,7 +364,10 @@ function connectToRelay() {
     saveSession();
   });
 
-  socket.on('vote:received', () => {});
+  socket.on('vote:received', (data) => {
+    state.allVotes.push(data);
+    updateEngagementFromVotes();
+  });
 
   // Participants list updated (for trombinoscope)
   socket.on('participants:update', (participants) => {
@@ -622,24 +626,54 @@ function renderTrombi(grid, users) {
 }
 
 function populateEngagement() {
-  // Start with empty data — will be populated from live votes
-  const topLiked = [];
+  updateEngagementFromVotes();
+}
+
+function updateEngagementFromVotes() {
+  // Build per-track vote counts from state
+  const trackFires = {};
+  const trackMehs = {};
+  const userVoteCounts = {};
+  
+  // Count votes from guestVotes stored on server state
+  if (state.allVotes && state.allVotes.length) {
+    state.allVotes.forEach(v => {
+      const title = v.trackTitle || v.trackId || 'Unknown';
+      if (v.type === 'fire') trackFires[title] = (trackFires[title] || 0) + 1;
+      if (v.type === 'meh') trackMehs[title] = (trackMehs[title] || 0) + 1;
+      userVoteCounts[v.guestName || 'Guest'] = (userVoteCounts[v.guestName || 'Guest'] || 0) + 1;
+    });
+  }
+  
+  // Top Liked
+  const topLiked = Object.entries(trackFires)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([title, count]) => ({ title, count }));
   renderRankedList('top-liked', topLiked, '\u{1F525}', 'var(--turquoise)');
   
-  const topHated = [];
+  // Top Hated
+  const topHated = Object.entries(trackMehs)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([title, count]) => ({ title, count }));
   renderRankedList('top-hated', topHated, '\u{1F44E}', 'var(--danger)');
   
   // Stats
-  $('likers-count').textContent = '0';
-  $('haters-count').textContent = '0';
+  const el1 = $('likers-count');
+  const el2 = $('haters-count');
+  if (el1) el1.textContent = Object.values(trackFires).reduce((a, b) => a + b, 0);
+  if (el2) el2.textContent = Object.values(trackMehs).reduce((a, b) => a + b, 0);
   
-  // Active users — empty until guests interact
-  const active = [];
+  // Active users
+  const active = Object.entries(userVoteCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, votes]) => ({ name, votes, emoji: '🕺' }));
   renderUserList('active-users', active, false);
   
-  // Ghosts
-  const ghosts = [];
-  renderUserList('ghost-users', ghosts, true);
+  // Ghosts — empty for now
+  renderUserList('ghost-users', [], true);
 }
 
 function renderRankedList(containerId, items, icon, color) {
@@ -656,7 +690,7 @@ function renderRankedList(containerId, items, icon, color) {
       </div>
       <div class="ranked-value" style="color: ${color}">
         <span>${icon}</span>
-        <span>${item.value}</span>
+        <span>${item.count || item.value}</span>
       </div>
     `;
     container.appendChild(el);
@@ -819,8 +853,15 @@ function handleDiapoPhoto(e) {
 function addDiapoPhoto(dataURL, guestName) {
   const grid = $('diapo-grid');
   const thumb = document.createElement('div');
-  thumb.className = 'diapo-thumb';
+  thumb.className = 'gallery-thumb';
   thumb.innerHTML = `<img src="${dataURL}" alt="photo de ${guestName || 'guest'}">`;
+  // Click to save
+  thumb.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.href = dataURL;
+    link.download = `socialmix_${guestName || 'photo'}_${Date.now()}.jpg`;
+    link.click();
+  });
   grid.appendChild(thumb);
 }
 
