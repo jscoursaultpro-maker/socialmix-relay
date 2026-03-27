@@ -347,7 +347,7 @@ function connectToRelay() {
     saveSession();
   });
 
-  // Party ended — show end screen with scores
+  // Party ended — show end screen with hub as final page
   socket.on('party:ended', (data) => {
     const reason = (data && data.reason) || '🎉 La soirée est terminée !';
     const scores = (data && data.scores) || {};
@@ -358,26 +358,42 @@ function connectToRelay() {
     const medals = ['🥇', '🥈', '🥉'];
     sortedScores.forEach((p, i) => {
       const medal = medals[i] || `#${i + 1}`;
-      leaderboard += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:rgba(255,255,255,0.05);border-radius:8px;margin-bottom:4px">
-        <span style="font-size:13px;font-weight:700;color:white">${medal} ${p.name}</span>
-        <span style="font-size:12px;font-weight:800;color:var(--turquoise)">${p.score} pts</span>
+      leaderboard += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.05);border-radius:10px;margin-bottom:4px">
+        <span style="font-size:14px;font-weight:700;color:white">${medal} ${p.name}</span>
+        <span style="font-size:13px;font-weight:800;color:var(--turquoise)">${p.score} pts <span style="font-size:10px;color:var(--text-dim)">(${p.voteCount} votes)</span></span>
       </div>`;
     });
     
-    // Show end screen
+    // Build gallery photos
+    const photos = (data && data.photos) || [];
+    let galleryHTML = '';
+    if (photos.length) {
+      galleryHTML = `
+        <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
+          <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:8px">📸 PHOTOS DE LA SOIRÉE</div>
+          <div class="gallery-grid">${photos.map(p => `<img src="${p.dataURL}" alt="${p.guestName}" style="border-radius:8px">`).join('')}</div>
+        </div>`;
+    }
+    
+    // Show end screen with hub
     const cockpit = $('cockpit-screen');
     cockpit.innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center">
-        <div style="font-size:60px;margin-bottom:16px">🎉</div>
-        <h2 style="color:white;font-size:22px;font-weight:900;margin-bottom:4px">SOIRÉE TERMINÉE</h2>
+      <div style="display:flex;flex-direction:column;align-items:center;padding:24px;text-align:center;overflow-y:auto;max-height:100vh">
+        <div style="font-size:60px;margin-bottom:12px">🎉</div>
+        <h2 style="color:white;font-size:24px;font-weight:900;margin-bottom:2px">LA SOIRÉE EST TERMINÉE</h2>
         <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px">${reason}</p>
+        
         ${sortedScores.length ? `
-          <div class="card" style="width:100%;max-width:340px;margin-bottom:16px">
-            <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">🏆 CLASSEMENT</div>
+          <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">🏆 CLASSEMENT DES PARTICIPANTS</div>
             ${leaderboard}
           </div>
         ` : ''}
+        
+        ${galleryHTML}
+        
         <button onclick="showScreen('landing');sessionStorage.clear()" class="join-btn" style="width:100%;max-width:300px;margin-top:12px">QUITTER</button>
+        <div style="height:40px"></div>
       </div>`;
     showScreen('cockpit');
   });
