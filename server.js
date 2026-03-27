@@ -34,7 +34,9 @@ const partyState = {
   suggestions: [],        // [{query, guestName, sentAt}]
   hostProfile: null,      // {name, emoji}
   photos: [],              // [{dataURL, guestName, sentAt}]
-  costumeEntries: []       // [{guestId, guestName, emoji, photo, votes}]
+  costumeEntries: [],       // [{guestId, guestName, emoji, photo, votes}]
+  participantScores: {},     // {guestId: {name, score, voteCount}}
+  guestGenreVotes: {}        // {guestId: genre}
 };
 
 // ─── Helper: get local IP ───────────────────────────────────────────
@@ -106,6 +108,7 @@ io.on('connection', (socket) => {
       partyState.photos = [];
       partyState.costumeEntries = [];
       partyState.guestGenreVotes = {};
+      partyState.participantScores = {};
     }
     
     partyState.code = newCode;
@@ -211,7 +214,21 @@ io.on('connection', (socket) => {
     io.to('host').emit('guest:voted', data);
     // Broadcast to all guests (for live counters)
     io.to('guests').emit('vote:received', data);
-    console.log(`🗳️ Vote: ${data.guestName} → ${data.type}`);
+    
+    // Scoring: Bof=1, TOP=2, Feu=4
+    const scoreMap = { meh: 1, like: 2, fire: 4 };
+    const pts = scoreMap[data.type] || 0;
+    if (pts > 0 && data.guestId) {
+      if (!partyState.participantScores[data.guestId]) {
+        partyState.participantScores[data.guestId] = { name: data.guestName, score: 0, voteCount: 0 };
+      }
+      partyState.participantScores[data.guestId].score += pts;
+      partyState.participantScores[data.guestId].voteCount += 1;
+      // Broadcast updated scores
+      io.to('guests').emit('scores:update', partyState.participantScores);
+      io.to('host').emit('scores:update', partyState.participantScores);
+    }
+    console.log(`🗳️ Vote: ${data.guestName} → ${data.type} (+${pts}pts)`);
   });
 
   // Guest votes on genre trend
@@ -293,6 +310,40 @@ io.on('connection', (socket) => {
     io.to('guests').emit('costume:entries', partyState.costumeEntries);
     io.to('host').emit('costume:entries', partyState.costumeEntries);
     console.log(`👍 Costume vote: ${data.voterName} → ${data.targetName}`);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // HOST VOTE (organizer votes also influence dancefloor)
+  // ═══════════════════════════════════════════════════════════════════
+
+  socket.on('host:vote', (data) => {
+    // Forward host vote as if it were a guest vote
+    io.to('guests').emit('vote:received', data);
+    // Score the host too
+    const scoreMap = { meh: 1, like: 2, fire: 4 };
+    const pts = scoreMap[data.type] || 0;
+    if (pts > 0) {
+      if (!partyState.participantScores.host) {
+        partyState.participantScores.host = { name: 'DJ', score: 0, voteCount: 0 };
+      }
+      partyState.participantScores.host.score += pts;
+      partyState.participantScores.host.voteCount += 1;
+    }
+    console.log(`🎧 Host vote: ${data.type} (+${pts}pts)`);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // END PARTY
+  // ═══════════════════════════════════════════════════════════════════
+
+  socket.on('host:endParty', () => {
+    io.to('guests').emit('party:ended', {
+      reason: 'La soirée est terminée ! Merci d\'avoir participé 🎉',
+      scores: partyState.participantScores,
+      trackHistory: partyState.trackHistory,
+      photos: partyState.photos
+    });
+    console.log('🎉 Party ended by host');
   });
 
   // ═══════════════════════════════════════════════════════════════════
