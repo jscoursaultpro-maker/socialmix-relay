@@ -29,10 +29,11 @@ const partyState = {
   trackHistory: [],       // [{title, artist, genre, bpm, playedAt}]
   genreVotes: {},         // {genre: count}
   vibeScore: 0,
-  participants: [],       // [{id, name, emoji, joinedAt}]
+  participants: [],       // [{id, name, emoji, photo, joinedAt}]
   guestVotes: {},         // {guestId: {trackId: voteType}}
   suggestions: [],        // [{query, guestName, sentAt}]
-  hostProfile: null       // {name, emoji}
+  hostProfile: null,      // {name, emoji}
+  photos: []              // [{dataURL, guestName, sentAt}]
 };
 
 // ─── Helper: get local IP ───────────────────────────────────────────
@@ -129,6 +130,7 @@ io.on('connection', (socket) => {
       id: socket.id,
       name: data.name || 'Guest',
       emoji: data.emoji || '🎉',
+      photo: data.photo || null,
       partyCode: data.partyCode,
       joinedAt: new Date().toISOString()
     };
@@ -137,11 +139,13 @@ io.on('connection', (socket) => {
     partyState.participants = partyState.participants.filter(p => p.name !== guest.name);
     partyState.participants.push(guest);
 
-    // Send full state to joining guest
-    socket.emit('party:state', partyState);
+    // Send full state to joining guest (include photos)
+    socket.emit('party:state', { ...partyState });
     
     // Notify host
     io.to('host').emit('guest:joined', guest);
+    // Broadcast updated participants to ALL guests (for trombinoscope)
+    io.to('guests').emit('participants:update', partyState.participants);
     console.log(`👤 Guest joined: ${guest.emoji} ${guest.name}`);
   });
 
@@ -174,12 +178,30 @@ io.on('connection', (socket) => {
     console.log(`💡 Suggestion: ${data.guestName} → "${data.query}"`);
   });
 
+  // Guest shares a photo (diapo)
+  socket.on('guest:photo', (data) => {
+    const photo = {
+      dataURL: data.dataURL,
+      guestName: data.guestName || 'Guest',
+      sentAt: new Date().toISOString()
+    };
+    partyState.photos.push(photo);
+    // Broadcast to all guests (including sender for confirmation)
+    io.to('guests').emit('photo:shared', photo);
+    // Notify host
+    io.to('host').emit('guest:photo', photo);
+    console.log(`📸 Photo shared by ${photo.guestName}`);
+  });
+
   // ═══════════════════════════════════════════════════════════════════
   // DISCONNECT
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('disconnect', () => {
     partyState.participants = partyState.participants.filter(p => p.id !== socket.id);
+    // Broadcast updated participants to remaining guests
+    io.to('guests').emit('participants:update', partyState.participants);
+    io.to('host').emit('guest:left', { id: socket.id });
     console.log(`❌ Disconnected: ${socket.id}`);
   });
 });

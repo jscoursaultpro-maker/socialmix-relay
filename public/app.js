@@ -311,6 +311,10 @@ function connectToRelay() {
     if (ps.genreVotes) { state.genreVotes = ps.genreVotes; updateGenreChart(); }
     if (ps.trackHistory) { state.trackHistory = ps.trackHistory; updateHistory(); }
     if (ps.mode) { state.mode = ps.mode; updateDJMode(); }
+    if (ps.participants) { updateTrombinoscope(ps.participants); }
+    if (ps.photos && ps.photos.length) {
+      ps.photos.forEach(p => addDiapoPhoto(p.dataURL, p.guestName));
+    }
     saveSession();
   });
 
@@ -339,6 +343,16 @@ function connectToRelay() {
   });
 
   socket.on('vote:received', () => {});
+
+  // Participants list updated (for trombinoscope)
+  socket.on('participants:update', (participants) => {
+    updateTrombinoscope(participants);
+  });
+
+  // Photo shared by another guest (for diapo)
+  socket.on('photo:shared', (photo) => {
+    addDiapoPhoto(photo.dataURL, photo.guestName);
+  });
 }
 
 // ─── UI Updates ──────────────────────────────────────
@@ -553,17 +567,30 @@ function populateTrombinoscope() {
   const users = [
     { name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto }
   ];
-  
+  renderTrombi(grid, users);
+}
+
+function updateTrombinoscope(participants) {
+  const grid = $('trombi-grid');
+  // Merge self + server participants (avoid duplicates)
+  const users = [{ name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto }];
+  participants.forEach(p => {
+    if (p.name !== state.guestName) {
+      users.push({ name: p.name, emoji: p.emoji || '🎉', photo: p.photo || null });
+    }
+  });
+  renderTrombi(grid, users);
+}
+
+function renderTrombi(grid, users) {
   grid.innerHTML = '';
   users.forEach(u => {
     const item = document.createElement('div');
     item.className = 'trombi-item';
-    
     const bgColor = u.photo ? 'transparent' : `rgba(59, 130, 246, 0.3)`;
     const content = u.photo
       ? `<img src="${u.photo}" alt="${u.name}">`
       : u.emoji;
-    
     item.innerHTML = `
       <div class="trombi-avatar" style="background: ${bgColor}">${content}</div>
       <div class="trombi-name">${u.name}</div>
@@ -674,14 +701,27 @@ function handleDiapoPhoto(e) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
-    state.diapoPhotos.push(ev.target.result);
-    const grid = $('diapo-grid');
-    const thumb = document.createElement('div');
-    thumb.className = 'diapo-thumb';
-    thumb.innerHTML = `<img src="${ev.target.result}" alt="photo">`;
-    grid.appendChild(thumb);
+    const dataURL = ev.target.result;
+    state.diapoPhotos.push(dataURL);
+    addDiapoPhoto(dataURL, state.guestName);
+    
+    // Emit to server for broadcast to other guests
+    if (socket && socket.connected) {
+      socket.emit('guest:photo', {
+        dataURL: dataURL,
+        guestName: state.guestName
+      });
+    }
   };
   reader.readAsDataURL(file);
+}
+
+function addDiapoPhoto(dataURL, guestName) {
+  const grid = $('diapo-grid');
+  const thumb = document.createElement('div');
+  thumb.className = 'diapo-thumb';
+  thumb.innerHTML = `<img src="${dataURL}" alt="photo de ${guestName || 'guest'}">`;
+  grid.appendChild(thumb);
 }
 
 // ═══════════════════════════════════════════
