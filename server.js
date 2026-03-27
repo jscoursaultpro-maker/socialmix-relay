@@ -113,8 +113,23 @@ io.on('connection', (socket) => {
     
     partyState.code = newCode;
     partyState.hostProfile = data.profile || null;
-    console.log(`🎉 Party started: ${partyState.code}`);
+    
+    // Add host as first participant
+    const hostName = (data.profile && data.profile.name) || 'DJ';
+    const hostEmoji = (data.profile && data.profile.emoji) || '🎧';
+    partyState.participants = [{
+      id: socket.id,
+      name: hostName,
+      emoji: hostEmoji,
+      photo: null,
+      partyCode: newCode,
+      joinedAt: new Date().toISOString(),
+      isHost: true
+    }];
+    
+    console.log(`🎉 Party started: ${partyState.code} (host: ${hostName})`);
     io.to('guests').emit('party:started', { code: partyState.code, profile: partyState.hostProfile });
+    io.to('guests').emit('participants:update', partyState.participants);
   });
 
   // Host sends current track update
@@ -318,18 +333,31 @@ io.on('connection', (socket) => {
 
   socket.on('host:vote', (data) => {
     // Forward host vote as if it were a guest vote
-    io.to('guests').emit('vote:received', data);
+    const voteData = {
+      ...data,
+      trackTitle: data.trackTitle || (partyState.currentTrack && partyState.currentTrack.title) || 'Titre en cours',
+      trackId: data.trackTitle || (partyState.currentTrack && partyState.currentTrack.title) || 'current'
+    };
+    io.to('guests').emit('vote:received', voteData);
     // Score the host too
     const scoreMap = { meh: 1, like: 2, fire: 4 };
     const pts = scoreMap[data.type] || 0;
     if (pts > 0) {
       if (!partyState.participantScores.host) {
-        partyState.participantScores.host = { name: 'DJ', score: 0, voteCount: 0 };
+        partyState.participantScores.host = { name: data.guestName || 'DJ', score: 0, voteCount: 0 };
       }
       partyState.participantScores.host.score += pts;
       partyState.participantScores.host.voteCount += 1;
+      io.to('guests').emit('scores:update', partyState.participantScores);
+      io.to('host').emit('scores:update', partyState.participantScores);
     }
-    console.log(`🎧 Host vote: ${data.type} (+${pts}pts)`);
+    
+    // Update vibe score for dancefloor
+    const vibeMap = { meh: -1, like: 1, fire: 3 };
+    partyState.vibeScore = Math.max(0, partyState.vibeScore + (vibeMap[data.type] || 0));
+    io.to('guests').emit('votes:update', { genreVotes: partyState.genreVotes, vibeScore: partyState.vibeScore });
+    
+    console.log(`🎧 Host vote: ${data.type} (+${pts}pts, vibe=${partyState.vibeScore})`);
   });
 
   // ═══════════════════════════════════════════════════════════════════
