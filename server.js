@@ -167,8 +167,27 @@ io.on('connection', (socket) => {
 
   // Guest votes on genre trend
   socket.on('guest:genreVote', (data) => {
+    const guestId = data.guestId || socket.id;
+    const genre = data.genre;
+    
+    // Remove previous genre vote for this guest
+    if (partyState.guestGenreVotes && partyState.guestGenreVotes[guestId]) {
+      const prevGenre = partyState.guestGenreVotes[guestId];
+      if (partyState.genreVotes[prevGenre]) {
+        partyState.genreVotes[prevGenre] = Math.max(0, partyState.genreVotes[prevGenre] - 1);
+        if (partyState.genreVotes[prevGenre] === 0) delete partyState.genreVotes[prevGenre];
+      }
+    }
+    
+    // Track this guest's genre vote
+    if (!partyState.guestGenreVotes) partyState.guestGenreVotes = {};
+    partyState.guestGenreVotes[guestId] = genre;
+    
+    // Increment new genre
+    partyState.genreVotes[genre] = (partyState.genreVotes[genre] || 0) + 1;
+    
     io.to('host').emit('guest:genreVoted', data);
-    console.log(`🎵 Genre vote: ${data.guestName} → ${data.genre}`);
+    console.log(`🎵 Genre vote: ${data.guestName} → ${genre} (total: ${partyState.genreVotes[genre]})`);
   });
 
   // Guest suggests a track
@@ -227,8 +246,19 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('disconnect', () => {
+    // Remove genre vote for this guest
+    if (partyState.guestGenreVotes && partyState.guestGenreVotes[socket.id]) {
+      const genre = partyState.guestGenreVotes[socket.id];
+      if (partyState.genreVotes[genre]) {
+        partyState.genreVotes[genre] = Math.max(0, partyState.genreVotes[genre] - 1);
+        if (partyState.genreVotes[genre] === 0) delete partyState.genreVotes[genre];
+      }
+      delete partyState.guestGenreVotes[socket.id];
+      // Notify host of updated genre votes
+      io.to('host').emit('guest:genreVoted', { genre, guestName: 'left', removed: true });
+    }
+    
     partyState.participants = partyState.participants.filter(p => p.id !== socket.id);
-    // Broadcast updated participants to remaining guests
     io.to('guests').emit('participants:update', partyState.participants);
     io.to('host').emit('guest:left', { id: socket.id });
     console.log(`❌ Disconnected: ${socket.id}`);
