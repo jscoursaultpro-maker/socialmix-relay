@@ -495,6 +495,8 @@ html, body {
   position: relative; overflow: hidden;
   background: linear-gradient(135deg, rgba(30,58,138,0.15), var(--surface), rgba(59,130,246,0.08));
   border: 1px solid rgba(59,130,246,0.15);
+  padding: 16px !important;
+  min-height: 110px;
 }
 .now-playing::before {
   content: '';
