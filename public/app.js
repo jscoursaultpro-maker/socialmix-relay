@@ -6,7 +6,7 @@
 // ─── Config ──────────────────────────────────────────
 const STORAGE_KEY = 'socialmix_guest';
 const PROFILE_KEY = 'socialmix_profile';
-const GENRES = ['Electro', 'Disco', 'Hip-Hop', 'Latino', 'Pop', 'Rock'];
+const GENRES = ['Dance', 'Disco', 'Hip-Hop', 'House', 'Electro', 'Pop', 'R&B', 'Latin', 'Club', 'Rock'];
 const EMOJIS = ['🎉','🕺','💃','🎶','🌟','🤩','😎','🎭','🔥','💪','✨','💫','🎵','🥳','😈','🦄'];
 
 // ─── State ───────────────────────────────────────────
