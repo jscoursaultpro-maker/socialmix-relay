@@ -76,7 +76,39 @@ io.on('connection', (socket) => {
   // Host starts/joins party
   socket.on('host:startParty', (data) => {
     socket.join('host');
-    partyState.code = data.code || 'TEUF2025';
+    const newCode = data.code || 'TEUF2025';
+    
+    // If new party code → reset everything and kick stale guests
+    if (newCode !== partyState.code) {
+      console.log(`🔄 New party ${newCode} — resetting state, kicking stale guests`);
+      
+      // Notify stale guests their party is over
+      io.to('guests').emit('party:ended', { reason: 'Nouvelle soirée créée' });
+      
+      // Force all guests to leave the room
+      const sockets = io.sockets.adapter.rooms.get('guests');
+      if (sockets) {
+        for (const sid of sockets) {
+          const s = io.sockets.sockets.get(sid);
+          if (s) s.leave('guests');
+        }
+      }
+      
+      // Full state reset
+      partyState.currentTrack = null;
+      partyState.nextTrack = null;
+      partyState.trackHistory = [];
+      partyState.genreVotes = {};
+      partyState.vibeScore = 0;
+      partyState.participants = [];
+      partyState.guestVotes = {};
+      partyState.suggestions = [];
+      partyState.photos = [];
+      partyState.costumeEntries = [];
+      partyState.guestGenreVotes = {};
+    }
+    
+    partyState.code = newCode;
     partyState.hostProfile = data.profile || null;
     console.log(`🎉 Party started: ${partyState.code}`);
     io.to('guests').emit('party:started', { code: partyState.code, profile: partyState.hostProfile });
@@ -124,15 +156,32 @@ io.on('connection', (socket) => {
   // GUEST EVENTS (Web App → Server → Host)
   // ═══════════════════════════════════════════════════════════════════
 
+  // Helper: validate guest belongs to current party
+  function isValidGuest() {
+    return socket.partyCode && socket.partyCode === partyState.code;
+  }
+
   // Guest joins the party
   socket.on('guest:join', (data) => {
+    const guestPartyCode = (data.partyCode || '').toUpperCase();
+    
+    // Validate party code
+    if (partyState.code && guestPartyCode !== partyState.code) {
+      socket.emit('party:wrongCode', { message: 'Code incorrect' });
+      console.log(`⛔ Wrong code: ${guestPartyCode} (expected ${partyState.code})`);
+      return;
+    }
+    
+    // Store party code on socket for future validation
+    socket.partyCode = partyState.code;
     socket.join('guests');
+    
     const guest = {
       id: socket.id,
       name: data.name || 'Guest',
       emoji: data.emoji || '🎉',
       photo: data.photo || null,
-      partyCode: data.partyCode,
+      partyCode: guestPartyCode,
       joinedAt: new Date().toISOString()
     };
     
@@ -140,18 +189,18 @@ io.on('connection', (socket) => {
     partyState.participants = partyState.participants.filter(p => p.name !== guest.name);
     partyState.participants.push(guest);
 
-    // Send full state to joining guest (include photos)
+    // Send full state to joining guest
     socket.emit('party:state', { ...partyState });
     
     // Notify host
     io.to('host').emit('guest:joined', guest);
-    // Broadcast updated participants to ALL guests (for trombinoscope)
     io.to('guests').emit('participants:update', partyState.participants);
-    console.log(`👤 Guest joined: ${guest.emoji} ${guest.name}`);
+    console.log(`👤 Guest joined: ${guest.emoji} ${guest.name} [${guestPartyCode}]`);
   });
 
   // Guest votes on current track
   socket.on('guest:vote', (data) => {
+    if (!isValidGuest()) return;
     // Store vote
     if (!partyState.guestVotes[data.guestId]) {
       partyState.guestVotes[data.guestId] = {};
@@ -167,6 +216,7 @@ io.on('connection', (socket) => {
 
   // Guest votes on genre trend
   socket.on('guest:genreVote', (data) => {
+    if (!isValidGuest()) return;
     const guestId = data.guestId || socket.id;
     const genre = data.genre;
     
@@ -192,14 +242,16 @@ io.on('connection', (socket) => {
 
   // Guest suggests a track
   socket.on('guest:suggest', (data) => {
+    if (!isValidGuest()) return;
     const suggestion = { ...data, sentAt: new Date().toISOString() };
     partyState.suggestions.push(suggestion);
     io.to('host').emit('guest:suggested', suggestion);
     console.log(`💡 Suggestion: ${data.guestName} → "${data.query}"`);
   });
 
-  // Guest shares a photo (diapo)
+  // Guest shares a photo
   socket.on('guest:photo', (data) => {
+    if (!isValidGuest()) return;
     const photo = {
       dataURL: data.dataURL,
       guestName: data.guestName || 'Guest',
@@ -216,6 +268,7 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('costume:enter', (data) => {
+    if (!isValidGuest()) return;
     // Prevent duplicates
     partyState.costumeEntries = partyState.costumeEntries.filter(e => e.guestId !== data.guestId);
     partyState.costumeEntries.push({
@@ -232,6 +285,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('costume:vote', (data) => {
+    if (!isValidGuest()) return;
     const entry = partyState.costumeEntries.find(e => e.guestId === data.targetId);
     if (entry) {
       entry.votes = (entry.votes || 0) + 1;

@@ -324,6 +324,21 @@ function connectToRelay() {
     saveSession();
   });
 
+  // Party ended — host started a new session
+  socket.on('party:ended', () => {
+    sessionStorage.clear();
+    state.partyCode = null;
+    state.currentVote = null;
+    alert('🎉 La soirée est terminée ! Scannez le nouveau QR code pour rejoindre.');
+    showScreen('landing');
+  });
+
+  // Wrong party code
+  socket.on('party:wrongCode', () => {
+    alert('⛔ Code de soirée incorrect. Vérifie le QR code.');
+    showScreen('landing');
+  });
+
   socket.on('track:update', (track) => {
     state.currentTrack = track;
     state.currentVote = null;
