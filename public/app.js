@@ -423,13 +423,17 @@ function setupVoteButtons() {
       updateVoteButtons();
       
       if (socket && socket.connected) {
-        socket.emit('guest:vote', {
+        const voteData = {
           type,
           guestId: state.guestId,
           guestName: state.guestName,
           trackId: state.currentTrack?.title || 'current',
-          trackTitle: state.currentTrack?.title || ''
-        });
+          trackTitle: state.currentTrack?.title || 'Titre en cours'
+        };
+        socket.emit('guest:vote', voteData);
+        // Track own vote for engagement dashboard
+        state.allVotes.push(voteData);
+        updateEngagementFromVotes();
       }
       
       $('vote-status').textContent = '✅ Vote enregistré';
@@ -768,26 +772,28 @@ function renderCostumeEntries() {
   const entries = state.costumeEntries || [];
   
   if (!entries.length) {
-    grid.innerHTML = '<div style="text-align: center; color: var(--text-dim); font-size: 11px; padding: 12px;">Aucun participant pour le moment</div>';
+    grid.innerHTML = '<div style="text-align: center; color: var(--text-dim); font-size: 11px; padding: 16px;">⏳ En attente de participants...</div>';
     return;
   }
   
   grid.innerHTML = '';
   entries.forEach(entry => {
     const card = document.createElement('div');
-    card.className = 'costume-card' + (state.costumeVoted === entry.guestId ? ' voted' : '');
+    const isVoted = state.costumeVoted === entry.guestId;
     const isMe = entry.guestId === state.guestId;
+    card.className = 'costume-card' + (isVoted ? ' voted' : '');
     card.innerHTML = `
-      <img src="${entry.photo}" alt="${entry.guestName}" class="costume-photo">
-      <div class="costume-name">${entry.emoji || '🎭'} ${entry.guestName}${isMe ? ' (toi)' : ''}</div>
-      <div class="costume-votes">${entry.votes || 0} vote${(entry.votes || 0) > 1 ? 's' : ''}</div>
-      ${!isMe && !state.costumeVoted ? '<button class="costume-vote-btn">👍 VOTER</button>' : ''}
-      ${state.costumeVoted === entry.guestId ? '<span class="costume-voted-label">✅ Voté</span>' : ''}
+      <div class="costume-photo-wrap${isVoted ? ' selected' : ''}">
+        ${entry.photo ? `<img src="${entry.photo}" alt="${entry.guestName}" class="costume-photo">` : `<div class="costume-emoji">${entry.emoji || '🎭'}</div>`}
+      </div>
+      <div class="costume-name">${entry.guestName}${isMe ? ' (toi)' : ''}</div>
+      <div class="costume-votes">${entry.votes || 0} ❤️</div>
     `;
     
-    const voteBtn = card.querySelector('.costume-vote-btn');
-    if (voteBtn) {
-      voteBtn.addEventListener('click', () => {
+    // Click photo to vote (not on self)
+    if (!isMe && !state.costumeVoted) {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', () => {
         state.costumeVoted = entry.guestId;
         if (socket && socket.connected) {
           socket.emit('costume:vote', {
@@ -806,7 +812,6 @@ function renderCostumeEntries() {
 
 function populateMissions() {
   const missions = [
-    { icon: '🎤', title: 'Karaoké Master', desc: 'Chante 3 chansons ce soir' },
     { icon: '📸', title: 'Paparazzi', desc: 'Prends 5 photos de la soirée' },
     { icon: '🕺', title: 'Dance Machine', desc: 'Vote pour 10 titres' },
     { icon: '🎭', title: 'Social Butterfly', desc: 'Parle à 5 personnes différentes' },

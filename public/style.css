@@ -1182,6 +1182,26 @@ html, body {
   font-weight: 800;
   margin-bottom: 4px;
 }
+.costume-photo-wrap {
+  position: relative;
+  border: 3px solid transparent;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.costume-photo-wrap.selected {
+  border-color: var(--turquoise);
+  box-shadow: 0 0 15px var(--turquoise-glow);
+}
+.costume-emoji {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  background: rgba(139, 92, 246, 0.15);
+}
 .costume-vote-btn {
   background: var(--turquoise);
   color: var(--bg-dark);
