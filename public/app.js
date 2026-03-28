@@ -796,47 +796,45 @@ function populateKaraoke() {
 function populateCostumes() {
   state.costumeEntries = state.costumeEntries || [];
   state.costumeVoted = state.costumeVoted || null;
+  state.costumeRegistered = state.costumeRegistered || false;
   
-  // "Je participe" — photo upload (overlay input fires change directly)
-  const photoInput = $('costume-photo-input');
-  if (photoInput) {
-    photoInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      e.target.value = ''; // Reset for re-selection
+  const enterBtn = $('costume-enter-btn');
+  if (enterBtn) {
+    // If already registered, show that
+    if (state.costumeRegistered) {
+      enterBtn.textContent = '✅ INSCRIT !';
+      enterBtn.style.opacity = '0.6';
+      enterBtn.disabled = true;
+    }
+    
+    enterBtn.addEventListener('click', () => {
+      if (state.costumeRegistered) return;
+      state.costumeRegistered = true;
       
-      resizeImage(file, 800, 0.7, (dataURL) => {
-        if (!dataURL) return;
-        
-        // Show my entry preview
-        $('costume-my-photo').src = dataURL;
-        $('costume-my-entry').classList.remove('hidden');
-        $('costume-enter-label').textContent = '✅ INSCRIT !';
-        $('costume-enter-label').style.pointerEvents = 'none';
-        $('costume-enter-label').style.opacity = '0.6';
-        
-        // Add self to local entries immediately (instant feedback)
-        const myEntry = {
+      // Update button
+      enterBtn.textContent = '✅ INSCRIT !';
+      enterBtn.style.opacity = '0.6';
+      enterBtn.disabled = true;
+      
+      // Add self to local entries immediately
+      const myEntry = {
+        guestName: state.guestName,
+        guestId: state.guestId,
+        emoji: state.guestEmoji,
+        votes: 0
+      };
+      state.costumeEntries = (state.costumeEntries || []).filter(e => e.guestId !== state.guestId);
+      state.costumeEntries.push(myEntry);
+      renderCostumeEntries();
+      
+      // Emit to server
+      if (socket && socket.connected) {
+        socket.emit('costume:enter', {
           guestName: state.guestName,
           guestId: state.guestId,
-          photo: dataURL,
-          emoji: state.guestEmoji,
-          votes: 0
-        };
-        state.costumeEntries = (state.costumeEntries || []).filter(e => e.guestId !== state.guestId);
-        state.costumeEntries.push(myEntry);
-        renderCostumeEntries();
-        
-        // Emit to server
-        if (socket && socket.connected) {
-          socket.emit('costume:enter', {
-            guestName: state.guestName,
-            guestId: state.guestId,
-            photo: dataURL,
-            emoji: state.guestEmoji
-          });
-        }
-      });
+          emoji: state.guestEmoji
+        });
+      }
     });
   }
   
