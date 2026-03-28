@@ -286,9 +286,11 @@
             </div>
             <div class="hub-card-body">
                 <p class="hub-text">Photos de la soirée</p>
-                <div class="hub-actions">
+                <div class="hub-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
                     <label class="hub-action-btn green" for="diapo-input">📷 PRENDRE UNE PHOTO</label>
-                    <input type="file" id="diapo-input" accept="image/*" capture="user" hidden>
+                    <input type="file" id="diapo-input" accept="image/*" capture="environment" hidden>
+                    <label class="hub-action-btn turquoise" for="diapo-gallery-input">🖼️ GALERIE</label>
+                    <input type="file" id="diapo-gallery-input" accept="image/*" hidden>
                 </div>
                 <div id="diapo-grid" class="gallery-grid"></div>
             </div>

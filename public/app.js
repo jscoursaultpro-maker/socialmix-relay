@@ -657,8 +657,9 @@ function setupSocialHub() {
   populateCostumes();
   populateMissions();
   
-  // Diapo photo upload
+  // Diapo photo upload (camera + gallery)
   $('diapo-input').addEventListener('change', handleDiapoPhoto);
+  $('diapo-gallery-input').addEventListener('change', handleDiapoPhoto);
 }
 
 function populateTrombinoscope() {
@@ -926,17 +927,18 @@ function handleDiapoPhoto(e) {
 
 function addDiapoPhoto(dataURL, guestName) {
   const grid = $('diapo-grid');
-  const thumb = document.createElement('div');
-  thumb.className = 'gallery-thumb';
-  thumb.innerHTML = `<img src="${dataURL}" alt="photo de ${guestName || 'guest'}">`;
+  const img = document.createElement('img');
+  img.src = dataURL;
+  img.alt = `photo de ${guestName || 'guest'}`;
+  img.style.borderRadius = '8px';
   // Click to save
-  thumb.addEventListener('click', () => {
+  img.addEventListener('click', () => {
     const link = document.createElement('a');
     link.href = dataURL;
     link.download = `socialmix_${guestName || 'photo'}_${Date.now()}.jpg`;
     link.click();
   });
-  grid.appendChild(thumb);
+  grid.appendChild(img);
 }
 
 // ═══════════════════════════════════════════
@@ -1016,6 +1018,12 @@ function init() {
   // Auto-rejoin if session + profile exist
   if (hasSession && hasProfile && state.partyCode && state.guestName) {
     enterCockpit();
+  } else if (params.code && hasProfile && state.guestName) {
+    // QR scan with existing profile → skip to cockpit directly
+    enterCockpit();
+  } else if (params.code) {
+    // QR scan, no profile yet → skip landing, go to profile
+    showScreen('profile');
   } else {
     showScreen('landing');
   }
