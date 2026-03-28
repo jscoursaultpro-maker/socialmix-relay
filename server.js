@@ -78,7 +78,8 @@ io.on('connection', (socket) => {
   // Host starts/joins party
   socket.on('host:startParty', (data) => {
     socket.join('host');
-    const newCode = data.code || 'TEUF2025';
+    socket.partyCode = data.code || 'TEUF2025';  // So host passes isValidGuest() too
+    const newCode = socket.partyCode;
     
     // If new party code → reset everything and kick stale guests
     if (newCode !== partyState.code) {
