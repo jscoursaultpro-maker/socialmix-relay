@@ -657,9 +657,7 @@ function setupSocialHub() {
   populateCostumes();
   populateMissions();
   
-  // Diapo photo upload (camera + gallery) — use .click() for mobile Safari reliability
-  $('diapo-camera-btn').addEventListener('click', () => $('diapo-input').click());
-  $('diapo-gallery-btn').addEventListener('click', () => $('diapo-gallery-input').click());
+  // Diapo photo upload (overlay inputs fire change directly)
   $('diapo-input').addEventListener('change', handleDiapoPhoto);
   $('diapo-gallery-input').addEventListener('change', handleDiapoPhoto);
 }
@@ -799,8 +797,7 @@ function populateCostumes() {
   state.costumeEntries = state.costumeEntries || [];
   state.costumeVoted = state.costumeVoted || null;
   
-  // "Je participe" — trigger file input from button click
-  $('costume-enter-label').addEventListener('click', () => $('costume-photo-input').click());
+  // "Je participe" — photo upload (overlay input fires change directly)
   const photoInput = $('costume-photo-input');
   if (photoInput) {
     photoInput.addEventListener('change', (e) => {
