@@ -806,11 +806,24 @@ function populateCostumes() {
       const reader = new FileReader();
       reader.onload = (ev) => {
         const dataURL = ev.target.result;
-        // Show my entry
+        // Show my entry preview
         $('costume-my-photo').src = dataURL;
         $('costume-my-entry').classList.remove('hidden');
         $('costume-enter-label').textContent = '✅ INSCRIT !';
         $('costume-enter-label').style.opacity = '0.6';
+        
+        // Add self to local entries immediately (instant feedback)
+        const myEntry = {
+          guestName: state.guestName,
+          guestId: state.guestId,
+          photo: dataURL,
+          emoji: state.guestEmoji,
+          votes: 0
+        };
+        // Remove old self entry if exists, then add new
+        state.costumeEntries = (state.costumeEntries || []).filter(e => e.guestId !== state.guestId);
+        state.costumeEntries.push(myEntry);
+        renderCostumeEntries();
         
         // Emit to server
         if (socket && socket.connected) {
