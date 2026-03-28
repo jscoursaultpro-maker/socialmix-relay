@@ -803,13 +803,16 @@ function populateCostumes() {
     photoInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const dataURL = ev.target.result;
+      e.target.value = ''; // Reset for re-selection
+      
+      resizeImage(file, 800, 0.7, (dataURL) => {
+        if (!dataURL) return;
+        
         // Show my entry preview
         $('costume-my-photo').src = dataURL;
         $('costume-my-entry').classList.remove('hidden');
         $('costume-enter-label').textContent = '✅ INSCRIT !';
+        $('costume-enter-label').style.pointerEvents = 'none';
         $('costume-enter-label').style.opacity = '0.6';
         
         // Add self to local entries immediately (instant feedback)
@@ -820,7 +823,6 @@ function populateCostumes() {
           emoji: state.guestEmoji,
           votes: 0
         };
-        // Remove old self entry if exists, then add new
         state.costumeEntries = (state.costumeEntries || []).filter(e => e.guestId !== state.guestId);
         state.costumeEntries.push(myEntry);
         renderCostumeEntries();
@@ -834,8 +836,7 @@ function populateCostumes() {
             emoji: state.guestEmoji
           });
         }
-      };
-      reader.readAsDataURL(file);
+      });
     });
   }
   
@@ -921,21 +922,63 @@ function populateMissions() {
 function handleDiapoPhoto(e) {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const dataURL = ev.target.result;
+  
+  // Reset input so same photo can be re-selected
+  e.target.value = '';
+  
+  // Show loading feedback
+  const grid = $('diapo-grid');
+  const loadingEl = document.createElement('div');
+  loadingEl.style.cssText = 'display:flex;align-items:center;justify-content:center;background:rgba(0,224,196,0.1);border-radius:8px;aspect-ratio:1;font-size:20px;';
+  loadingEl.textContent = '⏳';
+  grid.appendChild(loadingEl);
+  
+  // Resize image via Canvas (max 800px, JPEG 70%)
+  resizeImage(file, 800, 0.7, (dataURL) => {
+    // Remove loading indicator
+    loadingEl.remove();
+    
+    if (!dataURL) {
+      console.error('[SocialMix] Failed to resize photo');
+      return;
+    }
+    
     state.diapoPhotos.push(dataURL);
     addDiapoPhoto(dataURL, state.guestName);
     
-    // Emit to server for broadcast to other guests
+    // Emit to server for host slideshow + other guests
     if (socket && socket.connected) {
       socket.emit('guest:photo', {
         dataURL: dataURL,
         guestName: state.guestName
       });
     }
+  });
+}
+
+function resizeImage(file, maxSize, quality, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    let w = img.width, h = img.height;
+    if (w > h) {
+      if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; }
+    } else {
+      if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; }
+    }
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const dataURL = canvas.toDataURL('image/jpeg', quality);
+    URL.revokeObjectURL(img.src);
+    callback(dataURL);
   };
-  reader.readAsDataURL(file);
+  img.onerror = () => {
+    URL.revokeObjectURL(img.src);
+    callback(null);
+  };
+  img.src = URL.createObjectURL(file);
 }
 
 function addDiapoPhoto(dataURL, guestName) {
