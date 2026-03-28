@@ -270,7 +270,10 @@ io.on('connection', (socket) => {
     partyState.genreVotes[genre] = (partyState.genreVotes[genre] || 0) + 1;
     
     io.to('host').emit('guest:genreVoted', data);
-    console.log(`🎵 Genre vote: ${data.guestName} → ${genre} (total: ${partyState.genreVotes[genre]})`);
+    // Broadcast updated genre counts to ALL guests so UI refreshes
+    io.to('guests').emit('votes:update', { genreVotes: partyState.genreVotes });
+    io.to('host').emit('votes:update', { genreVotes: partyState.genreVotes });
+    console.log(`🎵 Genre vote: ${data.guestName} → ${genre} (total: ${partyState.genreVotes[genre]}) | votes: ${JSON.stringify(partyState.genreVotes)}`);
   });
 
   // Guest suggests a track

@@ -424,7 +424,8 @@ function connectToRelay() {
 
   socket.on('votes:update', (data) => {
     state.genreVotes = data.genreVotes || {};
-    updateGenreChart();
+    setupGenreTrends();   // refresh genre button grid with new counts
+    updateGenreChart();   // refresh chart bars + trending badge
   });
 
   socket.on('history:update', (history) => {
