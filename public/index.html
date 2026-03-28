@@ -287,10 +287,10 @@
             <div class="hub-card-body">
                 <p class="hub-text">Photos de la soirée</p>
                 <div class="hub-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <label class="hub-action-btn green" for="diapo-input">📷 PRENDRE UNE PHOTO</label>
-                    <input type="file" id="diapo-input" accept="image/*" capture="environment" hidden>
-                    <label class="hub-action-btn turquoise" for="diapo-gallery-input">🖼️ GALERIE</label>
-                    <input type="file" id="diapo-gallery-input" accept="image/*" hidden>
+                    <button class="hub-action-btn green" id="diapo-camera-btn" type="button">📷 PRENDRE UNE PHOTO</button>
+                    <input type="file" id="diapo-input" accept="image/*" capture="environment" style="display:none">
+                    <button class="hub-action-btn turquoise" id="diapo-gallery-btn" type="button">🖼️ GALERIE</button>
+                    <input type="file" id="diapo-gallery-input" accept="image/*" style="display:none">
                 </div>
                 <div id="diapo-grid" class="gallery-grid"></div>
             </div>
@@ -359,8 +359,8 @@
                 <div id="costume-participate" class="costume-participate">
                     <p class="hub-text">Participe au concours du meilleur déguisement !</p>
                     <div class="hub-actions">
-                        <label class="hub-action-btn green" id="costume-enter-label" for="costume-photo-input">🎭 JE PARTICIPE !</label>
-                        <input type="file" id="costume-photo-input" accept="image/*" hidden>
+                        <button class="hub-action-btn green" id="costume-enter-label" type="button">🎭 JE PARTICIPE !</button>
+                        <input type="file" id="costume-photo-input" accept="image/*" style="display:none">
                     </div>
                     <div id="costume-my-entry" class="costume-my-entry hidden">
                         <img id="costume-my-photo" class="costume-entry-photo" alt="Mon déguisement">
