@@ -250,37 +250,32 @@ io.on('connection', (socket) => {
   // Guest votes on genre trend
   socket.on('guest:genreVote', (data) => {
     if (!isValidGuest()) return;
-    // Use guestName as stable key (socket.id changes on reconnection)
     const voterKey = data.guestName || data.guestId || socket.id;
     const genre = data.genre;
+    const isCancel = (genre === '__cancel__');
     
-    // Init tracking map if needed
     if (!partyState.guestGenreVotes) partyState.guestGenreVotes = {};
     
     const prevGenre = partyState.guestGenreVotes[voterKey];
-    console.log(`🎵 Genre vote: ${voterKey} → ${genre} (prev: ${prevGenre || 'none'}) | BEFORE: ${JSON.stringify(partyState.genreVotes)}`);
     
-    // Remove previous genre vote for this guest
-    if (prevGenre && prevGenre !== genre) {
-      if (partyState.genreVotes[prevGenre]) {
-        partyState.genreVotes[prevGenre] = Math.max(0, partyState.genreVotes[prevGenre] - 1);
-        if (partyState.genreVotes[prevGenre] === 0) delete partyState.genreVotes[prevGenre];
-      }
-      console.log(`   ↳ Decremented ${prevGenre} | AFTER decrement: ${JSON.stringify(partyState.genreVotes)}`);
+    // Remove previous genre vote
+    if (prevGenre) {
+      partyState.genreVotes[prevGenre] = Math.max(0, (partyState.genreVotes[prevGenre] || 0) - 1);
+      if (partyState.genreVotes[prevGenre] === 0) delete partyState.genreVotes[prevGenre];
     }
     
-    // Track this guest's current genre vote
-    partyState.guestGenreVotes[voterKey] = genre;
-    
-    // Increment new genre (only if different from previous)
-    if (prevGenre !== genre) {
+    if (isCancel) {
+      // Guest toggled off their vote
+      delete partyState.guestGenreVotes[voterKey];
+    } else {
+      // Add new vote
+      partyState.guestGenreVotes[voterKey] = genre;
       partyState.genreVotes[genre] = (partyState.genreVotes[genre] || 0) + 1;
     }
     
-    console.log(`   ↳ FINAL: ${JSON.stringify(partyState.genreVotes)} | tracking: ${JSON.stringify(partyState.guestGenreVotes)}`);
+    console.log(`🎵 Genre vote: ${voterKey} → ${isCancel ? 'CANCEL' : genre} | votes: ${JSON.stringify(partyState.genreVotes)}`);
     
     io.to('host').emit('guest:genreVoted', data);
-    // Broadcast updated genre counts to ALL guests so UI refreshes
     io.to('guests').emit('votes:update', { genreVotes: partyState.genreVotes });
     io.to('host').emit('votes:update', { genreVotes: partyState.genreVotes });
   });

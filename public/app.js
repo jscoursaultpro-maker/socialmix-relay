@@ -531,16 +531,41 @@ function setupGenreTrends() {
   
   GENRES.forEach(genre => {
     const btn = document.createElement('button');
-    btn.className = 'genre-btn' + (state.selectedGenre === genre ? ' selected' : '');
+    const isSelected = state.selectedGenre === genre;
+    btn.className = 'genre-btn' + (isSelected ? ' selected' : '');
     btn.innerHTML = `
       <div class="genre-name">${genre}</div>
       <div class="genre-count">${state.genreVotes[genre] || 0} votes</div>
     `;
     btn.addEventListener('click', () => {
-      state.selectedGenre = genre;
+      if (state.selectedGenre === genre) {
+        // Toggle off — cancel vote (same as host logic)
+        state.genreVotes[genre] = Math.max(0, (state.genreVotes[genre] || 0) - 1);
+        if (state.genreVotes[genre] === 0) delete state.genreVotes[genre];
+        state.selectedGenre = null;
+      } else {
+        // Remove previous vote (decrement old genre)
+        if (state.selectedGenre) {
+          const prev = state.selectedGenre;
+          state.genreVotes[prev] = Math.max(0, (state.genreVotes[prev] || 0) - 1);
+          if (state.genreVotes[prev] === 0) delete state.genreVotes[prev];
+        }
+        // Add new vote (increment new genre)
+        state.selectedGenre = genre;
+        state.genreVotes[genre] = (state.genreVotes[genre] || 0) + 1;
+      }
+      
+      // Update UI immediately
       setupGenreTrends();
+      updateGenreChart();
+      
+      // Sync with server
       if (socket && socket.connected) {
-        socket.emit('guest:genreVote', { genre, guestName: state.guestName, guestId: state.guestId });
+        socket.emit('guest:genreVote', { 
+          genre: state.selectedGenre || '__cancel__', 
+          guestName: state.guestName, 
+          guestId: state.guestId 
+        });
       }
     });
     grid.appendChild(btn);
