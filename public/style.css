@@ -923,6 +923,11 @@ html, body {
   border-radius: 50px; cursor: pointer;
   color: var(--bg-dark);
   transition: transform 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(0,224,196,0.3);
 }
 .hub-action-btn:active { transform: scale(0.94); }
 .hub-action-btn.green { background: var(--green); }
@@ -1125,6 +1130,10 @@ html, body {
   cursor: pointer;
   border: none;
   transition: all 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  touch-action: manipulation;
 }
 .hub-action-btn.green {
   background: linear-gradient(135deg, var(--turquoise), #00b894);
