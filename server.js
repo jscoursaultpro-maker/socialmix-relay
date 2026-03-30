@@ -84,6 +84,18 @@ io.on('connection', (socket) => {
   // HOST EVENTS (iOS app → Server → Guests)
   // ═══════════════════════════════════════════════════════════════════
 
+  // Helper: recompute genreVotes from individual guest votes
+  function recomputeGenreVotes() {
+    const totals = {};
+    if (partyState.guestGenreVotes) {
+      Object.values(partyState.guestGenreVotes).forEach(g => {
+        totals[g] = (totals[g] || 0) + 1;
+      });
+    }
+    partyState.genreVotes = totals;
+    return totals;
+  }
+
   // Host starts/joins party
   socket.on('host:startParty', (data) => {
     socket.join('host');
@@ -222,7 +234,8 @@ io.on('connection', (socket) => {
     partyState.participants = partyState.participants.filter(p => p.name !== guest.name);
     partyState.participants.push(guest);
 
-    // Send full state to joining guest
+    // Recompute genreVotes from ground truth before sending
+    recomputeGenreVotes();
     socket.emit('party:state', { ...partyState });
     
     // Notify host
@@ -277,11 +290,7 @@ io.on('connection', (socket) => {
     }
     
     // RECOMPUTE totals from scratch — impossible to drift
-    const totals = {};
-    Object.values(partyState.guestGenreVotes).forEach(g => {
-      totals[g] = (totals[g] || 0) + 1;
-    });
-    partyState.genreVotes = totals;
+    const totals = recomputeGenreVotes();
     
     console.log(`🎵 Genre: ${voterKey} → ${genre || 'CANCEL'} | votes: ${JSON.stringify(totals)} | tracking: ${JSON.stringify(partyState.guestGenreVotes)}`);
     
