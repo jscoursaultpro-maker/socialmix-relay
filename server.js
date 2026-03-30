@@ -174,10 +174,13 @@ io.on('connection', (socket) => {
   });
 
   // Host sends genre vote results
+  // IMPORTANT: Do NOT overwrite genreVotes — guest votes are tracked separately
+  // The host's vote is managed locally in the iOS app
   socket.on('host:voteResults', (data) => {
-    partyState.genreVotes = data.genreVotes || {};
     partyState.vibeScore = data.vibeScore || 0;
-    io.to('guests').emit('votes:update', data);
+    // Recompute from guest votes (host vote is local to iOS app)
+    const totals = recomputeGenreVotes();
+    io.to('guests').emit('votes:update', { genreVotes: totals, vibeScore: partyState.vibeScore });
   });
 
   // Host sends track history
@@ -406,16 +409,16 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('disconnect', () => {
-    // Remove genre vote for this guest
-    if (partyState.guestGenreVotes && partyState.guestGenreVotes[socket.id]) {
-      const genre = partyState.guestGenreVotes[socket.id];
-      if (partyState.genreVotes[genre]) {
-        partyState.genreVotes[genre] = Math.max(0, partyState.genreVotes[genre] - 1);
-        if (partyState.genreVotes[genre] === 0) delete partyState.genreVotes[genre];
+    // Remove genre vote for this guest on disconnect
+    if (partyState.guestGenreVotes) {
+      // Find and remove by guestName (stable key)
+      const participant = partyState.participants.find(p => p.id === socket.id);
+      if (participant && partyState.guestGenreVotes[participant.name]) {
+        delete partyState.guestGenreVotes[participant.name];
+        recomputeGenreVotes();
+        io.to('host').emit('votes:update', { genreVotes: partyState.genreVotes });
+        io.to('guests').emit('votes:update', { genreVotes: partyState.genreVotes });
       }
-      delete partyState.guestGenreVotes[socket.id];
-      // Notify host of updated genre votes
-      io.to('host').emit('guest:genreVoted', { genre, guestName: 'left', removed: true });
     }
     
     partyState.participants = partyState.participants.filter(p => p.id !== socket.id);
