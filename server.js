@@ -262,28 +262,32 @@ io.on('connection', (socket) => {
   });
 
   // Guest votes on genre trend
-  // Client sends {genre (null=cancel), previousGenre (to decrement)}
+  // BULLETPROOF: store each guest's vote, recompute totals from scratch
   socket.on('guest:genreVote', (data) => {
     if (!isValidGuest()) return;
-    const genre = data.genre;               // new genre (null if cancel)
-    const previousGenre = data.previousGenre; // old genre to decrement
+    const voterKey = data.guestName || data.guestId || socket.id;
+    const genre = data.genre; // null = cancel
     
-    // Decrement previous genre
-    if (previousGenre && partyState.genreVotes[previousGenre]) {
-      partyState.genreVotes[previousGenre] = Math.max(0, partyState.genreVotes[previousGenre] - 1);
-      if (partyState.genreVotes[previousGenre] === 0) delete partyState.genreVotes[previousGenre];
-    }
-    
-    // Increment new genre (if not cancel)
+    // Store/remove this guest's current vote
+    if (!partyState.guestGenreVotes) partyState.guestGenreVotes = {};
     if (genre) {
-      partyState.genreVotes[genre] = (partyState.genreVotes[genre] || 0) + 1;
+      partyState.guestGenreVotes[voterKey] = genre;
+    } else {
+      delete partyState.guestGenreVotes[voterKey];
     }
     
-    console.log(`🎵 Genre: ${data.guestName} ${previousGenre || '-'} → ${genre || 'CANCEL'} | ${JSON.stringify(partyState.genreVotes)}`);
+    // RECOMPUTE totals from scratch — impossible to drift
+    const totals = {};
+    Object.values(partyState.guestGenreVotes).forEach(g => {
+      totals[g] = (totals[g] || 0) + 1;
+    });
+    partyState.genreVotes = totals;
+    
+    console.log(`🎵 Genre: ${voterKey} → ${genre || 'CANCEL'} | votes: ${JSON.stringify(totals)} | tracking: ${JSON.stringify(partyState.guestGenreVotes)}`);
     
     io.to('host').emit('guest:genreVoted', data);
-    io.to('guests').emit('votes:update', { genreVotes: partyState.genreVotes });
-    io.to('host').emit('votes:update', { genreVotes: partyState.genreVotes });
+    io.to('guests').emit('votes:update', { genreVotes: totals });
+    io.to('host').emit('votes:update', { genreVotes: totals });
   });
 
   // Guest suggests a track
