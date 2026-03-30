@@ -253,32 +253,24 @@ io.on('connection', (socket) => {
   });
 
   // Guest votes on genre trend
+  // Client sends {genre (null=cancel), previousGenre (to decrement)}
   socket.on('guest:genreVote', (data) => {
     if (!isValidGuest()) return;
-    const voterKey = data.guestName || data.guestId || socket.id;
-    const genre = data.genre;
-    const isCancel = (genre === '__cancel__');
+    const genre = data.genre;               // new genre (null if cancel)
+    const previousGenre = data.previousGenre; // old genre to decrement
     
-    if (!partyState.guestGenreVotes) partyState.guestGenreVotes = {};
-    
-    const prevGenre = partyState.guestGenreVotes[voterKey];
-    
-    // Remove previous genre vote
-    if (prevGenre) {
-      partyState.genreVotes[prevGenre] = Math.max(0, (partyState.genreVotes[prevGenre] || 0) - 1);
-      if (partyState.genreVotes[prevGenre] === 0) delete partyState.genreVotes[prevGenre];
+    // Decrement previous genre
+    if (previousGenre && partyState.genreVotes[previousGenre]) {
+      partyState.genreVotes[previousGenre] = Math.max(0, partyState.genreVotes[previousGenre] - 1);
+      if (partyState.genreVotes[previousGenre] === 0) delete partyState.genreVotes[previousGenre];
     }
     
-    if (isCancel) {
-      // Guest toggled off their vote
-      delete partyState.guestGenreVotes[voterKey];
-    } else {
-      // Add new vote
-      partyState.guestGenreVotes[voterKey] = genre;
+    // Increment new genre (if not cancel)
+    if (genre) {
       partyState.genreVotes[genre] = (partyState.genreVotes[genre] || 0) + 1;
     }
     
-    console.log(`🎵 Genre vote: ${voterKey} → ${isCancel ? 'CANCEL' : genre} | votes: ${JSON.stringify(partyState.genreVotes)}`);
+    console.log(`🎵 Genre: ${data.guestName} ${previousGenre || '-'} → ${genre || 'CANCEL'} | ${JSON.stringify(partyState.genreVotes)}`);
     
     io.to('host').emit('guest:genreVoted', data);
     io.to('guests').emit('votes:update', { genreVotes: partyState.genreVotes });

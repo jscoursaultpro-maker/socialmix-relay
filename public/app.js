@@ -538,31 +538,23 @@ function setupGenreTrends() {
       <div class="genre-count">${state.genreVotes[genre] || 0} votes</div>
     `;
     btn.addEventListener('click', () => {
+      const previousGenre = state.selectedGenre;
+      
+      // Toggle off if same genre, otherwise select new
       if (state.selectedGenre === genre) {
-        // Toggle off — cancel vote (same as host logic)
-        state.genreVotes[genre] = Math.max(0, (state.genreVotes[genre] || 0) - 1);
-        if (state.genreVotes[genre] === 0) delete state.genreVotes[genre];
         state.selectedGenre = null;
       } else {
-        // Remove previous vote (decrement old genre)
-        if (state.selectedGenre) {
-          const prev = state.selectedGenre;
-          state.genreVotes[prev] = Math.max(0, (state.genreVotes[prev] || 0) - 1);
-          if (state.genreVotes[prev] === 0) delete state.genreVotes[prev];
-        }
-        // Add new vote (increment new genre)
         state.selectedGenre = genre;
-        state.genreVotes[genre] = (state.genreVotes[genre] || 0) + 1;
       }
       
-      // Update UI immediately
+      // Update UI highlight only (counts come from server)
       setupGenreTrends();
-      updateGenreChart();
       
-      // Sync with server
+      // Server handles all counting
       if (socket && socket.connected) {
         socket.emit('guest:genreVote', { 
-          genre: state.selectedGenre || '__cancel__', 
+          genre: state.selectedGenre,       // null = cancel
+          previousGenre: previousGenre,     // what to decrement
           guestName: state.guestName, 
           guestId: state.guestId 
         });
