@@ -51,6 +51,15 @@ function getLocalIP() {
 }
 
 // ─── Serve Guest Web App (static files) ─────────────────────────
+// Prevent caching of HTML/JS/CSS to ensure latest code is always served
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') || req.path.endsWith('.js') || req.path.endsWith('.css') || req.path === '/') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
 app.use(express.static(join(__dirname, 'public')));
 
 // ─── Health check ───────────────────────────────────────────────
