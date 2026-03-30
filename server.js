@@ -173,14 +173,25 @@ io.on('connection', (socket) => {
     console.log(`🎛️ Mode: ${data.mode}`);
   });
 
-  // Host sends genre vote results
-  // IMPORTANT: Do NOT overwrite genreVotes — guest votes are tracked separately
-  // The host's vote is managed locally in the iOS app
+  // Host votes on a genre trend (same tracking as guests)
+  socket.on('host:genreVote', (data) => {
+    if (!partyState.guestGenreVotes) partyState.guestGenreVotes = {};
+    const genre = data.genre; // null = cancel
+    if (genre) {
+      partyState.guestGenreVotes['__HOST__'] = genre;
+    } else {
+      delete partyState.guestGenreVotes['__HOST__'];
+    }
+    const totals = recomputeGenreVotes();
+    console.log(`🎵 HOST genre: ${genre || 'CANCEL'} | votes: ${JSON.stringify(totals)}`);
+    io.to('guests').emit('votes:update', { genreVotes: totals });
+    // Also send back to host so it sees guest votes merged
+    io.to('host').emit('votes:update', { genreVotes: totals });
+  });
+
+  // Host sends vibe score only (genreVotes are tracked via host:genreVote)
   socket.on('host:voteResults', (data) => {
     partyState.vibeScore = data.vibeScore || 0;
-    // Recompute from guest votes (host vote is local to iOS app)
-    const totals = recomputeGenreVotes();
-    io.to('guests').emit('votes:update', { genreVotes: totals, vibeScore: partyState.vibeScore });
   });
 
   // Host sends track history
