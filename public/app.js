@@ -404,8 +404,8 @@ function connectToRelay() {
   });
 
   // Wrong party code
-  socket.on('party:wrongCode', () => {
-    alert('⛔ Code de soirée incorrect. Vérifie le QR code.');
+  socket.on('party:wrongCode', (data) => {
+    alert(`⛔ ${data?.message || 'Code de soirée incorrect. Vérifie le QR code.'}`);
     showScreen('landing');
   });
 

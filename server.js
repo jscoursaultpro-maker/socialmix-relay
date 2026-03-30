@@ -185,7 +185,12 @@ io.on('connection', (socket) => {
     const guestPartyCode = (data.partyCode || '').toUpperCase();
     
     // Validate party code
-    if (partyState.code && guestPartyCode !== partyState.code) {
+    if (!partyState.code) {
+      socket.emit('party:wrongCode', { message: 'Aucune soirée active. Le DJ doit lancer la soirée depuis l\'app.' });
+      console.log(`⛔ No party active. Guest tried: ${guestPartyCode}`);
+      return;
+    }
+    if (guestPartyCode !== partyState.code) {
       socket.emit('party:wrongCode', { message: 'Code incorrect' });
       console.log(`⛔ Wrong code: ${guestPartyCode} (expected ${partyState.code})`);
       return;
