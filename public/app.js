@@ -693,11 +693,11 @@ function setupSocialHub() {
   populateCostumes();
   populateMissions();
   
-  // Gallery photo: direct onchange binding (iOS Safari requires in-DOM input)
+  // Gallery photo: same binding pattern as costume (which works!)
   const galleryInput = $('gallery-photo-input');
   if (galleryInput) {
-    galleryInput.onchange = handleDiapoPhoto;
-    console.log('[SocialHub] Gallery photo input bound');
+    galleryInput.onchange = handleGalleryPhoto;
+    console.log('[SocialHub] Gallery photo input bound to handleGalleryPhoto');
   } else {
     console.error('[SocialHub] gallery-photo-input not found!');
   }
@@ -951,6 +951,32 @@ function handleCostumePhoto(e) {
         guestName: state.guestName
       });
       console.log('[CostumePhoto] Emitted costume:photo + guest:photo');
+    }
+    saveSession();
+  });
+}
+
+// Gallery photo handler — clone of handleCostumePhoto WITHOUT costume entry update
+function handleGalleryPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+  
+  readFileAsDataURL(file, (dataURL) => {
+    if (!dataURL) { alert('❌ Erreur photo'); return; }
+    
+    // Add to MES PHOTOS
+    state.myPhotos = state.myPhotos || [];
+    state.myPhotos.push(dataURL);
+    updateMyPhotosGrid();
+    
+    // Send as gallery photo to host diaporama
+    if (socket && socket.connected) {
+      socket.emit('guest:photo', {
+        dataURL: dataURL,
+        guestName: state.guestName
+      });
+      console.log('[GalleryPhoto] Emitted guest:photo');
     }
     saveSession();
   });
