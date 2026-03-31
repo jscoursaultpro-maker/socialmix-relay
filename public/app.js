@@ -677,7 +677,6 @@ function setupSocialHub() {
   
   // Diapo photo upload (overlay inputs fire change directly)
   $('diapo-input').addEventListener('change', handleDiapoPhoto);
-  $('diapo-gallery-input').addEventListener('change', handleDiapoPhoto);
 }
 
 function populateTrombinoscope() {
@@ -821,6 +820,7 @@ function populateCostumes() {
   state.costumeEntries = state.costumeEntries || [];
   state.costumeVoted = state.costumeVoted || null;
   state.costumeRegistered = state.costumeRegistered || false;
+  state.myPhotos = state.myPhotos || [];
   
   const enterBtn = $('costume-enter-btn');
   if (enterBtn) {
@@ -914,6 +914,32 @@ function renderCostumeEntries() {
     }
     grid.appendChild(card);
   });
+  
+  // Render podium (top 3 sorted by votes)
+  renderCostumePodium(entries);
+}
+
+function renderCostumePodium(entries) {
+  const podium = $('costume-podium');
+  if (!podium) return;
+  const sorted = [...entries].filter(e => (e.votes || 0) > 0).sort((a, b) => (b.votes || 0) - (a.votes || 0));
+  if (!sorted.length) {
+    podium.innerHTML = '<div style="text-align:center; color:var(--text-dim); font-size:11px; padding:12px;">Pas encore de votes</div>';
+    return;
+  }
+  const medals = ['🥇', '🥈', '🥉'];
+  podium.innerHTML = '';
+  sorted.slice(0, 3).forEach((entry, i) => {
+    const el = document.createElement('div');
+    el.style.cssText = 'display:flex; align-items:center; gap:10px; padding:8px 12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:4px;';
+    el.innerHTML = `
+      <span style="font-size:18px;">${medals[i] || ''}</span>
+      <span style="font-size:14px;">${entry.emoji || '🎭'}</span>
+      <span style="font-size:12px; font-weight:700; color:white; flex:1;">${entry.guestName}</span>
+      <span style="font-size:12px; font-weight:800; color:#bb86fc;">${entry.votes || 0} ❤️</span>
+    `;
+    podium.appendChild(el);
+  });
 }
 
 function populateMissions() {
@@ -966,7 +992,10 @@ function handleDiapoPhoto(e) {
     }
     
     state.diapoPhotos.push(dataURL);
+    state.myPhotos = state.myPhotos || [];
+    state.myPhotos.push(dataURL);
     addDiapoPhoto(dataURL, state.guestName);
+    updateMyPhotosGrid();
     
     // Emit to server for host slideshow + other guests
     if (socket && socket.connected) {
@@ -976,6 +1005,28 @@ function handleDiapoPhoto(e) {
       });
     }
   });
+}
+
+function updateMyPhotosGrid() {
+  const grid = $('my-photos-grid');
+  const empty = $('my-photos-empty');
+  if (!grid) return;
+  const photos = state.myPhotos || [];
+  if (!photos.length) {
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  // Build grid (don't re-render existing)
+  grid.innerHTML = '';
+  photos.forEach(dataURL => {
+    const img = document.createElement('img');
+    img.src = dataURL;
+    img.alt = 'Ma photo';
+    img.style.cssText = 'width:100%; border-radius:8px; aspect-ratio:1; object-fit:cover;';
+    grid.appendChild(img);
+  });
+  grid.className = 'gallery-grid';
 }
 
 function resizeImage(file, maxSize, quality, callback) {

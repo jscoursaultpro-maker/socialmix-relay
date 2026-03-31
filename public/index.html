@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260331v8">
+    <link rel="stylesheet" href="style.css?v=20260331v9">
 </head>
 <body>
 
@@ -209,7 +209,7 @@
         <div class="card trends-section">
             <div class="section-header">
                 <span class="section-icon">📊</span>
-                <span class="section-title">VOTE TENDANCE <span style="font-size:8px;color:#00d2ff;opacity:0.6">v8</span></span>
+                <span class="section-title">VOTE TENDANCE <span style="font-size:8px;color:#00d2ff;opacity:0.6">v9</span></span>
             </div>
             <div class="genre-grid" id="genre-grid"></div>
         </div>
@@ -255,21 +255,24 @@
             width: 100%;
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 14px 18px;
-            background: linear-gradient(135deg, rgba(0,210,255,0.12), rgba(138,43,226,0.10));
-            border: 1px solid rgba(0,210,255,0.25);
-            border-radius: 14px;
+            gap: 14px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, rgba(0,210,255,0.15), rgba(138,43,226,0.12), rgba(255,0,128,0.08));
+            border: 1.5px solid rgba(0,210,255,0.3);
+            border-radius: 16px;
             cursor: pointer;
             transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,210,255,0.1), inset 0 1px 0 rgba(255,255,255,0.1);
         ">
-            <span style="font-size: 22px;">✨</span>
+            <div style="width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,#00d2ff,#8a2be2); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;">✨</div>
             <div style="flex: 1; text-align: left;">
-                <div style="font-size: 13px; font-weight: 800; color: #00d2ff; letter-spacing: 1px;">SOCIAL HUB</div>
-                <div style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px;">Photos · Trombinoscope · Stats</div>
+                <div style="font-size: 14px; font-weight: 900; color: #fff; letter-spacing: 1.5px;">SOCIAL HUB</div>
+                <div style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 3px; font-weight: 500;">📸 Photos · 👥 Trombinoscope · 🎭 Déguisements</div>
             </div>
-            <span style="font-size: 18px; color: rgba(0,210,255,0.6);">›</span>
+            <div style="font-size: 20px; color: rgba(0,210,255,0.7); font-weight: 300;">›</div>
         </button>
 
         <!-- Quit Party -->
@@ -300,18 +303,25 @@
                 <span>📸</span> GALERIE PHOTOS
             </div>
             <div class="hub-card-body">
-                <p class="hub-text">Photos de la soirée</p>
-                <div class="hub-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <div class="hub-action-btn green" style="position:relative; overflow:hidden;">
-                        📷 PRENDRE UNE PHOTO
-                        <input type="file" id="diapo-input" accept="image/*" capture="environment" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
-                    </div>
-                    <div class="hub-action-btn turquoise" style="position:relative; overflow:hidden;">
-                        🖼️ GALERIE
-                        <input type="file" id="diapo-gallery-input" accept="image/*" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
+                <!-- Photo capture button -->
+                <div style="position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:8px; padding:10px 18px; background:linear-gradient(135deg,#00c853,#00bfa5); border-radius:12px; cursor:pointer; font-size:12px; font-weight:800; color:#0a0e1a;">
+                    📷 PRENDRE UNE PHOTO
+                    <input type="file" id="diapo-input" accept="image/*" capture="environment" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
+                </div>
+                
+                <!-- My Photos section -->
+                <div style="margin-top:12px;">
+                    <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:8px;">📱 MES PHOTOS</div>
+                    <div id="my-photos-grid">
+                        <div id="my-photos-empty" style="text-align:center; color:var(--text-dim); font-size:11px; padding:12px; background:rgba(255,255,255,0.03); border-radius:10px;">📷 Tu n'as pas encore pris de photo</div>
                     </div>
                 </div>
-                <div id="diapo-grid" class="gallery-grid"></div>
+                
+                <!-- All photos grid -->
+                <div style="margin-top:12px;">
+                    <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:8px;">🎉 PHOTOS DE LA SOIRÉE</div>
+                    <div id="diapo-grid" class="gallery-grid"></div>
+                </div>
             </div>
         </div>
 
@@ -369,17 +379,31 @@
             </div>
         </div>
 
-        <!-- Concours Déguisement (unified like host app) -->
+        <!-- Concours Déguisement -->
         <div class="hub-card">
             <div class="hub-card-header purple">
                 <span>🎭</span> CONCOURS DÉGUISEMENT
             </div>
             <div class="hub-card-body">
+                <!-- Participation button -->
                 <div id="costume-participate" class="costume-participate">
-                    <button class="hub-action-btn green" id="costume-enter-btn" type="button">🎭 JE PARTICIPE !</button>
+                    <button class="hub-action-btn green" id="costume-enter-btn" type="button" style="width:100%; padding:12px; font-size:13px; font-weight:800;">🎭 JE PARTICIPE !</button>
                 </div>
-                <div class="costume-grid" id="costume-grid">
-                    <div style="text-align: center; color: var(--text-dim); font-size: 11px; padding: 12px;">⏳ En attente de participants...</div>
+                
+                <!-- Vote section -->
+                <div style="margin-top:12px;">
+                    <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:8px;">🗳️ VOTE DÉGUISEMENT</div>
+                    <div class="costume-grid" id="costume-grid">
+                        <div style="text-align: center; color: var(--text-dim); font-size: 11px; padding: 12px;">⏳ En attente de participants...</div>
+                    </div>
+                </div>
+                
+                <!-- Podium -->
+                <div style="margin-top:12px;">
+                    <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:8px;">🏆 PODIUM</div>
+                    <div id="costume-podium">
+                        <div style="text-align:center; color:var(--text-dim); font-size:11px; padding:12px;">Pas encore de votes</div>
+                    </div>
                 </div>
             </div>
         </div>
