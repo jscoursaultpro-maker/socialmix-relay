@@ -460,6 +460,12 @@ function connectToRelay() {
   socket.on('photo:shared', (photo) => {
     addDiapoPhoto(photo.dataURL, photo.guestName);
   });
+
+  // Costume entries updated from server
+  socket.on('costume:entries', (entries) => {
+    state.costumeEntries = entries;
+    renderCostumeEntries();
+  });
 }
 
 // ─── UI Updates ──────────────────────────────────────
@@ -841,14 +847,6 @@ function populateCostumes() {
   state.myPhotos = state.myPhotos || [];
   
   bindCostumeButton();
-  
-  // Listen for costume entries from server
-  if (socket) {
-    socket.on('costume:entries', (entries) => {
-      state.costumeEntries = entries;
-      renderCostumeEntries();
-    });
-  }
   
   renderCostumeEntries();
 }
