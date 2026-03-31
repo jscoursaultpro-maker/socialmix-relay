@@ -739,9 +739,10 @@ function renderTrombi(grid, users) {
     const content = u.photo
       ? `<img src="${u.photo}" alt="${u.name}">`
       : u.emoji;
+    const shortName = u.name.length > 6 ? u.name.substring(0, 6) + '…' : u.name;
     item.innerHTML = `
       <div class="trombi-avatar" style="background: ${bgColor}">${content}</div>
-      <div class="trombi-name">${u.name}</div>
+      <div class="trombi-name">${shortName}</div>
     `;
     grid.appendChild(item);
   });

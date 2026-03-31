@@ -347,7 +347,8 @@ io.on('connection', (socket) => {
     partyState.photos.push(photo);
     io.to('guests').emit('photo:shared', photo);
     io.to('host').emit('guest:photo', photo);
-    console.log(`📸 Photo shared by ${photo.guestName}`);
+    const sizeKB = Math.round((data.dataURL || '').length / 1024);
+    console.log(`📸 Photo shared by ${photo.guestName} (${sizeKB} KB, total: ${partyState.photos.length})`);
   });
 
   // ═══════════════════════════════════════════════════════════════════
