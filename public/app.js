@@ -689,6 +689,12 @@ function populateTrombinoscope() {
 }
 
 function updateTrombinoscope(participants) {
+  // Only re-render if participants actually changed (prevents flicker)
+  const key = participants.map(p => p.name).sort().join(',');
+  if (state._lastTrombiKey === key) return;
+  state._lastTrombiKey = key;
+  
+  state.participants = participants;
   const grid = $('trombi-grid');
   // Merge self + server participants (avoid duplicates)
   const users = [{ name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto }];
