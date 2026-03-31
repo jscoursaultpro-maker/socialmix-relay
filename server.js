@@ -71,6 +71,15 @@ app.get('/api/status', (req, res) => {
     mode: partyState.mode
   });
 });
+app.get('/status', (req, res) => {
+  res.json({
+    status: 'Social Mix Relay Server 🎧',
+    version: 'v12',
+    party: partyState.code || 'No active party',
+    participants: partyState.participants.length,
+    uptime: Math.floor(process.uptime()) + 's'
+  });
+});
 
 app.get('/api/state', (req, res) => {
   res.json(partyState);
