@@ -366,6 +366,17 @@ io.on('connection', (socket) => {
       photo: data.photo,
       votes: 0
     });
+    
+    // If host enters costume, update their participant name too
+    if (data.guestId === 'host' && data.guestName && data.guestName !== 'DJ') {
+      const hostP = partyState.participants.find(p => p.isHost);
+      if (hostP) {
+        hostP.name = data.guestName;
+        io.to('guests').emit('participants:update', partyState.participants);
+        console.log(`👑 Host name updated to: ${data.guestName}`);
+      }
+    }
+    
     // Broadcast all entries to all guests
     io.to('guests').emit('costume:entries', partyState.costumeEntries);
     io.to('host').emit('costume:entries', partyState.costumeEntries);
