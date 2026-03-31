@@ -17,7 +17,8 @@ const io = new Server(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
-  }
+  },
+  maxHttpBufferSize: 5e6  // 5MB — needed for base64 photos from mobile cameras
 });
 
 // ─── Party State (in-memory) ────────────────────────────────────────
@@ -379,6 +380,17 @@ io.on('connection', (socket) => {
     io.to('guests').emit('costume:entries', partyState.costumeEntries);
     io.to('host').emit('costume:entries', partyState.costumeEntries);
     console.log(`👍 Costume vote: ${data.voterName} → ${data.targetName}`);
+  });
+
+  socket.on('costume:unvote', (data) => {
+    if (!isValidGuest()) return;
+    const entry = partyState.costumeEntries.find(e => e.guestId === data.targetId);
+    if (entry) {
+      entry.votes = Math.max(0, (entry.votes || 0) - 1);
+    }
+    io.to('guests').emit('costume:entries', partyState.costumeEntries);
+    io.to('host').emit('costume:entries', partyState.costumeEntries);
+    console.log(`👎 Costume unvote: ${data.voterId} ← ${data.targetId}`);
   });
 
   socket.on('costume:photo', (data) => {

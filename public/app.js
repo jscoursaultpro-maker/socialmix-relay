@@ -712,7 +712,6 @@ function populateTrombinoscope() {
 }
 
 function updateTrombinoscope(participants) {
-  // Only re-render if participants actually changed (prevents flicker)
   const key = participants.map(p => p.name).sort().join(',');
   if (state._lastTrombiKey === key) return;
   state._lastTrombiKey = key;
@@ -723,7 +722,9 @@ function updateTrombinoscope(participants) {
   const users = [{ name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto }];
   participants.forEach(p => {
     if (p.name !== state.guestName) {
-      users.push({ name: p.name, emoji: p.emoji || '🎉', photo: p.photo || null });
+      // Use real name from server, add crown for host
+      const displayName = p.isHost ? `👑 ${p.name}` : p.name;
+      users.push({ name: displayName, emoji: p.emoji || '🎉', photo: p.photo || null });
     }
   });
   renderTrombi(grid, users);
@@ -960,39 +961,76 @@ function renderCostumeEntries() {
     const card = document.createElement('div');
     card.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.04); border-radius:12px; margin-bottom:6px;' + (isVoted ? 'border:1px solid #bb86fc;' : 'border:1px solid transparent;');
     
-    // Vote button or status
     let actionHTML = '';
     if (isMe) {
       actionHTML = '<span style="font-size:9px; color:var(--text-dim); font-weight:600;">TOI</span>';
     } else if (isVoted) {
-      actionHTML = '<span style="font-size:9px; color:#bb86fc; font-weight:800;">✓ MON VOTE</span>';
-    } else if (!hasVoted) {
+      actionHTML = '<button class="costume-vote-btn voted" style="padding:5px 12px; background:rgba(187,134,252,0.2); border:1px solid #bb86fc; border-radius:8px; color:#bb86fc; font-size:10px; font-weight:800; cursor:pointer;">✓ MON VOTE</button>';
+    } else {
       actionHTML = '<button class="costume-vote-btn" style="padding:5px 12px; background:linear-gradient(135deg,#bb86fc,#7c4dff); border:none; border-radius:8px; color:white; font-size:10px; font-weight:800; cursor:pointer;">VOTER</button>';
     }
     
+    // Photo thumbnail (clickable to enlarge)
+    const photoHTML = entry.photo
+      ? `<img src="${entry.photo}" class="costume-thumb" style="width:40px;height:40px;border-radius:10px;object-fit:cover;flex-shrink:0;cursor:pointer;">`
+      : `<span style="font-size:20px;flex-shrink:0;width:40px;text-align:center;">${entry.emoji || '🎭'}</span>`;
+    
     card.innerHTML = `
-      ${entry.photo ? `<img src="${entry.photo}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0;">` : `<span style="font-size:20px;">${entry.emoji || '🎭'}</span>`}
+      ${photoHTML}
       <span style="flex:1; font-size:12px; font-weight:700; color:white;">${entry.guestName}</span>
       <span style="font-size:11px; color:#bb86fc; font-weight:700; margin-right:6px;">${entry.votes || 0} ❤️</span>
       ${actionHTML}
     `;
     
-    // Click vote button (not on self)
+    // Click photo to enlarge
+    const thumb = card.querySelector('.costume-thumb');
+    if (thumb) {
+      thumb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showPhotoLightbox(entry.photo, entry.guestName);
+      });
+    }
+    
+    // Vote button: supports re-voting
     const voteBtn = card.querySelector('.costume-vote-btn');
-    if (voteBtn && !isMe && !hasVoted) {
+    if (voteBtn && !isMe) {
       voteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        state.costumeVoted = entry.guestId;
-        if (socket && socket.connected) {
-          socket.emit('costume:vote', {
-            voterId: state.guestId,
-            voterName: state.guestName,
-            targetId: entry.guestId,
-            targetName: entry.guestName
-          });
+        
+        if (isVoted) {
+          // Cancel vote
+          state.costumeVoted = null;
+          entry.votes = Math.max(0, (entry.votes || 0) - 1);
+          if (socket && socket.connected) {
+            socket.emit('costume:unvote', {
+              voterId: state.guestId,
+              targetId: entry.guestId
+            });
+          }
+        } else {
+          // If changing vote, decrement old
+          if (state.costumeVoted) {
+            const oldEntry = entries.find(en => en.guestId === state.costumeVoted);
+            if (oldEntry) oldEntry.votes = Math.max(0, (oldEntry.votes || 0) - 1);
+            if (socket && socket.connected) {
+              socket.emit('costume:unvote', {
+                voterId: state.guestId,
+                targetId: state.costumeVoted
+              });
+            }
+          }
+          // New vote
+          state.costumeVoted = entry.guestId;
+          entry.votes = (entry.votes || 0) + 1;
+          if (socket && socket.connected) {
+            socket.emit('costume:vote', {
+              voterId: state.guestId,
+              voterName: state.guestName,
+              targetId: entry.guestId,
+              targetName: entry.guestName
+            });
+          }
         }
-        // Update local vote count immediately
-        entry.votes = (entry.votes || 0) + 1;
         renderCostumeEntries();
         saveSession();
       });
@@ -1000,8 +1038,24 @@ function renderCostumeEntries() {
     grid.appendChild(card);
   });
   
-  // Render podium (top 3 sorted by votes)
   renderCostumePodium(entries);
+}
+
+function showPhotoLightbox(src, name) {
+  // Remove existing lightbox
+  const existing = document.querySelector('.photo-lightbox');
+  if (existing) existing.remove();
+  
+  const overlay = document.createElement('div');
+  overlay.className = 'photo-lightbox';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="color:white;font-size:14px;font-weight:800;margin-bottom:12px;">${name || 'Photo'}</div>
+    <img src="${src}" style="max-width:90%;max-height:70vh;border-radius:12px;object-fit:contain;">
+    <button style="margin-top:16px;padding:10px 30px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:white;font-size:12px;font-weight:800;cursor:pointer;">FERMER</button>
+  `;
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
 }
 
 function renderCostumePodium(entries) {
@@ -1130,24 +1184,22 @@ function handleDiapoPhoto(e) {
   });
 }
 
-// Reliable file reading for mobile Safari
+// Reliable file reading + forced resize for mobile
 function readFileAsDataURL(file, callback) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    // Optionally resize via canvas if too large (>2MB)
-    if (reader.result.length > 2000000) {
-      resizeImage(file, 800, 0.7, (resized) => {
-        callback(resized || reader.result);
-      });
+  // ALWAYS resize to keep Socket.IO payloads under 1MB
+  resizeImage(file, 800, 0.7, (resized) => {
+    if (resized) {
+      console.log('[Photo] Resized OK, length:', resized.length);
+      callback(resized);
     } else {
-      callback(reader.result);
+      // Canvas failed — fallback to raw FileReader
+      console.warn('[Photo] Canvas resize failed, using raw FileReader');
+      const reader = new FileReader();
+      reader.onload = () => callback(reader.result);
+      reader.onerror = () => { console.error('[Photo] FileReader error'); callback(null); };
+      reader.readAsDataURL(file);
     }
-  };
-  reader.onerror = () => {
-    console.error('[Photo] FileReader error:', reader.error);
-    callback(null);
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 function updateMyPhotosGrid() {
