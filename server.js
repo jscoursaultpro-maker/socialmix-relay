@@ -203,6 +203,33 @@ io.on('connection', (socket) => {
     io.to('host').emit('votes:update', { genreVotes: totals });
   });
 
+  // Host votes for a costume
+  socket.on('host:costumeVote', (data) => {
+    const entry = partyState.costumeEntries.find(e => e.guestId === data.targetId);
+    if (entry) {
+      entry.votes = (entry.votes || 0) + 1;
+    }
+    io.to('guests').emit('costume:entries', partyState.costumeEntries);
+    io.to('host').emit('costume:entries', partyState.costumeEntries);
+    console.log(`👑 HOST costume vote → ${data.targetName || data.targetId}`);
+  });
+
+  // Host adds a costume photo
+  socket.on('host:costumePhoto', (data) => {
+    const entry = partyState.costumeEntries.find(e => e.guestId === 'host');
+    if (entry) {
+      entry.photo = data.photo;
+    }
+    io.to('guests').emit('costume:entries', partyState.costumeEntries);
+    io.to('host').emit('costume:entries', partyState.costumeEntries);
+    // Also send as guest:photo for diaporama
+    io.to('host').emit('guest:photo', {
+      dataURL: data.photo,
+      guestName: entry?.guestName || 'Host'
+    });
+    console.log(`📸 HOST costume photo added`);
+  });
+
   // Host sends vibe score only (genreVotes are tracked via host:genreVote)
   socket.on('host:voteResults', (data) => {
     partyState.vibeScore = data.vibeScore || 0;
