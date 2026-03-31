@@ -351,6 +351,11 @@ function connectToRelay() {
     if (ps.photos && ps.photos.length) {
       ps.photos.forEach(p => addDiapoPhoto(p.dataURL, p.guestName));
     }
+    // Costume contest entries: sync from server on join
+    if (ps.costumeEntries && ps.costumeEntries.length) {
+      state.costumeEntries = ps.costumeEntries;
+      renderCostumeEntries();
+    }
     saveSession();
   });
 
@@ -854,26 +859,20 @@ function bindCostumeButton() {
     console.error('[Costume] Button #costume-enter-btn not found!');
     return;
   }
-  console.log('[Costume] Binding button, registered:', state.costumeRegistered);
   
   if (state.costumeRegistered) {
-    enterBtn.textContent = '✅ INSCRIT !';
-    enterBtn.style.opacity = '0.6';
-    enterBtn.style.pointerEvents = 'none';
+    // Already registered — show photo upload button
+    showCostumePhotoUpload();
     return;
   }
   
-  // Remove old handlers and rebind
   enterBtn.style.opacity = '1';
   enterBtn.style.pointerEvents = 'auto';
+  enterBtn.style.display = '';
+  enterBtn.textContent = '🎭 JE PARTICIPE !';
   enterBtn.onclick = function() {
-    console.log('[Costume] Button clicked!');
     if (state.costumeRegistered) return;
     state.costumeRegistered = true;
-    
-    enterBtn.textContent = '✅ INSCRIT !';
-    enterBtn.style.opacity = '0.6';
-    enterBtn.style.pointerEvents = 'none';
     
     const myEntry = {
       guestName: state.guestName,
@@ -893,7 +892,56 @@ function bindCostumeButton() {
         emoji: state.guestEmoji
       });
     }
+    
+    // Switch to photo upload mode
+    showCostumePhotoUpload();
   };
+}
+
+function showCostumePhotoUpload() {
+  const container = $('costume-participate');
+  if (!container) return;
+  container.innerHTML = `
+    <div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:rgba(0,224,196,0.08); border:1px solid rgba(0,224,196,0.3); border-radius:12px;">
+      <span style="font-size:18px;">✅</span>
+      <div style="flex:1;">
+        <div style="font-size:11px; font-weight:800; color:#00e0c4;">INSCRIT !</div>
+        <div style="font-size:9px; color:var(--text-dim);">Ajoute une photo de ton déguisement</div>
+      </div>
+      <div style="position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:4px; padding:6px 14px; background:linear-gradient(135deg,#bb86fc,#7c4dff); border-radius:8px; cursor:pointer; font-size:10px; font-weight:800; color:white;">
+        📷 PHOTO
+        <input type="file" id="costume-photo-input" accept="image/*" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
+      </div>
+    </div>
+  `;
+  // Bind photo input
+  const photoInput = $('costume-photo-input');
+  if (photoInput) {
+    photoInput.onchange = handleCostumePhoto;
+  }
+}
+
+function handleCostumePhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+  
+  readFileAsDataURL(file, (dataURL) => {
+    if (!dataURL) { alert('❌ Erreur photo'); return; }
+    
+    // Update local entry
+    const myEntry = (state.costumeEntries || []).find(en => en.guestId === state.guestId);
+    if (myEntry) myEntry.photo = dataURL;
+    renderCostumeEntries();
+    
+    // Send to server
+    if (socket && socket.connected) {
+      socket.emit('costume:photo', {
+        guestId: state.guestId,
+        photo: dataURL
+      });
+    }
+  });
 }
 
 function renderCostumeEntries() {
@@ -925,7 +973,7 @@ function renderCostumeEntries() {
     }
     
     card.innerHTML = `
-      <span style="font-size:20px;">${entry.emoji || '🎭'}</span>
+      ${entry.photo ? `<img src="${entry.photo}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0;">` : `<span style="font-size:20px;">${entry.emoji || '🎭'}</span>`}
       <span style="flex:1; font-size:12px; font-weight:700; color:white;">${entry.guestName}</span>
       <span style="font-size:11px; color:#bb86fc; font-weight:700; margin-right:6px;">${entry.votes || 0} ❤️</span>
       ${actionHTML}
@@ -1052,32 +1100,19 @@ function handleDiapoPhoto(e) {
   if (!file) return;
   console.log('[Photo] File selected:', file.name, file.size, 'bytes');
   
-  // Reset input so same photo can be re-selected
   e.target.value = '';
-  
-  // Initialize myPhotos if needed
   state.myPhotos = state.myPhotos || [];
   state.diapoPhotos = state.diapoPhotos || [];
   
-  // Show loading feedback
-  const grid = $('diapo-grid');
-  const loadingEl = document.createElement('div');
-  loadingEl.style.cssText = 'display:flex;align-items:center;justify-content:center;background:rgba(0,224,196,0.1);border-radius:8px;aspect-ratio:1;font-size:20px;';
-  loadingEl.textContent = '⏳';
-  if (grid) grid.appendChild(loadingEl);
-  
-  // Resize image via Canvas (max 800px, JPEG 70%)
-  resizeImage(file, 800, 0.7, (dataURL) => {
-    // Remove loading indicator
-    if (loadingEl.parentNode) loadingEl.remove();
-    
+  // Use FileReader (more reliable on mobile than createObjectURL)
+  readFileAsDataURL(file, (dataURL) => {
     if (!dataURL) {
-      console.error('[Photo] Failed to resize photo');
-      alert('❌ Erreur lors du traitement de la photo');
+      console.error('[Photo] Failed to read file');
+      alert('❌ Erreur lors de la lecture de la photo');
       return;
     }
     
-    console.log('[Photo] Resized OK, dataURL length:', dataURL.length);
+    console.log('[Photo] Read OK, length:', dataURL.length);
     
     state.diapoPhotos.push(dataURL);
     state.myPhotos.push(dataURL);
@@ -1085,7 +1120,6 @@ function handleDiapoPhoto(e) {
     updateMyPhotosGrid();
     saveSession();
     
-    // Emit to server for host slideshow + other guests
     if (socket && socket.connected) {
       socket.emit('guest:photo', {
         dataURL: dataURL,
@@ -1093,9 +1127,29 @@ function handleDiapoPhoto(e) {
       });
       console.log('[Photo] Emitted to server');
     } else {
-      console.warn('[Photo] Socket not connected, photo not sent to server');
+      console.warn('[Photo] Socket not connected!');
     }
   });
+}
+
+// Reliable file reading for mobile Safari
+function readFileAsDataURL(file, callback) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    // Optionally resize via canvas if too large (>2MB)
+    if (reader.result.length > 2000000) {
+      resizeImage(file, 800, 0.7, (resized) => {
+        callback(resized || reader.result);
+      });
+    } else {
+      callback(reader.result);
+    }
+  };
+  reader.onerror = () => {
+    console.error('[Photo] FileReader error:', reader.error);
+    callback(null);
+  };
+  reader.readAsDataURL(file);
 }
 
 function updateMyPhotosGrid() {

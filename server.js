@@ -381,6 +381,17 @@ io.on('connection', (socket) => {
     console.log(`👍 Costume vote: ${data.voterName} → ${data.targetName}`);
   });
 
+  socket.on('costume:photo', (data) => {
+    if (!isValidGuest()) return;
+    const entry = partyState.costumeEntries.find(e => e.guestId === data.guestId);
+    if (entry) {
+      entry.photo = data.photo;
+    }
+    io.to('guests').emit('costume:entries', partyState.costumeEntries);
+    io.to('host').emit('costume:entries', partyState.costumeEntries);
+    console.log(`📸 Costume photo: ${data.guestId}`);
+  });
+
   // ═══════════════════════════════════════════════════════════════════
   // HOST VOTE (organizer votes also influence dancefloor)
   // ═══════════════════════════════════════════════════════════════════
