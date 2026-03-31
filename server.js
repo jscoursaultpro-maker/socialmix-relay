@@ -378,6 +378,20 @@ io.on('connection', (socket) => {
     console.log(`📸 Photo shared by ${photo.guestName} (${sizeKB} KB, total: ${partyState.photos.length})`);
   });
 
+  // Host shares a gallery photo (no isValidGuest check needed)
+  socket.on('host:photo', (data) => {
+    const photo = {
+      dataURL: data.dataURL,
+      guestName: data.guestName || 'Host',
+      sentAt: new Date().toISOString()
+    };
+    partyState.photos.push(photo);
+    io.to('guests').emit('photo:shared', photo);
+    io.to('host').emit('guest:photo', photo);
+    const sizeKB = Math.round((data.dataURL || '').length / 1024);
+    console.log(`📸 HOST photo shared by ${photo.guestName} (${sizeKB} KB, total: ${partyState.photos.length})`);
+  });
+
   // ═══════════════════════════════════════════════════════════════════
   // COSTUME CONTEST
   // ═══════════════════════════════════════════════════════════════════
