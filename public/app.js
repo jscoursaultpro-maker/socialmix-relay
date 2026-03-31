@@ -961,35 +961,34 @@ function renderCostumeEntries() {
   }
   
   grid.innerHTML = '';
+  grid.style.cssText = 'display:grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap:8px;';
+  
   entries.forEach(entry => {
     const isVoted = state.costumeVoted === entry.guestId;
     const isMe = entry.guestId === state.guestId;
-    const hasVoted = !!state.costumeVoted;
     const card = document.createElement('div');
-    card.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.04); border-radius:12px; margin-bottom:6px;' + (isVoted ? 'border:1px solid #bb86fc;' : 'border:1px solid transparent;');
+    card.style.cssText = 'display:flex; flex-direction:column; align-items:center; padding:8px 6px; background:rgba(255,255,255,0.04); border-radius:12px;' + (isVoted ? 'border:2px solid #bb86fc;' : 'border:2px solid transparent;');
     
-    let actionHTML = '';
+    // VOTER button on top (centered)
+    let topBtn = '';
     if (isMe) {
-      actionHTML = '<span style="font-size:9px; color:var(--text-dim); font-weight:600;">TOI</span>';
+      topBtn = '<div style="font-size:8px;color:var(--text-dim);font-weight:700;margin-bottom:4px;">TOI</div>';
     } else if (isVoted) {
-      actionHTML = '<button class="costume-vote-btn voted" style="padding:5px 12px; background:rgba(187,134,252,0.2); border:1px solid #bb86fc; border-radius:8px; color:#bb86fc; font-size:10px; font-weight:800; cursor:pointer;">✓ MON VOTE</button>';
+      topBtn = '<button class="costume-vote-btn voted" style="margin-bottom:4px;padding:3px 10px;background:rgba(187,134,252,0.2);border:1px solid #bb86fc;border-radius:6px;color:#bb86fc;font-size:8px;font-weight:800;cursor:pointer;">✓ VOTE</button>';
     } else {
-      actionHTML = '<button class="costume-vote-btn" style="padding:5px 12px; background:linear-gradient(135deg,#bb86fc,#7c4dff); border:none; border-radius:8px; color:white; font-size:10px; font-weight:800; cursor:pointer;">VOTER</button>';
+      topBtn = '<button class="costume-vote-btn" style="margin-bottom:4px;padding:3px 10px;background:linear-gradient(135deg,#bb86fc,#7c4dff);border:none;border-radius:6px;color:white;font-size:8px;font-weight:800;cursor:pointer;">VOTER</button>';
     }
     
-    // Photo thumbnail (clickable to enlarge)
-    const photoHTML = entry.photo
-      ? `<img src="${entry.photo}" class="costume-thumb" style="width:40px;height:40px;border-radius:10px;object-fit:cover;flex-shrink:0;cursor:pointer;">`
-      : `<span style="font-size:20px;flex-shrink:0;width:40px;text-align:center;">${entry.emoji || '🎭'}</span>`;
+    const shortName = entry.guestName.length > 6 ? entry.guestName.substring(0, 6) + '…' : entry.guestName;
     
     card.innerHTML = `
-      ${photoHTML}
-      <span style="flex:1; font-size:12px; font-weight:700; color:white;">${entry.guestName}</span>
-      <span style="font-size:11px; color:#bb86fc; font-weight:700; margin-right:6px;">${entry.votes || 0} ❤️</span>
-      ${actionHTML}
+      ${topBtn}
+      ${entry.photo ? `<img src="${entry.photo}" class="costume-thumb" style="width:60px;height:60px;border-radius:10px;object-fit:cover;cursor:pointer;">` : `<div style="width:60px;height:60px;border-radius:10px;background:rgba(187,134,252,0.15);display:flex;align-items:center;justify-content:center;font-size:28px;">${entry.emoji || '🎭'}</div>`}
+      <div style="font-size:10px;font-weight:700;color:white;margin-top:4px;text-align:center;">${shortName}</div>
+      <div style="font-size:9px;font-weight:800;color:#bb86fc;">${entry.votes || 0} ❤️</div>
     `;
     
-    // Click photo to enlarge
+    // Photo click to enlarge
     const thumb = card.querySelector('.costume-thumb');
     if (thumb) {
       thumb.addEventListener('click', (e) => {
@@ -998,45 +997,24 @@ function renderCostumeEntries() {
       });
     }
     
-    // Vote button: supports re-voting
+    // Vote button
     const voteBtn = card.querySelector('.costume-vote-btn');
     if (voteBtn && !isMe) {
       voteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        
         if (isVoted) {
-          // Cancel vote
           state.costumeVoted = null;
           entry.votes = Math.max(0, (entry.votes || 0) - 1);
-          if (socket && socket.connected) {
-            socket.emit('costume:unvote', {
-              voterId: state.guestId,
-              targetId: entry.guestId
-            });
-          }
+          if (socket && socket.connected) socket.emit('costume:unvote', { voterId: state.guestId, targetId: entry.guestId });
         } else {
-          // If changing vote, decrement old
           if (state.costumeVoted) {
-            const oldEntry = entries.find(en => en.guestId === state.costumeVoted);
-            if (oldEntry) oldEntry.votes = Math.max(0, (oldEntry.votes || 0) - 1);
-            if (socket && socket.connected) {
-              socket.emit('costume:unvote', {
-                voterId: state.guestId,
-                targetId: state.costumeVoted
-              });
-            }
+            const old = entries.find(en => en.guestId === state.costumeVoted);
+            if (old) old.votes = Math.max(0, (old.votes || 0) - 1);
+            if (socket && socket.connected) socket.emit('costume:unvote', { voterId: state.guestId, targetId: state.costumeVoted });
           }
-          // New vote
           state.costumeVoted = entry.guestId;
           entry.votes = (entry.votes || 0) + 1;
-          if (socket && socket.connected) {
-            socket.emit('costume:vote', {
-              voterId: state.guestId,
-              voterName: state.guestName,
-              targetId: entry.guestId,
-              targetName: entry.guestName
-            });
-          }
+          if (socket && socket.connected) socket.emit('costume:vote', { voterId: state.guestId, voterName: state.guestName, targetId: entry.guestId, targetName: entry.guestName });
         }
         renderCostumeEntries();
         saveSession();
