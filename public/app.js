@@ -823,22 +823,24 @@ function populateCostumes() {
   state.myPhotos = state.myPhotos || [];
   
   const enterBtn = $('costume-enter-btn');
+  console.log('[Costume] Enter button found:', !!enterBtn);
   if (enterBtn) {
     // If already registered, show that
     if (state.costumeRegistered) {
       enterBtn.textContent = '✅ INSCRIT !';
       enterBtn.style.opacity = '0.6';
-      enterBtn.disabled = true;
+      enterBtn.style.pointerEvents = 'none';
     }
     
-    enterBtn.addEventListener('click', () => {
+    enterBtn.onclick = () => {
+      console.log('[Costume] Button clicked! registered:', state.costumeRegistered);
       if (state.costumeRegistered) return;
       state.costumeRegistered = true;
       
       // Update button
       enterBtn.textContent = '✅ INSCRIT !';
       enterBtn.style.opacity = '0.6';
-      enterBtn.disabled = true;
+      enterBtn.style.pointerEvents = 'none';
       
       // Add self to local entries immediately
       const myEntry = {
@@ -850,6 +852,7 @@ function populateCostumes() {
       state.costumeEntries = (state.costumeEntries || []).filter(e => e.guestId !== state.guestId);
       state.costumeEntries.push(myEntry);
       renderCostumeEntries();
+      saveSession();
       
       // Emit to server
       if (socket && socket.connected) {
@@ -859,7 +862,7 @@ function populateCostumes() {
           emoji: state.guestEmoji
         });
       }
-    });
+    };
   }
   
   // Listen for costume entries from server
@@ -943,25 +946,66 @@ function renderCostumePodium(entries) {
 }
 
 function populateMissions() {
+  const voteCount = (state.allVotes || []).length;
+  const photoCount = (state.myPhotos || []).length;
+  const genreVoted = state.selectedGenre ? 1 : 0;
+  const costumeJoined = state.costumeRegistered ? 1 : 0;
+  
   const missions = [
-    { icon: '📸', title: 'Paparazzi', desc: 'Prends 5 photos de la soirée' },
-    { icon: '🕺', title: 'Dance Machine', desc: 'Vote pour 10 titres' },
-    { icon: '🎭', title: 'Social Butterfly', desc: 'Parle à 5 personnes différentes' },
-    { icon: '🏆', title: 'Trendsetter', desc: 'Fais voter ta tendance en n°1' }
+    {
+      icon: '📸', title: 'PAPARAZZI',
+      desc: 'Capture les meilleurs moments ! Prends des photos via le Social Hub pour alimenter le diaporama de la soirée.',
+      target: 5, current: photoCount, unit: 'photos',
+      reward: '+50 pts'
+    },
+    {
+      icon: '🕺', title: 'DANCE MACHINE',
+      desc: 'Fais entendre ta voix ! Vote BOF, TOP ou LE FEU sur les titres du DJ pour influencer le mix.',
+      target: 10, current: voteCount, unit: 'votes',
+      reward: '+100 pts'
+    },
+    {
+      icon: '🎯', title: 'TRENDSETTER',
+      desc: 'Vote pour une tendance musicale dans VOTE TENDANCE. Si ton genre devient majoritaire, le DJ jouera ton style !',
+      target: 1, current: genreVoted, unit: 'tendance',
+      reward: '+30 pts'
+    },
+    {
+      icon: '🎭', title: 'SHOWMAN',
+      desc: 'Inscris-toi au Concours Déguisement dans le Social Hub et fais voter les autres pour toi !',
+      target: 1, current: costumeJoined, unit: 'inscription',
+      reward: '+40 pts'
+    },
+    {
+      icon: '🔥', title: 'PYROMANE',
+      desc: 'Deviens le guest le plus actif de la soirée ! Cumule votes, photos et tendances pour dominer le classement.',
+      target: 20, current: voteCount + photoCount + genreVoted, unit: 'actions',
+      reward: '+200 pts'
+    }
   ];
   const list = $('missions-list');
   list.innerHTML = '';
   missions.forEach(m => {
+    const progress = Math.min(100, Math.round((m.current / m.target) * 100));
+    const done = m.current >= m.target;
     const item = document.createElement('div');
     item.className = 'mission-item';
+    item.style.cssText = 'display:flex; gap:12px; align-items:flex-start; padding:12px; background:rgba(255,255,255,0.03); border-radius:12px; margin-bottom:8px;';
     item.innerHTML = `
-      <div class="mission-icon">${m.icon}</div>
-      <div class="mission-info">
-        <div class="mission-title">${m.title}</div>
-        <div class="mission-desc">${m.desc}</div>
+      <div style="font-size:24px; flex-shrink:0; width:36px; text-align:center;">${done ? '✅' : m.icon}</div>
+      <div style="flex:1; min-width:0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <span style="font-size:11px; font-weight:800; color:${done ? '#00e0c4' : 'white'}; letter-spacing:0.5px;">${m.title}</span>
+          <span style="font-size:9px; font-weight:700; color:#ffc107; background:rgba(255,193,7,0.1); padding:2px 8px; border-radius:8px;">${m.reward}</span>
+        </div>
+        <div style="font-size:10px; color:rgba(255,255,255,0.5); line-height:1.4; margin-bottom:6px;">${m.desc}</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="flex:1; height:4px; background:rgba(255,255,255,0.08); border-radius:2px; overflow:hidden;">
+            <div style="width:${progress}%; height:100%; background:${done ? '#00e0c4' : 'linear-gradient(90deg,#00d2ff,#8a2be2)'}; border-radius:2px; transition:width 0.5s ease;"></div>
+          </div>
+          <span style="font-size:9px; font-weight:700; color:${done ? '#00e0c4' : 'var(--text-dim)'}; white-space:nowrap;">${m.current}/${m.target}</span>
+        </div>
       </div>
-      <button class="mission-check" onclick="this.classList.toggle('done'); this.textContent = this.classList.contains('done') ? '✓' : ''">
-      </button>
     `;
     list.appendChild(item);
   });
