@@ -933,6 +933,11 @@ function handleCostumePhoto(e) {
     if (myEntry) myEntry.photo = dataURL;
     renderCostumeEntries();
     
+    // Also add to MES PHOTOS
+    state.myPhotos = state.myPhotos || [];
+    state.myPhotos.push(dataURL);
+    updateMyPhotosGrid();
+    
     // Send to server
     if (socket && socket.connected) {
       socket.emit('costume:photo', {
@@ -940,6 +945,7 @@ function handleCostumePhoto(e) {
         photo: dataURL
       });
     }
+    saveSession();
   });
 }
 
@@ -1066,19 +1072,20 @@ function renderCostumePodium(entries) {
     podium.innerHTML = '<div style="text-align:center; color:var(--text-dim); font-size:11px; padding:12px;">Pas encore de votes</div>';
     return;
   }
-  const medals = ['🥇', '🥈', '🥉'];
-  podium.innerHTML = '';
-  sorted.slice(0, 3).forEach((entry, i) => {
-    const el = document.createElement('div');
-    el.style.cssText = 'display:flex; align-items:center; gap:10px; padding:8px 12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:4px;';
-    el.innerHTML = `
-      <span style="font-size:18px;">${medals[i] || ''}</span>
-      <span style="font-size:14px;">${entry.emoji || '🎭'}</span>
-      <span style="font-size:12px; font-weight:700; color:white; flex:1;">${entry.guestName}</span>
-      <span style="font-size:12px; font-weight:800; color:#bb86fc;">${entry.votes || 0} ❤️</span>
-    `;
-    podium.appendChild(el);
-  });
+  const winner = sorted[0];
+  const photoHTML = winner.photo
+    ? `<img src="${winner.photo}" style="width:80px;height:80px;border-radius:14px;object-fit:cover;border:2px solid rgba(255,215,0,0.5);cursor:pointer;" onclick="showPhotoLightbox('${winner.photo.replace(/'/g, "\\'")}','${winner.guestName}')">`
+    : `<div style="width:80px;height:80px;border-radius:14px;background:rgba(255,215,0,0.1);display:flex;align-items:center;justify-content:center;font-size:36px;border:2px solid rgba(255,215,0,0.3);">${winner.emoji || '🎭'}</div>`;
+  podium.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.08),rgba(255,215,0,0.02));border:1px solid rgba(255,215,0,0.2);border-radius:14px;">
+      ${photoHTML}
+      <div style="flex:1;">
+        <div style="font-size:9px;font-weight:800;color:rgba(255,215,0,0.7);letter-spacing:1px;margin-bottom:4px;">👑 MEILLEUR DÉGUISEMENT</div>
+        <div style="font-size:16px;font-weight:900;color:white;margin-bottom:2px;">${winner.guestName}</div>
+        <div style="font-size:13px;font-weight:800;color:#bb86fc;">${winner.votes} ❤️</div>
+      </div>
+    </div>
+  `;
 }
 
 function populateMissions() {
