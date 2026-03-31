@@ -108,6 +108,13 @@ function showScreen(name) {
     next.scrollTop = 0;
   }
   currentScreen = name;
+  
+  // Re-bind event handlers when hub screen opens
+  if (name === 'hub') {
+    bindCostumeButton();
+    populateMissions();
+    updateMyPhotosGrid();
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -675,8 +682,14 @@ function setupSocialHub() {
   populateCostumes();
   populateMissions();
   
-  // Diapo photo upload (overlay inputs fire change directly)
-  $('diapo-input').addEventListener('change', handleDiapoPhoto);
+  // Diapo photo upload
+  const diapoInput = $('diapo-input');
+  if (diapoInput) {
+    diapoInput.addEventListener('change', handleDiapoPhoto);
+    console.log('[SocialHub] Photo input bound');
+  } else {
+    console.error('[SocialHub] diapo-input not found!');
+  }
 }
 
 function populateTrombinoscope() {
@@ -822,48 +835,7 @@ function populateCostumes() {
   state.costumeRegistered = state.costumeRegistered || false;
   state.myPhotos = state.myPhotos || [];
   
-  const enterBtn = $('costume-enter-btn');
-  console.log('[Costume] Enter button found:', !!enterBtn);
-  if (enterBtn) {
-    // If already registered, show that
-    if (state.costumeRegistered) {
-      enterBtn.textContent = '✅ INSCRIT !';
-      enterBtn.style.opacity = '0.6';
-      enterBtn.style.pointerEvents = 'none';
-    }
-    
-    enterBtn.onclick = () => {
-      console.log('[Costume] Button clicked! registered:', state.costumeRegistered);
-      if (state.costumeRegistered) return;
-      state.costumeRegistered = true;
-      
-      // Update button
-      enterBtn.textContent = '✅ INSCRIT !';
-      enterBtn.style.opacity = '0.6';
-      enterBtn.style.pointerEvents = 'none';
-      
-      // Add self to local entries immediately
-      const myEntry = {
-        guestName: state.guestName,
-        guestId: state.guestId,
-        emoji: state.guestEmoji,
-        votes: 0
-      };
-      state.costumeEntries = (state.costumeEntries || []).filter(e => e.guestId !== state.guestId);
-      state.costumeEntries.push(myEntry);
-      renderCostumeEntries();
-      saveSession();
-      
-      // Emit to server
-      if (socket && socket.connected) {
-        socket.emit('costume:enter', {
-          guestName: state.guestName,
-          guestId: state.guestId,
-          emoji: state.guestEmoji
-        });
-      }
-    };
-  }
+  bindCostumeButton();
   
   // Listen for costume entries from server
   if (socket) {
@@ -874,6 +846,54 @@ function populateCostumes() {
   }
   
   renderCostumeEntries();
+}
+
+function bindCostumeButton() {
+  const enterBtn = $('costume-enter-btn');
+  if (!enterBtn) {
+    console.error('[Costume] Button #costume-enter-btn not found!');
+    return;
+  }
+  console.log('[Costume] Binding button, registered:', state.costumeRegistered);
+  
+  if (state.costumeRegistered) {
+    enterBtn.textContent = '✅ INSCRIT !';
+    enterBtn.style.opacity = '0.6';
+    enterBtn.style.pointerEvents = 'none';
+    return;
+  }
+  
+  // Remove old handlers and rebind
+  enterBtn.style.opacity = '1';
+  enterBtn.style.pointerEvents = 'auto';
+  enterBtn.onclick = function() {
+    console.log('[Costume] Button clicked!');
+    if (state.costumeRegistered) return;
+    state.costumeRegistered = true;
+    
+    enterBtn.textContent = '✅ INSCRIT !';
+    enterBtn.style.opacity = '0.6';
+    enterBtn.style.pointerEvents = 'none';
+    
+    const myEntry = {
+      guestName: state.guestName,
+      guestId: state.guestId,
+      emoji: state.guestEmoji,
+      votes: 0
+    };
+    state.costumeEntries = (state.costumeEntries || []).filter(e => e.guestId !== state.guestId);
+    state.costumeEntries.push(myEntry);
+    renderCostumeEntries();
+    saveSession();
+    
+    if (socket && socket.connected) {
+      socket.emit('costume:enter', {
+        guestName: state.guestName,
+        guestId: state.guestId,
+        emoji: state.guestEmoji
+      });
+    }
+  };
 }
 
 function renderCostumeEntries() {
@@ -1014,32 +1034,40 @@ function populateMissions() {
 function handleDiapoPhoto(e) {
   const file = e.target.files[0];
   if (!file) return;
+  console.log('[Photo] File selected:', file.name, file.size, 'bytes');
   
   // Reset input so same photo can be re-selected
   e.target.value = '';
+  
+  // Initialize myPhotos if needed
+  state.myPhotos = state.myPhotos || [];
+  state.diapoPhotos = state.diapoPhotos || [];
   
   // Show loading feedback
   const grid = $('diapo-grid');
   const loadingEl = document.createElement('div');
   loadingEl.style.cssText = 'display:flex;align-items:center;justify-content:center;background:rgba(0,224,196,0.1);border-radius:8px;aspect-ratio:1;font-size:20px;';
   loadingEl.textContent = '⏳';
-  grid.appendChild(loadingEl);
+  if (grid) grid.appendChild(loadingEl);
   
   // Resize image via Canvas (max 800px, JPEG 70%)
   resizeImage(file, 800, 0.7, (dataURL) => {
     // Remove loading indicator
-    loadingEl.remove();
+    if (loadingEl.parentNode) loadingEl.remove();
     
     if (!dataURL) {
-      console.error('[SocialMix] Failed to resize photo');
+      console.error('[Photo] Failed to resize photo');
+      alert('❌ Erreur lors du traitement de la photo');
       return;
     }
     
+    console.log('[Photo] Resized OK, dataURL length:', dataURL.length);
+    
     state.diapoPhotos.push(dataURL);
-    state.myPhotos = state.myPhotos || [];
     state.myPhotos.push(dataURL);
     addDiapoPhoto(dataURL, state.guestName);
     updateMyPhotosGrid();
+    saveSession();
     
     // Emit to server for host slideshow + other guests
     if (socket && socket.connected) {
@@ -1047,6 +1075,9 @@ function handleDiapoPhoto(e) {
         dataURL: dataURL,
         guestName: state.guestName
       });
+      console.log('[Photo] Emitted to server');
+    } else {
+      console.warn('[Photo] Socket not connected, photo not sent to server');
     }
   });
 }

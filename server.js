@@ -136,20 +136,24 @@ io.on('connection', (socket) => {
     partyState.code = newCode;
     partyState.hostProfile = data.profile || null;
     
-    // Add host as first participant
+    // Build host participant entry
     const hostName = (data.profile && data.profile.name) || 'DJ';
     const hostEmoji = (data.profile && data.profile.emoji) || '🎧';
-    partyState.participants = [{
+    const hostEntry = {
       id: socket.id,
       name: hostName,
       emoji: hostEmoji,
-      photo: null,
+      photo: (data.profile && data.profile.photo) || null,
       partyCode: newCode,
       joinedAt: new Date().toISOString(),
       isHost: true
-    }];
+    };
     
-    console.log(`🎉 Party started: ${partyState.code} (host: ${hostName})`);
+    // IMPORTANT: Only replace host entry, preserve guest participants
+    partyState.participants = partyState.participants.filter(p => !p.isHost);
+    partyState.participants.unshift(hostEntry);
+    
+    console.log(`🎉 Party started: ${partyState.code} (host: ${hostName}, ${partyState.participants.length} participants)`);
     io.to('guests').emit('party:started', { code: partyState.code, profile: partyState.hostProfile });
     io.to('guests').emit('participants:update', partyState.participants);
   });
