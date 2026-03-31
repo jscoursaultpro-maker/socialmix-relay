@@ -693,13 +693,24 @@ function setupSocialHub() {
   populateCostumes();
   populateMissions();
   
-  // Diapo photo upload
-  const diapoInput = $('diapo-input');
-  if (diapoInput) {
-    diapoInput.addEventListener('change', handleDiapoPhoto);
-    console.log('[SocialHub] Photo input bound');
+  // Gallery photo: dynamically create file input on click (same pattern as costume photos)
+  const galleryBtn = $('gallery-photo-btn');
+  if (galleryBtn) {
+    galleryBtn.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+      input.onchange = (e) => {
+        handleDiapoPhoto(e);
+        input.remove();
+      };
+      input.click();
+    });
+    console.log('[SocialHub] Gallery photo button bound (dynamic input)');
   } else {
-    console.error('[SocialHub] diapo-input not found!');
+    console.error('[SocialHub] gallery-photo-btn not found!');
   }
 }
 
