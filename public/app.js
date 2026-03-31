@@ -939,12 +939,18 @@ function handleCostumePhoto(e) {
     state.myPhotos.push(dataURL);
     updateMyPhotosGrid();
     
-    // Send to server
+    // Send costume photo to server
     if (socket && socket.connected) {
       socket.emit('costume:photo', {
         guestId: state.guestId,
         photo: dataURL
       });
+      // Also send as gallery photo so it appears in host diaporama
+      socket.emit('guest:photo', {
+        dataURL: dataURL,
+        guestName: state.guestName
+      });
+      console.log('[CostumePhoto] Emitted costume:photo + guest:photo');
     }
     saveSession();
   });
@@ -1198,16 +1204,16 @@ function updateMyPhotosGrid() {
     return;
   }
   if (empty) empty.style.display = 'none';
-  // Build grid (don't re-render existing)
   grid.innerHTML = '';
+  grid.className = 'gallery-grid';
   photos.forEach(dataURL => {
     const img = document.createElement('img');
     img.src = dataURL;
     img.alt = 'Ma photo';
-    img.style.cssText = 'width:100%; border-radius:8px; aspect-ratio:1; object-fit:cover;';
+    img.style.cssText = 'width:100%; border-radius:8px; aspect-ratio:1; object-fit:cover; cursor:pointer;';
+    img.addEventListener('click', () => showPhotoLightbox(dataURL, state.guestName || 'Moi'));
     grid.appendChild(img);
   });
-  grid.className = 'gallery-grid';
 }
 
 function resizeImage(file, maxSize, quality, callback) {
