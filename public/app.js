@@ -693,24 +693,13 @@ function setupSocialHub() {
   populateCostumes();
   populateMissions();
   
-  // Gallery photo: dynamically create file input on click (same pattern as costume photos)
-  const galleryBtn = $('gallery-photo-btn');
-  if (galleryBtn) {
-    galleryBtn.addEventListener('click', () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.style.display = 'none';
-      document.body.appendChild(input);
-      input.onchange = (e) => {
-        handleDiapoPhoto(e);
-        input.remove();
-      };
-      input.click();
-    });
-    console.log('[SocialHub] Gallery photo button bound (dynamic input)');
+  // Gallery photo: direct onchange binding (iOS Safari requires in-DOM input)
+  const galleryInput = $('gallery-photo-input');
+  if (galleryInput) {
+    galleryInput.onchange = handleDiapoPhoto;
+    console.log('[SocialHub] Gallery photo input bound');
   } else {
-    console.error('[SocialHub] gallery-photo-btn not found!');
+    console.error('[SocialHub] gallery-photo-input not found!');
   }
 }
 
