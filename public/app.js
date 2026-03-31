@@ -902,27 +902,40 @@ function renderCostumeEntries() {
   
   if (!entries.length) {
     grid.innerHTML = '<div style="text-align: center; color: var(--text-dim); font-size: 11px; padding: 16px;">⏳ En attente de participants...</div>';
+    renderCostumePodium([]);
     return;
   }
   
   grid.innerHTML = '';
   entries.forEach(entry => {
-    const card = document.createElement('div');
     const isVoted = state.costumeVoted === entry.guestId;
     const isMe = entry.guestId === state.guestId;
-    card.className = 'costume-card' + (isVoted ? ' voted' : '');
+    const hasVoted = !!state.costumeVoted;
+    const card = document.createElement('div');
+    card.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.04); border-radius:12px; margin-bottom:6px;' + (isVoted ? 'border:1px solid #bb86fc;' : 'border:1px solid transparent;');
+    
+    // Vote button or status
+    let actionHTML = '';
+    if (isMe) {
+      actionHTML = '<span style="font-size:9px; color:var(--text-dim); font-weight:600;">TOI</span>';
+    } else if (isVoted) {
+      actionHTML = '<span style="font-size:9px; color:#bb86fc; font-weight:800;">✓ MON VOTE</span>';
+    } else if (!hasVoted) {
+      actionHTML = '<button class="costume-vote-btn" style="padding:5px 12px; background:linear-gradient(135deg,#bb86fc,#7c4dff); border:none; border-radius:8px; color:white; font-size:10px; font-weight:800; cursor:pointer;">VOTER</button>';
+    }
+    
     card.innerHTML = `
-      <div class="costume-photo-wrap${isVoted ? ' selected' : ''}">
-        ${entry.photo ? `<img src="${entry.photo}" alt="${entry.guestName}" class="costume-photo">` : `<div class="costume-emoji">${entry.emoji || '🎭'}</div>`}
-      </div>
-      <div class="costume-name">${entry.guestName}${isMe ? ' (toi)' : ''}</div>
-      <div class="costume-votes">${entry.votes || 0} ❤️</div>
+      <span style="font-size:20px;">${entry.emoji || '🎭'}</span>
+      <span style="flex:1; font-size:12px; font-weight:700; color:white;">${entry.guestName}</span>
+      <span style="font-size:11px; color:#bb86fc; font-weight:700; margin-right:6px;">${entry.votes || 0} ❤️</span>
+      ${actionHTML}
     `;
     
-    // Click photo to vote (not on self)
-    if (!isMe && !state.costumeVoted) {
-      card.style.cursor = 'pointer';
-      card.addEventListener('click', () => {
+    // Click vote button (not on self)
+    const voteBtn = card.querySelector('.costume-vote-btn');
+    if (voteBtn && !isMe && !hasVoted) {
+      voteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         state.costumeVoted = entry.guestId;
         if (socket && socket.connected) {
           socket.emit('costume:vote', {
@@ -932,7 +945,10 @@ function renderCostumeEntries() {
             targetName: entry.guestName
           });
         }
+        // Update local vote count immediately
+        entry.votes = (entry.votes || 0) + 1;
         renderCostumeEntries();
+        saveSession();
       });
     }
     grid.appendChild(card);
@@ -1131,11 +1147,11 @@ function resizeImage(file, maxSize, quality, callback) {
 
 function addDiapoPhoto(dataURL, guestName) {
   const grid = $('diapo-grid');
+  if (!grid) { console.error('[Photo] diapo-grid not found!'); return; }
   const img = document.createElement('img');
   img.src = dataURL;
   img.alt = `photo de ${guestName || 'guest'}`;
-  img.style.borderRadius = '8px';
-  // Click to save
+  img.style.cssText = 'width:100%; border-radius:8px; aspect-ratio:1; object-fit:cover; cursor:pointer;';
   img.addEventListener('click', () => {
     const link = document.createElement('a');
     link.href = dataURL;
@@ -1143,6 +1159,7 @@ function addDiapoPhoto(dataURL, guestName) {
     link.click();
   });
   grid.appendChild(img);
+  console.log('[Photo] Added to diapo-grid, total:', grid.children.length);
 }
 
 // ═══════════════════════════════════════════
