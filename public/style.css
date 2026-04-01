@@ -564,6 +564,10 @@ html, body {
 @keyframes vinylSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes vinylSpinReverse { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
 @keyframes glowPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+@keyframes scrollBounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.8; }
+  50% { transform: translateX(-50%) translateY(-10px); opacity: 1; }
+}
 
 .np-info { position: relative; z-index: 1; flex: 1; min-width: 0; }
 .np-label {

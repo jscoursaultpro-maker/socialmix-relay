@@ -53,6 +53,7 @@ function saveProfile() {
     lastName: state.guestLastName,
     emoji: state.guestEmoji,
     photo: state.guestPhoto,
+    phone: state.guestPhone,
     email: state.guestEmail,
     instagram: state.guestInsta
   }));
@@ -66,7 +67,8 @@ function loadProfile() {
       state.guestLastName = saved.lastName || '';
       state.guestEmoji = saved.emoji || '🎉';
       state.guestPhoto = saved.photo || null;
-      state.guestEmail = saved.email || saved.phone || '';
+      state.guestPhone = saved.phone || '';
+      state.guestEmail = saved.email || '';
       state.guestInsta = saved.instagram || '';
       return true;
     }
@@ -109,6 +111,10 @@ function showScreen(name) {
   }
   currentScreen = name;
   
+  // Show/hide scroll indicator only on profile screen
+  const scrollInd = $('scroll-indicator');
+  if (scrollInd) scrollInd.style.display = (name === 'profile') ? 'flex' : 'none';
+  
   // Re-bind event handlers when hub screen opens
   if (name === 'hub') {
     bindCostumeButton();
@@ -140,8 +146,19 @@ function setupProfile() {
   // Pre-fill if profile exists
   if (state.guestName) $('profile-firstname').value = state.guestName;
   if (state.guestLastName) $('profile-lastname').value = state.guestLastName;
+  if (state.guestPhone) $('profile-phone').value = state.guestPhone;
   if (state.guestEmail) $('profile-email').value = state.guestEmail;
   if (state.guestInsta) $('profile-instagram').value = state.guestInsta;
+  
+  // Hide scroll indicator on scroll
+  const profileScreen = $('profile-screen');
+  if (profileScreen) {
+    profileScreen.addEventListener('scroll', () => {
+      const ind = $('scroll-indicator');
+      if (ind && profileScreen.scrollTop > 50) ind.style.opacity = '0';
+      else if (ind) ind.style.opacity = '1';
+    });
+  }
   if (state.guestPhoto) {
     $('profile-photo-preview').src = state.guestPhoto;
     $('profile-photo-preview').classList.remove('hidden');
@@ -178,6 +195,7 @@ function setupProfile() {
   $('profile-save').addEventListener('click', () => {
     state.guestName = $('profile-firstname').value.trim() || 'Guest';
     state.guestLastName = $('profile-lastname').value.trim();
+    state.guestPhone = $('profile-phone').value.trim();
     state.guestEmail = $('profile-email').value.trim();
     state.guestInsta = $('profile-instagram').value.trim();
     saveProfile();
@@ -328,6 +346,9 @@ function connectToRelay() {
       lastName: state.guestLastName,
       emoji: state.guestEmoji,
       photo: state.guestPhoto,
+      phone: state.guestPhone,
+      email: state.guestEmail,
+      instagram: state.guestInsta,
       partyCode: state.partyCode
     });
   });
@@ -378,18 +399,21 @@ function connectToRelay() {
     // Build trombinoscope
     let trombiHTML = '';
     if (participants.length) {
-      trombiHTML = participants.map(p => {
+      trombiHTML = participants.map((p, pidx) => {
         const shortName = (p.name || 'Guest').length > 6 ? (p.name || 'Guest').substring(0, 6) + '…' : (p.name || 'Guest');
         const avatarContent = p.photo
           ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">`
           : `<span style="font-size:28px;">${p.emoji || '🎉'}</span>`;
         return `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="showEndContactCard('${(p.name || 'Guest').replace(/'/g, "\\'")}', '${p.emoji || '🎉'}', '${(p.photo || '').substring(0, 50)}')">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="showEndContactCard(${pidx})">
             <div style="width:56px;height:56px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,0.2);border:2px solid rgba(0,224,196,0.3);">${avatarContent}</div>
             <div style="font-size:9px;font-weight:700;color:white;">${shortName}</div>
           </div>`;
       }).join('');
     }
+    
+    // Store participants globally for contact card access
+    window._endPartyParticipants = participants;
     
     // Build photo gallery
     let galleryHTML = '';
@@ -1452,15 +1476,39 @@ document.addEventListener('DOMContentLoaded', init);
 // END OF PARTY HELPERS
 // ═══════════════════════════════════════════
 
-function showEndContactCard(name, emoji, photoHint) {
+function showEndContactCard(index) {
+  const participants = window._endPartyParticipants || [];
+  const p = participants[index];
+  if (!p) return;
   const card = document.getElementById('end-contact-card');
   if (!card) return;
+  const name = p.name || 'Guest';
+  const emoji = p.emoji || '🎉';
   document.getElementById('end-contact-emoji').textContent = emoji;
   document.getElementById('end-contact-name').textContent = name;
+  
+  // Show contact details if available
+  let details = [];
+  if (p.phone) details.push(`📞 ${p.phone}`);
+  if (p.email) details.push(`✉️ ${p.email}`);
+  if (p.instagram) details.push(`📷 ${p.instagram}`);
+  const badgeEl = document.getElementById('trombi-lightbox-badge') || document.createElement('div');
+  
+  // Create/update details area
+  let detailsEl = document.getElementById('end-contact-details');
+  if (!detailsEl) {
+    detailsEl = document.createElement('div');
+    detailsEl.id = 'end-contact-details';
+    detailsEl.style.cssText = 'font-size:12px;color:rgba(255,255,255,0.6);text-align:center;line-height:1.8;';
+    const nameEl = document.getElementById('end-contact-name');
+    nameEl.parentNode.insertBefore(detailsEl, nameEl.nextSibling);
+  }
+  detailsEl.innerHTML = details.length ? details.join('<br>') : '<span style="color:rgba(255,255,255,0.3)">Pas d\'infos partagées</span>';
+  
   const btn = document.getElementById('end-contact-btn');
   btn.onclick = function(e) {
     e.stopPropagation();
-    downloadVCard(name, emoji);
+    downloadVCard(name, emoji, p.phone || '', p.email || '', p.instagram || '');
     btn.textContent = '✅ CONTACT AJOUTÉ';
     btn.style.background = 'rgba(0,224,196,0.2)';
     btn.style.color = '#00e0c4';
@@ -1472,15 +1520,19 @@ function showEndContactCard(name, emoji, photoHint) {
   card.style.display = 'flex';
 }
 
-function downloadVCard(name, emoji) {
-  const vcard = [
+function downloadVCard(name, emoji, phone, email, insta) {
+  const lines = [
     'BEGIN:VCARD',
     'VERSION:3.0',
     `FN:${emoji} ${name}`,
-    `N:${name};;;;`,
-    `NOTE:Rencontré(e) à la soirée Social Mix 🎧`,
-    'END:VCARD'
-  ].join('\r\n');
+    `N:${name};;;;`
+  ];
+  if (phone) lines.push(`TEL;TYPE=CELL:${phone}`);
+  if (email) lines.push(`EMAIL:${email}`);
+  if (insta) lines.push(`X-SOCIALPROFILE;TYPE=instagram:${insta}`);
+  lines.push(`NOTE:Rencontré(e) à la soirée Social Mix 🎧`);
+  lines.push('END:VCARD');
+  const vcard = lines.join('\r\n');
   const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

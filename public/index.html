@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260401v22">
+    <link rel="stylesheet" href="style.css?v=20260401v23">
 </head>
 <body>
 
@@ -91,6 +91,10 @@
                 </div>
                 <p class="form-hint">Partage tes infos pour rester en contact après la soirée</p>
                 <div class="form-field">
+                    <label>TÉLÉPHONE</label>
+                    <input type="tel" id="profile-phone" placeholder="06 12 34 56 78" autocomplete="tel">
+                </div>
+                <div class="form-field" style="margin-top: 10px">
                     <label>EMAIL</label>
                     <input type="email" id="profile-email" placeholder="marie@example.com" autocomplete="email">
                 </div>
@@ -104,6 +108,11 @@
                 <span>✅</span> C'EST MOI !
             </button>
             <div style="height: 30px"></div>
+        </div>
+        <!-- Scroll indicator -->
+        <div id="scroll-indicator" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;z-index:100;pointer-events:none;animation:scrollBounce 1.8s ease-in-out infinite;">
+            <div style="font-size:9px;font-weight:800;color:rgba(0,224,196,0.7);letter-spacing:1px;">SCROLL</div>
+            <div style="font-size:20px;color:rgba(0,224,196,0.8);">⌄</div>
         </div>
     </div>
 
@@ -209,7 +218,7 @@
         <div class="card trends-section">
             <div class="section-header">
                 <span class="section-icon">📊</span>
-                <span class="section-title">VOTE TENDANCE <span style="font-size:8px;color:#00d2ff;opacity:0.6">v22</span></span>
+                <span class="section-title">VOTE TENDANCE <span style="font-size:8px;color:#00d2ff;opacity:0.6">v23</span></span>
             </div>
             <div class="genre-grid" id="genre-grid"></div>
         </div>
@@ -449,6 +458,6 @@
 
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="app.js?v=20260401v22"></script>
+    <script src="app.js?v=20260401v23"></script>
 </body>
 </html>

@@ -281,6 +281,9 @@ io.on('connection', (socket) => {
       name: data.name || 'Guest',
       emoji: data.emoji || '🎉',
       photo: data.photo || null,
+      phone: data.phone || '',
+      email: data.email || '',
+      instagram: data.instagram || '',
       partyCode: guestPartyCode,
       joinedAt: new Date().toISOString()
     };
