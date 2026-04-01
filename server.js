@@ -375,7 +375,8 @@ io.on('connection', (socket) => {
       sentAt: new Date().toISOString()
     };
     partyState.photos.push(photo);
-    io.to('guests').emit('photo:shared', photo);
+    // Broadcast to OTHER guests only (sender already has the photo locally)
+    socket.broadcast.to('guests').emit('photo:shared', photo);
     io.to('host').emit('guest:photo', photo);
     const sizeKB = Math.round((data.dataURL || '').length / 1024);
     console.log(`📸 Photo shared by ${photo.guestName} (${sizeKB} KB, total: ${partyState.photos.length})`);

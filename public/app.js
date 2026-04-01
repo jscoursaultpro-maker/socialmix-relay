@@ -415,18 +415,42 @@ function connectToRelay() {
     // Store participants globally for contact card access
     window._endPartyParticipants = participants;
     
-    // Build photo gallery
+    // Build photo gallery with selection checkboxes
     let galleryHTML = '';
     if (photos.length) {
       galleryHTML = photos.map((p, i) => `
-        <div style="position:relative;cursor:pointer" onclick="showEndPhotoLightbox('${i}')">
-          <img src="${p.dataURL}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,0.1);">
+        <div style="position:relative;" data-photo-idx="${i}">
+          <img src="${p.dataURL}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:2px solid rgba(255,255,255,0.1);cursor:pointer" onclick="showEndPhotoLightbox('${i}')">
+          <div class="end-photo-check" onclick="event.stopPropagation();toggleEndPhotoSelect(${i})" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:6px;border:2px solid rgba(255,255,255,0.4);background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;"></div>
           <div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.5);text-align:center;margin-top:2px;">${(p.guestName || 'Guest').substring(0, 8)}</div>
         </div>`).join('');
     }
     
     // Store photos globally for lightbox access
     window._endPartyPhotos = photos;
+    
+    // Build favorite tracks (tracks user voted 🔥 on)
+    const trackHistory = (data && data.trackHistory) || state.trackHistory || [];
+    const myFires = (state.allVotes || []).filter(v => v.type === 'fire' && v.guestName === state.guestName);
+    const fireTrackTitles = [...new Set(myFires.map(v => v.trackTitle))];
+    const favTracks = trackHistory.filter(t => fireTrackTitles.includes(t.title));
+    
+    let favTracksHTML = '';
+    if (favTracks.length) {
+      favTracksHTML = favTracks.map(t => {
+        const q = encodeURIComponent(`${t.artist} ${t.title}`);
+        const genreBadge = t.genre ? `<span style="font-size:8px;font-weight:700;color:#00d2ff;background:rgba(0,210,255,0.1);padding:1px 5px;border-radius:4px;">${t.genre}</span>` : '';
+        return `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:4px;">
+            <span style="font-size:18px;">🔥</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:800;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.title} ${genreBadge}</div>
+              <div style="font-size:10px;color:var(--text-dim);">${t.artist}</div>
+            </div>
+            <a href="https://open.spotify.com/search/${q}" target="_blank" style="font-size:9px;font-weight:700;color:#1DB954;text-decoration:none;">Spotify</a>
+          </div>`;
+      }).join('');
+    }
     
     const cockpit = $('cockpit-screen');
     cockpit.innerHTML = `
@@ -441,6 +465,12 @@ function connectToRelay() {
             ${leaderboard}
           </div>` : ''}
         
+        ${favTracksHTML ? `
+          <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">🎵 MES TITRES PRÉFÉRÉS</div>
+            ${favTracksHTML}
+          </div>` : ''}
+        
         ${trombiHTML ? `
           <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
             <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">👥 PARTICIPANTS</div>
@@ -450,12 +480,23 @@ function connectToRelay() {
         
         ${galleryHTML ? `
           <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
-            <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">📸 PHOTOS DE LA SOIRÉE (${photos.length})</div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${galleryHTML}</div>
-            <div style="font-size:9px;color:var(--text-dim);margin-top:8px">Tape une photo pour l'agrandir et l'enregistrer</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;">📸 PHOTOS (${photos.length})</div>
+              <button onclick="toggleSelectAllEndPhotos()" style="font-size:9px;font-weight:700;color:#00d2ff;background:rgba(0,210,255,0.1);border:1px solid rgba(0,210,255,0.2);border-radius:6px;padding:3px 8px;cursor:pointer;">☑ TOUT SÉLEC.</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px" id="end-photo-grid">${galleryHTML}</div>
+            <button id="end-batch-download" onclick="downloadSelectedEndPhotos()" style="display:none;width:100%;margin-top:8px;padding:8px;background:linear-gradient(135deg,#00c853,#00bfa5);border:none;border-radius:10px;font-size:11px;font-weight:800;color:#0a0e1a;cursor:pointer;">💾 TÉLÉCHARGER LA SÉLECTION</button>
           </div>` : ''}
         
         <button onclick="showScreen('landing');sessionStorage.clear()" class="join-btn" style="width:100%;max-width:300px;margin-top:12px">QUITTER</button>
+        
+        <div style="margin-top:16px;padding:14px 20px;background:linear-gradient(135deg,rgba(0,210,255,0.08),rgba(138,43,226,0.06));border:1px solid rgba(0,210,255,0.15);border-radius:12px;width:100%;max-width:300px;text-align:center;">
+          <div style="font-size:20px;margin-bottom:4px;">📱</div>
+          <div style="font-size:11px;font-weight:800;color:white;margin-bottom:2px;">TÉLÉCHARGE L'APP</div>
+          <div style="font-size:9px;color:var(--text-dim);margin-bottom:8px;">Garde un accès à tes soirées Social Mix</div>
+          <button onclick="alert('Bientôt disponible sur l\\'App Store ! 🎧')" style="padding:8px 20px;background:linear-gradient(135deg,#00d2ff,#8a2be2);border:none;border-radius:10px;font-size:11px;font-weight:800;color:white;cursor:pointer;">🍎 DISPONIBLE BIENTÔT</button>
+        </div>
+        
         <div style="height:40px"></div>
       </div>
       
@@ -731,11 +772,12 @@ function updateHistory() {
     const item = document.createElement('div');
     item.className = 'history-item';
     const query = encodeURIComponent(`${track.artist} ${track.title}`);
+    const genreBadge = track.genre ? `<span style="font-size:8px;font-weight:700;color:#00d2ff;background:rgba(0,210,255,0.1);padding:1px 6px;border-radius:4px;margin-left:6px;">${track.genre}</span>` : '';
     
     item.innerHTML = `
       <span class="history-num">${i + 1}</span>
       <div class="history-info">
-        <div class="history-title">${track.title}</div>
+        <div class="history-title">${track.title}${genreBadge}</div>
         <div class="history-artist">${track.artist}</div>
         <div class="history-links">
           <a class="stream-link spotify" href="https://open.spotify.com/search/${query}" target="_blank">Spotify</a>
@@ -1201,7 +1243,7 @@ function renderCostumeEntries() {
     if (thumb) {
       thumb.addEventListener('click', (e) => {
         e.stopPropagation();
-        showPhotoLightbox(entry.photo, entry.guestName);
+        showPhotoLightbox(entry.photo, entry.guestName, entry.guestId);
       });
     }
     
@@ -1234,20 +1276,68 @@ function renderCostumeEntries() {
   renderCostumePodium(entries);
 }
 
-function showPhotoLightbox(src, name) {
+function showPhotoLightbox(src, name, entryGuestId) {
   // Remove existing lightbox
   const existing = document.querySelector('.photo-lightbox');
   if (existing) existing.remove();
+  
+  // Build vote button if we have an entry to vote on
+  let voteHTML = '';
+  if (entryGuestId && entryGuestId !== state.guestId) {
+    const isVoted = state.costumeVoted === entryGuestId;
+    if (isVoted) {
+      voteHTML = `<button class="lb-vote-btn" style="padding:10px 24px;background:rgba(187,134,252,0.2);border:1px solid #bb86fc;border-radius:12px;color:#bb86fc;font-size:12px;font-weight:800;cursor:pointer;">✓ VOTÉ</button>`;
+    } else {
+      voteHTML = `<button class="lb-vote-btn" style="padding:10px 24px;background:linear-gradient(135deg,#bb86fc,#7c4dff);border:none;border-radius:12px;color:white;font-size:12px;font-weight:800;cursor:pointer;">❤️ VOTER</button>`;
+    }
+  }
   
   const overlay = document.createElement('div');
   overlay.className = 'photo-lightbox';
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
   overlay.innerHTML = `
     <div style="color:white;font-size:14px;font-weight:800;margin-bottom:12px;">${name || 'Photo'}</div>
-    <img src="${src}" style="max-width:90%;max-height:70vh;border-radius:12px;object-fit:contain;">
-    <button style="margin-top:16px;padding:10px 30px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:white;font-size:12px;font-weight:800;cursor:pointer;">FERMER</button>
+    <img src="${src}" style="max-width:90%;max-height:65vh;border-radius:12px;object-fit:contain;">
+    <div style="display:flex;gap:12px;margin-top:16px;align-items:center;">
+      ${voteHTML}
+      <button class="lb-close-btn" style="padding:10px 30px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:white;font-size:12px;font-weight:800;cursor:pointer;">FERMER</button>
+    </div>
   `;
-  overlay.addEventListener('click', () => overlay.remove());
+  
+  // Close button
+  overlay.querySelector('.lb-close-btn').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  
+  // Vote button
+  const voteBtn = overlay.querySelector('.lb-vote-btn');
+  if (voteBtn && entryGuestId) {
+    voteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const entries = state.costumeEntries || [];
+      const isVoted = state.costumeVoted === entryGuestId;
+      
+      if (isVoted) {
+        state.costumeVoted = null;
+        const entry = entries.find(en => en.guestId === entryGuestId);
+        if (entry) entry.votes = Math.max(0, (entry.votes || 0) - 1);
+        if (socket && socket.connected) socket.emit('costume:unvote', { voterId: state.guestId, targetId: entryGuestId });
+      } else {
+        if (state.costumeVoted) {
+          const old = entries.find(en => en.guestId === state.costumeVoted);
+          if (old) old.votes = Math.max(0, (old.votes || 0) - 1);
+          if (socket && socket.connected) socket.emit('costume:unvote', { voterId: state.guestId, targetId: state.costumeVoted });
+        }
+        state.costumeVoted = entryGuestId;
+        const entry = entries.find(en => en.guestId === entryGuestId);
+        if (entry) entry.votes = (entry.votes || 0) + 1;
+        if (socket && socket.connected) socket.emit('costume:vote', { voterId: state.guestId, voterName: state.guestName, targetId: entryGuestId, targetName: name });
+      }
+      renderCostumeEntries();
+      saveSession();
+      overlay.remove();
+    });
+  }
+  
   document.body.appendChild(overlay);
 }
 
@@ -1521,6 +1611,94 @@ function quitParty() {
   $('dj-live-banner').classList.add('hidden');
   
   showScreen('landing');
+}
+
+// ═══════════════════════════════════════════
+// END-OF-PARTY MULTI-SELECT HELPERS
+// ═══════════════════════════════════════════
+window._selectedEndPhotos = new Set();
+
+function toggleEndPhotoSelect(idx) {
+  if (window._selectedEndPhotos.has(idx)) {
+    window._selectedEndPhotos.delete(idx);
+  } else {
+    window._selectedEndPhotos.add(idx);
+  }
+  // Update checkbox visuals
+  document.querySelectorAll('.end-photo-check').forEach((el, i) => {
+    const parent = el.closest('[data-photo-idx]');
+    const photoIdx = parent ? parseInt(parent.dataset.photoIdx) : i;
+    if (window._selectedEndPhotos.has(photoIdx)) {
+      el.innerHTML = '✓';
+      el.style.background = '#00c853';
+      el.style.borderColor = '#00c853';
+      el.style.color = 'white';
+    } else {
+      el.innerHTML = '';
+      el.style.background = 'rgba(0,0,0,0.4)';
+      el.style.borderColor = 'rgba(255,255,255,0.4)';
+    }
+  });
+  // Show/hide batch download button
+  const batchBtn = document.getElementById('end-batch-download');
+  if (batchBtn) {
+    batchBtn.style.display = window._selectedEndPhotos.size > 0 ? 'block' : 'none';
+    batchBtn.textContent = `💾 TÉLÉCHARGER ${window._selectedEndPhotos.size} PHOTO${window._selectedEndPhotos.size > 1 ? 'S' : ''}`;
+  }
+}
+
+function toggleSelectAllEndPhotos() {
+  const photos = window._endPartyPhotos || [];
+  const allSelected = window._selectedEndPhotos.size === photos.length;
+  window._selectedEndPhotos.clear();
+  if (!allSelected) {
+    photos.forEach((_, i) => window._selectedEndPhotos.add(i));
+  }
+  // Re-update all checkboxes
+  document.querySelectorAll('.end-photo-check').forEach((el, i) => {
+    const parent = el.closest('[data-photo-idx]');
+    const photoIdx = parent ? parseInt(parent.dataset.photoIdx) : i;
+    if (window._selectedEndPhotos.has(photoIdx)) {
+      el.innerHTML = '✓';
+      el.style.background = '#00c853';
+      el.style.borderColor = '#00c853';
+      el.style.color = 'white';
+    } else {
+      el.innerHTML = '';
+      el.style.background = 'rgba(0,0,0,0.4)';
+      el.style.borderColor = 'rgba(255,255,255,0.4)';
+    }
+  });
+  const batchBtn = document.getElementById('end-batch-download');
+  if (batchBtn) {
+    batchBtn.style.display = window._selectedEndPhotos.size > 0 ? 'block' : 'none';
+    batchBtn.textContent = `💾 TÉLÉCHARGER ${window._selectedEndPhotos.size} PHOTO${window._selectedEndPhotos.size > 1 ? 'S' : ''}`;
+  }
+}
+
+function downloadSelectedEndPhotos() {
+  const photos = window._endPartyPhotos || [];
+  window._selectedEndPhotos.forEach(idx => {
+    if (idx < photos.length) {
+      const a = document.createElement('a');
+      a.href = photos[idx].dataURL;
+      a.download = `soiree_photo_${idx + 1}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  });
+  const batchBtn = document.getElementById('end-batch-download');
+  if (batchBtn) {
+    batchBtn.textContent = '✅ PHOTOS ENREGISTRÉES';
+    batchBtn.style.background = 'rgba(0,200,83,0.2)';
+    batchBtn.style.color = '#00c853';
+    setTimeout(() => {
+      batchBtn.textContent = `💾 TÉLÉCHARGER ${window._selectedEndPhotos.size} PHOTOS`;
+      batchBtn.style.background = 'linear-gradient(135deg,#00c853,#00bfa5)';
+      batchBtn.style.color = '#0a0e1a';
+    }, 2000);
+  }
 }
 
 // ═══════════════════════════════════════════
