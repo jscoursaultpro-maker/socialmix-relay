@@ -303,8 +303,8 @@ function enterCockpit() {
   setupSuggest();
   updateHistory();
   
-  // Hub buttons
-  $('hub-btn').addEventListener('click', () => showScreen('hub'));
+  // Hub buttons (top + bottom)
+  $('hub-top-btn').addEventListener('click', () => showScreen('hub'));
   $('hub-card-btn').addEventListener('click', () => showScreen('hub'));
   
   // Profile edit button → go to profile screen for editing
@@ -788,12 +788,11 @@ function updateTrombinoscope(participants) {
   state.participants = participants;
   const grid = $('trombi-grid');
   // Merge self + server participants (avoid duplicates)
-  const users = [{ name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto }];
+  const users = [{ name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto, phone: state.guestPhone, email: state.guestEmail, instagram: state.guestInsta }];
   participants.forEach(p => {
     if (p.name !== state.guestName) {
-      // Use real name from server, add crown for host
       const displayName = p.isHost ? `👑 ${p.name}` : p.name;
-      users.push({ name: displayName, emoji: p.emoji || '🎉', photo: p.photo || null });
+      users.push({ name: displayName, emoji: p.emoji || '🎉', photo: p.photo || null, phone: p.phone || '', email: p.email || '', instagram: p.instagram || '' });
     }
   });
   renderTrombi(grid, users);
@@ -801,7 +800,14 @@ function updateTrombinoscope(participants) {
 
 function renderTrombi(grid, users) {
   grid.innerHTML = '';
-  users.forEach(u => {
+  // Store all users for VOIR TOUS
+  window._trombiAllUsers = users;
+  
+  const MAX_VISIBLE = 10;
+  const visibleUsers = users.slice(0, MAX_VISIBLE);
+  const remaining = users.length - MAX_VISIBLE;
+  
+  visibleUsers.forEach((u, idx) => {
     const item = document.createElement('div');
     item.className = 'trombi-item';
     item.style.cursor = 'pointer';
@@ -814,24 +820,105 @@ function renderTrombi(grid, users) {
       <div class="trombi-avatar" style="background: ${bgColor}">${content}</div>
       <div class="trombi-name">${shortName}</div>
     `;
-    // Lightbox on tap
-    item.addEventListener('click', () => {
-      const lb = $('trombi-lightbox');
-      if (!lb) return;
-      const photoEl = $('trombi-lightbox-photo');
-      const nameEl = $('trombi-lightbox-name');
-      const badgeEl = $('trombi-lightbox-badge');
-      if (u.photo) {
-        photoEl.innerHTML = `<img src="${u.photo}" style="width:100%;height:100%;object-fit:cover;">`;
-      } else {
-        photoEl.innerHTML = u.emoji;
-      }
-      nameEl.textContent = u.name;
-      badgeEl.textContent = u.name.includes('👑') ? '👑 HÔTE DE LA SOIRÉE' : `${u.emoji} Guest`;
-      lb.style.display = 'flex';
-    });
+    // Contact lightbox on tap
+    item.addEventListener('click', () => showTrombiContact(idx));
     grid.appendChild(item);
   });
+  
+  // "VOIR TOUS" button if more than MAX_VISIBLE
+  if (remaining > 0) {
+    const more = document.createElement('div');
+    more.className = 'trombi-item';
+    more.style.cursor = 'pointer';
+    more.innerHTML = `
+      <div class="trombi-avatar" style="background:rgba(0,210,255,0.15);font-size:14px;font-weight:900;color:#00d2ff;">+${remaining}</div>
+      <div class="trombi-name" style="color:#00d2ff;">VOIR TOUS</div>
+    `;
+    more.addEventListener('click', () => showAllContacts());
+    grid.appendChild(more);
+  }
+}
+
+// Show contact lightbox for a single participant
+function showTrombiContact(idx) {
+  const users = window._trombiAllUsers || [];
+  const u = users[idx];
+  if (!u) return;
+  const lb = $('trombi-lightbox');
+  if (!lb) return;
+  const photoEl = $('trombi-lightbox-photo');
+  const nameEl = $('trombi-lightbox-name');
+  const badgeEl = $('trombi-lightbox-badge');
+  if (u.photo) {
+    photoEl.innerHTML = `<img src="${u.photo}" style="width:100%;height:100%;object-fit:cover;">`;
+  } else {
+    photoEl.innerHTML = u.emoji;
+  }
+  nameEl.textContent = u.name;
+  
+  // Contact details
+  let details = [];
+  if (u.phone) details.push(`📞 ${u.phone}`);
+  if (u.email) details.push(`✉️ ${u.email}`);
+  if (u.instagram) details.push(`📷 ${u.instagram}`);
+  badgeEl.innerHTML = details.length 
+    ? details.join(' · ') 
+    : (u.name.includes('👑') ? '👑 HÔTE DE LA SOIRÉE' : `${u.emoji} Guest`);
+  
+  // Add/update vCard download button
+  let vcardBtn = lb.querySelector('.trombi-vcard-btn');
+  if (!vcardBtn) {
+    vcardBtn = document.createElement('button');
+    vcardBtn.className = 'trombi-vcard-btn';
+    vcardBtn.style.cssText = 'padding:8px 20px;background:linear-gradient(135deg,#00e0c4,#00b8a9);border:none;border-radius:10px;font-size:11px;font-weight:800;color:#0a0e1a;cursor:pointer;margin-top:8px;';
+    badgeEl.parentNode.insertBefore(vcardBtn, badgeEl.nextSibling);
+  }
+  vcardBtn.textContent = '📇 AJOUTER AUX CONTACTS';
+  vcardBtn.style.background = 'linear-gradient(135deg,#00e0c4,#00b8a9)';
+  vcardBtn.style.color = '#0a0e1a';
+  vcardBtn.onclick = (e) => {
+    e.stopPropagation();
+    downloadVCard(u.name, u.emoji, u.phone || '', u.email || '', u.instagram || '');
+    vcardBtn.textContent = '✅ CONTACT AJOUTÉ';
+    vcardBtn.style.background = 'rgba(0,224,196,0.2)';
+    vcardBtn.style.color = '#00e0c4';
+  };
+  lb.style.display = 'flex';
+}
+
+// Show all contacts in a full-screen overlay
+function showAllContacts() {
+  const users = window._trombiAllUsers || [];
+  let overlay = $('all-contacts-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'all-contacts-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg-dark);z-index:9998;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="color:white;font-size:18px;font-weight:900;margin:0;">👥 TOUS LES CONTACTS (${users.length})</h3>
+      <button onclick="document.getElementById('all-contacts-overlay').remove()" style="background:none;border:none;font-size:14px;color:rgba(255,255,255,0.5);font-weight:800;cursor:pointer;">✕ FERMER</button>
+    </div>
+    ${users.map((u, i) => {
+      const avatar = u.photo 
+        ? `<img src="${u.photo}" style="width:44px;height:44px;border-radius:12px;object-fit:cover;">`
+        : `<div style="width:44px;height:44px;border-radius:12px;background:rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;">${u.emoji}</div>`;
+      const contactLine = [u.phone, u.email, u.instagram].filter(Boolean).join(' · ') || 'Pas d\'infos';
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(255,255,255,0.03);border-radius:12px;margin-bottom:6px;cursor:pointer;" onclick="document.getElementById('all-contacts-overlay').remove();showTrombiContact(${i})">
+          ${avatar}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:800;color:white;">${u.name}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${contactLine}</div>
+          </div>
+          <div style="font-size:14px;color:rgba(0,210,255,0.5);">›</div>
+        </div>`;
+    }).join('')}
+    <div style="height:40px;"></div>
+  `;
+  overlay.style.display = 'block';
 }
 
 function populateEngagement() {
