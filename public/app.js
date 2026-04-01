@@ -522,6 +522,7 @@ function setupVoteButtons() {
         // Track own vote for engagement dashboard
         state.allVotes.push(voteData);
         updateEngagementFromVotes();
+        populateMissions(); // refresh mission progress
       }
       
       $('vote-status').textContent = '✅ Vote enregistré';
@@ -577,6 +578,7 @@ function setupGenreTrends() {
           guestId: state.guestId 
         });
       }
+      populateMissions(); // refresh mission progress
     });
     grid.appendChild(btn);
   });
@@ -735,6 +737,7 @@ function renderTrombi(grid, users) {
   users.forEach(u => {
     const item = document.createElement('div');
     item.className = 'trombi-item';
+    item.style.cursor = 'pointer';
     const bgColor = u.photo ? 'transparent' : `rgba(59, 130, 246, 0.3)`;
     const content = u.photo
       ? `<img src="${u.photo}" alt="${u.name}">`
@@ -744,6 +747,22 @@ function renderTrombi(grid, users) {
       <div class="trombi-avatar" style="background: ${bgColor}">${content}</div>
       <div class="trombi-name">${shortName}</div>
     `;
+    // Lightbox on tap
+    item.addEventListener('click', () => {
+      const lb = $('trombi-lightbox');
+      if (!lb) return;
+      const photoEl = $('trombi-lightbox-photo');
+      const nameEl = $('trombi-lightbox-name');
+      const badgeEl = $('trombi-lightbox-badge');
+      if (u.photo) {
+        photoEl.innerHTML = `<img src="${u.photo}" style="width:100%;height:100%;object-fit:cover;">`;
+      } else {
+        photoEl.innerHTML = u.emoji;
+      }
+      nameEl.textContent = u.name;
+      badgeEl.textContent = u.name.includes('👑') ? '👑 HÔTE DE LA SOIRÉE' : `${u.emoji} Guest`;
+      lb.style.display = 'flex';
+    });
     grid.appendChild(item);
   });
 }
@@ -883,6 +902,7 @@ function bindCostumeButton() {
     state.costumeEntries = (state.costumeEntries || []).filter(e => e.guestId !== state.guestId);
     state.costumeEntries.push(myEntry);
     renderCostumeEntries();
+    populateMissions(); // refresh mission progress
     saveSession();
     
     if (socket && socket.connected) {
@@ -938,6 +958,7 @@ function handleCostumePhoto(e) {
     state.myPhotos = state.myPhotos || [];
     state.myPhotos.push(dataURL);
     updateMyPhotosGrid();
+    populateMissions(); // refresh Paparazzi mission
     
     // Send costume photo to server
     if (socket && socket.connected) {
@@ -969,6 +990,7 @@ function handleGalleryPhoto(e) {
     state.myPhotos = state.myPhotos || [];
     state.myPhotos.push(dataURL);
     updateMyPhotosGrid();
+    populateMissions(); // refresh Paparazzi mission
     
     // Send as gallery photo to host diaporama
     if (socket && socket.connected) {
@@ -1163,6 +1185,15 @@ function populateMissions() {
     `;
     list.appendChild(item);
   });
+  
+  // Calculate and display total points
+  const rewardValues = { '+50 pts': 50, '+100 pts': 100, '+30 pts': 30, '+40 pts': 40, '+200 pts': 200 };
+  let totalPoints = 0;
+  missions.forEach(m => {
+    if (m.current >= m.target) totalPoints += (rewardValues[m.reward] || 0);
+  });
+  const pointsEl = $('points-total');
+  if (pointsEl) pointsEl.textContent = totalPoints;
 }
 
 function handleDiapoPhoto(e) {

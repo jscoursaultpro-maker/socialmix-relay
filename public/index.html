@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260401v20">
+    <link rel="stylesheet" href="style.css?v=20260401v21">
 </head>
 <body>
 
@@ -209,7 +209,7 @@
         <div class="card trends-section">
             <div class="section-header">
                 <span class="section-icon">📊</span>
-                <span class="section-title">VOTE TENDANCE <span style="font-size:8px;color:#00d2ff;opacity:0.6">v20</span></span>
+                <span class="section-title">VOTE TENDANCE <span style="font-size:8px;color:#00d2ff;opacity:0.6">v21</span></span>
             </div>
             <div class="genre-grid" id="genre-grid"></div>
         </div>
@@ -414,11 +414,23 @@
                 <span>⭐</span> TA MISSION DE LA SOIRÉE
             </div>
             <div class="hub-card-body">
+                <div id="mission-points" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 14px; margin-bottom:10px; background:linear-gradient(135deg,rgba(255,193,7,0.1),rgba(255,152,0,0.05)); border:1px solid rgba(255,193,7,0.2); border-radius:10px;">
+                    <span style="font-size:16px;">🏆</span>
+                    <span style="font-size:12px; font-weight:900; color:#ffc107;">MES POINTS: <span id="points-total">0</span></span>
+                </div>
                 <div id="missions-list" class="missions-list"></div>
             </div>
         </div>
 
         <div style="height: 40px"></div>
+    </div>
+
+    <!-- Trombinoscope Lightbox Overlay -->
+    <div id="trombi-lightbox" onclick="this.classList.add('hidden')" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:12px; padding:20px;">
+        <div id="trombi-lightbox-photo" style="width:150px; height:150px; border-radius:20px; overflow:hidden; border:3px solid rgba(0,224,196,0.5); display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.05); font-size:60px;"></div>
+        <div id="trombi-lightbox-name" style="font-size:20px; font-weight:900; color:white; text-align:center;"></div>
+        <div id="trombi-lightbox-badge" style="font-size:12px; font-weight:700; color:#00e0c4; padding:4px 12px; border:1px solid rgba(0,224,196,0.3); border-radius:20px;"></div>
+        <div onclick="event.stopPropagation(); document.getElementById('trombi-lightbox').style.display='none';" style="margin-top:12px; font-size:11px; font-weight:800; color:rgba(255,255,255,0.4); cursor:pointer;">✕ FERMER</div>
     </div>
 
     <!-- ═══ EXIT MODAL ═══ -->
@@ -437,6 +449,6 @@
 
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="app.js?v=20260401v20"></script>
+    <script src="app.js?v=20260401v21"></script>
 </body>
 </html>
