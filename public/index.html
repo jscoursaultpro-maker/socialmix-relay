@@ -303,10 +303,10 @@
                 <span>📸</span> GALERIE PHOTOS
             </div>
             <div class="hub-card-body">
-                <!-- Gallery photo — same pattern as costume photo (proven to work) -->
+                <!-- Gallery photo — inline onchange for maximum compatibility -->
                 <div style="position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:4px; padding:8px 16px; background:linear-gradient(135deg,#00c853,#00bfa5); border-radius:10px; cursor:pointer; font-size:11px; font-weight:800; color:#0a0e1a;">
                     📷 PRENDRE UNE PHOTO
-                    <input type="file" id="gallery-photo-input" accept="image/*" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
+                    <input type="file" id="gallery-photo-input" accept="image/*" onchange="handleGalleryPhoto(event)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
                 </div>
                 
                 <!-- My Photos section -->
