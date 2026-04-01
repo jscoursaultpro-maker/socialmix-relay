@@ -499,9 +499,22 @@ io.on('connection', (socket) => {
       reason: 'La soirée est terminée ! Merci d\'avoir participé 🎉',
       scores: partyState.participantScores,
       trackHistory: partyState.trackHistory,
-      photos: partyState.photos
+      photos: partyState.photos,
+      participants: partyState.participants
     });
     console.log('🎉 Party ended by host');
+  });
+
+  // Host deletes a photo from the gallery
+  socket.on('host:deletePhoto', (data) => {
+    const idx = data && data.index;
+    if (typeof idx === 'number' && idx >= 0 && idx < partyState.photos.length) {
+      const removed = partyState.photos.splice(idx, 1);
+      console.log(`🗑️ Host deleted photo #${idx} by ${removed[0]?.guestName}`);
+      // Broadcast updated photo list to all
+      io.to('host').emit('photos:update', partyState.photos);
+      io.to('guests').emit('photos:update', partyState.photos);
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════════

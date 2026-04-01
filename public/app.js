@@ -363,49 +363,92 @@ function connectToRelay() {
   socket.on('party:ended', (data) => {
     const reason = (data && data.reason) || '🎉 La soirée est terminée !';
     const scores = (data && data.scores) || {};
+    const photos = (data && data.photos) || [];
+    const participants = (data && data.participants) || state.participants || [];
     
     // Build score leaderboard
     const sortedScores = Object.values(scores).sort((a, b) => b.score - a.score);
-    let leaderboard = '';
     const medals = ['🥇', '🥈', '🥉'];
-    sortedScores.forEach((p, i) => {
-      const medal = medals[i] || `#${i + 1}`;
-      leaderboard += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.05);border-radius:10px;margin-bottom:4px">
-        <span style="font-size:14px;font-weight:700;color:white">${medal} ${p.name}</span>
-        <span style="font-size:13px;font-weight:800;color:var(--turquoise)">${p.score} pts <span style="font-size:10px;color:var(--text-dim)">(${p.voteCount} votes)</span></span>
-      </div>`;
-    });
+    let leaderboard = sortedScores.map((p, i) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.05);border-radius:10px;margin-bottom:4px">
+        <span style="font-size:14px;font-weight:700;color:white">${medals[i] || '#'+(i+1)} ${p.name}</span>
+        <span style="font-size:13px;font-weight:800;color:var(--turquoise)">${p.score} pts</span>
+      </div>`).join('');
     
-    // Build gallery photos
-    const photos = (data && data.photos) || [];
-    let galleryHTML = '';
-    if (photos.length) {
-      galleryHTML = `
-        <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
-          <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:8px">📸 PHOTOS DE LA SOIRÉE</div>
-          <div class="gallery-grid">${photos.map(p => `<img src="${p.dataURL}" alt="${p.guestName}" style="border-radius:8px">`).join('')}</div>
-        </div>`;
+    // Build trombinoscope
+    let trombiHTML = '';
+    if (participants.length) {
+      trombiHTML = participants.map(p => {
+        const shortName = (p.name || 'Guest').length > 6 ? (p.name || 'Guest').substring(0, 6) + '…' : (p.name || 'Guest');
+        const avatarContent = p.photo
+          ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">`
+          : `<span style="font-size:28px;">${p.emoji || '🎉'}</span>`;
+        return `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="showEndContactCard('${(p.name || 'Guest').replace(/'/g, "\\'")}', '${p.emoji || '🎉'}', '${(p.photo || '').substring(0, 50)}')">
+            <div style="width:56px;height:56px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,0.2);border:2px solid rgba(0,224,196,0.3);">${avatarContent}</div>
+            <div style="font-size:9px;font-weight:700;color:white;">${shortName}</div>
+          </div>`;
+      }).join('');
     }
     
-    // Show end screen with hub
+    // Build photo gallery
+    let galleryHTML = '';
+    if (photos.length) {
+      galleryHTML = photos.map((p, i) => `
+        <div style="position:relative;cursor:pointer" onclick="showEndPhotoLightbox('${i}')">
+          <img src="${p.dataURL}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,0.1);">
+          <div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.5);text-align:center;margin-top:2px;">${(p.guestName || 'Guest').substring(0, 8)}</div>
+        </div>`).join('');
+    }
+    
+    // Store photos globally for lightbox access
+    window._endPartyPhotos = photos;
+    
     const cockpit = $('cockpit-screen');
     cockpit.innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;padding:24px;text-align:center;overflow-y:auto;max-height:100vh">
-        <div style="font-size:60px;margin-bottom:12px">🎉</div>
-        <h2 style="color:white;font-size:24px;font-weight:900;margin-bottom:2px">LA SOIRÉE EST TERMINÉE</h2>
-        <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px">${reason}</p>
+      <div style="display:flex;flex-direction:column;align-items:center;padding:20px;text-align:center;overflow-y:auto;max-height:100vh;-webkit-overflow-scrolling:touch">
+        <div style="font-size:50px;margin-bottom:8px">🎉</div>
+        <h2 style="color:white;font-size:22px;font-weight:900;margin-bottom:2px">SOIRÉE TERMINÉE</h2>
+        <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">${reason}</p>
         
         ${sortedScores.length ? `
           <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
-            <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">🏆 CLASSEMENT DES PARTICIPANTS</div>
+            <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">🏆 CLASSEMENT</div>
             ${leaderboard}
-          </div>
-        ` : ''}
+          </div>` : ''}
         
-        ${galleryHTML}
+        ${trombiHTML ? `
+          <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">👥 PARTICIPANTS</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">${trombiHTML}</div>
+            <div style="font-size:9px;color:var(--text-dim);margin-top:8px">Tape un nom pour ajouter à tes contacts</div>
+          </div>` : ''}
+        
+        ${galleryHTML ? `
+          <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">📸 PHOTOS DE LA SOIRÉE (${photos.length})</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${galleryHTML}</div>
+            <div style="font-size:9px;color:var(--text-dim);margin-top:8px">Tape une photo pour l'agrandir et l'enregistrer</div>
+          </div>` : ''}
         
         <button onclick="showScreen('landing');sessionStorage.clear()" class="join-btn" style="width:100%;max-width:300px;margin-top:12px">QUITTER</button>
         <div style="height:40px"></div>
+      </div>
+      
+      <!-- Contact card overlay -->
+      <div id="end-contact-card" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px" onclick="this.style.display='none'">
+        <div id="end-contact-emoji" style="font-size:60px"></div>
+        <div id="end-contact-name" style="font-size:22px;font-weight:900;color:white"></div>
+        <button id="end-contact-btn" style="padding:10px 24px;background:linear-gradient(135deg,#00e0c4,#00b8a9);border:none;border-radius:10px;font-size:12px;font-weight:800;color:#0a0e1a;cursor:pointer" onclick="event.stopPropagation()">📇 AJOUTER AUX CONTACTS</button>
+        <div onclick="event.stopPropagation();this.parentElement.style.display='none'" style="margin-top:8px;font-size:11px;font-weight:800;color:rgba(255,255,255,0.4);cursor:pointer">✕ FERMER</div>
+      </div>
+      
+      <!-- Photo lightbox overlay -->
+      <div id="end-photo-lightbox" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:20px" onclick="this.style.display='none'">
+        <img id="end-photo-img" style="max-width:90%;max-height:60vh;border-radius:14px;border:2px solid rgba(0,224,196,0.3)">
+        <div id="end-photo-author" style="font-size:12px;font-weight:700;color:var(--text-dim)"></div>
+        <button id="end-photo-save" style="padding:10px 24px;background:linear-gradient(135deg,#00c853,#00bfa5);border:none;border-radius:10px;font-size:12px;font-weight:800;color:#0a0e1a;cursor:pointer" onclick="event.stopPropagation()">💾 ENREGISTRER</button>
+        <div onclick="event.stopPropagation();this.parentElement.style.display='none'" style="margin-top:4px;font-size:11px;font-weight:800;color:rgba(255,255,255,0.4);cursor:pointer">✕ FERMER</div>
       </div>`;
     showScreen('cockpit');
   });
@@ -1404,3 +1447,78 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ═══════════════════════════════════════════
+// END OF PARTY HELPERS
+// ═══════════════════════════════════════════
+
+function showEndContactCard(name, emoji, photoHint) {
+  const card = document.getElementById('end-contact-card');
+  if (!card) return;
+  document.getElementById('end-contact-emoji').textContent = emoji;
+  document.getElementById('end-contact-name').textContent = name;
+  const btn = document.getElementById('end-contact-btn');
+  btn.onclick = function(e) {
+    e.stopPropagation();
+    downloadVCard(name, emoji);
+    btn.textContent = '✅ CONTACT AJOUTÉ';
+    btn.style.background = 'rgba(0,224,196,0.2)';
+    btn.style.color = '#00e0c4';
+    setTimeout(() => { card.style.display = 'none'; }, 1200);
+  };
+  btn.textContent = '📇 AJOUTER AUX CONTACTS';
+  btn.style.background = 'linear-gradient(135deg,#00e0c4,#00b8a9)';
+  btn.style.color = '#0a0e1a';
+  card.style.display = 'flex';
+}
+
+function downloadVCard(name, emoji) {
+  const vcard = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    `FN:${emoji} ${name}`,
+    `N:${name};;;;`,
+    `NOTE:Rencontré(e) à la soirée Social Mix 🎧`,
+    'END:VCARD'
+  ].join('\r\n');
+  const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${name.replace(/[^a-zA-Z0-9]/g, '_')}.vcf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function showEndPhotoLightbox(index) {
+  const photos = window._endPartyPhotos || [];
+  const idx = parseInt(index);
+  if (idx < 0 || idx >= photos.length) return;
+  const photo = photos[idx];
+  const lb = document.getElementById('end-photo-lightbox');
+  if (!lb) return;
+  document.getElementById('end-photo-img').src = photo.dataURL;
+  document.getElementById('end-photo-author').textContent = `📷 ${photo.guestName || 'Guest'}`;
+  const saveBtn = document.getElementById('end-photo-save');
+  saveBtn.onclick = function(e) {
+    e.stopPropagation();
+    // Download the image
+    const a = document.createElement('a');
+    a.href = photo.dataURL;
+    a.download = `soiree_photo_${idx + 1}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    saveBtn.textContent = '✅ ENREGISTRÉ';
+    saveBtn.style.background = 'rgba(0,200,83,0.2)';
+    saveBtn.style.color = '#00c853';
+    setTimeout(() => {
+      saveBtn.textContent = '💾 ENREGISTRER';
+      saveBtn.style.background = 'linear-gradient(135deg,#00c853,#00bfa5)';
+      saveBtn.style.color = '#0a0e1a';
+    }, 1500);
+  };
+  lb.style.display = 'flex';
+}
