@@ -591,11 +591,18 @@ function updateNowPlaying(track) {
   $('np-bpm').textContent = `${track.bpm || '—'} BPM`;
   $('np-genre').textContent = (track.genre || '—').toUpperCase();
   
+  // Album artwork (from Shazam)
   const artworkEl = $('np-artwork');
+  const vinylLabel = $('vinyl-label');
   if (track.artworkURL) {
-    artworkEl.innerHTML = `<img src="${track.artworkURL}" alt="cover">`;
+    artworkEl.innerHTML = `<img src="${track.artworkURL}" style="width:100%;height:100%;object-fit:cover;">`;
+    artworkEl.style.display = 'block';
+    // Also show in vinyl center
+    vinylLabel.innerHTML = `<img src="${track.artworkURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
   } else {
-    artworkEl.innerHTML = '<span class="np-icon">🎵</span>';
+    artworkEl.style.display = 'none';
+    artworkEl.innerHTML = '';
+    vinylLabel.innerHTML = '<span class="vinyl-note">♪</span>';
   }
 }
 
