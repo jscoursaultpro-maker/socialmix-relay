@@ -370,7 +370,15 @@ function connectToRelay() {
     if (ps.mode) { state.mode = ps.mode; updateDJMode(); }
     if (ps.participants) { updateTrombinoscope(ps.participants); }
     if (ps.photos && ps.photos.length) {
-      ps.photos.forEach(p => addDiapoPhoto(p.dataURL, p.guestName));
+      // Deduplicate: only add photos not already in local diapo
+      const existingKeys = new Set((state.diapoPhotos || []).map(p => (p || '').substring(0, 100)));
+      ps.photos.forEach(p => {
+        const key = (p.dataURL || '').substring(0, 100);
+        if (!existingKeys.has(key)) {
+          addDiapoPhoto(p.dataURL, p.guestName);
+          existingKeys.add(key);
+        }
+      });
     }
     // Costume contest entries: sync from server on join
     if (ps.costumeEntries && ps.costumeEntries.length) {
@@ -816,8 +824,38 @@ function setupSocialHub() {
   if (galleryInput) {
     galleryInput.onchange = handleGalleryPhoto;
     console.log('[SocialHub] Gallery photo input bound to handleGalleryPhoto');
-  } else {
-    console.error('[SocialHub] gallery-photo-input not found!');
+  }
+  
+  // Camera photo input (direct camera capture)
+  const cameraInput = $('camera-photo-input');
+  if (cameraInput) {
+    cameraInput.onchange = handleGalleryPhoto;
+    console.log('[SocialHub] Camera photo input bound');
+  }
+  
+  // Send message button
+  const sendBtn = $('send-message-btn');
+  const msgInput = $('guest-message-input');
+  if (sendBtn && msgInput) {
+    sendBtn.addEventListener('click', () => {
+      const message = msgInput.value.trim();
+      if (!message) return;
+      if (socket && socket.connected) {
+        socket.emit('guest:message', {
+          guestName: state.guestName || 'Guest',
+          message: message
+        });
+        console.log('[Message] Sent:', message);
+        msgInput.value = '';
+        // Visual feedback
+        sendBtn.textContent = '✅ ENVOYÉ !';
+        setTimeout(() => { sendBtn.textContent = '📤 ENVOYER'; }, 1500);
+      }
+    });
+    // Also allow Enter key
+    msgInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendBtn.click();
+    });
   }
 }
 
@@ -1486,8 +1524,8 @@ function handleDiapoPhoto(e) {
 
 // Reliable file reading + forced resize for mobile
 function readFileAsDataURL(file, callback) {
-  // ALWAYS resize to keep Socket.IO payloads under 1MB
-  resizeImage(file, 800, 0.7, (resized) => {
+  // Resize to keep Socket.IO payloads under 1MB (camera photos can be 12MP+)
+  resizeImage(file, 600, 0.6, (resized) => {
     if (resized) {
       console.log('[Photo] Resized OK, length:', resized.length);
       callback(resized);

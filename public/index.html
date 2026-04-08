@@ -317,10 +317,16 @@
                 <span>📸</span> GALERIE PHOTOS
             </div>
             <div class="hub-card-body">
-                <!-- Gallery photo — inline onchange for maximum compatibility -->
-                <div style="position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:4px; padding:8px 16px; background:linear-gradient(135deg,#00c853,#00bfa5); border-radius:10px; cursor:pointer; font-size:11px; font-weight:800; color:#0a0e1a;">
-                    📷 PRENDRE UNE PHOTO
-                    <input type="file" id="gallery-photo-input" accept="image/*" onchange="handleGalleryPhoto(event)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
+                <!-- Camera photo — opens camera directly on mobile -->
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <div style="position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:4px; padding:8px 16px; background:linear-gradient(135deg,#00c853,#00bfa5); border-radius:10px; cursor:pointer; font-size:11px; font-weight:800; color:#0a0e1a;">
+                        📷 PRENDRE UNE PHOTO
+                        <input type="file" id="camera-photo-input" accept="image/*" capture="environment" onchange="handleGalleryPhoto(event)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
+                    </div>
+                    <div style="position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:4px; padding:8px 16px; background:linear-gradient(135deg,#7c3aed,#6d28d9); border-radius:10px; cursor:pointer; font-size:11px; font-weight:800; color:white;">
+                        🖼️ DEPUIS MA GALERIE
+                        <input type="file" id="gallery-photo-input" accept="image/*" onchange="handleGalleryPhoto(event)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
+                    </div>
                 </div>
                 
                 <!-- My Photos section -->
@@ -335,6 +341,15 @@
                 <div style="margin-top:12px;">
                     <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:8px;">🎉 PHOTOS DE LA SOIRÉE</div>
                     <div id="diapo-grid" class="gallery-grid"></div>
+                </div>
+                
+                <!-- Send a message to the slideshow -->
+                <div style="margin-top:16px;">
+                    <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:8px;">💬 ENVOYER UN MESSAGE</div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="guest-message-input" maxlength="100" placeholder="Ton message pour le DJ..." style="flex:1; padding:10px 14px; background:rgba(255,255,255,0.07); border:1px solid rgba(0,200,180,0.2); border-radius:10px; color:white; font-size:13px; font-weight:600; outline:none;">
+                        <button id="send-message-btn" style="padding:10px 16px; background:linear-gradient(135deg,#00c853,#00bfa5); border:none; border-radius:10px; font-size:12px; font-weight:800; color:#0a0e1a; cursor:pointer; white-space:nowrap;">📤 ENVOYER</button>
+                    </div>
                 </div>
             </div>
         </div>

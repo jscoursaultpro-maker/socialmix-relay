@@ -163,7 +163,7 @@ io.on('connection', (socket) => {
     partyState.participants = partyState.participants.filter(p => !p.isHost);
     partyState.participants.unshift(hostEntry);
     
-    console.log(`🎉 Party started: ${partyState.code} (host: ${hostName}, ${partyState.participants.length} participants)`);
+    console.log(`🎉 Party started: ${partyState.code} (host: "${hostName}", profile.name: "${data.profile && data.profile.name}", participants: ${partyState.participants.length})`);
     io.to('guests').emit('party:started', { code: partyState.code, profile: partyState.hostProfile });
     io.to('guests').emit('participants:update', partyState.participants);
   });
@@ -222,12 +222,15 @@ io.on('connection', (socket) => {
     }
     io.to('guests').emit('costume:entries', partyState.costumeEntries);
     io.to('host').emit('costume:entries', partyState.costumeEntries);
-    // Also send as guest:photo for diaporama
-    io.to('host').emit('guest:photo', {
+    // Add to gallery for guests (NOT echoed back to host — host already has it locally)
+    const photo = {
       dataURL: data.photo,
-      guestName: entry?.guestName || 'Host'
-    });
-    console.log(`📸 HOST costume photo added`);
+      guestName: entry?.guestName || 'Host',
+      sentAt: new Date().toISOString()
+    };
+    partyState.photos.push(photo);
+    io.to('guests').emit('photo:shared', photo);
+    console.log(`📸 HOST costume photo added to gallery`);
   });
 
   // Host sends vibe score only (genreVotes are tracked via host:genreVote)
@@ -372,6 +375,7 @@ io.on('connection', (socket) => {
     const photo = {
       dataURL: data.dataURL,
       guestName: data.guestName || 'Guest',
+      caption: data.caption || null,
       sentAt: new Date().toISOString()
     };
     partyState.photos.push(photo);
@@ -380,6 +384,17 @@ io.on('connection', (socket) => {
     io.to('host').emit('guest:photo', photo);
     const sizeKB = Math.round((data.dataURL || '').length / 1024);
     console.log(`📸 Photo shared by ${photo.guestName} (${sizeKB} KB, total: ${partyState.photos.length})`);
+  });
+
+  // Guest sends a text message for the slideshow
+  socket.on('guest:message', (data) => {
+    if (!isValidGuest()) return;
+    const msg = {
+      guestName: data.guestName || 'Guest',
+      message: data.message || ''
+    };
+    io.to('host').emit('guest:message', msg);
+    console.log(`💬 Message from ${msg.guestName}: ${msg.message}`);
   });
 
   // Host shares a gallery photo (no isValidGuest check needed)
@@ -391,7 +406,7 @@ io.on('connection', (socket) => {
     };
     partyState.photos.push(photo);
     io.to('guests').emit('photo:shared', photo);
-    io.to('host').emit('guest:photo', photo);
+    // Note: do NOT echo back to host — they already added it locally
     const sizeKB = Math.round((data.dataURL || '').length / 1024);
     console.log(`📸 HOST photo shared by ${photo.guestName} (${sizeKB} KB, total: ${partyState.photos.length})`);
   });
@@ -458,7 +473,19 @@ io.on('connection', (socket) => {
     }
     io.to('guests').emit('costume:entries', partyState.costumeEntries);
     io.to('host').emit('costume:entries', partyState.costumeEntries);
-    console.log(`📸 Costume photo: ${data.guestId}`);
+    // Also add to gallery so host sees it in photos
+    if (data.photo) {
+      const photo = {
+        dataURL: data.photo,
+        guestName: entry?.guestName || 'Guest',
+        sentAt: new Date().toISOString()
+      };
+      partyState.photos.push(photo);
+      io.to('host').emit('guest:photo', photo);
+      // Also share with OTHER guests
+      socket.broadcast.to('guests').emit('photo:shared', photo);
+    }
+    console.log(`📸 Costume photo: ${data.guestId} → gallery`);
   });
 
   // ═══════════════════════════════════════════════════════════════════
