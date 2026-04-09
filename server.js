@@ -162,6 +162,7 @@ io.on('connection', (socket) => {
       partyState.costumeEntries = [];
       partyState.guestGenreVotes = {};
       partyState.participantScores = {};
+      partyState.costumeVoters = {};
     }
     
     partyState.code = newCode;
@@ -468,24 +469,47 @@ io.on('connection', (socket) => {
 
   socket.on('costume:vote', (data) => {
     if (!isValidGuest()) return;
-    const entry = partyState.costumeEntries.find(e => e.guestId === data.targetId);
-    if (entry) {
-      entry.votes = (entry.votes || 0) + 1;
+    const voterId = data.voterId || socket.id;
+    const targetId = data.targetId;
+    if (!partyState.costumeVoters) partyState.costumeVoters = {};
+    
+    // Already voted for this target? Ignore
+    if (partyState.costumeVoters[voterId] === targetId) {
+      console.log(`👍 Costume vote ignored (duplicate): ${data.voterName} → ${data.targetName}`);
+      return;
     }
+    
+    // If voted for someone else, remove old vote first
+    if (partyState.costumeVoters[voterId]) {
+      const oldTarget = partyState.costumeEntries.find(e => e.guestId === partyState.costumeVoters[voterId]);
+      if (oldTarget) oldTarget.votes = Math.max(0, (oldTarget.votes || 0) - 1);
+    }
+    
+    // Record new vote
+    partyState.costumeVoters[voterId] = targetId;
+    const entry = partyState.costumeEntries.find(e => e.guestId === targetId);
+    if (entry) entry.votes = (entry.votes || 0) + 1;
+    
     io.to('guests').emit('costume:entries', partyState.costumeEntries);
     io.to('host').emit('costume:entries', partyState.costumeEntries);
-    console.log(`👍 Costume vote: ${data.voterName} → ${data.targetName}`);
+    console.log(`👍 Costume vote: ${data.voterName} → ${data.targetName} (total voters: ${Object.keys(partyState.costumeVoters).length})`);
   });
 
   socket.on('costume:unvote', (data) => {
     if (!isValidGuest()) return;
+    const voterId = data.voterId || socket.id;
+    if (!partyState.costumeVoters) partyState.costumeVoters = {};
+    
+    // Only unvote if this voter actually voted for this target
+    if (partyState.costumeVoters[voterId] !== data.targetId) return;
+    
+    delete partyState.costumeVoters[voterId];
     const entry = partyState.costumeEntries.find(e => e.guestId === data.targetId);
-    if (entry) {
-      entry.votes = Math.max(0, (entry.votes || 0) - 1);
-    }
+    if (entry) entry.votes = Math.max(0, (entry.votes || 0) - 1);
+    
     io.to('guests').emit('costume:entries', partyState.costumeEntries);
     io.to('host').emit('costume:entries', partyState.costumeEntries);
-    console.log(`👎 Costume unvote: ${data.voterId} ← ${data.targetId}`);
+    console.log(`👎 Costume unvote: ${voterId} ← ${data.targetId}`);
   });
 
   socket.on('costume:photo', (data) => {
