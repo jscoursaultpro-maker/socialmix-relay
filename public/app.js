@@ -30,7 +30,10 @@ let state = {
   mode: 'appMix',
   connected: false,
   diapoPhotos: [],
-  allVotes: []
+  allVotes: [],
+  missionPoints: 0,
+  leaderboard: [],
+  missionsCompleted: {}
 };
 
 // ─── DOM Helper ──────────────────────────────────────
@@ -110,6 +113,7 @@ function showScreen(name) {
     next.scrollTop = 0;
   }
   currentScreen = name;
+  if (name === 'hub') { renderMissions(); renderLeaderboard(); }
   
   // Show/hide scroll indicator only on profile screen
   const scrollInd = $('scroll-indicator');
@@ -593,6 +597,19 @@ function connectToRelay() {
   socket.on('costume:entries', (entries) => {
     state.costumeEntries = entries;
     renderCostumeEntries();
+  });
+
+  // Leaderboard updates from server
+  socket.on('leaderboard:update', (leaderboard) => {
+    state.leaderboard = leaderboard;
+    renderLeaderboard();
+    // Update my points from server data
+    const me = leaderboard.find(p => p.id === state.guestId);
+    if (me) {
+      state.missionPoints = me.points;
+      const el = $('points-total');
+      if (el) el.textContent = state.missionPoints;
+    }
   });
 }
 
@@ -1919,4 +1936,83 @@ function showEndPhotoLightbox(index) {
     }, 1500);
   };
   lb.style.display = 'flex';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MISSIONS & LEADERBOARD
+// ═══════════════════════════════════════════════════════════════════
+
+const MISSIONS = [
+  { id: 'vote',    icon: '🗳️', title: 'Voter pour un titre',           pts: 10, cumulative: true,  desc: 'Chaque vote = +10 pts' },
+  { id: 'photo',   icon: '📸', title: 'Prendre une photo',             pts: 20, cumulative: true,  desc: 'Chaque photo = +20 pts' },
+  { id: 'genre',   icon: '📊', title: 'Voter une tendance',            pts: 15, cumulative: false, desc: 'Vote ton genre musical' },
+  { id: 'costume', icon: '🎭', title: 'Participer au concours',        pts: 30, cumulative: false, desc: 'Inscris-toi au concours' },
+  { id: 'winner',  icon: '🏆', title: 'Gagner le concours',            pts: 150, cumulative: false, desc: 'Décroche la victoire !' },
+  { id: 'profile', icon: '👤', title: 'Compléter mon profil',          pts: 25, cumulative: false, desc: 'Photo + contact' },
+  { id: 'message', icon: '💬', title: 'Envoyer une réaction',          pts: 10, cumulative: true,  desc: 'Chaque message = +10 pts' }
+];
+
+function renderMissions() {
+  const list = $('missions-list');
+  if (!list) return;
+
+  // Check which missions are done based on actual activity
+  const done = {};
+  if (state.guestPhoto) done.profile = true;
+  if (state.currentVote) done.vote = true;
+  if (state.selectedGenre) done.genre = true;
+  if (state.costumeEntries && state.costumeEntries.some(e => e.guestId === state.guestId)) done.costume = true;
+  // Merge with persisted
+  Object.assign(done, state.missionsCompleted);
+
+  // My total points from server
+  const myPoints = state.missionPoints || 0;
+
+  list.innerHTML = MISSIONS.map(m => {
+    const isDone = done[m.id];
+    const check = isDone ? '✅' : '⬜';
+    const opacity = isDone ? '0.6' : '1';
+    const strike = isDone && !m.cumulative ? 'text-decoration:line-through;' : '';
+    const ptsLabel = m.cumulative ? `+${m.pts}/×` : `${m.pts} pts`;
+    return `
+      <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.03); border-radius:10px; opacity:${opacity}">
+        <span style="font-size:18px">${m.icon}</span>
+        <div style="flex:1">
+          <div style="font-size:12px; font-weight:800; color:white; ${strike}">${m.title}</div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.4); margin-top:2px">${m.desc}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px; font-weight:900; color:#ffc107">${ptsLabel}</div>
+          <div style="font-size:14px">${check}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Update total
+  const el = $('points-total');
+  if (el) el.textContent = myPoints;
+}
+
+function renderLeaderboard() {
+  const container = $('participant-leaderboard');
+  if (!container) return;
+  const lb = state.leaderboard || [];
+  if (lb.length === 0) {
+    container.innerHTML = '<div style="text-align:center; color:rgba(255,255,255,0.3); font-size:11px; padding:12px;">⏳ En attente d\'activité...</div>';
+    return;
+  }
+  const medals = ['🥇', '🥈', '🥉'];
+  container.innerHTML = lb.slice(0, 10).map((p, i) => {
+    const medal = medals[i] || `${i + 1}.`;
+    const isMe = p.id === state.guestId;
+    const highlight = isMe ? 'background:rgba(255,193,7,0.1); border:1px solid rgba(255,193,7,0.3);' : 'background:rgba(255,255,255,0.03);';
+    return `
+      <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:10px; ${highlight}; margin-bottom:4px">
+        <span style="font-size:16px; min-width:24px; text-align:center">${medal}</span>
+        <span style="flex:1; font-size:12px; font-weight:700; color:${isMe ? '#ffc107' : 'white'}">${p.name}${isMe ? ' (toi)' : ''}</span>
+        <span style="font-size:12px; font-weight:900; color:#ffc107">${p.points} pts</span>
+      </div>
+    `;
+  }).join('');
 }

@@ -98,6 +98,25 @@ function addPhotoToParty(photo) {
   return true;
 }
 
+// ─── Points System ──────────────────────────────────────────────────
+function addPoints(participantId, name, points, reason) {
+  if (!partyState.participantScores[participantId]) {
+    partyState.participantScores[participantId] = { name, score: 0, voteCount: 0 };
+  }
+  partyState.participantScores[participantId].score += points;
+  partyState.participantScores[participantId].name = name; // keep name fresh
+  console.log(`⭐ +${points}pts → ${name} (${reason}) [total: ${partyState.participantScores[participantId].score}]`);
+  broadcastLeaderboard();
+}
+
+function broadcastLeaderboard() {
+  const leaderboard = Object.entries(partyState.participantScores)
+    .map(([id, data]) => ({ id, name: data.name, points: data.score }))
+    .sort((a, b) => b.points - a.points);
+  io.to('guests').emit('leaderboard:update', leaderboard);
+  io.to('host').emit('leaderboard:update', leaderboard);
+}
+
 // ─── Socket.IO Connection Handling ──────────────────────────────────
 io.on('connection', (socket) => {
   console.log(`🔌 Connected: ${socket.id}`);
@@ -401,6 +420,12 @@ io.on('connection', (socket) => {
     if (!partyState.guestGenreVotes) partyState.guestGenreVotes = {};
     if (genre) {
       partyState.guestGenreVotes[voterKey] = genre;
+      // +15 pts for first genre vote only
+      if (!partyState._genreVotedOnce) partyState._genreVotedOnce = {};
+      if (!partyState._genreVotedOnce[voterKey]) {
+        partyState._genreVotedOnce[voterKey] = true;
+        addPoints(data.guestId || socket.id, data.guestName || voterKey, 15, 'genre vote');
+      }
     } else {
       delete partyState.guestGenreVotes[voterKey];
     }
@@ -440,6 +465,8 @@ io.on('connection', (socket) => {
     // Broadcast to OTHER guests only (sender already has the photo locally)
     socket.broadcast.to('guests').emit('photo:shared', photo);
     io.to('host').emit('guest:photo', photo);
+    // +20 pts for taking a photo
+    addPoints(data.guestId || socket.id, data.guestName || 'Guest', 20, 'photo');
     const sizeKB = Math.round((data.dataURL || '').length / 1024);
     console.log(`📸 Photo shared by ${photo.guestName} (${sizeKB} KB, total: ${partyState.photos.length})`);
   });
@@ -454,6 +481,8 @@ io.on('connection', (socket) => {
       guestEmoji: data.guestEmoji || '🎉'
     };
     io.to('host').emit('guest:message', msg);
+    // +10 pts for sending a message
+    addPoints(data.guestId || socket.id, data.guestName || 'Guest', 10, 'message');
     console.log(`💬 Message from ${msg.guestName}: ${msg.message}`);
   });
 
@@ -505,6 +534,8 @@ io.on('connection', (socket) => {
     // Broadcast all entries to all guests
     io.to('guests').emit('costume:entries', partyState.costumeEntries);
     io.to('host').emit('costume:entries', partyState.costumeEntries);
+    // +30 pts for entering costume contest
+    addPoints(data.guestId || socket.id, data.guestName || 'Guest', 30, 'costume entry');
     console.log(`🎭 Costume entry: ${data.guestName}`);
   });
 
@@ -574,6 +605,29 @@ io.on('connection', (socket) => {
       }
     }
     console.log(`📸 Costume photo: ${data.guestId} → gallery`);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // MISSIONS & POINTS
+  // ═══════════════════════════════════════════════════════════════════
+
+  socket.on('mission:complete', (data) => {
+    const id = data.participantId || data.guestId || socket.id;
+    const name = data.name || 'Guest';
+    const pts = data.points || 0;
+    const mission = data.mission || 'unknown';
+    if (pts > 0) {
+      addPoints(id, name, pts, `mission: ${mission}`);
+    }
+  });
+
+  socket.on('costume:winner', (data) => {
+    // Award 150 pts to costume winner
+    const winnerId = data.guestId || data.winnerId;
+    const winnerName = data.guestName || data.winnerName || 'Winner';
+    if (winnerId) {
+      addPoints(winnerId, winnerName, 150, 'costume winner 🏆');
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════════
