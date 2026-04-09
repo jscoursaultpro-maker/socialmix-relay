@@ -86,6 +86,16 @@ app.get('/api/state', (req, res) => {
   res.json(partyState);
 });
 
+// Centralized photo add with hash dedup
+function addPhotoToParty(photo) {
+  if (!partyState.photoHashes) partyState.photoHashes = new Set();
+  const hash = (photo.dataURL || '').substring(0, 100);
+  if (partyState.photoHashes.has(hash)) return false;
+  partyState.photoHashes.add(hash);
+  partyState.photos.push(photo);
+  return true;
+}
+
 // ─── Socket.IO Connection Handling ──────────────────────────────────
 io.on('connection', (socket) => {
   console.log(`🔌 Connected: ${socket.id}`);
@@ -159,6 +169,7 @@ io.on('connection', (socket) => {
       partyState.guestVotes = {};
       partyState.suggestions = [];
       partyState.photos = [];
+      partyState.photoHashes = new Set();
       partyState.costumeEntries = [];
       partyState.guestGenreVotes = {};
       partyState.participantScores = {};
@@ -266,9 +277,10 @@ io.on('connection', (socket) => {
       guestName: entry?.guestName || 'Host',
       sentAt: new Date().toISOString()
     };
-    partyState.photos.push(photo);
-    io.to('guests').emit('photo:shared', photo);
-    console.log(`📸 HOST costume photo added to gallery`);
+    if (addPhotoToParty(photo)) {
+      io.to('guests').emit('photo:shared', photo);
+      console.log(`📸 HOST costume photo added to gallery`);
+    }
   });
 
   // Host sends vibe score only (genreVotes are tracked via host:genreVote)
@@ -416,7 +428,10 @@ io.on('connection', (socket) => {
       caption: data.caption || null,
       sentAt: new Date().toISOString()
     };
-    partyState.photos.push(photo);
+    if (!addPhotoToParty(photo)) {
+      console.log(`📸 Photo duplicate skipped from ${photo.guestName}`);
+      return;
+    }
     // Broadcast to OTHER guests only (sender already has the photo locally)
     socket.broadcast.to('guests').emit('photo:shared', photo);
     io.to('host').emit('guest:photo', photo);
@@ -444,7 +459,10 @@ io.on('connection', (socket) => {
       guestName: data.guestName || 'Host',
       sentAt: new Date().toISOString()
     };
-    partyState.photos.push(photo);
+    if (!addPhotoToParty(photo)) {
+      console.log(`📸 Host photo duplicate skipped`);
+      return;
+    }
     io.to('guests').emit('photo:shared', photo);
     // Note: do NOT echo back to host — they already added it locally
     const sizeKB = Math.round((data.dataURL || '').length / 1024);
@@ -543,10 +561,10 @@ io.on('connection', (socket) => {
         guestName: entry?.guestName || 'Guest',
         sentAt: new Date().toISOString()
       };
-      partyState.photos.push(photo);
-      io.to('host').emit('guest:photo', photo);
-      // Also share with OTHER guests
-      socket.broadcast.to('guests').emit('photo:shared', photo);
+      if (addPhotoToParty(photo)) {
+        io.to('host').emit('guest:photo', photo);
+        socket.broadcast.to('guests').emit('photo:shared', photo);
+      }
     }
     console.log(`📸 Costume photo: ${data.guestId} → gallery`);
   });
