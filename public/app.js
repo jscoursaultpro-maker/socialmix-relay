@@ -1227,18 +1227,13 @@ function handleCostumePhoto(e) {
     updateMyPhotosGrid();
     populateMissions(); // refresh Paparazzi mission
     
-    // Send costume photo to server
+    // Send costume photo to server (server addPhotoToParty adds to gallery + broadcasts)
     if (socket && socket.connected) {
       socket.emit('costume:photo', {
         guestId: state.guestId,
         photo: dataURL
       });
-      // Also send as gallery photo so it appears in host diaporama
-      socket.emit('guest:photo', {
-        dataURL: dataURL,
-        guestName: state.guestName
-      });
-      console.log('[CostumePhoto] Emitted costume:photo + guest:photo');
+      console.log('[CostumePhoto] Emitted costume:photo');
     }
     saveSession();
   });
