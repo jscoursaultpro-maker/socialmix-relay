@@ -90,6 +90,27 @@ app.get('/api/state', (req, res) => {
 io.on('connection', (socket) => {
   console.log(`🔌 Connected: ${socket.id}`);
 
+  // Auto-join host room: if ANY host: prefixed event is received,
+  // ensure this socket is in the 'host' room (resilient to server restarts)
+  function ensureHostRoom() {
+    if (!socket.rooms.has('host')) {
+      socket.join('host');
+      console.log(`🏠 Auto-joined socket ${socket.id} to host room`);
+    }
+  }
+
+  // Intercept all host: events to auto-join room
+  const origOn = socket.on.bind(socket);
+  socket.on = function(event, handler) {
+    if (event.startsWith('host:')) {
+      return origOn(event, (...args) => {
+        ensureHostRoom();
+        handler(...args);
+      });
+    }
+    return origOn(event, handler);
+  };
+
   // ═══════════════════════════════════════════════════════════════════
   // HOST EVENTS (iOS app → Server → Guests)
   // ═══════════════════════════════════════════════════════════════════

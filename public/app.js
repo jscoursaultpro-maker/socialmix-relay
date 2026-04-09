@@ -370,13 +370,21 @@ function connectToRelay() {
     if (ps.mode) { state.mode = ps.mode; updateDJMode(); }
     if (ps.participants) { updateTrombinoscope(ps.participants); }
     if (ps.photos && ps.photos.length) {
-      // Deduplicate: only add photos not already in local diapo
-      const existingKeys = new Set((state.diapoPhotos || []).map(p => (p || '').substring(0, 100)));
+      // Clear diapo grid and rebuild from server (single source of truth)
+      const grid = $('diapo-grid');
+      if (grid) grid.innerHTML = '';
+      state.diapoPhotos = new Set();
       ps.photos.forEach(p => {
         const key = (p.dataURL || '').substring(0, 100);
-        if (!existingKeys.has(key)) {
+        if (!state.diapoPhotos.has(key)) {
           addDiapoPhoto(p.dataURL, p.guestName);
-          existingKeys.add(key);
+        }
+      });
+      // Also add my own photos that might not be on server yet
+      (state.myPhotos || []).forEach(url => {
+        const key = (url || '').substring(0, 100);
+        if (!state.diapoPhotos.has(key)) {
+          addDiapoPhoto(url, state.guestName);
         }
       });
     }
@@ -837,7 +845,7 @@ function setupSocialHub() {
   const sendBtn = $('send-message-btn');
   const msgInput = $('guest-message-input');
   if (sendBtn && msgInput) {
-    sendBtn.addEventListener('click', () => {
+    const doSend = () => {
       const message = msgInput.value.trim();
       if (!message) return;
       if (socket && socket.connected) {
@@ -850,11 +858,16 @@ function setupSocialHub() {
         // Visual feedback
         sendBtn.textContent = '✅ ENVOYÉ !';
         setTimeout(() => { sendBtn.textContent = '📤 ENVOYER'; }, 1500);
+      } else {
+        alert('❌ Connexion perdue. Recharge la page.');
       }
-    });
+    };
+    // Both click AND touchend for iOS Safari compatibility
+    sendBtn.addEventListener('click', (e) => { e.preventDefault(); doSend(); });
+    sendBtn.addEventListener('touchend', (e) => { e.preventDefault(); doSend(); });
     // Also allow Enter key
     msgInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') sendBtn.click();
+      if (e.key === 'Enter') { e.preventDefault(); doSend(); }
     });
   }
 }
@@ -878,8 +891,9 @@ function updateTrombinoscope(participants) {
   const users = [{ name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto, phone: state.guestPhone, email: state.guestEmail, instagram: state.guestInsta }];
   participants.forEach(p => {
     if (p.name !== state.guestName) {
-      const displayName = p.isHost ? `👑 ${p.name}` : p.name;
-      users.push({ name: displayName, emoji: p.emoji || '🎉', photo: p.photo || null, phone: p.phone || '', email: p.email || '', instagram: p.instagram || '' });
+      // Host: show real name with 🎧 badge (not "DJ")
+      const displayName = p.isHost ? `${p.name} 🎧` : p.name;
+      users.push({ name: displayName, emoji: p.emoji || '🎉', photo: p.photo || null, phone: p.phone || '', email: p.email || '', instagram: p.instagram || '', isHost: p.isHost || false });
     }
   });
   renderTrombi(grid, users);
@@ -1590,6 +1604,16 @@ function resizeImage(file, maxSize, quality, callback) {
 function addDiapoPhoto(dataURL, guestName) {
   const grid = $('diapo-grid');
   if (!grid) { console.error('[Photo] diapo-grid not found!'); return; }
+  
+  // Track for dedup
+  if (!state.diapoPhotos) state.diapoPhotos = new Set();
+  const key = (dataURL || '').substring(0, 100);
+  if (state.diapoPhotos.has(key)) {
+    console.log('[Photo] Duplicate skipped');
+    return;
+  }
+  state.diapoPhotos.add(key);
+  
   const img = document.createElement('img');
   img.src = dataURL;
   img.alt = `photo de ${guestName || 'guest'}`;
