@@ -825,16 +825,18 @@ function updateHistory() {
 }
 
 // Global function: send guest reaction message (callable from inline onclick)
+let _sendLock = false;
 function sendGuestMessage() {
+  if (_sendLock) return; // Prevent double-fire from touchend+click
   const msgInput = $('guest-message-input');
   const statusEl = $('message-status');
   if (!msgInput) return;
   const message = msgInput.value.trim();
-  if (!message) {
-    if (statusEl) statusEl.textContent = '⚠️ Tape un message d\'abord !';
-    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
-    return;
-  }
+  if (!message) return; // Silently ignore empty — no nagging
+  
+  _sendLock = true;
+  setTimeout(() => { _sendLock = false; }, 500);
+  
   if (socket && socket.connected) {
     socket.emit('guest:message', {
       guestName: state.guestName || 'Guest',
