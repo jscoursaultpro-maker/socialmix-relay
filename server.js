@@ -182,7 +182,7 @@ io.on('connection', (socket) => {
     partyState.hostProfile = data.profile || null;
     
     // Build host participant entry
-    const hostName = (data.profile && data.profile.name) || 'DJ';
+    const hostName = (data.profile && data.profile.name) || 'Hôte';
     const hostEmoji = (data.profile && data.profile.emoji) || '🎧';
     const hostEntry = {
       id: socket.id,
