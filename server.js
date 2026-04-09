@@ -89,7 +89,9 @@ app.get('/api/state', (req, res) => {
 // Centralized photo add with hash dedup
 function addPhotoToParty(photo) {
   if (!partyState.photoHashes) partyState.photoHashes = new Set();
-  const hash = (photo.dataURL || '').substring(0, 100);
+  const url = photo.dataURL || '';
+  const mid = Math.floor(url.length / 2);
+  const hash = url.length + ':' + url.substring(mid, mid + 80);
   if (partyState.photoHashes.has(hash)) return false;
   partyState.photoHashes.add(hash);
   partyState.photos.push(photo);

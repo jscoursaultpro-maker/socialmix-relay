@@ -1618,7 +1618,8 @@ function addDiapoPhoto(dataURL, guestName) {
   
   // Track for dedup
   if (!state.diapoPhotos) state.diapoPhotos = new Set();
-  const key = (dataURL || '').substring(0, 100);
+  const mid = Math.floor((dataURL || '').length / 2);
+  const key = (dataURL || '').length + ':' + (dataURL || '').substring(mid, mid + 80);
   if (state.diapoPhotos.has(key)) {
     console.log('[Photo] Duplicate skipped');
     return;
