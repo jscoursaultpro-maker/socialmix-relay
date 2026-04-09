@@ -345,11 +345,12 @@
                 
                 <!-- Send a message to the slideshow -->
                 <div style="margin-top:16px;">
-                    <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:8px;">💬 ENVOYER UN MESSAGE</div>
+                    <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:8px;">💬 RÉACTION À CHAUD</div>
                     <div style="display:flex; gap:8px; align-items:center;">
-                        <input type="text" id="guest-message-input" maxlength="100" placeholder="Ton message pour le DJ..." style="flex:1; padding:10px 14px; background:rgba(255,255,255,0.07); border:1px solid rgba(0,200,180,0.2); border-radius:10px; color:white; font-size:13px; font-weight:600; outline:none;">
-                        <button id="send-message-btn" style="padding:10px 16px; background:linear-gradient(135deg,#00c853,#00bfa5); border:none; border-radius:10px; font-size:12px; font-weight:800; color:#0a0e1a; cursor:pointer; white-space:nowrap;">📤 ENVOYER</button>
+                        <input type="text" id="guest-message-input" maxlength="100" placeholder="Ta réaction..." style="flex:1; padding:12px 14px; background:rgba(255,255,255,0.07); border:1px solid rgba(0,200,180,0.3); border-radius:12px; color:white; font-size:14px; font-weight:600; outline:none; -webkit-appearance:none; touch-action:manipulation;">
+                        <button type="button" id="send-message-btn" onclick="sendGuestMessage()" style="padding:12px 18px; min-height:44px; background:linear-gradient(135deg,#00c853,#00bfa5); border:none; border-radius:12px; font-size:13px; font-weight:800; color:#0a0e1a; cursor:pointer; white-space:nowrap; -webkit-appearance:none; touch-action:manipulation; -webkit-tap-highlight-color:rgba(0,200,180,0.3);">📤 ENVOYER</button>
                     </div>
+                    <div id="message-status" style="margin-top:6px; font-size:11px; color:var(--turquoise); font-weight:700; min-height:16px;"></div>
                 </div>
             </div>
         </div>

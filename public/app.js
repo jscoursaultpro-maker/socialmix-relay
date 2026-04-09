@@ -811,6 +811,44 @@ function updateHistory() {
     `;
     list.appendChild(item);
   });
+  
+  // Send message button — also bound via inline onclick="sendGuestMessage()"
+  const sendBtn = $('send-message-btn');
+  const msgInput = $('guest-message-input');
+  if (sendBtn && msgInput) {
+    sendBtn.addEventListener('click', (e) => { e.preventDefault(); sendGuestMessage(); });
+    sendBtn.addEventListener('touchend', (e) => { e.preventDefault(); sendGuestMessage(); });
+    msgInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); sendGuestMessage(); }
+    });
+  }
+}
+
+// Global function: send guest reaction message (callable from inline onclick)
+function sendGuestMessage() {
+  const msgInput = $('guest-message-input');
+  const statusEl = $('message-status');
+  if (!msgInput) return;
+  const message = msgInput.value.trim();
+  if (!message) {
+    if (statusEl) statusEl.textContent = '⚠️ Tape un message d\'abord !';
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+    return;
+  }
+  if (socket && socket.connected) {
+    socket.emit('guest:message', {
+      guestName: state.guestName || 'Guest',
+      message: message,
+      guestPhoto: state.guestPhoto || null,
+      guestEmoji: state.guestEmoji || '🎉'
+    });
+    console.log('[Message] Sent:', message);
+    msgInput.value = '';
+    if (statusEl) statusEl.textContent = '✅ Réaction envoyée !';
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+  } else {
+    if (statusEl) statusEl.textContent = '❌ Connexion perdue, recharge la page';
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -841,35 +879,7 @@ function setupSocialHub() {
     console.log('[SocialHub] Camera photo input bound');
   }
   
-  // Send message button
-  const sendBtn = $('send-message-btn');
-  const msgInput = $('guest-message-input');
-  if (sendBtn && msgInput) {
-    const doSend = () => {
-      const message = msgInput.value.trim();
-      if (!message) return;
-      if (socket && socket.connected) {
-        socket.emit('guest:message', {
-          guestName: state.guestName || 'Guest',
-          message: message
-        });
-        console.log('[Message] Sent:', message);
-        msgInput.value = '';
-        // Visual feedback
-        sendBtn.textContent = '✅ ENVOYÉ !';
-        setTimeout(() => { sendBtn.textContent = '📤 ENVOYER'; }, 1500);
-      } else {
-        alert('❌ Connexion perdue. Recharge la page.');
-      }
-    };
-    // Both click AND touchend for iOS Safari compatibility
-    sendBtn.addEventListener('click', (e) => { e.preventDefault(); doSend(); });
-    sendBtn.addEventListener('touchend', (e) => { e.preventDefault(); doSend(); });
-    // Also allow Enter key
-    msgInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); doSend(); }
-    });
-  }
+  // Send message: handled by global sendGuestMessage() + inline onclick
 }
 
 function populateTrombinoscope() {

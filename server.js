@@ -412,7 +412,9 @@ io.on('connection', (socket) => {
     if (!isValidGuest()) return;
     const msg = {
       guestName: data.guestName || 'Guest',
-      message: data.message || ''
+      message: data.message || '',
+      guestPhoto: data.guestPhoto || null,
+      guestEmoji: data.guestEmoji || '🎉'
     };
     io.to('host').emit('guest:message', msg);
     console.log(`💬 Message from ${msg.guestName}: ${msg.message}`);
