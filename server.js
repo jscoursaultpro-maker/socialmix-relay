@@ -189,6 +189,9 @@ io.on('connection', (socket) => {
       name: hostName,
       emoji: hostEmoji,
       photo: (data.profile && data.profile.photo) || null,
+      phone: (data.profile && data.profile.phone) || '',
+      email: (data.profile && data.profile.email) || '',
+      instagram: (data.profile && data.profile.instagram) || '',
       partyCode: newCode,
       joinedAt: new Date().toISOString(),
       isHost: true
