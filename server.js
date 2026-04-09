@@ -475,8 +475,10 @@ io.on('connection', (socket) => {
 
   socket.on('costume:enter', (data) => {
     if (!isValidGuest()) return;
-    // Prevent duplicates
-    partyState.costumeEntries = partyState.costumeEntries.filter(e => e.guestId !== data.guestId);
+    // Prevent duplicates by guestId AND guestName (safety net for reconnections)
+    partyState.costumeEntries = partyState.costumeEntries.filter(e => 
+      e.guestId !== data.guestId && e.guestName !== data.guestName
+    );
     partyState.costumeEntries.push({
       guestId: data.guestId || socket.id,
       guestName: data.guestName || 'Guest',

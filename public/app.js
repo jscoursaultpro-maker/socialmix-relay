@@ -338,10 +338,14 @@ function connectToRelay() {
 
   socket.on('connect', () => {
     state.connected = true;
-    state.guestId = socket.id;
+    // Preserve stable guestId across reconnections (only set if no saved one)
+    if (!state.guestId) {
+      state.guestId = 'guest_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
+    }
     updateConnection('connected', 'Connecté');
     
     socket.emit('guest:join', {
+      guestId: state.guestId,
       name: state.guestName,
       lastName: state.guestLastName,
       emoji: state.guestEmoji,
