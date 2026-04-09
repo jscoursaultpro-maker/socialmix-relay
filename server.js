@@ -227,13 +227,29 @@ io.on('connection', (socket) => {
 
   // Host votes for a costume
   socket.on('host:costumeVote', (data) => {
-    const entry = partyState.costumeEntries.find(e => e.guestId === data.targetId);
-    if (entry) {
-      entry.votes = (entry.votes || 0) + 1;
+    if (!partyState.costumeVoters) partyState.costumeVoters = {};
+    const voterId = 'host';
+    const targetId = data.targetId;
+    
+    // Already voted for this target? Ignore
+    if (partyState.costumeVoters[voterId] === targetId) {
+      console.log(`👑 HOST costume vote ignored (duplicate) → ${data.targetName}`);
+      return;
     }
+    
+    // If voted for someone else, remove old vote
+    if (partyState.costumeVoters[voterId]) {
+      const oldTarget = partyState.costumeEntries.find(e => e.guestId === partyState.costumeVoters[voterId]);
+      if (oldTarget) oldTarget.votes = Math.max(0, (oldTarget.votes || 0) - 1);
+    }
+    
+    partyState.costumeVoters[voterId] = targetId;
+    const entry = partyState.costumeEntries.find(e => e.guestId === targetId);
+    if (entry) entry.votes = (entry.votes || 0) + 1;
+    
     io.to('guests').emit('costume:entries', partyState.costumeEntries);
     io.to('host').emit('costume:entries', partyState.costumeEntries);
-    console.log(`👑 HOST costume vote → ${data.targetName || data.targetId}`);
+    console.log(`👑 HOST costume vote → ${data.targetName || targetId}`);
   });
 
   // Host adds a costume photo
