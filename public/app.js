@@ -464,14 +464,27 @@ function connectToRelay() {
       favTracksHTML = favTracks.map(t => {
         const q = encodeURIComponent(`${t.artist} ${t.title}`);
         const genreBadge = t.genre ? `<span style="font-size:8px;font-weight:700;color:#00d2ff;background:rgba(0,210,255,0.1);padding:1px 5px;border-radius:4px;">${t.genre}</span>` : '';
+        // Vote counts
+        const fire = t.fireCount || 0;
+        const like = t.likeCount || 0;
+        const meh = t.mehCount || 0;
+        let voteLine = '';
+        if (fire > 0) voteLine += `<span style="font-size:9px;font-weight:800;color:#00bfff;">🔥${fire}</span> `;
+        if (like > 0) voteLine += `<span style="font-size:9px;font-weight:800;color:#84cc16;">👍${like}</span> `;
+        if (meh > 0) voteLine += `<span style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.35);">👎${meh}</span>`;
         return `
           <div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:4px;">
             <span style="font-size:18px;">🔥</span>
             <div style="flex:1;min-width:0;">
               <div style="font-size:12px;font-weight:800;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.title} ${genreBadge}</div>
               <div style="font-size:10px;color:var(--text-dim);">${t.artist}</div>
+              ${voteLine ? `<div style="margin-top:2px;">${voteLine}</div>` : ''}
+              <div style="display:flex;gap:6px;margin-top:3px;">
+                <a href="https://open.spotify.com/search/${q}" target="_blank" style="font-size:8px;font-weight:700;color:#1DB954;background:rgba(29,185,84,0.1);padding:2px 6px;border-radius:4px;text-decoration:none;">Spotify</a>
+                <a href="https://music.apple.com/search?term=${q}" target="_blank" style="font-size:8px;font-weight:700;color:#fc3c44;background:rgba(252,60,68,0.1);padding:2px 6px;border-radius:4px;text-decoration:none;">Apple</a>
+                <a href="https://www.deezer.com/search/${q}" target="_blank" style="font-size:8px;font-weight:700;color:#a855f7;background:rgba(168,85,247,0.1);padding:2px 6px;border-radius:4px;text-decoration:none;">Deezer</a>
+              </div>
             </div>
-            <a href="https://open.spotify.com/search/${q}" target="_blank" style="font-size:9px;font-weight:700;color:#1DB954;text-decoration:none;">Spotify</a>
           </div>`;
       }).join('');
     }
@@ -958,17 +971,40 @@ function updateHistory() {
   count.textContent = `${state.trackHistory.length} titres`;
   list.innerHTML = '';
   
+  // Build local vote map as fallback (server enriches too but local may be fresher)
+  const localVotes = {};
+  (state.allVotes || []).forEach(v => {
+    const t = v.trackTitle || v.trackId || '';
+    if (!localVotes[t]) localVotes[t] = { fire: 0, like: 0, meh: 0 };
+    if (v.type === 'fire') localVotes[t].fire++;
+    else if (v.type === 'like') localVotes[t].like++;
+    else if (v.type === 'meh') localVotes[t].meh++;
+  });
+  
   state.trackHistory.forEach((track, i) => {
     const item = document.createElement('div');
     item.className = 'history-item';
     const query = encodeURIComponent(`${track.artist} ${track.title}`);
     const genreBadge = track.genre ? `<span style="font-size:8px;font-weight:700;color:#00d2ff;background:rgba(0,210,255,0.1);padding:1px 6px;border-radius:4px;margin-left:6px;">${track.genre}</span>` : '';
     
+    // Votes: prefer server-enriched data, fallback to local
+    const sv = { fire: track.fireCount || 0, like: track.likeCount || 0, meh: track.mehCount || 0 };
+    const lv = localVotes[track.title] || { fire: 0, like: 0, meh: 0 };
+    const fire = Math.max(sv.fire, lv.fire);
+    const like = Math.max(sv.like, lv.like);
+    const meh = Math.max(sv.meh, lv.meh);
+    
+    let voteBadges = '';
+    if (fire > 0) voteBadges += `<span style="font-size:9px;font-weight:800;color:#00bfff;">🔥${fire}</span> `;
+    if (like > 0) voteBadges += `<span style="font-size:9px;font-weight:800;color:#84cc16;">👍${like}</span> `;
+    if (meh > 0) voteBadges += `<span style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.35);">👎${meh}</span>`;
+    
     item.innerHTML = `
       <span class="history-num">${i + 1}</span>
       <div class="history-info">
         <div class="history-title">${track.title}${genreBadge}</div>
         <div class="history-artist">${track.artist}</div>
+        ${voteBadges ? `<div style="margin-top:2px;">${voteBadges}</div>` : ''}
         <div class="history-links">
           <a class="stream-link spotify" href="https://open.spotify.com/search/${query}" target="_blank">Spotify</a>
           <a class="stream-link apple" href="https://music.apple.com/search?term=${query}" target="_blank">Apple</a>

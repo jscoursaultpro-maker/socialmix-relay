@@ -351,10 +351,31 @@ io.on('connection', (socket) => {
     partyState.vibeScore = data.vibeScore || 0;
   });
 
-  // Host sends track history
+  // Host sends track history — enrich with vote counts before broadcasting
   socket.on('host:trackHistory', (history) => {
-    partyState.trackHistory = history;
-    io.to('guests').emit('history:update', history);
+    // Compute per-track vote counts from guestVotes
+    const trackVotes = {};
+    for (const guestId in partyState.guestVotes) {
+      const votes = partyState.guestVotes[guestId];
+      for (const trackId in votes) {
+        if (!trackVotes[trackId]) trackVotes[trackId] = { fire: 0, like: 0, meh: 0 };
+        const type = votes[trackId];
+        if (type === 'fire') trackVotes[trackId].fire++;
+        else if (type === 'like') trackVotes[trackId].like++;
+        else if (type === 'meh') trackVotes[trackId].meh++;
+      }
+    }
+    
+    // Enrich each track with its vote counts
+    const enriched = (history || []).map(t => ({
+      ...t,
+      fireCount: trackVotes[t.title]?.fire || 0,
+      likeCount: trackVotes[t.title]?.like || 0,
+      mehCount: trackVotes[t.title]?.meh || 0
+    }));
+    
+    partyState.trackHistory = enriched;
+    io.to('guests').emit('history:update', enriched);
   });
 
   // Host sends next track info
