@@ -124,6 +124,7 @@ function showScreen(name) {
     bindCostumeButton();
     populateMissions();
     updateMyPhotosGrid();
+    refreshAllPhotos();
   }
 }
 
@@ -1045,7 +1046,8 @@ function sendGuestMessage() {
       guestName: state.guestName || 'Guest',
       message: message,
       guestPhoto: state.guestPhoto || null,
-      guestEmoji: state.guestEmoji || '🎉'
+      guestEmoji: state.guestEmoji || '🎉',
+      guestId: state.guestId
     });
     console.log('[Message] Sent:', message);
     state.messagesSent = (state.messagesSent || 0) + 1;
@@ -1926,6 +1928,13 @@ function addDiapoPhoto(dataURL, guestName) {
   });
   grid.appendChild(img);
   console.log('[Photo] Added to diapo-grid, total:', grid.children.length);
+}
+
+// Refresh all photos from server state (catches missed photo:shared events)
+function refreshAllPhotos() {
+  if (!socket || !socket.connected) return;
+  // Request full state — the party:state handler will rebuild diapo-grid
+  socket.emit('guest:requestState');
 }
 
 // ═══════════════════════════════════════════

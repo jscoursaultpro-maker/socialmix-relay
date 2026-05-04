@@ -127,20 +127,39 @@ function addPhotoToParty(photo) {
 
 // ─── Points System ──────────────────────────────────────────────────
 function addPoints(participantId, name, points, reason) {
-  // KEY BY NAME — eliminates all socket.id vs guestId dedup issues
-  if (!partyState.participantScores[name]) {
-    partyState.participantScores[name] = { name, score: 0, voteCount: 0, participantId };
+  // Resolve stable key: 'host' for host, guestName for guests
+  // Using name as key eliminates socket.id vs guestId dedup issues
+  let key;
+  if (participantId === 'host') {
+    key = 'host';
+  } else {
+    // For guests: try to find by participantId in existing entries, else use name
+    const existing = Object.entries(partyState.participantScores).find(([k, v]) =>
+      v.participantId === participantId || k === name
+    );
+    key = existing ? existing[0] : (name || participantId);
   }
-  partyState.participantScores[name].score += points;
-  partyState.participantScores[name].participantId = participantId; // keep fresh
-  console.log(`⭐ +${points}pts → ${name} (${reason}) [total: ${partyState.participantScores[name].score}]`);
+  
+  if (!partyState.participantScores[key]) {
+    partyState.participantScores[key] = { name: name || key, score: 0, voteCount: 0, participantId: participantId || key };
+  }
+  partyState.participantScores[key].score += points;
+  // Update display name if meaningful
+  if (name && name !== 'DJ' && name !== 'Guest') {
+    partyState.participantScores[key].name = name;
+  }
+  // Keep participantId fresh for leaderboard id
+  if (participantId) {
+    partyState.participantScores[key].participantId = participantId;
+  }
+  console.log(`⭐ +${points}pts → ${name} [key=${key}] (${reason}) [total: ${partyState.participantScores[key].score}]`);
   broadcastLeaderboard();
 }
 
 function broadcastLeaderboard() {
   const leaderboard = Object.values(partyState.participantScores)
     .map(data => ({
-      id: data.participantId || data.name,
+      id: data.participantId === 'host' ? 'host' : data.name,
       name: data.name,
       points: data.score
     }))
@@ -447,6 +466,12 @@ io.on('connection', (socket) => {
     }
     
     console.log(`👤 Guest joined: ${guest.emoji} ${guest.name} [${guestPartyCode}]`);
+  });
+
+  // Guest requests full state refresh (e.g. when navigating back to hub)
+  socket.on('guest:requestState', () => {
+    if (!isValidGuest()) return;
+    socket.emit('party:state', { ...partyState });
   });
 
   // Guest votes on current track
