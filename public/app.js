@@ -557,8 +557,11 @@ function connectToRelay() {
     state.currentTrack = track;
     state.currentVote = null;
     updateNowPlaying(track);
-    updateVoteButtons();
+    // Re-setup vote buttons — cloning removes old listeners and rebinds fresh ones
+    // This ensures guests can vote once PER SONG, not once for the entire party
+    setupVoteButtons();
     saveSession();
+    console.log('[Track] New track → vote reset, buttons re-bound');
   });
 
   socket.on('mode:change', (data) => {
@@ -1650,6 +1653,7 @@ function populateMissions() {
   const costumeJoined = state.costumeRegistered ? 1 : 0;
   
   const messageCount = state.messagesSent || 0;
+  const suggestCount = (state.suggestions || []).length;
   const hasProfile = state.guestName && state.guestName !== 'Guest';
   const costumeWon = state.costumeWon || false;
   
@@ -1675,6 +1679,13 @@ function populateMissions() {
       target: 1, current: genreVoted, unit: 'tendance',
       reward: '15 pts', cumulative: false,
       done: genreVoted >= 1
+    },
+    {
+      icon: '✨', title: 'SUGGÉRER UN TITRE',
+      desc: 'Chaque suggestion = +5 pts. Propose un titre au DJ !',
+      target: null, current: suggestCount, unit: 'suggestions',
+      reward: '+5 pts/sugg.', cumulative: true,
+      done: suggestCount > 0
     },
     {
       icon: '🎭', title: 'PARTICIPER AU CONCOURS',
@@ -1742,14 +1753,13 @@ function populateMissions() {
     list.appendChild(item);
   });
   
-  // Calculate and display total points
-  const rewardValues = { '+50 pts': 50, '+100 pts': 100, '+30 pts': 30, '+40 pts': 40, '+200 pts': 200 };
-  let totalPoints = 0;
-  missions.forEach(m => {
-    if (m.current >= m.target) totalPoints += (rewardValues[m.reward] || 0);
-  });
+  // Display points from SERVER leaderboard (single source of truth)
+  // The local calculation was broken — server tracks all point additions
   const pointsEl = $('points-total');
-  if (pointsEl) pointsEl.textContent = totalPoints;
+  if (pointsEl) {
+    const serverEntry = (state.leaderboard || []).find(p => p.id === state.guestId || p.name === state.guestName);
+    pointsEl.textContent = serverEntry ? serverEntry.points : (state.missionPoints || 0);
+  }
 }
 
 function handleDiapoPhoto(e) {

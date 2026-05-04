@@ -487,7 +487,11 @@ io.on('connection', (socket) => {
     const suggestion = { ...data, sentAt: new Date().toISOString() };
     partyState.suggestions.push(suggestion);
     io.to('host').emit('guest:suggested', suggestion);
-    console.log(`💡 Suggestion: ${data.guestName} → "${data.query}"`);
+    // +5 pts per suggestion sent
+    if (data.guestId || data.guestName) {
+      addPoints(data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${data.title || data.query}`);
+    }
+    console.log(`💡 Suggestion: ${data.guestName} → "${data.title || data.query}" (+5pts)`);
   });
 
   // Host played a guest's suggestion → +10 bonus pts
