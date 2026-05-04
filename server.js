@@ -515,13 +515,15 @@ io.on('connection', (socket) => {
     console.log(`💡 Suggestion: ${data.guestName} → "${data.title || data.query}" (+5pts)`);
   });
 
-  // Host played a guest's suggestion → +10 bonus pts
+  // Host played a guest's suggestion → +10 bonus pts to guest + 5 pts to host
   socket.on('host:suggestionPlayed', (data) => {
     const guestName = data.guestName;
     const trackTitle = data.trackTitle || 'Unknown';
     if (guestName) {
       addPoints(guestName, guestName, 10, `suggestion played: ${trackTitle}`);
-      console.log(`🎯 Suggestion played! +10pts → ${guestName} (${trackTitle})`);
+      // Host also earns points for handling suggestions
+      addPoints('host', 'DJ', 5, `handled suggestion: ${trackTitle}`);
+      console.log(`🎯 Suggestion played! +10pts → ${guestName}, +5pts → Host (${trackTitle})`);
     }
   });
 
@@ -560,6 +562,19 @@ io.on('connection', (socket) => {
     // +10 pts for sending a message
     addPoints(data.guestId || socket.id, data.guestName || 'Guest', 10, 'message');
     console.log(`💬 Message from ${msg.guestName}: ${msg.message}`);
+  });
+
+  // Host sends a post-it message
+  socket.on('host:message', (data) => {
+    const msg = {
+      guestName: data.guestName || 'DJ',
+      message: data.message || '',
+      guestEmoji: data.guestEmoji || '🎧'
+    };
+    io.to('guests').emit('guest:message', msg);
+    // +10 pts for the host
+    addPoints('host', data.guestName || 'DJ', 10, 'message');
+    console.log(`💬 Host message: ${msg.message} (+10pts)`);
   });
 
   // Host shares a gallery photo (no isValidGuest check needed)
@@ -754,12 +769,17 @@ io.on('connection', (socket) => {
 
   socket.on('host:vote', (data) => {
     // Forward host vote as if it were a guest vote
+    const trackTitle = data.trackTitle || (partyState.currentTrack && partyState.currentTrack.title) || 'Titre en cours';
     const voteData = {
       ...data,
-      trackTitle: data.trackTitle || (partyState.currentTrack && partyState.currentTrack.title) || 'Titre en cours',
-      trackId: data.trackTitle || (partyState.currentTrack && partyState.currentTrack.title) || 'current'
+      trackTitle: trackTitle,
+      trackId: trackTitle
     };
     io.to('guests').emit('vote:received', voteData);
+    
+    // Store host vote in guestVotes so history enrichment includes it
+    if (!partyState.guestVotes['host']) partyState.guestVotes['host'] = {};
+    partyState.guestVotes['host'][trackTitle] = data.type;
     
     // Score the host via unified addPoints — flat 10 pts per vote
     addPoints('host', data.guestName || 'DJ', 10, `vote ${data.type}`);
@@ -769,7 +789,7 @@ io.on('connection', (socket) => {
     partyState.vibeScore = Math.max(0, partyState.vibeScore + (vibeMap[data.type] || 0));
     io.to('guests').emit('votes:update', { genreVotes: partyState.genreVotes, vibeScore: partyState.vibeScore });
     
-    console.log(`🎧 Host vote: ${data.type} (+10pts, vibe=${partyState.vibeScore})`);
+    console.log(`🎧 Host vote: ${data.type} on "${trackTitle}" (+10pts, vibe=${partyState.vibeScore})`);
   });
 
   // ═══════════════════════════════════════════════════════════════════
