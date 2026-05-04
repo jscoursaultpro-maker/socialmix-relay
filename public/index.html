@@ -251,17 +251,34 @@
 
         <!-- Suggest Track -->
         <div class="card suggest-section">
-            <div class="section-header">
-                <span class="section-icon">✨</span>
-                <span class="section-title">SUGGÉRER UN TITRE AU DJ</span>
+            <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="section-icon">✨</span>
+                    <span class="section-title">SUGGÉRER UN TITRE AU DJ</span>
+                </div>
+                <button id="suggest-explore-btn" onclick="loadTrendingSuggestions()" style="
+                    display:flex;align-items:center;gap:3px;padding:4px 10px;
+                    background:rgba(0,210,255,0.1);border:1px solid rgba(0,210,255,0.25);
+                    border-radius:20px;cursor:pointer;font-size:8px;font-weight:800;
+                    color:#00d2ff;letter-spacing:0.5px;
+                ">🎵 EXPLORER</button>
             </div>
-            <div class="suggest-input-row">
-                <input type="text" id="suggest-input" placeholder="Titre ou artiste..." class="suggest-field">
-                <button id="suggest-btn" class="suggest-send" disabled>
-                    <span>📤</span> ENVOYER
-                </button>
+            <div class="suggest-input-row" style="display:flex;gap:6px;align-items:center;">
+                <input type="text" id="suggest-input" placeholder="Titre ou artiste..." class="suggest-field" autocomplete="off" style="flex:1;">
+                <button id="suggest-search-btn" onclick="searchDeezerSuggestions()" style="
+                    padding:8px 10px;background:rgba(0,210,255,0.15);border:1px solid rgba(0,210,255,0.3);
+                    border-radius:10px;cursor:pointer;font-size:16px;color:#00d2ff;
+                    display:none;flex-shrink:0;
+                ">🔍</button>
             </div>
+            <!-- Search results container -->
+            <div id="suggest-results" style="margin-top:6px;"></div>
+            <!-- Sent confirmation -->
             <div id="suggestions-list" class="suggestions-list"></div>
+            <!-- Hint -->
+            <div id="suggest-hint" style="text-align:center;padding:6px 0;font-size:10px;color:rgba(255,255,255,0.3);font-weight:500;">
+                💡 Tape un titre ou un artiste, ou clique sur Explorer
+            </div>
         </div>
 
         <!-- Track History -->
@@ -487,6 +504,6 @@
 
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="app.js?v=20260407v26"></script>
+    <script src="app.js?v=20260504v28"></script>
 </body>
 </html>

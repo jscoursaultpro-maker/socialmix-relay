@@ -599,12 +599,24 @@ function connectToRelay() {
     renderCostumeEntries();
   });
 
+  // Costume contest closed by host
+  socket.on('costume:closed', (data) => {
+    state.costumeOpen = false;
+    state.costumeEntries = data.podium || state.costumeEntries;
+    // Track if this guest won
+    if (data.winner && data.winner.guestId === state.guestId) {
+      state.costumeWon = true;
+    }
+    renderCostumeEntries();
+    showCostumeWinnerModal(data);
+  });
+
   // Leaderboard updates from server
   socket.on('leaderboard:update', (leaderboard) => {
     state.leaderboard = leaderboard;
     renderLeaderboard();
-    // Update my points from server data
-    const me = leaderboard.find(p => p.id === state.guestId);
+    // Update my points from server data — match by id OR name
+    const me = leaderboard.find(p => p.id === state.guestId || p.name === state.guestName);
     if (me) {
       state.missionPoints = me.points;
       const el = $('points-total');
@@ -761,41 +773,172 @@ function updateGenreChart() {
   setupGenreTrends();
 }
 
-// ─── Suggest ─────────────────────────────────────────
+// ─── Suggest with Deezer Search ──────────────────────
+let _suggestDebounce = null;
+
 function setupSuggest() {
   const input = $('suggest-input');
-  const btn = $('suggest-btn');
+  const searchBtn = $('suggest-search-btn');
   
-  // Clone to remove old listeners
-  const newInput = input.cloneNode(true);
-  const newBtn = btn.cloneNode(true);
-  input.parentNode.replaceChild(newInput, input);
-  newBtn.parentNode || btn.parentNode.replaceChild(newBtn, btn);
-  
-  const si = $('suggest-input');
-  const sb = $('suggest-btn');
-  
-  si.addEventListener('input', () => { sb.disabled = si.value.trim() === ''; });
-  
-  sb.addEventListener('click', () => {
-    const query = si.value.trim();
-    if (!query) return;
+  // Debounced auto-search on typing
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    // Show/hide search button
+    searchBtn.style.display = q.length >= 2 ? 'block' : 'none';
+    // Hide hint when typing
+    const hint = $('suggest-hint');
+    if (hint) hint.style.display = q.length > 0 ? 'none' : 'block';
     
-    state.suggestions.push(query);
-    if (socket && socket.connected) {
-      socket.emit('guest:suggest', { query, guestName: state.guestName, guestId: state.guestId });
+    if (q.length < 2) {
+      $('suggest-results').innerHTML = '';
+      return;
     }
     
-    const list = $('suggestions-list');
-    const item = document.createElement('div');
-    item.className = 'suggestion-item';
-    item.innerHTML = `<span class="suggestion-check">✅</span> ${query} — envoyé`;
-    list.appendChild(item);
-    
-    si.value = '';
-    sb.disabled = true;
-    saveSession();
+    // Debounce 500ms
+    clearTimeout(_suggestDebounce);
+    _suggestDebounce = setTimeout(() => {
+      searchDeezerSuggestions();
+    }, 500);
   });
+  
+  // Search on Enter
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      clearTimeout(_suggestDebounce);
+      searchDeezerSuggestions();
+    }
+  });
+}
+
+function searchDeezerSuggestions() {
+  const input = $('suggest-input');
+  const q = input.value.trim();
+  if (q.length < 2) return;
+  
+  const container = $('suggest-results');
+  container.innerHTML = '<div style="text-align:center;padding:10px;font-size:11px;color:rgba(255,255,255,0.4);">🔍 Recherche...</div>';
+  
+  fetch(`/api/deezer/search?q=${encodeURIComponent(q)}&limit=6`)
+    .then(r => r.json())
+    .then(json => {
+      const tracks = (json.data || []);
+      renderSuggestResults(tracks);
+    })
+    .catch(err => {
+      console.error('[Suggest] Search error:', err);
+      container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:#ff6b6b;">❌ Erreur de recherche</div>';
+    });
+}
+
+function loadTrendingSuggestions() {
+  const container = $('suggest-results');
+  container.innerHTML = '<div style="text-align:center;padding:10px;font-size:11px;color:rgba(255,255,255,0.4);">🌟 Chargement des tendances...</div>';
+  const hint = $('suggest-hint');
+  if (hint) hint.style.display = 'none';
+  
+  fetch('/api/deezer/chart?limit=8')
+    .then(r => r.json())
+    .then(json => {
+      const tracks = (json.data || []);
+      renderSuggestResults(tracks);
+    })
+    .catch(err => {
+      console.error('[Suggest] Trending error:', err);
+      container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:#ff6b6b;">❌ Impossible de charger</div>';
+    });
+}
+
+function renderSuggestResults(tracks) {
+  const container = $('suggest-results');
+  
+  if (!tracks.length) {
+    container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:rgba(255,255,255,0.3);">Aucun résultat</div>';
+    return;
+  }
+  
+  container.innerHTML = tracks.map(t => {
+    const cover = t.album?.cover_medium || t.album?.cover_small || '';
+    const artist = t.artist?.name || 'Unknown';
+    const dur = t.duration ? `${Math.floor(t.duration/60)}:${String(t.duration%60).padStart(2,'0')}` : '';
+    const id = t.id;
+    const title = t.title || '';
+    
+    return `
+      <div class="suggest-result-item" data-id="${id}" style="
+        display:flex;align-items:center;gap:10px;padding:8px;
+        background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:4px;
+        cursor:pointer;transition:background 0.2s;
+      " onmouseover="this.style.background='rgba(0,210,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+        ${cover ? `<img src="${cover}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">` 
+               : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🎵</div>`}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(title)}</div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span style="font-size:10px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(artist)}</span>
+            ${dur ? `<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.25);">· ${dur}</span>` : ''}
+          </div>
+        </div>
+        <button onclick="event.stopPropagation();sendSuggestion(${id}, '${escapeAttr(title)}', '${escapeAttr(artist)}', '${escapeAttr(cover)}', ${t.duration || 0})" style="
+          display:flex;align-items:center;gap:3px;padding:6px 12px;
+          background:rgba(0,210,255,0.12);border:1px solid rgba(0,210,255,0.25);
+          border-radius:20px;cursor:pointer;font-size:8px;font-weight:800;
+          color:#00d2ff;letter-spacing:0.3px;flex-shrink:0;transition:all 0.2s;
+        " id="suggest-send-${id}">
+          <span>📤</span> PROPOSER
+        </button>
+      </div>`;
+  }).join('');
+}
+
+function sendSuggestion(deezerID, title, artist, coverURL, duration) {
+  if (!socket || !socket.connected) return;
+  
+  const btn = $(`suggest-send-${deezerID}`);
+  if (btn) {
+    btn.innerHTML = '<span>✅</span> ENVOYÉ';
+    btn.style.background = 'rgba(0,200,83,0.2)';
+    btn.style.borderColor = 'rgba(0,200,83,0.4)';
+    btn.style.color = '#00c853';
+    btn.style.pointerEvents = 'none';
+  }
+  
+  // Send structured data to server
+  socket.emit('guest:suggest', {
+    title: title,
+    artist: artist,
+    deezerID: deezerID,
+    coverURL: coverURL,
+    duration: duration,
+    query: `${title} - ${artist}`,
+    guestName: state.guestName,
+    guestId: state.guestId
+  });
+  
+  console.log(`[Suggest] ✅ Sent: ${title} by ${artist} (ID: ${deezerID})`);
+  
+  // Add to sent list
+  state.suggestions.push({ title, artist, deezerID });
+  
+  const list = $('suggestions-list');
+  const item = document.createElement('div');
+  item.className = 'suggestion-item';
+  item.innerHTML = `<span class="suggestion-check">✅</span> ${escapeHtml(title)} — ${escapeHtml(artist)}`;
+  list.appendChild(item);
+  
+  saveSession();
+  populateMissions();
+}
+
+// Helpers for safe HTML rendering
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function escapeAttr(str) {
+  return (str || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
 
 // ─── History ─────────────────────────────────────────
@@ -866,9 +1009,11 @@ function sendGuestMessage() {
       guestEmoji: state.guestEmoji || '🎉'
     });
     console.log('[Message] Sent:', message);
+    state.messagesSent = (state.messagesSent || 0) + 1;
     msgInput.value = '';
     if (statusEl) statusEl.textContent = '✅ Réaction envoyée !';
     setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+    populateMissions(); // refresh mission progress
   } else {
     if (statusEl) statusEl.textContent = '❌ Connexion perdue, recharge la page';
   }
@@ -1437,6 +1582,9 @@ function renderCostumePodium(entries) {
     return;
   }
   const winner = sorted[0];
+  const isClosed = state.costumeOpen === false;
+  const closedBadge = isClosed ? '<span style="font-size:8px;font-weight:900;color:#0d1117;background:#ffd700;padding:2px 8px;border-radius:12px;margin-left:6px;">TERMINÉ</span>' : '';
+  const pointsBadge = isClosed ? '<div style="font-size:9px;font-weight:900;color:#0d1117;background:#ffd700;padding:2px 8px;border-radius:12px;display:inline-block;margin-top:4px;">+150 PTS 🏆</div>' : '';
   const photoHTML = winner.photo
     ? `<img src="${winner.photo}" style="width:80px;height:80px;border-radius:14px;object-fit:cover;border:2px solid rgba(255,215,0,0.5);cursor:pointer;" onclick="showPhotoLightbox('${winner.photo.replace(/'/g, "\\'")}','${winner.guestName}')">`
     : `<div style="width:80px;height:80px;border-radius:14px;background:rgba(255,215,0,0.1);display:flex;align-items:center;justify-content:center;font-size:36px;border:2px solid rgba(255,215,0,0.3);">${winner.emoji || '🎭'}</div>`;
@@ -1444,12 +1592,55 @@ function renderCostumePodium(entries) {
     <div style="display:flex;align-items:center;gap:14px;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.08),rgba(255,215,0,0.02));border:1px solid rgba(255,215,0,0.2);border-radius:14px;">
       ${photoHTML}
       <div style="flex:1;">
-        <div style="font-size:9px;font-weight:800;color:rgba(255,215,0,0.7);letter-spacing:1px;margin-bottom:4px;">👑 MEILLEUR DÉGUISEMENT</div>
+        <div style="font-size:9px;font-weight:800;color:rgba(255,215,0,0.7);letter-spacing:1px;margin-bottom:4px;">👑 MEILLEUR DÉGUISEMENT${closedBadge}</div>
         <div style="font-size:16px;font-weight:900;color:white;margin-bottom:2px;">${winner.guestName}</div>
         <div style="font-size:13px;font-weight:800;color:#bb86fc;">${winner.votes} ❤️</div>
+        ${pointsBadge}
       </div>
     </div>
   `;
+}
+
+function showCostumeWinnerModal(data) {
+  // Remove existing modal if any
+  const existing = document.querySelector('.costume-winner-modal');
+  if (existing) existing.remove();
+
+  const winner = data.winner;
+  const winnerHTML = winner
+    ? `
+      <div style="font-size:64px;margin-bottom:8px;">${winner.emoji || '🎭'}</div>
+      <div style="font-size:12px;font-weight:900;color:rgba(255,215,0,0.7);letter-spacing:2px;margin-bottom:8px;">🏆 LE GAGNANT EST...</div>
+      <div style="font-size:28px;font-weight:900;color:white;margin-bottom:12px;">${winner.guestName}</div>
+      <div style="display:flex;gap:20px;justify-content:center;margin-bottom:16px;">
+        <div style="text-align:center;">
+          <div style="font-size:24px;font-weight:900;color:#bb86fc;">${winner.votes || 0}</div>
+          <div style="font-size:8px;font-weight:900;color:var(--text-dim);">VOTES</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:24px;font-weight:900;color:#ffd700;">+150</div>
+          <div style="font-size:8px;font-weight:900;color:var(--text-dim);">POINTS</div>
+        </div>
+      </div>
+    `
+    : '<div style="font-size:16px;font-weight:700;color:var(--text-dim);">Pas de gagnant cette fois !</div>';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'costume-winner-modal';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:100000;background:rgba(13,17,23,0.96);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.3s ease;';
+  overlay.innerHTML = `
+    <div style="font-size:40px;margin-bottom:16px;">🎭</div>
+    <div style="font-size:22px;font-weight:900;color:white;text-align:center;margin-bottom:4px;">CONCOURS DE<br>DÉGUISEMENTS</div>
+    <div style="font-size:16px;font-weight:900;color:#ffd700;letter-spacing:3px;margin-bottom:24px;">TERMINÉ !</div>
+    <div style="padding:20px;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.2);border-radius:20px;text-align:center;width:80%;max-width:300px;">
+      ${winnerHTML}
+    </div>
+    <button class="cw-close-btn" style="margin-top:24px;padding:12px 40px;background:#ffd700;border:none;border-radius:24px;color:#0d1117;font-size:13px;font-weight:900;cursor:pointer;">FERMER</button>
+  `;
+
+  overlay.querySelector('.cw-close-btn').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
 }
 
 function populateMissions() {
@@ -1458,60 +1649,94 @@ function populateMissions() {
   const genreVoted = state.selectedGenre ? 1 : 0;
   const costumeJoined = state.costumeRegistered ? 1 : 0;
   
+  const messageCount = state.messagesSent || 0;
+  const hasProfile = state.guestName && state.guestName !== 'Guest';
+  const costumeWon = state.costumeWon || false;
+  
+  // Missions aligned with host — same names, same pts, same logic
   const missions = [
     {
-      icon: '📸', title: 'PAPARAZZI',
-      desc: 'Capture les meilleurs moments ! Prends des photos via le Social Hub pour alimenter le diaporama de la soirée.',
-      target: 5, current: photoCount, unit: 'photos',
-      reward: '+50 pts'
+      icon: '🗳️', title: 'VOTER POUR UN TITRE',
+      desc: 'Chaque vote = +10 pts. Vote BOF, TOP ou LE FEU sur les titres du DJ !',
+      target: null, current: voteCount, unit: 'votes',
+      reward: '+10 pts/vote', cumulative: true,
+      done: voteCount > 0
     },
     {
-      icon: '🕺', title: 'DANCE MACHINE',
-      desc: 'Fais entendre ta voix ! Vote BOF, TOP ou LE FEU sur les titres du DJ pour influencer le mix.',
-      target: 10, current: voteCount, unit: 'votes',
-      reward: '+100 pts'
+      icon: '📸', title: 'PRENDRE UNE PHOTO',
+      desc: 'Chaque photo = +20 pts. Capture les meilleurs moments via le Social Hub !',
+      target: null, current: photoCount, unit: 'photos',
+      reward: '+20 pts/photo', cumulative: true,
+      done: photoCount > 0
     },
     {
-      icon: '🎯', title: 'TRENDSETTER',
-      desc: 'Vote pour une tendance musicale dans VOTE TENDANCE. Si ton genre devient majoritaire, le DJ jouera ton style !',
+      icon: '📊', title: 'VOTER UNE TENDANCE',
+      desc: 'Vote ton genre musical dans VOTE TENDANCE. +15 pts !',
       target: 1, current: genreVoted, unit: 'tendance',
-      reward: '+30 pts'
+      reward: '15 pts', cumulative: false,
+      done: genreVoted >= 1
     },
     {
-      icon: '🎭', title: 'SHOWMAN',
-      desc: 'Inscris-toi au Concours Déguisement dans le Social Hub et fais voter les autres pour toi !',
+      icon: '🎭', title: 'PARTICIPER AU CONCOURS',
+      desc: "Inscris-toi au Concours Déguisement ! +30 pts.",
       target: 1, current: costumeJoined, unit: 'inscription',
-      reward: '+40 pts'
+      reward: '30 pts', cumulative: false,
+      done: costumeJoined >= 1
     },
     {
-      icon: '🔥', title: 'PYROMANE',
-      desc: 'Deviens le guest le plus actif de la soirée ! Cumule votes, photos et tendances pour dominer le classement.',
-      target: 20, current: voteCount + photoCount + genreVoted, unit: 'actions',
-      reward: '+200 pts'
+      icon: '🏆', title: 'GAGNER LE CONCOURS',
+      desc: 'Décroche la victoire du concours de déguisements ! +150 pts.',
+      target: 1, current: costumeWon ? 1 : 0, unit: 'victoire',
+      reward: '150 pts', cumulative: false,
+      done: costumeWon
+    },
+    {
+      icon: '👤', title: 'COMPLÉTER MON PROFIL',
+      desc: 'Ajoute ta photo et tes coordonnées. +25 pts.',
+      target: 1, current: hasProfile ? 1 : 0, unit: 'profil',
+      reward: '25 pts', cumulative: false,
+      done: hasProfile
+    },
+    {
+      icon: '💬', title: 'ENVOYER UNE RÉACTION',
+      desc: 'Chaque message = +10 pts. Réagis et envoie des post-its !',
+      target: null, current: messageCount, unit: 'messages',
+      reward: '+10 pts/msg', cumulative: true,
+      done: messageCount > 0
     }
   ];
   const list = $('missions-list');
   list.innerHTML = '';
   missions.forEach(m => {
-    const progress = Math.min(100, Math.round((m.current / m.target) * 100));
-    const done = m.current >= m.target;
+    const done = m.done;
     const item = document.createElement('div');
     item.className = 'mission-item';
-    item.style.cssText = 'display:flex; gap:12px; align-items:flex-start; padding:12px; background:rgba(255,255,255,0.03); border-radius:12px; margin-bottom:8px;';
+    item.style.cssText = `display:flex; gap:12px; align-items:flex-start; padding:12px; background:rgba(255,255,255,0.03); border-radius:12px; margin-bottom:8px; ${done && !m.cumulative ? 'opacity:0.6;' : ''}`;
+    
+    // For cumulative: show count. For one-shot: show ✅/⬜
+    let statusHTML;
+    if (m.cumulative) {
+      statusHTML = `<span style="font-size:11px;font-weight:800;color:${m.current > 0 ? '#00e0c4' : 'var(--text-dim)'}">${m.current} ×</span>`;
+    } else {
+      const progress = m.target ? Math.min(100, Math.round((m.current / m.target) * 100)) : 0;
+      statusHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
+            <div style="width:${progress}%;height:100%;background:${done ? '#00e0c4' : 'linear-gradient(90deg,#00d2ff,#8a2be2)'};border-radius:2px;transition:width 0.5s ease;"></div>
+          </div>
+          <span style="font-size:14px">${done ? '✅' : '⬜'}</span>
+        </div>`;
+    }
+    
     item.innerHTML = `
-      <div style="font-size:24px; flex-shrink:0; width:36px; text-align:center;">${done ? '✅' : m.icon}</div>
+      <div style="font-size:24px; flex-shrink:0; width:36px; text-align:center;">${done && !m.cumulative ? '✅' : m.icon}</div>
       <div style="flex:1; min-width:0;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <span style="font-size:11px; font-weight:800; color:${done ? '#00e0c4' : 'white'}; letter-spacing:0.5px;">${m.title}</span>
+          <span style="font-size:11px; font-weight:800; color:${done ? '#00e0c4' : 'white'}; letter-spacing:0.5px; ${done && !m.cumulative ? 'text-decoration:line-through;' : ''}">${m.title}</span>
           <span style="font-size:9px; font-weight:700; color:#ffc107; background:rgba(255,193,7,0.1); padding:2px 8px; border-radius:8px;">${m.reward}</span>
         </div>
         <div style="font-size:10px; color:rgba(255,255,255,0.5); line-height:1.4; margin-bottom:6px;">${m.desc}</div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <div style="flex:1; height:4px; background:rgba(255,255,255,0.08); border-radius:2px; overflow:hidden;">
-            <div style="width:${progress}%; height:100%; background:${done ? '#00e0c4' : 'linear-gradient(90deg,#00d2ff,#8a2be2)'}; border-radius:2px; transition:width 0.5s ease;"></div>
-          </div>
-          <span style="font-size:9px; font-weight:700; color:${done ? '#00e0c4' : 'var(--text-dim)'}; white-space:nowrap;">${m.current}/${m.target}</span>
-        </div>
+        ${statusHTML}
       </div>
     `;
     list.appendChild(item);

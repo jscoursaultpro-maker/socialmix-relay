@@ -36,6 +36,7 @@ const partyState = {
   hostProfile: null,      // {name, emoji}
   photos: [],              // [{dataURL, guestName, sentAt}]
   costumeEntries: [],       // [{guestId, guestName, emoji, photo, votes}]
+  costumeOpen: true,         // Whether costume contest is still accepting votes
   participantScores: {},     // {guestId: {name, score, voteCount}}
   guestGenreVotes: {}        // {guestId: genre}
 };
@@ -82,6 +83,32 @@ app.get('/status', (req, res) => {
   });
 });
 
+// ─── Deezer API Proxy (bypass CORS for browser guests) ─────────
+app.get('/api/deezer/search', async (req, res) => {
+  const q = req.query.q || '';
+  const limit = req.query.limit || 6;
+  try {
+    const r = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=${limit}&order=RANKING`);
+    const json = await r.json();
+    res.json(json);
+  } catch (err) {
+    console.error('[Deezer Proxy] Search error:', err.message);
+    res.status(500).json({ error: 'Deezer search failed' });
+  }
+});
+
+app.get('/api/deezer/chart', async (req, res) => {
+  const limit = req.query.limit || 8;
+  try {
+    const r = await fetch(`https://api.deezer.com/chart/0/tracks?limit=${limit}`);
+    const json = await r.json();
+    res.json(json);
+  } catch (err) {
+    console.error('[Deezer Proxy] Chart error:', err.message);
+    res.status(500).json({ error: 'Deezer chart failed' });
+  }
+});
+
 app.get('/api/state', (req, res) => {
   res.json(partyState);
 });
@@ -100,18 +127,23 @@ function addPhotoToParty(photo) {
 
 // ─── Points System ──────────────────────────────────────────────────
 function addPoints(participantId, name, points, reason) {
-  if (!partyState.participantScores[participantId]) {
-    partyState.participantScores[participantId] = { name, score: 0, voteCount: 0 };
+  // KEY BY NAME — eliminates all socket.id vs guestId dedup issues
+  if (!partyState.participantScores[name]) {
+    partyState.participantScores[name] = { name, score: 0, voteCount: 0, participantId };
   }
-  partyState.participantScores[participantId].score += points;
-  partyState.participantScores[participantId].name = name; // keep name fresh
-  console.log(`⭐ +${points}pts → ${name} (${reason}) [total: ${partyState.participantScores[participantId].score}]`);
+  partyState.participantScores[name].score += points;
+  partyState.participantScores[name].participantId = participantId; // keep fresh
+  console.log(`⭐ +${points}pts → ${name} (${reason}) [total: ${partyState.participantScores[name].score}]`);
   broadcastLeaderboard();
 }
 
 function broadcastLeaderboard() {
-  const leaderboard = Object.entries(partyState.participantScores)
-    .map(([id, data]) => ({ id, name: data.name, points: data.score }))
+  const leaderboard = Object.values(partyState.participantScores)
+    .map(data => ({
+      id: data.participantId || data.name,
+      name: data.name,
+      points: data.score
+    }))
     .sort((a, b) => b.points - a.points);
   io.to('guests').emit('leaderboard:update', leaderboard);
   io.to('host').emit('leaderboard:update', leaderboard);
@@ -195,6 +227,8 @@ io.on('connection', (socket) => {
       partyState.guestGenreVotes = {};
       partyState.participantScores = {};
       partyState.costumeVoters = {};
+      partyState.costumeOpen = true;
+      partyState.profilePointsGiven = new Set();
     }
     
     partyState.code = newCode;
@@ -249,6 +283,11 @@ io.on('connection', (socket) => {
     if (!partyState.guestGenreVotes) partyState.guestGenreVotes = {};
     const genre = data.genre; // null = cancel
     if (genre) {
+      // Award points only first time host votes a genre
+      if (!partyState.guestGenreVotes['__HOST__']) {
+        const hostName = data.guestName || 'DJ';
+        addPoints('host', hostName, 15, 'genre vote');
+      }
       partyState.guestGenreVotes['__HOST__'] = genre;
     } else {
       delete partyState.guestGenreVotes['__HOST__'];
@@ -376,6 +415,16 @@ io.on('connection', (socket) => {
     // Notify host
     io.to('host').emit('guest:joined', guest);
     io.to('guests').emit('participants:update', partyState.participants);
+    
+    // +25 pts for completing profile (having a proper name) — only once per name
+    if (guest.name && guest.name !== 'Guest') {
+      if (!partyState.profilePointsGiven) partyState.profilePointsGiven = new Set();
+      if (!partyState.profilePointsGiven.has(guest.name)) {
+        partyState.profilePointsGiven.add(guest.name);
+        addPoints(socket.id, guest.name, 25, 'profile complete');
+      }
+    }
+    
     console.log(`👤 Guest joined: ${guest.emoji} ${guest.name} [${guestPartyCode}]`);
   });
 
@@ -393,18 +442,10 @@ io.on('connection', (socket) => {
     // Broadcast to all guests (for live counters)
     io.to('guests').emit('vote:received', data);
     
-    // Scoring: Bof=1, TOP=2, Feu=4
-    const scoreMap = { meh: 1, like: 2, fire: 4 };
-    const pts = scoreMap[data.type] || 0;
-    if (pts > 0 && data.guestId) {
-      if (!partyState.participantScores[data.guestId]) {
-        partyState.participantScores[data.guestId] = { name: data.guestName, score: 0, voteCount: 0 };
-      }
-      partyState.participantScores[data.guestId].score += pts;
-      partyState.participantScores[data.guestId].voteCount += 1;
-      // Broadcast updated scores
-      io.to('guests').emit('scores:update', partyState.participantScores);
-      io.to('host').emit('scores:update', partyState.participantScores);
+    // Scoring via addPoints (cumulative): flat 10 pts per vote
+    const pts = 10;
+    if (data.guestId) {
+      addPoints(data.guestId, data.guestName || 'Guest', pts, `vote ${data.type}`);
     }
     console.log(`🗳️ Vote: ${data.guestName} → ${data.type} (+${pts}pts)`);
   });
@@ -447,6 +488,16 @@ io.on('connection', (socket) => {
     partyState.suggestions.push(suggestion);
     io.to('host').emit('guest:suggested', suggestion);
     console.log(`💡 Suggestion: ${data.guestName} → "${data.query}"`);
+  });
+
+  // Host played a guest's suggestion → +10 bonus pts
+  socket.on('host:suggestionPlayed', (data) => {
+    const guestName = data.guestName;
+    const trackTitle = data.trackTitle || 'Unknown';
+    if (guestName) {
+      addPoints(guestName, guestName, 10, `suggestion played: ${trackTitle}`);
+      console.log(`🎯 Suggestion played! +10pts → ${guestName} (${trackTitle})`);
+    }
   });
 
   // Guest shares a photo
@@ -498,7 +549,8 @@ io.on('connection', (socket) => {
       return;
     }
     io.to('guests').emit('photo:shared', photo);
-    // Note: do NOT echo back to host — they already added it locally
+    // Award host +20 pts per photo
+    addPoints('host', data.guestName || 'DJ', 20, 'photo');
     const sizeKB = Math.round((data.dataURL || '').length / 1024);
     console.log(`📸 HOST photo shared by ${photo.guestName} (${sizeKB} KB, total: ${partyState.photos.length})`);
   });
@@ -540,7 +592,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('costume:vote', (data) => {
-    if (!isValidGuest()) return;
+    if (!partyState.costumeOpen) return; // Contest closed
     const voterId = data.voterId || socket.id;
     const targetId = data.targetId;
     if (!partyState.costumeVoters) partyState.costumeVoters = {};
@@ -631,6 +683,47 @@ io.on('connection', (socket) => {
   });
 
   // ═══════════════════════════════════════════════════════════════════
+  // HOST CLOSES COSTUME CONTEST
+  // ═══════════════════════════════════════════════════════════════════
+  socket.on('host:closeCostume', () => {
+    if (!partyState.costumeOpen) {
+      console.log('🎭 Costume contest already closed');
+      return;
+    }
+    partyState.costumeOpen = false;
+
+    // Determine winner (highest votes)
+    const entries = partyState.costumeEntries || [];
+    const sorted = [...entries].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    const winner = sorted.length > 0 && sorted[0].votes > 0 ? sorted[0] : null;
+
+    // Award 150 pts to winner
+    if (winner) {
+      addPoints(winner.guestId, winner.guestName, 150, 'costume winner 🏆');
+    }
+
+    // Build podium (top 3)
+    const podium = sorted.slice(0, 3).map((e, i) => ({
+      rank: i + 1,
+      guestId: e.guestId,
+      guestName: e.guestName,
+      emoji: e.emoji,
+      votes: e.votes || 0,
+      photo: e.photo || null
+    }));
+
+    // Broadcast to everyone
+    const closedData = {
+      winner: winner ? { guestId: winner.guestId, guestName: winner.guestName, emoji: winner.emoji, votes: winner.votes || 0, photo: winner.photo || null } : null,
+      podium: podium,
+      totalEntries: entries.length
+    };
+    io.to('guests').emit('costume:closed', closedData);
+    io.to('host').emit('costume:closed', closedData);
+    console.log(`🎭🏆 Costume contest CLOSED! Winner: ${winner ? winner.guestName + ' (' + winner.votes + ' votes)' : 'No winner'}, ${entries.length} entries`);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
   // HOST VOTE (organizer votes also influence dancefloor)
   // ═══════════════════════════════════════════════════════════════════
 
@@ -642,25 +735,16 @@ io.on('connection', (socket) => {
       trackId: data.trackTitle || (partyState.currentTrack && partyState.currentTrack.title) || 'current'
     };
     io.to('guests').emit('vote:received', voteData);
-    // Score the host too
-    const scoreMap = { meh: 1, like: 2, fire: 4 };
-    const pts = scoreMap[data.type] || 0;
-    if (pts > 0) {
-      if (!partyState.participantScores.host) {
-        partyState.participantScores.host = { name: data.guestName || 'DJ', score: 0, voteCount: 0 };
-      }
-      partyState.participantScores.host.score += pts;
-      partyState.participantScores.host.voteCount += 1;
-      io.to('guests').emit('scores:update', partyState.participantScores);
-      io.to('host').emit('scores:update', partyState.participantScores);
-    }
+    
+    // Score the host via unified addPoints — flat 10 pts per vote
+    addPoints('host', data.guestName || 'DJ', 10, `vote ${data.type}`);
     
     // Update vibe score for dancefloor
     const vibeMap = { meh: -1, like: 1, fire: 3 };
     partyState.vibeScore = Math.max(0, partyState.vibeScore + (vibeMap[data.type] || 0));
     io.to('guests').emit('votes:update', { genreVotes: partyState.genreVotes, vibeScore: partyState.vibeScore });
     
-    console.log(`🎧 Host vote: ${data.type} (+${pts}pts, vibe=${partyState.vibeScore})`);
+    console.log(`🎧 Host vote: ${data.type} (+10pts, vibe=${partyState.vibeScore})`);
   });
 
   // ═══════════════════════════════════════════════════════════════════
