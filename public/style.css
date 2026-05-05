@@ -1259,3 +1259,50 @@ html, body {
   transition: transform 0.15s;
 }
 .gallery-grid img:active { transform: scale(0.95); }
+
+/* ═══ App Download Banner ═══ */
+.app-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9999;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(0,224,195,0.15), rgba(15,20,30,0.95));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-glow);
+  animation: slideDown 0.3s ease;
+}
+.app-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+.app-banner-icon { font-size: 24px; }
+.app-banner-text {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-white);
+}
+.app-banner-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.app-banner-open {
+  padding: 5px 14px;
+  background: var(--turquoise);
+  color: var(--bg-dark);
+  border-radius: 50px;
+  font-size: 10px;
+  font-weight: 900;
+  font-family: var(--font);
+  text-decoration: none;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}

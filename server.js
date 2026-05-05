@@ -18,7 +18,9 @@ const io = new Server(server, {
     origin: '*',
     methods: ['GET', 'POST']
   },
-  maxHttpBufferSize: 5e6  // 5MB — needed for base64 photos from mobile cameras
+  maxHttpBufferSize: 10e6,  // 10MB — base64 photos inflate ~33% vs raw
+  pingTimeout: 60000,       // 60s timeout for slow mobile connections
+  pingInterval: 25000
 });
 
 // ─── Party State (in-memory) ────────────────────────────────────────

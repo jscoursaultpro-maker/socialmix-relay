@@ -137,6 +137,23 @@ function setupLanding() {
   // Show party name if code in URL
   if (params.code) {
     $('landing-party-name').textContent = `SOIRÉE ${params.code}`;
+    
+    // On iOS: show a discreet banner to open in the native app (opt-in, not auto-redirect)
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      const appURL = `socialmix://join?code=${params.code}`;
+      const banner = document.createElement('div');
+      banner.className = 'app-banner';
+      banner.innerHTML = `
+        <div class="app-banner-content">
+          <span class="app-banner-icon">📱</span>
+          <span class="app-banner-text">Tu as l'app Social Mix ?</span>
+          <a href="${appURL}" class="app-banner-open">OUVRIR</a>
+          <button class="app-banner-close" onclick="this.parentElement.parentElement.remove()">✕</button>
+        </div>
+      `;
+      document.body.prepend(banner);
+    }
   }
   
   $('landing-cta').addEventListener('click', () => {
