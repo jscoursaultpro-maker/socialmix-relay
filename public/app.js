@@ -7,6 +7,7 @@
 const STORAGE_KEY = 'socialmix_guest';
 const PROFILE_KEY = 'socialmix_profile';
 const SESSION_KEY = 'socialmix_session';
+const CONSENT_KEY = 'socialmix_consent';
 const GENRES = ['Dance', 'Disco', 'Hip-Hop', 'House', 'Electro', 'Pop', 'R&B', 'Latin', 'Club', 'Rock'];
 const EMOJIS = ['🎉','🕺','💃','🎶','🌟','🤩','😎','🎭','🔥','💪','✨','💫','🎵','🥳','😈','🦄'];
 
@@ -201,8 +202,50 @@ function setupLanding() {
   }
   
   $('landing-cta').addEventListener('click', () => {
+    // Check if consent already given
+    if (hasConsent()) {
+      showScreen('profile');
+    } else {
+      showScreen('consent');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 1b: GDPR CONSENT
+// ═══════════════════════════════════════════
+function setupConsent() {
+  const checkbox = $('consent-checkbox');
+  const btn = $('consent-continue');
+  
+  checkbox.addEventListener('change', () => {
+    btn.disabled = !checkbox.checked;
+  });
+  
+  btn.addEventListener('click', () => {
+    if (!checkbox.checked) return;
+    // Store consent
+    const consent = {
+      version: '1.0',
+      timestamp: Date.now(),
+      date: new Date().toISOString()
+    };
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(consent));
     showScreen('profile');
   });
+}
+
+function hasConsent() {
+  try {
+    const c = localStorage.getItem(CONSENT_KEY);
+    return c !== null;
+  } catch(e) { return false; }
+}
+
+function getConsent() {
+  try {
+    return JSON.parse(localStorage.getItem(CONSENT_KEY)) || null;
+  } catch(e) { return null; }
 }
 
 // ═══════════════════════════════════════════
@@ -432,6 +475,7 @@ function connectToRelay() {
   });
 
   function freshJoin() {
+    const consent = getConsent();
     socket.emit('guest:join', {
       guestId: state.guestId,
       name: state.guestName,
@@ -441,7 +485,9 @@ function connectToRelay() {
       phone: state.guestPhone,
       email: state.guestEmail,
       instagram: state.guestInsta,
-      partyCode: state.partyCode
+      partyCode: state.partyCode,
+      consentVersion: consent?.version || '1.0',
+      consentTimestamp: consent?.timestamp || Date.now()
     });
   }
 
@@ -2185,6 +2231,7 @@ function init() {
   
   // Setup all screens
   setupLanding();
+  setupConsent();
   setupProfile();
   setupCodeScreen();
   setupSocialHub();
@@ -2209,8 +2256,8 @@ function init() {
     // QR scan with existing profile → skip to cockpit directly
     enterCockpit();
   } else if (params.code) {
-    // QR scan, no profile yet → skip landing, go to profile
-    showScreen('profile');
+    // QR scan, no profile yet → consent first (if not already given)
+    showScreen(hasConsent() ? 'profile' : 'consent');
   } else {
     showScreen('landing');
   }

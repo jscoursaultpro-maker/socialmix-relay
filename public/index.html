@@ -37,6 +37,39 @@
         </div>
     </div>
 
+    <!-- ═══ SCREEN 1b: GDPR CONSENT ═══ -->
+    <div id="consent-screen" class="screen">
+        <div class="consent-container">
+            <div class="consent-header">
+                <div class="consent-icon">🔒</div>
+                <h2 class="screen-title">Bienvenue à cette soirée SocialMix !</h2>
+            </div>
+
+            <div class="consent-body">
+                <p class="consent-intro">En participant, vous comprenez que :</p>
+                <ul class="consent-list">
+                    <li>Votre prénom et votre emoji choisi seront visibles par tous les participants de cette soirée.</li>
+                    <li>Vous pouvez prendre des photos qui seront partagées avec les autres participants. Des photos prises par d'autres peuvent vous montrer.</li>
+                    <li>Vos votes, messages et photos sont conservés pendant 18 mois maximum, puis supprimés automatiquement.</li>
+                    <li>Vous pouvez à tout moment quitter la soirée et demander la suppression de vos données via le menu.</li>
+                    <li>Si vous figurez sur une photo et souhaitez son retrait, vous pouvez le signaler à l'organisateur.</li>
+                </ul>
+
+                <p class="consent-policy">En cochant la case ci-dessous, vous acceptez ces conditions et notre <a href="https://socialmix.app/privacy" target="_blank" rel="noopener" class="consent-link">Politique de confidentialité</a>.</p>
+
+                <label class="consent-checkbox-label" id="consent-checkbox-label">
+                    <input type="checkbox" id="consent-checkbox">
+                    <span class="consent-checkmark"></span>
+                    <span>J'accepte de participer selon ces conditions</span>
+                </label>
+            </div>
+
+            <button id="consent-continue" class="cta-btn" disabled>
+                <span>✅</span> Continuer →
+            </button>
+        </div>
+    </div>
+
     <!-- ═══ SCREEN 2: PROFILE ═══ -->
     <div id="profile-screen" class="screen">
         <div class="profile-container">

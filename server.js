@@ -303,6 +303,8 @@ io.on('connection', (socket) => {
       id: socket.id, name: guestName, emoji: data.emoji || '🎉',
       photo: data.photo || null, phone: data.phone || '', email: data.email || '', instagram: data.instagram || '',
       partyCode: code, joinedAt: new Date().toISOString(),
+      consentVersion: data.consentVersion || '1.0',
+      consentTimestamp: data.consentTimestamp || Date.now(),
       sessionToken, connected: true
     };
     party.participants = party.participants.filter(p => p.name !== guest.name);
