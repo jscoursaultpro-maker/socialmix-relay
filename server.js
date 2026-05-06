@@ -5,6 +5,7 @@ import { networkInterfaces } from 'os';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createPartyState, isValidPartyCode } from './partyState.js';
+import { connectDB, restoreParties, startFlushLoop, stopFlushLoop, flushEndedParty } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -23,6 +24,8 @@ const io = new Server(server, {
 // ─── Multi-Party State ──────────────────────────────────────────────
 const parties = new Map();           // code → PartyState
 const partyCleanupTimers = new Map(); // code → setTimeout ID
+
+function markDirty(party) { if (party) party.isDirty = true; }
 
 function getLocalIP() {
   const nets = networkInterfaces();
@@ -51,7 +54,7 @@ app.get('/api/status', (req, res) => {
 });
 app.get('/status', (req, res) => {
   const codes = [...parties.keys()];
-  res.json({ status: 'Social Mix Relay Server 🎧', version: 'v13-multiparty', activeParties: codes.length, codes, uptime: Math.floor(process.uptime()) + 's' });
+  res.json({ status: 'Social Mix Relay Server 🎧', version: 'v14-mongo', activeParties: codes.length, codes, uptime: Math.floor(process.uptime()) + 's' });
 });
 
 // ─── Deezer Proxy ───────────────────────────────────────────────────
@@ -119,6 +122,12 @@ function getParty(socket) {
   return socket.partyCode ? parties.get(socket.partyCode) : null;
 }
 
+function getMutableParty(socket) {
+  const party = getParty(socket);
+  if (party) party.isDirty = true;
+  return party;
+}
+
 function cancelCleanup(code) {
   if (partyCleanupTimers.has(code)) { clearTimeout(partyCleanupTimers.get(code)); partyCleanupTimers.delete(code); }
 }
@@ -180,7 +189,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('host:trackUpdate', (track) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     party.currentTrack = track;
     if (track && (!party.trackHistory.length || party.trackHistory[0]?.title !== track.title)) {
       party.trackHistory.unshift({ ...track, playedAt: new Date().toISOString() });
@@ -190,14 +199,14 @@ io.on('connection', (socket) => {
   });
 
   socket.on('host:modeChange', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     party.mode = data.mode;
     io.to(`guest:${party.code}`).emit('mode:change', data);
     console.log(`🎛️ [${party.code}] Mode: ${data.mode}`);
   });
 
   socket.on('host:genreVote', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const genre = data.genre;
     if (genre) {
       if (!party.guestGenreVotes['__HOST__']) addPoints(party, 'host', data.guestName || 'DJ', 15, 'genre vote');
@@ -209,7 +218,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('host:costumeVote', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const voterId = 'host', targetId = data.targetId;
     if (party.costumeVoters[voterId] === targetId) return;
     if (party.costumeVoters[voterId]) {
@@ -224,7 +233,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('host:costumePhoto', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const entry = party.costumeEntries.find(e => e.guestId === 'host');
     if (entry) entry.photo = data.photo;
     io.to(`guest:${party.code}`).emit('costume:entries', party.costumeEntries);
@@ -236,12 +245,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('host:voteResults', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     party.vibeScore = data.vibeScore || 0;
   });
 
   socket.on('host:trackHistory', (history) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const trackVotes = {};
     for (const gId in party.guestVotes) {
       const votes = party.guestVotes[gId];
@@ -259,7 +268,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('host:nextTrack', (track) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     party.nextTrack = track;
     io.to(`guest:${party.code}`).emit('nextTrack:update', track);
   });
@@ -305,7 +314,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('guest:vote', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     if (!party.guestVotes[data.guestId]) party.guestVotes[data.guestId] = {};
     party.guestVotes[data.guestId][data.trackId || 'current'] = data.type;
     io.to(`host:${party.code}`).emit('guest:voted', data);
@@ -314,7 +323,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('guest:genreVote', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const voterKey = data.guestName || data.guestId || socket.id;
     const genre = data.genre;
     if (genre) {
@@ -331,7 +340,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('guest:suggest', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const suggestion = { ...data, sentAt: new Date().toISOString() };
     party.suggestions.push(suggestion);
     io.to(`host:${party.code}`).emit('guest:suggested', suggestion);
@@ -339,7 +348,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('host:suggestionPlayed', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     if (data.guestName) {
       addPoints(party, data.guestName, data.guestName, 10, `suggestion played: ${data.trackTitle || 'Unknown'}`);
       addPoints(party, 'host', 'DJ', 5, `handled suggestion: ${data.trackTitle || 'Unknown'}`);
@@ -347,7 +356,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('guest:photo', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const photo = { dataURL: data.dataURL, guestName: data.guestName || 'Guest', caption: data.caption || null, sentAt: new Date().toISOString() };
     if (!addPhotoToParty(party, photo)) return;
     socket.broadcast.to(`guest:${party.code}`).emit('photo:shared', photo);
@@ -356,21 +365,21 @@ io.on('connection', (socket) => {
   });
 
   socket.on('guest:message', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const msg = { guestName: data.guestName || 'Guest', message: data.message || '', guestPhoto: data.guestPhoto || null, guestEmoji: data.guestEmoji || '🎉' };
     io.to(`host:${party.code}`).emit('guest:message', msg);
     addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 10, 'message');
   });
 
   socket.on('host:message', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const msg = { guestName: data.guestName || 'DJ', message: data.message || '', guestEmoji: data.guestEmoji || '🎧' };
     io.to(`guest:${party.code}`).emit('guest:message', msg);
     addPoints(party, 'host', data.guestName || 'DJ', 10, 'message');
   });
 
   socket.on('host:photo', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const photo = { dataURL: data.dataURL, guestName: data.guestName || 'Host', sentAt: new Date().toISOString() };
     if (!addPhotoToParty(party, photo)) return;
     io.to(`guest:${party.code}`).emit('photo:shared', photo);
@@ -382,7 +391,7 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('costume:enter', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     party.costumeEntries = party.costumeEntries.filter(e => e.guestId !== data.guestId && e.guestName !== data.guestName);
     party.costumeEntries.push({ guestId: data.guestId || socket.id, guestName: data.guestName || 'Guest', emoji: data.emoji || '🎭', photo: data.photo, votes: 0 });
     if (data.guestId === 'host' && data.guestName && data.guestName !== 'DJ') {
@@ -395,7 +404,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('costume:vote', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     if (!party.costumeOpen) return;
     const voterId = data.voterId || socket.id, targetId = data.targetId;
     if (party.costumeVoters[voterId] === targetId) return;
@@ -411,7 +420,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('costume:unvote', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const voterId = data.voterId || socket.id;
     if (party.costumeVoters[voterId] !== data.targetId) return;
     delete party.costumeVoters[voterId];
@@ -422,7 +431,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('costume:photo', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const entry = party.costumeEntries.find(e => e.guestId === data.guestId);
     if (entry) entry.photo = data.photo;
     io.to(`guest:${party.code}`).emit('costume:entries', party.costumeEntries);
@@ -441,13 +450,13 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('mission:complete', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const pts = data.points || 0;
     if (pts > 0) addPoints(party, data.participantId || data.guestId || socket.id, data.name || 'Guest', pts, `mission: ${data.mission || 'unknown'}`);
   });
 
   socket.on('costume:winner', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const winnerId = data.guestId || data.winnerId;
     if (winnerId) addPoints(party, winnerId, data.guestName || data.winnerName || 'Winner', 150, 'costume winner 🏆');
   });
@@ -456,7 +465,7 @@ io.on('connection', (socket) => {
   // HOST CLOSES COSTUME CONTEST
   // ═══════════════════════════════════════════════════════════════════
   socket.on('host:closeCostume', () => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     if (!party.costumeOpen) return;
     party.costumeOpen = false;
     const entries = party.costumeEntries || [];
@@ -478,7 +487,7 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('host:vote', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const trackTitle = data.trackTitle || party.currentTrack?.title || 'Titre en cours';
     const voteData = { ...data, trackTitle, trackId: trackTitle };
     io.to(`guest:${party.code}`).emit('vote:received', voteData);
@@ -494,20 +503,21 @@ io.on('connection', (socket) => {
   // END PARTY
   // ═══════════════════════════════════════════════════════════════════
 
-  socket.on('host:endParty', () => {
-    const party = getParty(socket); if (!party) return;
+  socket.on('host:endParty', async () => {
+    const party = getMutableParty(socket); if (!party) return;
     io.to(`guest:${party.code}`).emit('party:ended', {
       reason: 'La soirée est terminée ! Merci d\'avoir participé 🎉',
       scores: party.participantScores, trackHistory: party.trackHistory,
       photos: party.photos, participants: party.participants
     });
     console.log(`🎉 [${party.code}] Party ended by host`);
+    await flushEndedParty(party);
     parties.delete(party.code);
     cancelCleanup(party.code);
   });
 
   socket.on('host:deletePhoto', (data) => {
-    const party = getParty(socket); if (!party) return;
+    const party = getMutableParty(socket); if (!party) return;
     const idx = data && data.index;
     if (typeof idx === 'number' && idx >= 0 && idx < party.photos.length) {
       party.photos.splice(idx, 1);
@@ -551,17 +561,42 @@ io.on('connection', (socket) => {
   });
 });
 
-// ─── Start Server ───────────────────────────────────────────────────
-server.listen(PORT, '0.0.0.0', () => {
-  const ip = getLocalIP();
-  console.log('');
-  console.log('  🎧 ═══════════════════════════════════════════');
-  console.log('  ║   SOCIAL MIX — Relay Server v13 (multi)    ║');
-  console.log('  ═══════════════════════════════════════════════');
-  console.log(`  ║  Local:   http://localhost:${PORT}`);
-  console.log(`  ║  Network: http://${ip}:${PORT}`);
-  console.log(`  ║  Guest:   http://${ip}:${PORT} (same URL!)`);
-  console.log('  ═══════════════════════════════════════════════');
-  console.log('');
+// ─── Boot Sequence ──────────────────────────────────────────────────
+async function boot() {
+  // 1. Connect to MongoDB (optional)
+  await connectDB();
+
+  // 2. Restore active parties from DB
+  await restoreParties(parties);
+
+  // 3. Start flush loop
+  startFlushLoop(parties);
+
+  // 4. Start HTTP server
+  server.listen(PORT, '0.0.0.0', () => {
+    const ip = getLocalIP();
+    console.log('');
+    console.log('  🎧 ═══════════════════════════════════════════');
+    console.log('  ║   SOCIAL MIX — Relay Server v14 (mongo)    ║');
+    console.log('  ═══════════════════════════════════════════════');
+    console.log(`  ║  Local:   http://localhost:${PORT}`);
+    console.log(`  ║  Network: http://${ip}:${PORT}`);
+    console.log(`  ║  Guest:   http://${ip}:${PORT} (same URL!)`);
+    console.log('  ═══════════════════════════════════════════════');
+    console.log('');
+  });
+}
+
+// ─── Graceful Shutdown ──────────────────────────────────────────────
+process.on('SIGTERM', async () => {
+  console.log('🛑 SIGTERM received — flushing parties...');
+  await stopFlushLoop(parties);
+  process.exit(0);
+});
+process.on('SIGINT', async () => {
+  console.log('🛑 SIGINT received — flushing parties...');
+  await stopFlushLoop(parties);
+  process.exit(0);
 });
 
+boot().catch(err => { console.error('Boot failed:', err); process.exit(1); });

@@ -30,7 +30,13 @@ export function createPartyState(code) {
     _genreVotedOnce: {},
     // Metadata
     createdAt: new Date().toISOString(),
-    hostSocketId: null         // Track which socket is the host
+    hostSocketId: null,        // Track which socket is the host
+    // Persistence
+    hostSecret: '',            // Token for host reconnection
+    partyType: 'hosted',       // 'hosted' | 'guested' | 'clubbed'
+    endedAt: null,
+    isDirty: true,             // Needs flush to MongoDB
+    lastFlushed: 0             // Timestamp of last DB write
   };
 }
 
