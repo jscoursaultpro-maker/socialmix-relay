@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import { networkInterfaces } from 'os';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { createPartyState, isValidPartyCode } from './partyState.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,50 +13,26 @@ const app = express();
 const server = createServer(app);
 const PORT = process.env.PORT || 3069;
 
-// ─── Socket.IO with CORS for local network ─────────────────────────
 const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  },
-  maxHttpBufferSize: 10e6,  // 10MB — base64 photos inflate ~33% vs raw
-  pingTimeout: 60000,       // 60s timeout for slow mobile connections
+  cors: { origin: '*', methods: ['GET', 'POST'] },
+  maxHttpBufferSize: 10e6,
+  pingTimeout: 60000,
   pingInterval: 25000
 });
 
-// ─── Party State (in-memory) ────────────────────────────────────────
-const partyState = {
-  code: null,
-  mode: 'appMix',        // 'appMix' | 'djLive'
-  currentTrack: null,     // {title, artist, genre, bpm, artworkURL}
-  nextTrack: null,
-  trackHistory: [],       // [{title, artist, genre, bpm, playedAt}]
-  genreVotes: {},         // {genre: count}
-  vibeScore: 0,
-  participants: [],       // [{id, name, emoji, photo, joinedAt}]
-  guestVotes: {},         // {guestId: {trackId: voteType}}
-  suggestions: [],        // [{query, guestName, sentAt}]
-  hostProfile: null,      // {name, emoji}
-  photos: [],              // [{dataURL, guestName, sentAt}]
-  costumeEntries: [],       // [{guestId, guestName, emoji, photo, votes}]
-  costumeOpen: true,         // Whether costume contest is still accepting votes
-  participantScores: {},     // {guestId: {name, score, voteCount}}
-  guestGenreVotes: {}        // {guestId: genre}
-};
+// ─── Multi-Party State ──────────────────────────────────────────────
+const parties = new Map();           // code → PartyState
+const partyCleanupTimers = new Map(); // code → setTimeout ID
 
-// ─── Helper: get local IP ───────────────────────────────────────────
 function getLocalIP() {
   const nets = networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name]) {
+  for (const name of Object.keys(nets))
+    for (const net of nets[name])
       if (net.family === 'IPv4' && !net.internal) return net.address;
-    }
-  }
   return 'localhost';
 }
 
-// ─── Serve Guest Web App (static files) ─────────────────────────
-// Prevent caching of HTML/JS/CSS to ensure latest code is always served
+// ─── Static files ───────────────────────────────────────────────────
 app.use((req, res, next) => {
   if (req.path.endsWith('.html') || req.path.endsWith('.js') || req.path.endsWith('.css') || req.path === '/') {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -66,108 +43,84 @@ app.use((req, res, next) => {
 });
 app.use(express.static(join(__dirname, 'public')));
 
-// ─── Health check ───────────────────────────────────────────────
+// ─── Health check ───────────────────────────────────────────────────
 app.get('/api/status', (req, res) => {
-  res.json({
-    status: 'Social Mix Relay Server 🎧',
-    party: partyState.code || 'No active party',
-    participants: partyState.participants.length,
-    mode: partyState.mode
-  });
+  const codes = [...parties.keys()];
+  const total = codes.reduce((s, c) => s + parties.get(c).participants.length, 0);
+  res.json({ status: 'Social Mix Relay Server 🎧', activeParties: codes.length, codes, totalParticipants: total });
 });
 app.get('/status', (req, res) => {
-  res.json({
-    status: 'Social Mix Relay Server 🎧',
-    version: 'v12',
-    party: partyState.code || 'No active party',
-    participants: partyState.participants.length,
-    uptime: Math.floor(process.uptime()) + 's'
-  });
+  const codes = [...parties.keys()];
+  res.json({ status: 'Social Mix Relay Server 🎧', version: 'v13-multiparty', activeParties: codes.length, codes, uptime: Math.floor(process.uptime()) + 's' });
 });
 
-// ─── Deezer API Proxy (bypass CORS for browser guests) ─────────
+// ─── Deezer Proxy ───────────────────────────────────────────────────
 app.get('/api/deezer/search', async (req, res) => {
-  const q = req.query.q || '';
-  const limit = req.query.limit || 6;
-  try {
-    const r = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=${limit}&order=RANKING`);
-    const json = await r.json();
-    res.json(json);
-  } catch (err) {
-    console.error('[Deezer Proxy] Search error:', err.message);
-    res.status(500).json({ error: 'Deezer search failed' });
-  }
+  const q = req.query.q || '', limit = req.query.limit || 6;
+  try { const r = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=${limit}&order=RANKING`); res.json(await r.json()); }
+  catch (err) { console.error('[Deezer] Search error:', err.message); res.status(500).json({ error: 'Deezer search failed' }); }
 });
-
 app.get('/api/deezer/chart', async (req, res) => {
   const limit = req.query.limit || 8;
-  try {
-    const r = await fetch(`https://api.deezer.com/chart/0/tracks?limit=${limit}`);
-    const json = await r.json();
-    res.json(json);
-  } catch (err) {
-    console.error('[Deezer Proxy] Chart error:', err.message);
-    res.status(500).json({ error: 'Deezer chart failed' });
-  }
+  try { const r = await fetch(`https://api.deezer.com/chart/0/tracks?limit=${limit}`); res.json(await r.json()); }
+  catch (err) { console.error('[Deezer] Chart error:', err.message); res.status(500).json({ error: 'Deezer chart failed' }); }
 });
 
 app.get('/api/state', (req, res) => {
-  res.json(partyState);
+  const code = req.query.code;
+  if (code && parties.has(code)) return res.json(parties.get(code));
+  // Legacy: return first party or empty
+  const first = parties.values().next().value;
+  res.json(first || { code: null, participants: [] });
 });
 
-// Centralized photo add with hash dedup
-function addPhotoToParty(photo) {
-  if (!partyState.photoHashes) partyState.photoHashes = new Set();
+// ─── Helpers (party-scoped) ─────────────────────────────────────────
+function addPhotoToParty(party, photo) {
   const url = photo.dataURL || '';
   const mid = Math.floor(url.length / 2);
   const hash = url.length + ':' + url.substring(mid, mid + 80);
-  if (partyState.photoHashes.has(hash)) return false;
-  partyState.photoHashes.add(hash);
-  partyState.photos.push(photo);
+  if (party.photoHashes.has(hash)) return false;
+  party.photoHashes.add(hash);
+  party.photos.push(photo);
   return true;
 }
 
-// ─── Points System ──────────────────────────────────────────────────
-function addPoints(participantId, name, points, reason) {
-  // Resolve stable key: 'host' for host, guestName for guests
-  // Using name as key eliminates socket.id vs guestId dedup issues
+function addPoints(party, participantId, name, points, reason) {
   let key;
-  if (participantId === 'host') {
-    key = 'host';
-  } else {
-    // For guests: try to find by participantId in existing entries, else use name
-    const existing = Object.entries(partyState.participantScores).find(([k, v]) =>
-      v.participantId === participantId || k === name
-    );
+  if (participantId === 'host') { key = 'host'; }
+  else {
+    const existing = Object.entries(party.participantScores).find(([k, v]) => v.participantId === participantId || k === name);
     key = existing ? existing[0] : (name || participantId);
   }
-  
-  if (!partyState.participantScores[key]) {
-    partyState.participantScores[key] = { name: name || key, score: 0, voteCount: 0, participantId: participantId || key };
-  }
-  partyState.participantScores[key].score += points;
-  // Update display name if meaningful
-  if (name && name !== 'DJ' && name !== 'Guest') {
-    partyState.participantScores[key].name = name;
-  }
-  // Keep participantId fresh for leaderboard id
-  if (participantId) {
-    partyState.participantScores[key].participantId = participantId;
-  }
-  console.log(`⭐ +${points}pts → ${name} [key=${key}] (${reason}) [total: ${partyState.participantScores[key].score}]`);
-  broadcastLeaderboard();
+  if (!party.participantScores[key]) party.participantScores[key] = { name: name || key, score: 0, voteCount: 0, participantId: participantId || key };
+  party.participantScores[key].score += points;
+  if (name && name !== 'DJ' && name !== 'Guest') party.participantScores[key].name = name;
+  if (participantId) party.participantScores[key].participantId = participantId;
+  console.log(`⭐ [${party.code}] +${points}pts → ${name} (${reason}) [total: ${party.participantScores[key].score}]`);
+  broadcastLeaderboard(party);
 }
 
-function broadcastLeaderboard() {
-  const leaderboard = Object.values(partyState.participantScores)
-    .map(data => ({
-      id: data.participantId === 'host' ? 'host' : data.name,
-      name: data.name,
-      points: data.score
-    }))
+function broadcastLeaderboard(party) {
+  const lb = Object.values(party.participantScores)
+    .map(d => ({ id: d.participantId === 'host' ? 'host' : d.name, name: d.name, points: d.score }))
     .sort((a, b) => b.points - a.points);
-  io.to('guests').emit('leaderboard:update', leaderboard);
-  io.to('host').emit('leaderboard:update', leaderboard);
+  io.to(`guest:${party.code}`).emit('leaderboard:update', lb);
+  io.to(`host:${party.code}`).emit('leaderboard:update', lb);
+}
+
+function recomputeGenreVotes(party) {
+  const totals = {};
+  if (party.guestGenreVotes) Object.values(party.guestGenreVotes).forEach(g => { totals[g] = (totals[g] || 0) + 1; });
+  party.genreVotes = totals;
+  return totals;
+}
+
+function getParty(socket) {
+  return socket.partyCode ? parties.get(socket.partyCode) : null;
+}
+
+function cancelCleanup(code) {
+  if (partyCleanupTimers.has(code)) { clearTimeout(partyCleanupTimers.get(code)); partyCleanupTimers.delete(code); }
 }
 
 // ─── Socket.IO Connection Handling ──────────────────────────────────
@@ -196,430 +149,232 @@ io.on('connection', (socket) => {
   };
 
   // ═══════════════════════════════════════════════════════════════════
-  // HOST EVENTS (iOS app → Server → Guests)
+  // HOST EVENTS
   // ═══════════════════════════════════════════════════════════════════
 
-  // Helper: recompute genreVotes from individual guest votes
-  function recomputeGenreVotes() {
-    const totals = {};
-    if (partyState.guestGenreVotes) {
-      Object.values(partyState.guestGenreVotes).forEach(g => {
-        totals[g] = (totals[g] || 0) + 1;
-      });
-    }
-    partyState.genreVotes = totals;
-    return totals;
-  }
-
-  // Host starts/joins party
   socket.on('host:startParty', (data) => {
-    socket.join('host');
-    socket.partyCode = data.code || 'TEUF2025';  // So host passes isValidGuest() too
-    const newCode = socket.partyCode;
-    
-    // If new party code → reset everything and kick stale guests
-    if (newCode !== partyState.code) {
-      console.log(`🔄 New party ${newCode} — resetting state, kicking stale guests`);
-      
-      // Notify stale guests their party is over
-      io.to('guests').emit('party:ended', { reason: 'Nouvelle soirée créée' });
-      
-      // Force all guests to leave the room
-      const sockets = io.sockets.adapter.rooms.get('guests');
-      if (sockets) {
-        for (const sid of sockets) {
-          const s = io.sockets.sockets.get(sid);
-          if (s) s.leave('guests');
-        }
-      }
-      
-      // Full state reset
-      partyState.currentTrack = null;
-      partyState.nextTrack = null;
-      partyState.trackHistory = [];
-      partyState.genreVotes = {};
-      partyState.vibeScore = 0;
-      partyState.participants = [];
-      partyState.guestVotes = {};
-      partyState.suggestions = [];
-      partyState.photos = [];
-      partyState.photoHashes = new Set();
-      partyState.costumeEntries = [];
-      partyState.guestGenreVotes = {};
-      partyState.participantScores = {};
-      partyState.costumeVoters = {};
-      partyState.costumeOpen = true;
-      partyState.profilePointsGiven = new Set();
-    }
-    
-    partyState.code = newCode;
-    partyState.hostProfile = data.profile || null;
-    
-    // Build host participant entry
-    const hostName = (data.profile && data.profile.name) || 'Hôte';
-    const hostEmoji = (data.profile && data.profile.emoji) || '🎧';
-    const hostEntry = {
-      id: socket.id,
-      name: hostName,
-      emoji: hostEmoji,
-      photo: (data.profile && data.profile.photo) || null,
-      phone: (data.profile && data.profile.phone) || '',
-      email: (data.profile && data.profile.email) || '',
-      instagram: (data.profile && data.profile.instagram) || '',
-      partyCode: newCode,
-      joinedAt: new Date().toISOString(),
-      isHost: true
-    };
-    
-    // IMPORTANT: Only replace host entry, preserve guest participants
-    partyState.participants = partyState.participants.filter(p => !p.isHost);
-    partyState.participants.unshift(hostEntry);
-    
-    console.log(`🎉 Party started: ${partyState.code} (host: "${hostName}", profile.name: "${data.profile && data.profile.name}", participants: ${partyState.participants.length})`);
-    io.to('guests').emit('party:started', { code: partyState.code, profile: partyState.hostProfile });
-    io.to('guests').emit('participants:update', partyState.participants);
+    const code = (data.code || 'TEUF2025').toUpperCase();
+    socket.partyCode = code;
+    socket.join(`host:${code}`);
+    cancelCleanup(code);
+
+    // Create or reset party
+    const party = createPartyState(code);
+    party.hostSocketId = socket.id;
+    party.hostProfile = data.profile || null;
+    parties.set(code, party);
+
+    // Build host participant
+    const hostName = data.profile?.name || 'Hôte';
+    const hostEmoji = data.profile?.emoji || '🎧';
+    party.participants.unshift({
+      id: socket.id, name: hostName, emoji: hostEmoji,
+      photo: data.profile?.photo || null,
+      phone: data.profile?.phone || '', email: data.profile?.email || '', instagram: data.profile?.instagram || '',
+      partyCode: code, joinedAt: new Date().toISOString(), isHost: true
+    });
+
+    console.log(`🎉 Party started: ${code} (host: "${hostName}", active parties: ${parties.size})`);
+    io.to(`guest:${code}`).emit('party:started', { code, profile: party.hostProfile });
+    io.to(`guest:${code}`).emit('participants:update', party.participants);
   });
 
-  // Host sends current track update
   socket.on('host:trackUpdate', (track) => {
-    partyState.currentTrack = track;
-    // Add to history if new
-    if (track && (!partyState.trackHistory.length || 
-        partyState.trackHistory[0]?.title !== track.title)) {
-      partyState.trackHistory.unshift({ ...track, playedAt: new Date().toISOString() });
+    const party = getParty(socket); if (!party) return;
+    party.currentTrack = track;
+    if (track && (!party.trackHistory.length || party.trackHistory[0]?.title !== track.title)) {
+      party.trackHistory.unshift({ ...track, playedAt: new Date().toISOString() });
     }
-    io.to('guests').emit('track:update', track);
-    console.log(`🎵 Track: ${track?.title} — ${track?.artist}`);
+    io.to(`guest:${party.code}`).emit('track:update', track);
+    console.log(`🎵 [${party.code}] Track: ${track?.title} — ${track?.artist}`);
   });
 
-  // Host sends mode change (appMix / djLive)
   socket.on('host:modeChange', (data) => {
-    partyState.mode = data.mode;
-    io.to('guests').emit('mode:change', data);
-    console.log(`🎛️ Mode: ${data.mode}`);
+    const party = getParty(socket); if (!party) return;
+    party.mode = data.mode;
+    io.to(`guest:${party.code}`).emit('mode:change', data);
+    console.log(`🎛️ [${party.code}] Mode: ${data.mode}`);
   });
 
-  // Host votes on a genre trend (same tracking as guests)
   socket.on('host:genreVote', (data) => {
-    if (!partyState.guestGenreVotes) partyState.guestGenreVotes = {};
-    const genre = data.genre; // null = cancel
+    const party = getParty(socket); if (!party) return;
+    const genre = data.genre;
     if (genre) {
-      // Award points only first time host votes a genre
-      if (!partyState.guestGenreVotes['__HOST__']) {
-        const hostName = data.guestName || 'DJ';
-        addPoints('host', hostName, 15, 'genre vote');
-      }
-      partyState.guestGenreVotes['__HOST__'] = genre;
-    } else {
-      delete partyState.guestGenreVotes['__HOST__'];
-    }
-    const totals = recomputeGenreVotes();
-    console.log(`🎵 HOST genre: ${genre || 'CANCEL'} | votes: ${JSON.stringify(totals)}`);
-    io.to('guests').emit('votes:update', { genreVotes: totals });
-    // Also send back to host so it sees guest votes merged
-    io.to('host').emit('votes:update', { genreVotes: totals });
+      if (!party.guestGenreVotes['__HOST__']) addPoints(party, 'host', data.guestName || 'DJ', 15, 'genre vote');
+      party.guestGenreVotes['__HOST__'] = genre;
+    } else { delete party.guestGenreVotes['__HOST__']; }
+    const totals = recomputeGenreVotes(party);
+    io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: totals });
+    io.to(`host:${party.code}`).emit('votes:update', { genreVotes: totals });
   });
 
-  // Host votes for a costume
   socket.on('host:costumeVote', (data) => {
-    if (!partyState.costumeVoters) partyState.costumeVoters = {};
-    const voterId = 'host';
-    const targetId = data.targetId;
-    
-    // Already voted for this target? Ignore
-    if (partyState.costumeVoters[voterId] === targetId) {
-      console.log(`👑 HOST costume vote ignored (duplicate) → ${data.targetName}`);
-      return;
+    const party = getParty(socket); if (!party) return;
+    const voterId = 'host', targetId = data.targetId;
+    if (party.costumeVoters[voterId] === targetId) return;
+    if (party.costumeVoters[voterId]) {
+      const old = party.costumeEntries.find(e => e.guestId === party.costumeVoters[voterId]);
+      if (old) old.votes = Math.max(0, (old.votes || 0) - 1);
     }
-    
-    // If voted for someone else, remove old vote
-    if (partyState.costumeVoters[voterId]) {
-      const oldTarget = partyState.costumeEntries.find(e => e.guestId === partyState.costumeVoters[voterId]);
-      if (oldTarget) oldTarget.votes = Math.max(0, (oldTarget.votes || 0) - 1);
-    }
-    
-    partyState.costumeVoters[voterId] = targetId;
-    const entry = partyState.costumeEntries.find(e => e.guestId === targetId);
+    party.costumeVoters[voterId] = targetId;
+    const entry = party.costumeEntries.find(e => e.guestId === targetId);
     if (entry) entry.votes = (entry.votes || 0) + 1;
-    
-    io.to('guests').emit('costume:entries', partyState.costumeEntries);
-    io.to('host').emit('costume:entries', partyState.costumeEntries);
-    console.log(`👑 HOST costume vote → ${data.targetName || targetId}`);
+    io.to(`guest:${party.code}`).emit('costume:entries', party.costumeEntries);
+    io.to(`host:${party.code}`).emit('costume:entries', party.costumeEntries);
   });
 
-  // Host adds a costume photo
   socket.on('host:costumePhoto', (data) => {
-    const entry = partyState.costumeEntries.find(e => e.guestId === 'host');
-    if (entry) {
-      entry.photo = data.photo;
-    }
-    io.to('guests').emit('costume:entries', partyState.costumeEntries);
-    io.to('host').emit('costume:entries', partyState.costumeEntries);
-    // Add to gallery for guests (NOT echoed back to host — host already has it locally)
-    const photo = {
-      dataURL: data.photo,
-      guestName: entry?.guestName || 'Host',
-      sentAt: new Date().toISOString()
-    };
-    if (addPhotoToParty(photo)) {
-      io.to('guests').emit('photo:shared', photo);
-      console.log(`📸 HOST costume photo added to gallery`);
+    const party = getParty(socket); if (!party) return;
+    const entry = party.costumeEntries.find(e => e.guestId === 'host');
+    if (entry) entry.photo = data.photo;
+    io.to(`guest:${party.code}`).emit('costume:entries', party.costumeEntries);
+    io.to(`host:${party.code}`).emit('costume:entries', party.costumeEntries);
+    const photo = { dataURL: data.photo, guestName: entry?.guestName || 'Host', sentAt: new Date().toISOString() };
+    if (addPhotoToParty(party, photo)) {
+      io.to(`guest:${party.code}`).emit('photo:shared', photo);
     }
   });
 
-  // Host sends vibe score only (genreVotes are tracked via host:genreVote)
   socket.on('host:voteResults', (data) => {
-    partyState.vibeScore = data.vibeScore || 0;
+    const party = getParty(socket); if (!party) return;
+    party.vibeScore = data.vibeScore || 0;
   });
 
-  // Host sends track history — enrich with vote counts before broadcasting
   socket.on('host:trackHistory', (history) => {
-    // Compute per-track vote counts from guestVotes
+    const party = getParty(socket); if (!party) return;
     const trackVotes = {};
-    for (const guestId in partyState.guestVotes) {
-      const votes = partyState.guestVotes[guestId];
-      for (const trackId in votes) {
-        if (!trackVotes[trackId]) trackVotes[trackId] = { fire: 0, like: 0, meh: 0 };
-        const type = votes[trackId];
-        if (type === 'fire') trackVotes[trackId].fire++;
-        else if (type === 'like') trackVotes[trackId].like++;
-        else if (type === 'meh') trackVotes[trackId].meh++;
+    for (const gId in party.guestVotes) {
+      const votes = party.guestVotes[gId];
+      for (const tId in votes) {
+        if (!trackVotes[tId]) trackVotes[tId] = { fire: 0, like: 0, meh: 0 };
+        const t = votes[tId];
+        if (t === 'fire') trackVotes[tId].fire++;
+        else if (t === 'like') trackVotes[tId].like++;
+        else if (t === 'meh') trackVotes[tId].meh++;
       }
     }
-    
-    // Enrich each track with its vote counts
-    const enriched = (history || []).map(t => ({
-      ...t,
-      fireCount: trackVotes[t.title]?.fire || 0,
-      likeCount: trackVotes[t.title]?.like || 0,
-      mehCount: trackVotes[t.title]?.meh || 0
-    }));
-    
-    partyState.trackHistory = enriched;
-    io.to('guests').emit('history:update', enriched);
+    const enriched = (history || []).map(t => ({ ...t, fireCount: trackVotes[t.title]?.fire || 0, likeCount: trackVotes[t.title]?.like || 0, mehCount: trackVotes[t.title]?.meh || 0 }));
+    party.trackHistory = enriched;
+    io.to(`guest:${party.code}`).emit('history:update', enriched);
   });
 
-  // Host sends next track info
   socket.on('host:nextTrack', (track) => {
-    partyState.nextTrack = track;
-    io.to('guests').emit('nextTrack:update', track);
+    const party = getParty(socket); if (!party) return;
+    party.nextTrack = track;
+    io.to(`guest:${party.code}`).emit('nextTrack:update', track);
   });
 
   // ═══════════════════════════════════════════════════════════════════
-  // GUEST EVENTS (Web App → Server → Host)
+  // GUEST EVENTS
   // ═══════════════════════════════════════════════════════════════════
 
-  // Helper: validate guest belongs to current party
-  function isValidGuest() {
-    return socket.partyCode && socket.partyCode === partyState.code;
-  }
-
-  // Guest joins the party
   socket.on('guest:join', (data) => {
-    const guestPartyCode = (data.partyCode || '').toUpperCase();
-    
-    // Validate party code
-    if (!partyState.code) {
+    const code = (data.partyCode || '').toUpperCase();
+    const party = parties.get(code);
+    if (!party) {
       socket.emit('party:wrongCode', { message: 'Aucune soirée active. Le DJ doit lancer la soirée depuis l\'app.' });
-      console.log(`⛔ No party active. Guest tried: ${guestPartyCode}`);
       return;
     }
-    if (guestPartyCode !== partyState.code) {
-      socket.emit('party:wrongCode', { message: 'Code incorrect' });
-      console.log(`⛔ Wrong code: ${guestPartyCode} (expected ${partyState.code})`);
-      return;
-    }
-    
-    // Store party code on socket for future validation
-    socket.partyCode = partyState.code;
-    socket.join('guests');
-    
+    socket.partyCode = code;
+    socket.join(`guest:${code}`);
+    cancelCleanup(code);
+
     const guest = {
-      id: socket.id,
-      name: data.name || 'Guest',
-      emoji: data.emoji || '🎉',
-      photo: data.photo || null,
-      phone: data.phone || '',
-      email: data.email || '',
-      instagram: data.instagram || '',
-      partyCode: guestPartyCode,
-      joinedAt: new Date().toISOString()
+      id: socket.id, name: data.name || 'Guest', emoji: data.emoji || '🎉',
+      photo: data.photo || null, phone: data.phone || '', email: data.email || '', instagram: data.instagram || '',
+      partyCode: code, joinedAt: new Date().toISOString()
     };
-    
-    // Avoid duplicates on reconnection
-    partyState.participants = partyState.participants.filter(p => p.name !== guest.name);
-    partyState.participants.push(guest);
-
-    // Recompute genreVotes from ground truth before sending
-    recomputeGenreVotes();
-    socket.emit('party:state', { ...partyState });
-    
-    // Notify host
-    io.to('host').emit('guest:joined', guest);
-    io.to('guests').emit('participants:update', partyState.participants);
-    
-    // +25 pts for completing profile (having a proper name) — only once per name
+    party.participants = party.participants.filter(p => p.name !== guest.name);
+    party.participants.push(guest);
+    recomputeGenreVotes(party);
+    socket.emit('party:state', { ...party, photoHashes: undefined, profilePointsGiven: undefined, _genreVotedOnce: undefined });
+    io.to(`host:${code}`).emit('guest:joined', guest);
+    io.to(`guest:${code}`).emit('participants:update', party.participants);
     if (guest.name && guest.name !== 'Guest') {
-      if (!partyState.profilePointsGiven) partyState.profilePointsGiven = new Set();
-      if (!partyState.profilePointsGiven.has(guest.name)) {
-        partyState.profilePointsGiven.add(guest.name);
-        addPoints(socket.id, guest.name, 25, 'profile complete');
+      if (!party.profilePointsGiven.has(guest.name)) {
+        party.profilePointsGiven.add(guest.name);
+        addPoints(party, socket.id, guest.name, 25, 'profile complete');
       }
     }
-    
-    console.log(`👤 Guest joined: ${guest.emoji} ${guest.name} [${guestPartyCode}]`);
+    console.log(`👤 [${code}] Guest joined: ${guest.emoji} ${guest.name}`);
   });
 
-  // Guest requests full state refresh (e.g. when navigating back to hub)
   socket.on('guest:requestState', () => {
-    if (!isValidGuest()) return;
-    socket.emit('party:state', { ...partyState });
+    const party = getParty(socket); if (!party) return;
+    socket.emit('party:state', { ...party, photoHashes: undefined, profilePointsGiven: undefined, _genreVotedOnce: undefined });
   });
 
-  // Guest votes on current track
   socket.on('guest:vote', (data) => {
-    if (!isValidGuest()) return;
-    // Store vote
-    if (!partyState.guestVotes[data.guestId]) {
-      partyState.guestVotes[data.guestId] = {};
-    }
-    partyState.guestVotes[data.guestId][data.trackId || 'current'] = data.type;
-
-    // Forward to host
-    io.to('host').emit('guest:voted', data);
-    // Broadcast to all guests (for live counters)
-    io.to('guests').emit('vote:received', data);
-    
-    // Scoring via addPoints (cumulative): flat 10 pts per vote
-    const pts = 10;
-    if (data.guestId) {
-      addPoints(data.guestId, data.guestName || 'Guest', pts, `vote ${data.type}`);
-    }
-    console.log(`🗳️ Vote: ${data.guestName} → ${data.type} (+${pts}pts)`);
+    const party = getParty(socket); if (!party) return;
+    if (!party.guestVotes[data.guestId]) party.guestVotes[data.guestId] = {};
+    party.guestVotes[data.guestId][data.trackId || 'current'] = data.type;
+    io.to(`host:${party.code}`).emit('guest:voted', data);
+    io.to(`guest:${party.code}`).emit('vote:received', data);
+    if (data.guestId) addPoints(party, data.guestId, data.guestName || 'Guest', 10, `vote ${data.type}`);
   });
 
-  // Guest votes on genre trend
-  // BULLETPROOF: store each guest's vote, recompute totals from scratch
   socket.on('guest:genreVote', (data) => {
-    if (!isValidGuest()) return;
+    const party = getParty(socket); if (!party) return;
     const voterKey = data.guestName || data.guestId || socket.id;
-    const genre = data.genre; // null = cancel
-    
-    // Store/remove this guest's current vote
-    if (!partyState.guestGenreVotes) partyState.guestGenreVotes = {};
+    const genre = data.genre;
     if (genre) {
-      partyState.guestGenreVotes[voterKey] = genre;
-      // +15 pts for first genre vote only
-      if (!partyState._genreVotedOnce) partyState._genreVotedOnce = {};
-      if (!partyState._genreVotedOnce[voterKey]) {
-        partyState._genreVotedOnce[voterKey] = true;
-        addPoints(data.guestId || socket.id, data.guestName || voterKey, 15, 'genre vote');
+      party.guestGenreVotes[voterKey] = genre;
+      if (!party._genreVotedOnce[voterKey]) {
+        party._genreVotedOnce[voterKey] = true;
+        addPoints(party, data.guestId || socket.id, data.guestName || voterKey, 15, 'genre vote');
       }
-    } else {
-      delete partyState.guestGenreVotes[voterKey];
-    }
-    
-    // RECOMPUTE totals from scratch — impossible to drift
-    const totals = recomputeGenreVotes();
-    
-    console.log(`🎵 Genre: ${voterKey} → ${genre || 'CANCEL'} | votes: ${JSON.stringify(totals)} | tracking: ${JSON.stringify(partyState.guestGenreVotes)}`);
-    
-    io.to('host').emit('guest:genreVoted', data);
-    io.to('guests').emit('votes:update', { genreVotes: totals });
-    io.to('host').emit('votes:update', { genreVotes: totals });
+    } else { delete party.guestGenreVotes[voterKey]; }
+    const totals = recomputeGenreVotes(party);
+    io.to(`host:${party.code}`).emit('guest:genreVoted', data);
+    io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: totals });
+    io.to(`host:${party.code}`).emit('votes:update', { genreVotes: totals });
   });
 
-  // Guest suggests a track
   socket.on('guest:suggest', (data) => {
-    if (!isValidGuest()) return;
+    const party = getParty(socket); if (!party) return;
     const suggestion = { ...data, sentAt: new Date().toISOString() };
-    partyState.suggestions.push(suggestion);
-    io.to('host').emit('guest:suggested', suggestion);
-    // +5 pts per suggestion sent
-    if (data.guestId || data.guestName) {
-      addPoints(data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${data.title || data.query}`);
-    }
-    console.log(`💡 Suggestion: ${data.guestName} → "${data.title || data.query}" (+5pts)`);
+    party.suggestions.push(suggestion);
+    io.to(`host:${party.code}`).emit('guest:suggested', suggestion);
+    if (data.guestId || data.guestName) addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${data.title || data.query}`);
   });
 
-  // Host played a guest's suggestion → +10 bonus pts to guest + 5 pts to host
   socket.on('host:suggestionPlayed', (data) => {
-    const guestName = data.guestName;
-    const trackTitle = data.trackTitle || 'Unknown';
-    if (guestName) {
-      addPoints(guestName, guestName, 10, `suggestion played: ${trackTitle}`);
-      // Host also earns points for handling suggestions
-      addPoints('host', 'DJ', 5, `handled suggestion: ${trackTitle}`);
-      console.log(`🎯 Suggestion played! +10pts → ${guestName}, +5pts → Host (${trackTitle})`);
+    const party = getParty(socket); if (!party) return;
+    if (data.guestName) {
+      addPoints(party, data.guestName, data.guestName, 10, `suggestion played: ${data.trackTitle || 'Unknown'}`);
+      addPoints(party, 'host', 'DJ', 5, `handled suggestion: ${data.trackTitle || 'Unknown'}`);
     }
   });
 
-  // Guest shares a photo
   socket.on('guest:photo', (data) => {
-    if (!isValidGuest()) return;
-    const photo = {
-      dataURL: data.dataURL,
-      guestName: data.guestName || 'Guest',
-      caption: data.caption || null,
-      sentAt: new Date().toISOString()
-    };
-    if (!addPhotoToParty(photo)) {
-      console.log(`📸 Photo duplicate skipped from ${photo.guestName}`);
-      return;
-    }
-    // Broadcast to OTHER guests only (sender already has the photo locally)
-    socket.broadcast.to('guests').emit('photo:shared', photo);
-    io.to('host').emit('guest:photo', photo);
-    // +20 pts for taking a photo
-    addPoints(data.guestId || socket.id, data.guestName || 'Guest', 20, 'photo');
-    const sizeKB = Math.round((data.dataURL || '').length / 1024);
-    console.log(`📸 Photo shared by ${photo.guestName} (${sizeKB} KB, total: ${partyState.photos.length})`);
+    const party = getParty(socket); if (!party) return;
+    const photo = { dataURL: data.dataURL, guestName: data.guestName || 'Guest', caption: data.caption || null, sentAt: new Date().toISOString() };
+    if (!addPhotoToParty(party, photo)) return;
+    socket.broadcast.to(`guest:${party.code}`).emit('photo:shared', photo);
+    io.to(`host:${party.code}`).emit('guest:photo', photo);
+    addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 20, 'photo');
   });
 
-  // Guest sends a text message for the slideshow
   socket.on('guest:message', (data) => {
-    if (!isValidGuest()) return;
-    const msg = {
-      guestName: data.guestName || 'Guest',
-      message: data.message || '',
-      guestPhoto: data.guestPhoto || null,
-      guestEmoji: data.guestEmoji || '🎉'
-    };
-    io.to('host').emit('guest:message', msg);
-    // +10 pts for sending a message
-    addPoints(data.guestId || socket.id, data.guestName || 'Guest', 10, 'message');
-    console.log(`💬 Message from ${msg.guestName}: ${msg.message}`);
+    const party = getParty(socket); if (!party) return;
+    const msg = { guestName: data.guestName || 'Guest', message: data.message || '', guestPhoto: data.guestPhoto || null, guestEmoji: data.guestEmoji || '🎉' };
+    io.to(`host:${party.code}`).emit('guest:message', msg);
+    addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 10, 'message');
   });
 
-  // Host sends a post-it message
   socket.on('host:message', (data) => {
-    const msg = {
-      guestName: data.guestName || 'DJ',
-      message: data.message || '',
-      guestEmoji: data.guestEmoji || '🎧'
-    };
-    io.to('guests').emit('guest:message', msg);
-    // +10 pts for the host
-    addPoints('host', data.guestName || 'DJ', 10, 'message');
-    console.log(`💬 Host message: ${msg.message} (+10pts)`);
+    const party = getParty(socket); if (!party) return;
+    const msg = { guestName: data.guestName || 'DJ', message: data.message || '', guestEmoji: data.guestEmoji || '🎧' };
+    io.to(`guest:${party.code}`).emit('guest:message', msg);
+    addPoints(party, 'host', data.guestName || 'DJ', 10, 'message');
   });
 
-  // Host shares a gallery photo (no isValidGuest check needed)
   socket.on('host:photo', (data) => {
-    const photo = {
-      dataURL: data.dataURL,
-      guestName: data.guestName || 'Host',
-      sentAt: new Date().toISOString()
-    };
-    if (!addPhotoToParty(photo)) {
-      console.log(`📸 Host photo duplicate skipped`);
-      return;
-    }
-    io.to('guests').emit('photo:shared', photo);
-    // Award host +20 pts per photo
-    addPoints('host', data.guestName || 'DJ', 20, 'photo');
-    const sizeKB = Math.round((data.dataURL || '').length / 1024);
-    console.log(`📸 HOST photo shared by ${photo.guestName} (${sizeKB} KB, total: ${partyState.photos.length})`);
+    const party = getParty(socket); if (!party) return;
+    const photo = { dataURL: data.dataURL, guestName: data.guestName || 'Host', sentAt: new Date().toISOString() };
+    if (!addPhotoToParty(party, photo)) return;
+    io.to(`guest:${party.code}`).emit('photo:shared', photo);
+    addPoints(party, 'host', data.guestName || 'DJ', 20, 'photo');
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -627,103 +382,58 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('costume:enter', (data) => {
-    if (!isValidGuest()) return;
-    // Prevent duplicates by guestId AND guestName (safety net for reconnections)
-    partyState.costumeEntries = partyState.costumeEntries.filter(e => 
-      e.guestId !== data.guestId && e.guestName !== data.guestName
-    );
-    partyState.costumeEntries.push({
-      guestId: data.guestId || socket.id,
-      guestName: data.guestName || 'Guest',
-      emoji: data.emoji || '🎭',
-      photo: data.photo,
-      votes: 0
-    });
-    
-    // If host enters costume, update their participant name too
+    const party = getParty(socket); if (!party) return;
+    party.costumeEntries = party.costumeEntries.filter(e => e.guestId !== data.guestId && e.guestName !== data.guestName);
+    party.costumeEntries.push({ guestId: data.guestId || socket.id, guestName: data.guestName || 'Guest', emoji: data.emoji || '🎭', photo: data.photo, votes: 0 });
     if (data.guestId === 'host' && data.guestName && data.guestName !== 'DJ') {
-      const hostP = partyState.participants.find(p => p.isHost);
-      if (hostP) {
-        hostP.name = data.guestName;
-        io.to('guests').emit('participants:update', partyState.participants);
-        console.log(`👑 Host name updated to: ${data.guestName}`);
-      }
+      const hostP = party.participants.find(p => p.isHost);
+      if (hostP) { hostP.name = data.guestName; io.to(`guest:${party.code}`).emit('participants:update', party.participants); }
     }
-    
-    // Broadcast all entries to all guests
-    io.to('guests').emit('costume:entries', partyState.costumeEntries);
-    io.to('host').emit('costume:entries', partyState.costumeEntries);
-    // +30 pts for entering costume contest
-    addPoints(data.guestId || socket.id, data.guestName || 'Guest', 30, 'costume entry');
-    console.log(`🎭 Costume entry: ${data.guestName}`);
+    io.to(`guest:${party.code}`).emit('costume:entries', party.costumeEntries);
+    io.to(`host:${party.code}`).emit('costume:entries', party.costumeEntries);
+    addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 30, 'costume entry');
   });
 
   socket.on('costume:vote', (data) => {
-    if (!partyState.costumeOpen) return; // Contest closed
-    const voterId = data.voterId || socket.id;
-    const targetId = data.targetId;
-    if (!partyState.costumeVoters) partyState.costumeVoters = {};
-    
-    // Already voted for this target? Ignore
-    if (partyState.costumeVoters[voterId] === targetId) {
-      console.log(`👍 Costume vote ignored (duplicate): ${data.voterName} → ${data.targetName}`);
-      return;
+    const party = getParty(socket); if (!party) return;
+    if (!party.costumeOpen) return;
+    const voterId = data.voterId || socket.id, targetId = data.targetId;
+    if (party.costumeVoters[voterId] === targetId) return;
+    if (party.costumeVoters[voterId]) {
+      const old = party.costumeEntries.find(e => e.guestId === party.costumeVoters[voterId]);
+      if (old) old.votes = Math.max(0, (old.votes || 0) - 1);
     }
-    
-    // If voted for someone else, remove old vote first
-    if (partyState.costumeVoters[voterId]) {
-      const oldTarget = partyState.costumeEntries.find(e => e.guestId === partyState.costumeVoters[voterId]);
-      if (oldTarget) oldTarget.votes = Math.max(0, (oldTarget.votes || 0) - 1);
-    }
-    
-    // Record new vote
-    partyState.costumeVoters[voterId] = targetId;
-    const entry = partyState.costumeEntries.find(e => e.guestId === targetId);
+    party.costumeVoters[voterId] = targetId;
+    const entry = party.costumeEntries.find(e => e.guestId === targetId);
     if (entry) entry.votes = (entry.votes || 0) + 1;
-    
-    io.to('guests').emit('costume:entries', partyState.costumeEntries);
-    io.to('host').emit('costume:entries', partyState.costumeEntries);
-    console.log(`👍 Costume vote: ${data.voterName} → ${data.targetName} (total voters: ${Object.keys(partyState.costumeVoters).length})`);
+    io.to(`guest:${party.code}`).emit('costume:entries', party.costumeEntries);
+    io.to(`host:${party.code}`).emit('costume:entries', party.costumeEntries);
   });
 
   socket.on('costume:unvote', (data) => {
-    if (!isValidGuest()) return;
+    const party = getParty(socket); if (!party) return;
     const voterId = data.voterId || socket.id;
-    if (!partyState.costumeVoters) partyState.costumeVoters = {};
-    
-    // Only unvote if this voter actually voted for this target
-    if (partyState.costumeVoters[voterId] !== data.targetId) return;
-    
-    delete partyState.costumeVoters[voterId];
-    const entry = partyState.costumeEntries.find(e => e.guestId === data.targetId);
+    if (party.costumeVoters[voterId] !== data.targetId) return;
+    delete party.costumeVoters[voterId];
+    const entry = party.costumeEntries.find(e => e.guestId === data.targetId);
     if (entry) entry.votes = Math.max(0, (entry.votes || 0) - 1);
-    
-    io.to('guests').emit('costume:entries', partyState.costumeEntries);
-    io.to('host').emit('costume:entries', partyState.costumeEntries);
-    console.log(`👎 Costume unvote: ${voterId} ← ${data.targetId}`);
+    io.to(`guest:${party.code}`).emit('costume:entries', party.costumeEntries);
+    io.to(`host:${party.code}`).emit('costume:entries', party.costumeEntries);
   });
 
   socket.on('costume:photo', (data) => {
-    if (!isValidGuest()) return;
-    const entry = partyState.costumeEntries.find(e => e.guestId === data.guestId);
-    if (entry) {
-      entry.photo = data.photo;
-    }
-    io.to('guests').emit('costume:entries', partyState.costumeEntries);
-    io.to('host').emit('costume:entries', partyState.costumeEntries);
-    // Also add to gallery so host sees it in photos
+    const party = getParty(socket); if (!party) return;
+    const entry = party.costumeEntries.find(e => e.guestId === data.guestId);
+    if (entry) entry.photo = data.photo;
+    io.to(`guest:${party.code}`).emit('costume:entries', party.costumeEntries);
+    io.to(`host:${party.code}`).emit('costume:entries', party.costumeEntries);
     if (data.photo) {
-      const photo = {
-        dataURL: data.photo,
-        guestName: entry?.guestName || 'Guest',
-        sentAt: new Date().toISOString()
-      };
-      if (addPhotoToParty(photo)) {
-        io.to('host').emit('guest:photo', photo);
-        socket.broadcast.to('guests').emit('photo:shared', photo);
+      const photo = { dataURL: data.photo, guestName: entry?.guestName || 'Guest', sentAt: new Date().toISOString() };
+      if (addPhotoToParty(party, photo)) {
+        io.to(`host:${party.code}`).emit('guest:photo', photo);
+        socket.broadcast.to(`guest:${party.code}`).emit('photo:shared', photo);
       }
     }
-    console.log(`📸 Costume photo: ${data.guestId} → gallery`);
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -731,92 +441,53 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('mission:complete', (data) => {
-    const id = data.participantId || data.guestId || socket.id;
-    const name = data.name || 'Guest';
+    const party = getParty(socket); if (!party) return;
     const pts = data.points || 0;
-    const mission = data.mission || 'unknown';
-    if (pts > 0) {
-      addPoints(id, name, pts, `mission: ${mission}`);
-    }
+    if (pts > 0) addPoints(party, data.participantId || data.guestId || socket.id, data.name || 'Guest', pts, `mission: ${data.mission || 'unknown'}`);
   });
 
   socket.on('costume:winner', (data) => {
-    // Award 150 pts to costume winner
+    const party = getParty(socket); if (!party) return;
     const winnerId = data.guestId || data.winnerId;
-    const winnerName = data.guestName || data.winnerName || 'Winner';
-    if (winnerId) {
-      addPoints(winnerId, winnerName, 150, 'costume winner 🏆');
-    }
+    if (winnerId) addPoints(party, winnerId, data.guestName || data.winnerName || 'Winner', 150, 'costume winner 🏆');
   });
 
   // ═══════════════════════════════════════════════════════════════════
   // HOST CLOSES COSTUME CONTEST
   // ═══════════════════════════════════════════════════════════════════
   socket.on('host:closeCostume', () => {
-    if (!partyState.costumeOpen) {
-      console.log('🎭 Costume contest already closed');
-      return;
-    }
-    partyState.costumeOpen = false;
-
-    // Determine winner (highest votes)
-    const entries = partyState.costumeEntries || [];
+    const party = getParty(socket); if (!party) return;
+    if (!party.costumeOpen) return;
+    party.costumeOpen = false;
+    const entries = party.costumeEntries || [];
     const sorted = [...entries].sort((a, b) => (b.votes || 0) - (a.votes || 0));
     const winner = sorted.length > 0 && sorted[0].votes > 0 ? sorted[0] : null;
-
-    // Award 150 pts to winner
-    if (winner) {
-      addPoints(winner.guestId, winner.guestName, 150, 'costume winner 🏆');
-    }
-
-    // Build podium (top 3)
-    const podium = sorted.slice(0, 3).map((e, i) => ({
-      rank: i + 1,
-      guestId: e.guestId,
-      guestName: e.guestName,
-      emoji: e.emoji,
-      votes: e.votes || 0,
-      photo: e.photo || null
-    }));
-
-    // Broadcast to everyone
+    if (winner) addPoints(party, winner.guestId, winner.guestName, 150, 'costume winner 🏆');
+    const podium = sorted.slice(0, 3).map((e, i) => ({ rank: i + 1, guestId: e.guestId, guestName: e.guestName, emoji: e.emoji, votes: e.votes || 0, photo: e.photo || null }));
     const closedData = {
       winner: winner ? { guestId: winner.guestId, guestName: winner.guestName, emoji: winner.emoji, votes: winner.votes || 0, photo: winner.photo || null } : null,
-      podium: podium,
-      totalEntries: entries.length
+      podium, totalEntries: entries.length
     };
-    io.to('guests').emit('costume:closed', closedData);
-    io.to('host').emit('costume:closed', closedData);
-    console.log(`🎭🏆 Costume contest CLOSED! Winner: ${winner ? winner.guestName + ' (' + winner.votes + ' votes)' : 'No winner'}, ${entries.length} entries`);
+    io.to(`guest:${party.code}`).emit('costume:closed', closedData);
+    io.to(`host:${party.code}`).emit('costume:closed', closedData);
+    console.log(`🎭🏆 [${party.code}] Costume CLOSED! Winner: ${winner?.guestName || 'None'}`);
   });
 
   // ═══════════════════════════════════════════════════════════════════
-  // HOST VOTE (organizer votes also influence dancefloor)
+  // HOST VOTE
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('host:vote', (data) => {
-    // Forward host vote as if it were a guest vote
-    const trackTitle = data.trackTitle || (partyState.currentTrack && partyState.currentTrack.title) || 'Titre en cours';
-    const voteData = {
-      ...data,
-      trackTitle: trackTitle,
-      trackId: trackTitle
-    };
-    io.to('guests').emit('vote:received', voteData);
-    
-    // Store host vote in guestVotes so history enrichment includes it
-    if (!partyState.guestVotes['host']) partyState.guestVotes['host'] = {};
-    partyState.guestVotes['host'][trackTitle] = data.type;
-    
-    // Score the host via unified addPoints — flat 10 pts per vote
-    addPoints('host', data.guestName || 'DJ', 10, `vote ${data.type}`);
-    
-    // Update vibe score for dancefloor
+    const party = getParty(socket); if (!party) return;
+    const trackTitle = data.trackTitle || party.currentTrack?.title || 'Titre en cours';
+    const voteData = { ...data, trackTitle, trackId: trackTitle };
+    io.to(`guest:${party.code}`).emit('vote:received', voteData);
+    if (!party.guestVotes['host']) party.guestVotes['host'] = {};
+    party.guestVotes['host'][trackTitle] = data.type;
+    addPoints(party, 'host', data.guestName || 'DJ', 10, `vote ${data.type}`);
     const vibeMap = { meh: -1, like: 1, fire: 3 };
-    partyState.vibeScore = Math.max(0, partyState.vibeScore + (vibeMap[data.type] || 0));
-    io.to('guests').emit('votes:update', { genreVotes: partyState.genreVotes, vibeScore: partyState.vibeScore });
-    
-    console.log(`🎧 Host vote: ${data.type} on "${trackTitle}" (+10pts, vibe=${partyState.vibeScore})`);
+    party.vibeScore = Math.max(0, party.vibeScore + (vibeMap[data.type] || 0));
+    io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: party.genreVotes, vibeScore: party.vibeScore });
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -824,25 +495,24 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('host:endParty', () => {
-    io.to('guests').emit('party:ended', {
+    const party = getParty(socket); if (!party) return;
+    io.to(`guest:${party.code}`).emit('party:ended', {
       reason: 'La soirée est terminée ! Merci d\'avoir participé 🎉',
-      scores: partyState.participantScores,
-      trackHistory: partyState.trackHistory,
-      photos: partyState.photos,
-      participants: partyState.participants
+      scores: party.participantScores, trackHistory: party.trackHistory,
+      photos: party.photos, participants: party.participants
     });
-    console.log('🎉 Party ended by host');
+    console.log(`🎉 [${party.code}] Party ended by host`);
+    parties.delete(party.code);
+    cancelCleanup(party.code);
   });
 
-  // Host deletes a photo from the gallery
   socket.on('host:deletePhoto', (data) => {
+    const party = getParty(socket); if (!party) return;
     const idx = data && data.index;
-    if (typeof idx === 'number' && idx >= 0 && idx < partyState.photos.length) {
-      const removed = partyState.photos.splice(idx, 1);
-      console.log(`🗑️ Host deleted photo #${idx} by ${removed[0]?.guestName}`);
-      // Broadcast updated photo list to all
-      io.to('host').emit('photos:update', partyState.photos);
-      io.to('guests').emit('photos:update', partyState.photos);
+    if (typeof idx === 'number' && idx >= 0 && idx < party.photos.length) {
+      party.photos.splice(idx, 1);
+      io.to(`host:${party.code}`).emit('photos:update', party.photos);
+      io.to(`guest:${party.code}`).emit('photos:update', party.photos);
     }
   });
 
@@ -851,22 +521,33 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('disconnect', () => {
-    // Remove genre vote for this guest on disconnect
-    if (partyState.guestGenreVotes) {
-      // Find and remove by guestName (stable key)
-      const participant = partyState.participants.find(p => p.id === socket.id);
-      if (participant && partyState.guestGenreVotes[participant.name]) {
-        delete partyState.guestGenreVotes[participant.name];
-        recomputeGenreVotes();
-        io.to('host').emit('votes:update', { genreVotes: partyState.genreVotes });
-        io.to('guests').emit('votes:update', { genreVotes: partyState.genreVotes });
+    const code = socket.partyCode;
+    const party = code ? parties.get(code) : null;
+    if (party) {
+      // Remove genre vote
+      const participant = party.participants.find(p => p.id === socket.id);
+      if (participant && party.guestGenreVotes[participant.name]) {
+        delete party.guestGenreVotes[participant.name];
+        const totals = recomputeGenreVotes(party);
+        io.to(`host:${code}`).emit('votes:update', { genreVotes: totals });
+        io.to(`guest:${code}`).emit('votes:update', { genreVotes: totals });
+      }
+      party.participants = party.participants.filter(p => p.id !== socket.id);
+      io.to(`guest:${code}`).emit('participants:update', party.participants);
+      io.to(`host:${code}`).emit('guest:left', { id: socket.id });
+
+      // Schedule cleanup if no sockets remain in this party
+      const hostRoom = io.sockets.adapter.rooms.get(`host:${code}`);
+      const guestRoom = io.sockets.adapter.rooms.get(`guest:${code}`);
+      if (!hostRoom?.size && !guestRoom?.size) {
+        partyCleanupTimers.set(code, setTimeout(() => {
+          parties.delete(code);
+          partyCleanupTimers.delete(code);
+          console.log(`🗑️ Party ${code} cleaned up (10min timeout)`);
+        }, 10 * 60 * 1000));
       }
     }
-    
-    partyState.participants = partyState.participants.filter(p => p.id !== socket.id);
-    io.to('guests').emit('participants:update', partyState.participants);
-    io.to('host').emit('guest:left', { id: socket.id });
-    console.log(`❌ Disconnected: ${socket.id}`);
+    console.log(`❌ Disconnected: ${socket.id} (party: ${code || 'none'})`);
   });
 });
 
@@ -875,7 +556,7 @@ server.listen(PORT, '0.0.0.0', () => {
   const ip = getLocalIP();
   console.log('');
   console.log('  🎧 ═══════════════════════════════════════════');
-  console.log('  ║   SOCIAL MIX — Relay Server                ║');
+  console.log('  ║   SOCIAL MIX — Relay Server v13 (multi)    ║');
   console.log('  ═══════════════════════════════════════════════');
   console.log(`  ║  Local:   http://localhost:${PORT}`);
   console.log(`  ║  Network: http://${ip}:${PORT}`);
@@ -883,3 +564,4 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('  ═══════════════════════════════════════════════');
   console.log('');
 });
+
