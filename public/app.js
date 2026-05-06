@@ -6,6 +6,7 @@
 // ─── Config ──────────────────────────────────────────
 const STORAGE_KEY = 'socialmix_guest';
 const PROFILE_KEY = 'socialmix_profile';
+const SESSION_KEY = 'socialmix_session';
 const GENRES = ['Dance', 'Disco', 'Hip-Hop', 'House', 'Electro', 'Pop', 'R&B', 'Latin', 'Club', 'Rock'];
 const EMOJIS = ['🎉','🕺','💃','🎶','🌟','🤩','😎','🎭','🔥','💪','✨','💫','🎵','🥳','😈','🦄'];
 
@@ -38,6 +39,19 @@ let state = {
 
 // ─── DOM Helper ──────────────────────────────────────
 const $ = (id) => document.getElementById(id);
+
+function showToast(message, duration = 3000) {
+  let toast = document.getElementById('reconnect-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'reconnect-toast';
+    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#00e0c4,#00b8a9);color:#0a0e1a;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:800;z-index:99999;opacity:0;transition:opacity 0.3s;pointer-events:none;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.style.opacity = '1';
+  setTimeout(() => { toast.style.opacity = '0'; }, duration);
+}
 
 // ─── URL Params ──────────────────────────────────────
 function getURLParams() {
@@ -86,6 +100,16 @@ function saveSession() {
     suggestions: state.suggestions,
     trackHistory: state.trackHistory
   }));
+  // Save session token separately for reconnection
+  if (state.sessionToken && state.partyCode) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      sessionToken: state.sessionToken,
+      partyCode: state.partyCode,
+      guestName: state.guestName,
+      guestEmoji: state.guestEmoji,
+      savedAt: Date.now()
+    }));
+  }
 }
 
 function loadSession() {
@@ -100,6 +124,26 @@ function loadSession() {
     }
   } catch(e) {}
   return false;
+}
+
+function loadResumeSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (saved && saved.sessionToken && saved.partyCode) {
+      // Expire after 4h
+      if (Date.now() - saved.savedAt > 4 * 60 * 60 * 1000) {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      return saved;
+    }
+  } catch(e) {}
+  return null;
+}
+
+function clearResumeSession() {
+  localStorage.removeItem(SESSION_KEY);
+  state.sessionToken = null;
 }
 
 // ─── Screen Navigation ──────────────────────────────
@@ -366,6 +410,28 @@ function connectToRelay() {
     }
     updateConnection('connected', 'Connecté');
     
+    // Try to resume existing session first
+    const resumeData = loadResumeSession();
+    if (resumeData && resumeData.partyCode === state.partyCode) {
+      socket.emit('guest:resume', {
+        partyCode: resumeData.partyCode,
+        sessionToken: resumeData.sessionToken
+      }, (response) => {
+        if (response && response.ok) {
+          console.log('[Resume] ✅ Session restored for', response.profile?.name);
+          showToast('🔄 Reconnexion réussie !');
+        } else {
+          console.log('[Resume] ❌ Failed:', response?.reason, '— doing fresh join');
+          clearResumeSession();
+          freshJoin();
+        }
+      });
+    } else {
+      freshJoin();
+    }
+  });
+
+  function freshJoin() {
     socket.emit('guest:join', {
       guestId: state.guestId,
       name: state.guestName,
@@ -377,6 +443,13 @@ function connectToRelay() {
       instagram: state.guestInsta,
       partyCode: state.partyCode
     });
+  }
+
+  // Store session token for reconnection
+  socket.on('session:token', (data) => {
+    state.sessionToken = data.sessionToken;
+    saveSession();
+    console.log('[Session] Token saved:', data.sessionToken.substring(0, 8) + '...');
   });
 
   socket.on('disconnect', () => {
@@ -1976,6 +2049,7 @@ function setupExitModal() {
 function quitParty() {
   if (socket) { socket.disconnect(); socket = null; }
   localStorage.removeItem(STORAGE_KEY);
+  clearResumeSession();
   
   // Reset all state
   state.partyCode = '';
@@ -2117,7 +2191,19 @@ function init() {
   setupExitModal();
   
   // Auto-rejoin if session + profile exist
+  const resumeSession = loadResumeSession();
+  
+  // If scanning a different QR code, clear the old session
+  if (params.code && resumeSession && resumeSession.partyCode !== params.code.toUpperCase()) {
+    clearResumeSession();
+  }
+  
   if (hasSession && hasProfile && state.partyCode && state.guestName) {
+    enterCockpit();
+  } else if (resumeSession && hasProfile) {
+    // Resume from session token (page reload, tab closed/reopened)
+    state.partyCode = resumeSession.partyCode;
+    state.guestName = resumeSession.guestName || state.guestName;
     enterCockpit();
   } else if (params.code && hasProfile && state.guestName) {
     // QR scan with existing profile → skip to cockpit directly

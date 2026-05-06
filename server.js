@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createPartyState, isValidPartyCode } from './partyState.js';
 import { connectDB, restoreParties, startFlushLoop, stopFlushLoop, flushEndedParty } from './db.js';
+import { randomUUID } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -288,15 +289,33 @@ io.on('connection', (socket) => {
     socket.join(`guest:${code}`);
     cancelCleanup(code);
 
+    // Generate session token for reconnection
+    const sessionToken = randomUUID();
+    const guestName = data.name || 'Guest';
+
+    // Cancel any pending disconnect timer for this guest
+    if (party.disconnectTimers[guestName]) {
+      clearTimeout(party.disconnectTimers[guestName]);
+      delete party.disconnectTimers[guestName];
+    }
+
     const guest = {
-      id: socket.id, name: data.name || 'Guest', emoji: data.emoji || '🎉',
+      id: socket.id, name: guestName, emoji: data.emoji || '🎉',
       photo: data.photo || null, phone: data.phone || '', email: data.email || '', instagram: data.instagram || '',
-      partyCode: code, joinedAt: new Date().toISOString()
+      partyCode: code, joinedAt: new Date().toISOString(),
+      sessionToken, connected: true
     };
     party.participants = party.participants.filter(p => p.name !== guest.name);
     party.participants.push(guest);
+    party.sessionTokens[sessionToken] = guestName;
+    party.isDirty = true;
     recomputeGenreVotes(party);
-    socket.emit('party:state', { ...party, photoHashes: undefined, profilePointsGiven: undefined, _genreVotedOnce: undefined });
+    socket.emit('party:state', {
+      ...party, photoHashes: undefined, profilePointsGiven: undefined,
+      _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined
+    });
+    // Send session token separately (client stores it)
+    socket.emit('session:token', { sessionToken, partyCode: code });
     io.to(`host:${code}`).emit('guest:joined', guest);
     io.to(`guest:${code}`).emit('participants:update', party.participants);
     if (guest.name && guest.name !== 'Guest') {
@@ -305,7 +324,57 @@ io.on('connection', (socket) => {
         addPoints(party, socket.id, guest.name, 25, 'profile complete');
       }
     }
-    console.log(`👤 [${code}] Guest joined: ${guest.emoji} ${guest.name}`);
+    console.log(`👤 [${code}] Guest joined: ${guest.emoji} ${guest.name} (token: ${sessionToken.substring(0, 8)}...)`);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // GUEST RESUME (reconnection via session token)
+  // ═══════════════════════════════════════════════════════════════════
+
+  socket.on('guest:resume', (payload, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const code = (payload?.partyCode || '').toUpperCase();
+    const token = payload?.sessionToken;
+
+    if (!code || !token) { cb({ ok: false, reason: 'MISSING_PARAMS' }); return; }
+
+    const party = parties.get(code);
+    if (!party) { cb({ ok: false, reason: 'PARTY_NOT_FOUND' }); return; }
+
+    const guestName = party.sessionTokens[token];
+    if (!guestName) { cb({ ok: false, reason: 'INVALID_TOKEN' }); return; }
+
+    // Find existing participant
+    const participant = party.participants.find(p => p.name === guestName);
+    if (!participant) { cb({ ok: false, reason: 'PARTICIPANT_GONE' }); return; }
+
+    // Cancel disconnect timer
+    if (party.disconnectTimers[guestName]) {
+      clearTimeout(party.disconnectTimers[guestName]);
+      delete party.disconnectTimers[guestName];
+    }
+
+    // Rebind socket
+    participant.id = socket.id;
+    participant.connected = true;
+    socket.partyCode = code;
+    socket.join(`guest:${code}`);
+    cancelCleanup(code);
+
+    // Send full state
+    socket.emit('party:state', {
+      ...party, photoHashes: undefined, profilePointsGiven: undefined,
+      _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined
+    });
+    io.to(`host:${code}`).emit('guest:joined', participant);
+    io.to(`guest:${code}`).emit('participants:update', party.participants);
+
+    cb({
+      ok: true,
+      profile: { name: participant.name, emoji: participant.emoji, photo: participant.photo },
+      partyCode: code
+    });
+    console.log(`🔄 [${code}] Guest resumed: ${participant.emoji} ${participant.name}`);
   });
 
   socket.on('guest:requestState', () => {
@@ -534,19 +603,46 @@ io.on('connection', (socket) => {
     const code = socket.partyCode;
     const party = code ? parties.get(code) : null;
     if (party) {
-      // Remove genre vote
       const participant = party.participants.find(p => p.id === socket.id);
-      if (participant && party.guestGenreVotes[participant.name]) {
-        delete party.guestGenreVotes[participant.name];
-        const totals = recomputeGenreVotes(party);
-        io.to(`host:${code}`).emit('votes:update', { genreVotes: totals });
-        io.to(`guest:${code}`).emit('votes:update', { genreVotes: totals });
-      }
-      party.participants = party.participants.filter(p => p.id !== socket.id);
-      io.to(`guest:${code}`).emit('participants:update', party.participants);
-      io.to(`host:${code}`).emit('guest:left', { id: socket.id });
 
-      // Schedule cleanup if no sockets remain in this party
+      if (participant && participant.sessionToken) {
+        // ── GUEST with session token: grace period (4h) ──
+        participant.connected = false;
+        io.to(`host:${code}`).emit('guest:disconnected', { name: participant.name, id: socket.id });
+
+        const GRACE_MS = 4 * 60 * 60 * 1000; // 4 hours
+        party.disconnectTimers[participant.name] = setTimeout(() => {
+          // Final removal after grace period
+          delete party.sessionTokens[participant.sessionToken];
+          party.participants = party.participants.filter(p => p.name !== participant.name);
+          delete party.disconnectTimers[participant.name];
+          if (party.guestGenreVotes[participant.name]) {
+            delete party.guestGenreVotes[participant.name];
+            const totals = recomputeGenreVotes(party);
+            io.to(`host:${code}`).emit('votes:update', { genreVotes: totals });
+            io.to(`guest:${code}`).emit('votes:update', { genreVotes: totals });
+          }
+          io.to(`guest:${code}`).emit('participants:update', party.participants);
+          io.to(`host:${code}`).emit('guest:left', { id: participant.name });
+          party.isDirty = true;
+          console.log(`🗑️ [${code}] Guest ${participant.name} removed after 4h grace period`);
+        }, GRACE_MS);
+        console.log(`⏸️ Disconnected (grace 4h): ${participant.name} (party: ${code})`);
+      } else {
+        // ── HOST or guest without token: immediate removal ──
+        if (participant && party.guestGenreVotes[participant.name]) {
+          delete party.guestGenreVotes[participant.name];
+          const totals = recomputeGenreVotes(party);
+          io.to(`host:${code}`).emit('votes:update', { genreVotes: totals });
+          io.to(`guest:${code}`).emit('votes:update', { genreVotes: totals });
+        }
+        party.participants = party.participants.filter(p => p.id !== socket.id);
+        io.to(`guest:${code}`).emit('participants:update', party.participants);
+        io.to(`host:${code}`).emit('guest:left', { id: socket.id });
+        console.log(`❌ Disconnected: ${socket.id} (party: ${code})`);
+      }
+
+      // Schedule party cleanup if no sockets remain
       const hostRoom = io.sockets.adapter.rooms.get(`host:${code}`);
       const guestRoom = io.sockets.adapter.rooms.get(`guest:${code}`);
       if (!hostRoom?.size && !guestRoom?.size) {
@@ -556,8 +652,9 @@ io.on('connection', (socket) => {
           console.log(`🗑️ Party ${code} cleaned up (10min timeout)`);
         }, 10 * 60 * 1000));
       }
+    } else {
+      console.log(`❌ Disconnected: ${socket.id} (party: ${code || 'none'})`);
     }
-    console.log(`❌ Disconnected: ${socket.id} (party: ${code || 'none'})`);
   });
 });
 

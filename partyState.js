@@ -15,7 +15,9 @@ export function createPartyState(code) {
     trackHistory: [],          // [{title, artist, genre, bpm, playedAt}]
     genreVotes: {},            // {genre: count}
     vibeScore: 0,
-    participants: [],          // [{id, name, emoji, photo, joinedAt}]
+    participants: [],          // [{id, name, emoji, photo, joinedAt, sessionToken, connected}]
+    sessionTokens: {},         // {token: participantName} — for reconnection
+    disconnectTimers: {},      // {participantName: timeoutId} — 4h cleanup
     guestVotes: {},            // {guestId: {trackId: voteType}}
     suggestions: [],           // [{query, guestName, sentAt}]
     hostProfile: null,         // {name, emoji}
