@@ -131,7 +131,7 @@ function loadResumeSession() {
     const saved = JSON.parse(localStorage.getItem(SESSION_KEY));
     if (saved && saved.sessionToken && saved.partyCode) {
       // Expire after 4h
-      if (Date.now() - saved.savedAt > 4 * 60 * 60 * 1000) {
+      if (Date.now() - saved.savedAt > 6 * 60 * 60 * 1000) {
         localStorage.removeItem(SESSION_KEY);
         return null;
       }

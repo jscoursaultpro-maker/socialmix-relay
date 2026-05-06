@@ -379,7 +379,13 @@ io.on('connection', (socket) => {
 
   socket.on('guest:requestState', () => {
     const party = getParty(socket); if (!party) return;
-    socket.emit('party:state', { ...party, photoHashes: undefined, profilePointsGiven: undefined, _genreVotedOnce: undefined });
+    socket.emit('party:state', { ...party, photoHashes: undefined, profilePointsGiven: undefined, _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined });
+  });
+
+  socket.on('host:requestState', () => {
+    const party = getParty(socket); if (!party) return;
+    socket.emit('party:state', { ...party, photoHashes: undefined, profilePointsGiven: undefined, _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined });
+    console.log(`🔄 [${party.code}] Host requested state resync`);
   });
 
   socket.on('guest:vote', (data) => {
@@ -610,7 +616,7 @@ io.on('connection', (socket) => {
         participant.connected = false;
         io.to(`host:${code}`).emit('guest:disconnected', { name: participant.name, id: socket.id });
 
-        const GRACE_MS = 4 * 60 * 60 * 1000; // 4 hours
+        const GRACE_MS = 6 * 60 * 60 * 1000; // 6 hours
         party.disconnectTimers[participant.name] = setTimeout(() => {
           // Final removal after grace period
           delete party.sessionTokens[participant.sessionToken];
