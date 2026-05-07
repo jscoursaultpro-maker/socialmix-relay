@@ -7,6 +7,7 @@ import { dirname, join } from 'path';
 import { createPartyState, isValidPartyCode } from './partyState.js';
 import { connectDB, restoreParties, startFlushLoop, stopFlushLoop, flushEndedParty } from './db.js';
 import { randomUUID } from 'crypto';
+import Friendship from './models/Friendship.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -45,6 +46,7 @@ app.use((req, res, next) => {
   }
   next();
 });
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static(join(__dirname, 'public')));
 
 // ─── Health check ───────────────────────────────────────────────────
@@ -77,6 +79,208 @@ app.get('/api/state', (req, res) => {
   const first = parties.values().next().value;
   res.json(first || { code: null, participants: [] });
 });
+
+// ─── Auth Middleware (session token) ────────────────────────────────
+function authMiddleware(req, res, next) {
+  const token = req.headers['x-session-token'];
+  if (!token) return res.status(401).json({ error: 'Missing session token' });
+  
+  for (const [code, party] of parties) {
+    const participant = party.participants.find(p => p.sessionToken === token);
+    if (participant) {
+      req.userId = participant.userId || participant.id;
+      req.guestName = participant.name;
+      req.partyCode = code;
+      req.sessionToken = token;
+      return next();
+    }
+  }
+  return res.status(401).json({ error: 'Invalid or expired session token' });
+}
+
+// ─── Push Notification Stubs (Phase 2) ──────────────────────────────
+function notifyFriendRequest(targetUserId, fromName) {
+  console.log(`[Push] 📩 ${fromName} t'a ajouté en ami (target: ${targetUserId})`);
+}
+function notifyFriendAccepted(requesterId, acceptedByName) {
+  console.log(`[Push] ✅ ${acceptedByName} a accepté ta demande (requester: ${requesterId})`);
+}
+
+// ─── Friends API ────────────────────────────────────────────────────
+
+// In-memory friendship store (works without MongoDB)
+const friendships = [];
+let friendshipIdCounter = 1;
+
+function genFriendId() { return 'fr_' + (friendshipIdCounter++) + '_' + Date.now().toString(36); }
+
+// POST /api/friends/request — Send a friend request
+app.post('/api/friends/request', authMiddleware, (req, res) => {
+  const { targetUserId, partyCode } = req.body;
+  if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+  if (targetUserId === req.userId) return res.status(400).json({ error: 'Cannot friend yourself' });
+  
+  const [userA, userB] = [req.userId, targetUserId].sort();
+  
+  const existing = friendships.find(f => f.userA === userA && f.userB === userB);
+  if (existing) {
+    if (existing.status === 'declined') {
+      existing.status = 'pending';
+      existing.requestedBy = req.userId;
+      existing.createdAt = new Date().toISOString();
+      existing.acceptedAt = null;
+      notifyFriendRequest(targetUserId, req.guestName);
+      return res.json({ ok: true, friendship: existing, reactivated: true });
+    }
+    return res.status(409).json({ error: 'Friendship already exists', status: existing.status });
+  }
+  
+  const friendship = {
+    _id: genFriendId(),
+    userA, userB,
+    status: 'pending',
+    requestedBy: req.userId,
+    metAt: partyCode || req.partyCode || null,
+    createdAt: new Date().toISOString(),
+    acceptedAt: null
+  };
+  friendships.push(friendship);
+  
+  // Async persist to MongoDB if available
+  Friendship.create(friendship).catch(() => {});
+  
+  notifyFriendRequest(targetUserId, req.guestName);
+  console.log(`👥 [Friends] ${req.guestName} → request → ${targetUserId}`);
+  res.json({ ok: true, friendship });
+});
+
+// POST /api/friends/accept — Accept a friend request
+app.post('/api/friends/accept', authMiddleware, (req, res) => {
+  const { friendshipId } = req.body;
+  if (!friendshipId) return res.status(400).json({ error: 'friendshipId required' });
+  
+  const friendship = friendships.find(f => f._id === friendshipId);
+  if (!friendship) return res.status(404).json({ error: 'Friendship not found' });
+  
+  if (friendship.requestedBy === req.userId) {
+    return res.status(403).json({ error: 'Cannot accept your own request' });
+  }
+  if (friendship.userA !== req.userId && friendship.userB !== req.userId) {
+    return res.status(403).json({ error: 'Not your friendship' });
+  }
+  
+  friendship.status = 'accepted';
+  friendship.acceptedAt = new Date().toISOString();
+  
+  Friendship.findOneAndUpdate(
+    { userA: friendship.userA, userB: friendship.userB },
+    { status: 'accepted', acceptedAt: friendship.acceptedAt }
+  ).catch(() => {});
+  
+  notifyFriendAccepted(friendship.requestedBy, req.guestName);
+  console.log(`👥 [Friends] ${req.guestName} accepted friendship ${friendshipId}`);
+  res.json({ ok: true, friendship });
+});
+
+// POST /api/friends/decline — Decline a friend request
+app.post('/api/friends/decline', authMiddleware, (req, res) => {
+  const { friendshipId } = req.body;
+  if (!friendshipId) return res.status(400).json({ error: 'friendshipId required' });
+  
+  const friendship = friendships.find(f => f._id === friendshipId);
+  if (!friendship) return res.status(404).json({ error: 'Friendship not found' });
+  if (friendship.userA !== req.userId && friendship.userB !== req.userId) {
+    return res.status(403).json({ error: 'Not your friendship' });
+  }
+  
+  friendship.status = 'declined';
+  
+  Friendship.findOneAndUpdate(
+    { userA: friendship.userA, userB: friendship.userB },
+    { status: 'declined' }
+  ).catch(() => {});
+  
+  console.log(`👥 [Friends] ${req.guestName} declined friendship ${friendshipId}`);
+  res.json({ ok: true });
+});
+
+// GET /api/friends/list — My accepted friends
+app.get('/api/friends/list', authMiddleware, (req, res) => {
+  const friends = friendships.filter(f =>
+    (f.userA === req.userId || f.userB === req.userId) && f.status === 'accepted'
+  );
+  
+  const enriched = friends.map(f => {
+    const friendUserId = f.userA === req.userId ? f.userB : f.userA;
+    const profile = findUserProfile(friendUserId);
+    return {
+      _id: f._id,
+      friendUserId,
+      friendName: profile?.name || 'Unknown',
+      friendEmoji: profile?.emoji || '🎉',
+      friendPhoto: profile?.photo || null,
+      metAt: f.metAt,
+      acceptedAt: f.acceptedAt,
+      createdAt: f.createdAt
+    };
+  });
+  
+  res.json({ ok: true, friends: enriched });
+});
+
+// GET /api/friends/pending — Received friend requests
+app.get('/api/friends/pending', authMiddleware, (req, res) => {
+  const pending = friendships.filter(f =>
+    (f.userA === req.userId || f.userB === req.userId) &&
+    f.status === 'pending' &&
+    f.requestedBy !== req.userId
+  );
+  
+  const enriched = pending.map(f => {
+    const profile = findUserProfile(f.requestedBy);
+    return {
+      _id: f._id,
+      fromUserId: f.requestedBy,
+      fromName: profile?.name || 'Unknown',
+      fromEmoji: profile?.emoji || '🎉',
+      fromPhoto: profile?.photo || null,
+      metAt: f.metAt,
+      createdAt: f.createdAt
+    };
+  });
+  
+  res.json({ ok: true, pending: enriched });
+});
+
+// DELETE /api/friends/:id — Remove a friendship
+app.delete('/api/friends/:id', authMiddleware, (req, res) => {
+  const idx = friendships.findIndex(f => f._id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Friendship not found' });
+  
+  const friendship = friendships[idx];
+  if (friendship.userA !== req.userId && friendship.userB !== req.userId) {
+    return res.status(403).json({ error: 'Not your friendship' });
+  }
+  
+  friendships.splice(idx, 1);
+  
+  Friendship.findOneAndDelete(
+    { userA: friendship.userA, userB: friendship.userB }
+  ).catch(() => {});
+  
+  console.log(`👥 [Friends] ${req.guestName} removed friendship ${req.params.id}`);
+  res.json({ ok: true });
+});
+
+// Helper: find user profile from active parties
+function findUserProfile(userId) {
+  for (const party of parties.values()) {
+    const p = party.participants.find(p => p.userId === userId || p.id === userId);
+    if (p) return { name: p.name, emoji: p.emoji, photo: p.photo };
+  }
+  return null;
+}
+
 
 // ─── Helpers (party-scoped) ─────────────────────────────────────────
 function addPhotoToParty(party, photo) {
@@ -299,8 +503,11 @@ io.on('connection', (socket) => {
       delete party.disconnectTimers[guestName];
     }
 
+    // Generate or reuse stable userId
+    const userId = data.userId || 'user_' + randomUUID().replace(/-/g, '').substring(0, 16);
+
     const guest = {
-      id: socket.id, name: guestName, emoji: data.emoji || '🎉',
+      id: socket.id, userId, name: guestName, emoji: data.emoji || '🎉',
       photo: data.photo || null, phone: data.phone || '', email: data.email || '', instagram: data.instagram || '',
       partyCode: code, joinedAt: new Date().toISOString(),
       consentVersion: data.consentVersion || '1.0',
@@ -316,8 +523,8 @@ io.on('connection', (socket) => {
       ...party, photoHashes: undefined, profilePointsGiven: undefined,
       _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined
     });
-    // Send session token separately (client stores it)
-    socket.emit('session:token', { sessionToken, partyCode: code });
+    // Send session token + userId separately (client stores them)
+    socket.emit('session:token', { sessionToken, partyCode: code, userId });
     io.to(`host:${code}`).emit('guest:joined', guest);
     io.to(`guest:${code}`).emit('participants:update', party.participants);
     if (guest.name && guest.name !== 'Guest') {

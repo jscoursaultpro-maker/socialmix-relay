@@ -478,6 +478,7 @@ function connectToRelay() {
     const consent = getConsent();
     socket.emit('guest:join', {
       guestId: state.guestId,
+      userId: state.userId || null,
       name: state.guestName,
       lastName: state.guestLastName,
       emoji: state.guestEmoji,
@@ -491,11 +492,12 @@ function connectToRelay() {
     });
   }
 
-  // Store session token for reconnection
+  // Store session token + userId for reconnection and friends API
   socket.on('session:token', (data) => {
     state.sessionToken = data.sessionToken;
+    if (data.userId) state.userId = data.userId;
     saveSession();
-    console.log('[Session] Token saved:', data.sessionToken.substring(0, 8) + '...');
+    console.log('[Session] Token saved:', data.sessionToken.substring(0, 8) + '... userId:', data.userId || 'n/a');
   });
 
   socket.on('disconnect', () => {
@@ -1243,12 +1245,12 @@ function updateTrombinoscope(participants) {
   state.participants = participants;
   const grid = $('trombi-grid');
   // Merge self + server participants (avoid duplicates)
-  const users = [{ name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto, phone: state.guestPhone, email: state.guestEmail, instagram: state.guestInsta }];
+  const users = [{ name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto, phone: state.guestPhone, email: state.guestEmail, instagram: state.guestInsta, userId: state.userId, isSelf: true }];
   participants.forEach(p => {
     if (p.name !== state.guestName) {
       // Host: show real name with 🎧 badge (not "DJ")
       const displayName = p.isHost ? `${p.name} 🎧` : p.name;
-      users.push({ name: displayName, emoji: p.emoji || '🎉', photo: p.photo || null, phone: p.phone || '', email: p.email || '', instagram: p.instagram || '', isHost: p.isHost || false });
+      users.push({ name: displayName, emoji: p.emoji || '🎉', photo: p.photo || null, phone: p.phone || '', email: p.email || '', instagram: p.instagram || '', isHost: p.isHost || false, userId: p.userId || null });
     }
   });
   renderTrombi(grid, users);
@@ -1339,7 +1341,74 @@ function showTrombiContact(idx) {
     vcardBtn.style.background = 'rgba(0,224,196,0.2)';
     vcardBtn.style.color = '#00e0c4';
   };
+  
+  // Friend request button (only for other users, not self)
+  let friendBtn = lb.querySelector('.trombi-friend-btn');
+  if (!friendBtn) {
+    friendBtn = document.createElement('button');
+    friendBtn.className = 'trombi-friend-btn';
+    friendBtn.style.cssText = 'padding:8px 20px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:10px;font-size:11px;font-weight:800;color:white;cursor:pointer;margin-top:6px;';
+    vcardBtn.parentNode.insertBefore(friendBtn, vcardBtn.nextSibling);
+  }
+  
+  if (u.isSelf || !u.userId) {
+    friendBtn.style.display = 'none';
+  } else {
+    friendBtn.style.display = 'inline-block';
+    // Check existing friend status
+    const existingStatus = state._friendStatuses?.[u.userId];
+    if (existingStatus === 'pending') {
+      friendBtn.textContent = '⏳ DEMANDE ENVOYÉE';
+      friendBtn.style.background = 'rgba(102,126,234,0.2)';
+      friendBtn.style.color = '#667eea';
+      friendBtn.onclick = null;
+    } else if (existingStatus === 'accepted') {
+      friendBtn.textContent = '✅ AMIS';
+      friendBtn.style.background = 'rgba(0,224,196,0.15)';
+      friendBtn.style.color = '#00e0c4';
+      friendBtn.onclick = null;
+    } else {
+      friendBtn.textContent = '👥 AJOUTER EN AMI';
+      friendBtn.style.background = 'linear-gradient(135deg,#667eea,#764ba2)';
+      friendBtn.style.color = 'white';
+      friendBtn.onclick = (e) => {
+        e.stopPropagation();
+        sendFriendRequest(u.userId, u.name);
+        friendBtn.textContent = '⏳ DEMANDE ENVOYÉE';
+        friendBtn.style.background = 'rgba(102,126,234,0.2)';
+        friendBtn.style.color = '#667eea';
+        friendBtn.onclick = null;
+      };
+    }
+  }
+  
   lb.style.display = 'flex';
+}
+
+// Send friend request via REST API
+function sendFriendRequest(targetUserId, targetName) {
+  if (!state.sessionToken || !targetUserId) return;
+  if (!state._friendStatuses) state._friendStatuses = {};
+  state._friendStatuses[targetUserId] = 'pending';
+  
+  fetch('/api/friends/request', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-session-token': state.sessionToken
+    },
+    body: JSON.stringify({ targetUserId, partyCode: state.partyCode })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      console.log(`[Friends] ✅ Request sent to ${targetName}`);
+    } else {
+      console.warn(`[Friends] ⚠️ ${data.error}`);
+      if (data.status === 'accepted') state._friendStatuses[targetUserId] = 'accepted';
+    }
+  })
+  .catch(err => console.error('[Friends] Request failed:', err));
 }
 
 // Show all contacts in a full-screen overlay
