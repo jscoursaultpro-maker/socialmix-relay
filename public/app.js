@@ -748,6 +748,12 @@ function connectToRelay() {
     addDiapoPhoto(photo.dataURL, photo.guestName);
   });
 
+  // Photo error from server (cap exceeded, payload too large, etc.)
+  socket.on('photo:error', (data) => {
+    console.warn('[Photo] Server error:', data.error);
+    alert(data.message || data.error || 'Erreur photo');
+  });
+
   // Costume entries updated from server
   socket.on('costume:entries', (entries) => {
     state.costumeEntries = entries;
@@ -1652,10 +1658,19 @@ function handleCostumePhoto(e) {
 }
 
 // Gallery photo handler — clone of handleCostumePhoto WITHOUT costume entry update
+const GUEST_PHOTO_CAP = 5;
+
 function handleGalleryPhoto(e) {
   const file = e.target.files[0];
   if (!file) return;
   e.target.value = '';
+  
+  // Check per-guest photo cap (costume photos excluded)
+  const currentCount = (state.myPhotos || []).length;
+  if (currentCount >= GUEST_PHOTO_CAP) {
+    alert('📷 Limite atteinte ! Tu as déjà pris ' + GUEST_PHOTO_CAP + ' photos. Supprime-en une pour en ajouter une autre.');
+    return;
+  }
   
   readFileAsDataURL(file, (dataURL) => {
     if (!dataURL) { alert('❌ Erreur photo'); return; }
@@ -1672,7 +1687,7 @@ function handleGalleryPhoto(e) {
         dataURL: dataURL,
         guestName: state.guestName
       });
-      console.log('[GalleryPhoto] Emitted guest:photo');
+      console.log('[GalleryPhoto] Emitted guest:photo (' + state.myPhotos.length + '/' + GUEST_PHOTO_CAP + ')');
     }
     saveSession();
   });
@@ -2014,6 +2029,12 @@ function handleDiapoPhoto(e) {
   state.myPhotos = state.myPhotos || [];
   state.diapoPhotos = state.diapoPhotos || [];
   
+  // Check per-guest photo cap (costume photos excluded)
+  if (state.myPhotos.length >= GUEST_PHOTO_CAP) {
+    alert('📷 Limite atteinte ! Tu as déjà pris ' + GUEST_PHOTO_CAP + ' photos.');
+    return;
+  }
+  
   // Use FileReader (more reliable on mobile than createObjectURL)
   readFileAsDataURL(file, (dataURL) => {
     if (!dataURL) {
@@ -2042,15 +2063,34 @@ function handleDiapoPhoto(e) {
   });
 }
 
-// Reliable file reading + forced resize for mobile
+// Reliable file reading + resize for mobile
+// Params: 1200px max long side, JPEG quality 0.70 (validated for party photos)
 function readFileAsDataURL(file, callback) {
-  // Resize to keep Socket.IO payloads under 1MB (camera photos can be 12MP+)
-  resizeImage(file, 600, 0.6, (resized) => {
+  const MAX_PHOTO_SIZE = 1200;
+  const JPEG_QUALITY = 0.70;
+  
+  // Show compression indicator if it takes > 500ms
+  let compressionTimer = null;
+  let indicator = null;
+  compressionTimer = setTimeout(() => {
+    indicator = document.createElement('div');
+    indicator.id = 'compression-indicator';
+    indicator.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);color:white;padding:16px 28px;border-radius:14px;font-size:13px;font-weight:800;z-index:99999;backdrop-filter:blur(10px);';
+    indicator.textContent = '\u{1F4F8} Compression de la photo...';
+    document.body.appendChild(indicator);
+  }, 500);
+  
+  const cleanup = () => {
+    clearTimeout(compressionTimer);
+    if (indicator && indicator.parentNode) indicator.parentNode.removeChild(indicator);
+  };
+  
+  resizeImage(file, MAX_PHOTO_SIZE, JPEG_QUALITY, (resized) => {
+    cleanup();
     if (resized) {
-      console.log('[Photo] Resized OK, length:', resized.length);
+      console.log('[Photo] Compressed OK, length:', resized.length, '(~' + Math.round(resized.length / 1024) + ' KB)');
       callback(resized);
     } else {
-      // Canvas failed — fallback to raw FileReader
       console.warn('[Photo] Canvas resize failed, using raw FileReader');
       const reader = new FileReader();
       reader.onload = () => callback(reader.result);
@@ -2085,13 +2125,26 @@ function updateMyPhotosGrid() {
 function resizeImage(file, maxSize, quality, callback) {
   const img = new Image();
   img.onload = () => {
-    const canvas = document.createElement('canvas');
     let w = img.width, h = img.height;
-    if (w > h) {
-      if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; }
-    } else {
-      if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; }
+    const longestSide = Math.max(w, h);
+    
+    // Skip resize if already under maxSize — avoid recompression artifacts
+    if (longestSide <= maxSize) {
+      console.log('[Photo] Already small (' + w + 'x' + h + '), skipping resize');
+      const reader = new FileReader();
+      reader.onload = () => { URL.revokeObjectURL(img.src); callback(reader.result); };
+      reader.onerror = () => { URL.revokeObjectURL(img.src); callback(null); };
+      reader.readAsDataURL(file);
+      return;
     }
+    
+    // Resize proportionally
+    if (w > h) {
+      h = Math.round(h * maxSize / w); w = maxSize;
+    } else {
+      w = Math.round(w * maxSize / h); h = maxSize;
+    }
+    const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');

@@ -641,11 +641,30 @@ io.on('connection', (socket) => {
 
   socket.on('guest:photo', (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    
+    // Payload size guard — reject > 300KB base64 (~225KB raw)
+    const payloadSize = (data.dataURL || '').length;
+    if (payloadSize > 300 * 1024) {
+      console.warn(`📸 [${party.code}] Photo rejected: payload too large (${Math.round(payloadSize/1024)} KB) from ${data.guestName}`);
+      socket.emit('photo:error', { error: 'PHOTO_TOO_LARGE', message: '📸 Photo trop volumineuse. Réessaye avec une photo plus petite.' });
+      return;
+    }
+    
+    // Per-guest photo cap (5 photos, costume photos excluded)
+    const GUEST_PHOTO_CAP = 5;
+    const guestPhotoCount = party.photos.filter(p => p.guestName === data.guestName && !p.isCostume).length;
+    if (guestPhotoCount >= GUEST_PHOTO_CAP) {
+      console.warn(`📸 [${party.code}] Photo cap reached for ${data.guestName} (${guestPhotoCount}/${GUEST_PHOTO_CAP})`);
+      socket.emit('photo:error', { error: 'PHOTO_LIMIT', message: '📷 Limite atteinte ! Tu as déjà ' + GUEST_PHOTO_CAP + ' photos.' });
+      return;
+    }
+    
     const photo = { dataURL: data.dataURL, guestName: data.guestName || 'Guest', caption: data.caption || null, sentAt: new Date().toISOString() };
     if (!addPhotoToParty(party, photo)) return;
     socket.broadcast.to(`guest:${party.code}`).emit('photo:shared', photo);
     io.to(`host:${party.code}`).emit('guest:photo', photo);
     addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 20, 'photo');
+    console.log(`📸 [${party.code}] Photo from ${data.guestName} (${guestPhotoCount + 1}/${GUEST_PHOTO_CAP}, ${Math.round(payloadSize/1024)} KB)`);
   });
 
   socket.on('guest:message', (data) => {
@@ -721,7 +740,7 @@ io.on('connection', (socket) => {
     io.to(`guest:${party.code}`).emit('costume:entries', party.costumeEntries);
     io.to(`host:${party.code}`).emit('costume:entries', party.costumeEntries);
     if (data.photo) {
-      const photo = { dataURL: data.photo, guestName: entry?.guestName || 'Guest', sentAt: new Date().toISOString() };
+      const photo = { dataURL: data.photo, guestName: entry?.guestName || 'Guest', sentAt: new Date().toISOString(), isCostume: true };
       if (addPhotoToParty(party, photo)) {
         io.to(`host:${party.code}`).emit('guest:photo', photo);
         socket.broadcast.to(`guest:${party.code}`).emit('photo:shared', photo);
