@@ -337,6 +337,57 @@ function cancelCleanup(code) {
   if (partyCleanupTimers.has(code)) { clearTimeout(partyCleanupTimers.get(code)); partyCleanupTimers.delete(code); }
 }
 
+// ─── Host Secret Auth ───────────────────────────────────────────────
+const hostSecretFailures = new Map(); // socketId → { count, blockedUntil }
+
+function validateHostSecret(socket, data) {
+  const socketId = socket.id;
+  const party = getParty(socket);
+  if (!party) return false;
+  
+  // Check rate limit — blocked?
+  const failure = hostSecretFailures.get(socketId);
+  if (failure && failure.blockedUntil && Date.now() < failure.blockedUntil) {
+    const remaining = Math.ceil((failure.blockedUntil - Date.now()) / 1000);
+    console.warn(`🔒 [${party.code}] Socket ${socketId} blocked for ${remaining}s more`);
+    return false;
+  }
+  
+  // Extract secret from payload
+  const secret = (typeof data === 'object' && data !== null) ? data.hostSecret : undefined;
+  
+  if (!secret || secret !== party.hostSecret) {
+    // Increment failure count
+    const current = hostSecretFailures.get(socketId) || { count: 0 };
+    current.count++;
+    const lastFour = party.hostSecret ? party.hostSecret.slice(-4) : '????';
+    console.warn(`🔒 [${party.code}] Invalid host secret attempt ${current.count}/5 from ${socketId} (expected: ****${lastFour})`);
+    
+    if (current.count >= 5) {
+      current.blockedUntil = Date.now() + 5 * 60 * 1000; // 5 min
+      hostSecretFailures.set(socketId, current);
+      console.warn(`🔒 [${party.code}] Socket ${socketId} BLOCKED for 5 min after 5 failed attempts`);
+      socket.emit('auth:error', { error: 'HOST_AUTH_BLOCKED', message: 'Trop de tentatives. Déconnexion 5 min.' });
+      socket.disconnect(true);
+      return false;
+    }
+    hostSecretFailures.set(socketId, current);
+    socket.emit('auth:error', { error: 'HOST_AUTH_FAILED', message: 'Secret hôte invalide.' });
+    return false;
+  }
+  
+  // Valid — reset failure counter
+  hostSecretFailures.delete(socketId);
+  return true;
+}
+
+
+// Strip hostSecret from payload before broadcasting to guests
+function stripSecret(obj) {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  const { hostSecret, ...clean } = obj;
+  return clean;
+}
 // ─── Socket.IO Connection Handling ──────────────────────────────────
 io.on('connection', (socket) => {
   console.log(`🔌 Connected: ${socket.id}`);
@@ -350,12 +401,20 @@ io.on('connection', (socket) => {
     }
   }
 
-  // Intercept all host: events to auto-join room
+  // Intercept all host: events to auto-join room + validate hostSecret
   const origOn = socket.on.bind(socket);
   socket.on = function(event, handler) {
     if (event.startsWith('host:')) {
       return origOn(event, (...args) => {
         ensureHostRoom();
+        // host:startParty sets the secret — skip validation
+        if (event === 'host:startParty') {
+          handler(...args);
+          return;
+        }
+        // All other host:* events require valid hostSecret
+        const payload = args[0];
+        if (!validateHostSecret(socket, payload)) return;
         handler(...args);
       });
     }
@@ -378,6 +437,10 @@ io.on('connection', (socket) => {
     party.hostProfile = data.profile || null;
     parties.set(code, party);
 
+    // Store host secret (never broadcast to guests)
+    party.hostSecret = data.hostSecret || null;
+    const lastFour = party.hostSecret ? party.hostSecret.slice(-4) : 'NONE';
+    
     // Build host participant
     const hostName = data.profile?.name || 'Hôte';
     const hostEmoji = data.profile?.emoji || '🎧';
@@ -388,7 +451,8 @@ io.on('connection', (socket) => {
       partyCode: code, joinedAt: new Date().toISOString(), isHost: true
     });
 
-    console.log(`🎉 Party started: ${code} (host: "${hostName}", active parties: ${parties.size})`);
+    console.log(`🎉 Party started: ${code} (host: "${hostName}", secret: ****${lastFour}, active parties: ${parties.size})`);
+    // Never send hostSecret to guests — only party:started with public data
     io.to(`guest:${code}`).emit('party:started', { code, profile: party.hostProfile });
     io.to(`guest:${code}`).emit('participants:update', party.participants);
   });
@@ -399,14 +463,14 @@ io.on('connection', (socket) => {
     if (track && (!party.trackHistory.length || party.trackHistory[0]?.title !== track.title)) {
       party.trackHistory.unshift({ ...track, playedAt: new Date().toISOString() });
     }
-    io.to(`guest:${party.code}`).emit('track:update', track);
+    io.to(`guest:${party.code}`).emit('track:update', stripSecret(track));
     console.log(`🎵 [${party.code}] Track: ${track?.title} — ${track?.artist}`);
   });
 
   socket.on('host:modeChange', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     party.mode = data.mode;
-    io.to(`guest:${party.code}`).emit('mode:change', data);
+    io.to(`guest:${party.code}`).emit('mode:change', stripSecret(data));
     console.log(`🎛️ [${party.code}] Mode: ${data.mode}`);
   });
 
@@ -454,8 +518,9 @@ io.on('connection', (socket) => {
     party.vibeScore = data.vibeScore || 0;
   });
 
-  socket.on('host:trackHistory', (history) => {
+  socket.on('host:trackHistory', (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    const history = data.history || data || [];
     const trackVotes = {};
     for (const gId in party.guestVotes) {
       const votes = party.guestVotes[gId];
@@ -475,7 +540,7 @@ io.on('connection', (socket) => {
   socket.on('host:nextTrack', (track) => {
     const party = getMutableParty(socket); if (!party) return;
     party.nextTrack = track;
-    io.to(`guest:${party.code}`).emit('nextTrack:update', track);
+    io.to(`guest:${party.code}`).emit('nextTrack:update', stripSecret(track));
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -591,7 +656,7 @@ io.on('connection', (socket) => {
     socket.emit('party:state', { ...party, photoHashes: undefined, profilePointsGiven: undefined, _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined });
   });
 
-  socket.on('host:requestState', () => {
+  socket.on('host:requestState', (data) => {
     const party = getParty(socket); if (!party) return;
     socket.emit('party:state', { ...party, photoHashes: undefined, profilePointsGiven: undefined, _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined });
     console.log(`🔄 [${party.code}] Host requested state resync`);
@@ -767,7 +832,7 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
   // HOST CLOSES COSTUME CONTEST
   // ═══════════════════════════════════════════════════════════════════
-  socket.on('host:closeCostume', () => {
+  socket.on('host:closeCostume', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     if (!party.costumeOpen) return;
     party.costumeOpen = false;
@@ -792,7 +857,8 @@ io.on('connection', (socket) => {
   socket.on('host:vote', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     const trackTitle = data.trackTitle || party.currentTrack?.title || 'Titre en cours';
-    const voteData = { ...data, trackTitle, trackId: trackTitle };
+    const { hostSecret: _hs, ...cleanData } = data;
+    const voteData = { ...cleanData, trackTitle, trackId: trackTitle };
     io.to(`guest:${party.code}`).emit('vote:received', voteData);
     if (!party.guestVotes['host']) party.guestVotes['host'] = {};
     party.guestVotes['host'][trackTitle] = data.type;
@@ -806,7 +872,7 @@ io.on('connection', (socket) => {
   // END PARTY
   // ═══════════════════════════════════════════════════════════════════
 
-  socket.on('host:endParty', async () => {
+  socket.on('host:endParty', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
     io.to(`guest:${party.code}`).emit('party:ended', {
       reason: 'La soirée est terminée ! Merci d\'avoir participé 🎉',
