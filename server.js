@@ -431,7 +431,47 @@ io.on('connection', (socket) => {
     socket.join(`host:${code}`);
     cancelCleanup(code);
 
-    // Create or reset party
+    const existing = parties.get(code);
+    const hostName = data.profile?.name || 'Hôte';
+    const hostEmoji = data.profile?.emoji || '🎧';
+
+    // ── RESUME existing party if hostSecret matches ──
+    if (existing && existing.hostSecret && data.hostSecret === existing.hostSecret) {
+      existing.hostSocketId = socket.id;
+      existing.hostProfile = data.profile || existing.hostProfile;
+      existing.isDirty = true;
+
+      // Update host participant entry with new socket id
+      const hostIdx = existing.participants.findIndex(p => p.isHost);
+      if (hostIdx >= 0) {
+        existing.participants[hostIdx].id = socket.id;
+        existing.participants[hostIdx].connected = true;
+      } else {
+        existing.participants.unshift({
+          id: socket.id, name: hostName, emoji: hostEmoji,
+          photo: data.profile?.photo || null,
+          phone: data.profile?.phone || '', email: data.profile?.email || '', instagram: data.profile?.instagram || '',
+          partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true
+        });
+      }
+
+      const lastFour = existing.hostSecret.slice(-4);
+      const guestCount = existing.participants.filter(p => !p.isHost).length;
+      console.log(`🔄 Party RESUMED: ${code} (host: "${hostName}", secret: ****${lastFour}, guests: ${guestCount}, tracks: ${existing.trackHistory.length})`);
+
+      // Re-send full state to host
+      socket.emit('party:state', {
+        ...existing, photoHashes: undefined, profilePointsGiven: undefined,
+        _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined
+      });
+
+      // Notify guests the host is back
+      io.to(`guest:${code}`).emit('party:started', { code, profile: existing.hostProfile });
+      io.to(`guest:${code}`).emit('participants:update', existing.participants);
+      return;
+    }
+
+    // ── NEW party (no existing or secret mismatch) ──
     const party = createPartyState(code);
     party.hostSocketId = socket.id;
     party.hostProfile = data.profile || null;
@@ -442,8 +482,6 @@ io.on('connection', (socket) => {
     const lastFour = party.hostSecret ? party.hostSecret.slice(-4) : 'NONE';
     
     // Build host participant
-    const hostName = data.profile?.name || 'Hôte';
-    const hostEmoji = data.profile?.emoji || '🎧';
     party.participants.unshift({
       id: socket.id, name: hostName, emoji: hostEmoji,
       photo: data.profile?.photo || null,
