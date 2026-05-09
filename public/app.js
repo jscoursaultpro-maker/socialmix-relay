@@ -29,6 +29,7 @@ let state = {
   trackHistory: [],
   suggestions: [],
   currentTrack: null,
+  nextTrack: null,
   mode: 'appMix',
   connected: false,
   diapoPhotos: [],
@@ -540,6 +541,17 @@ function connectToRelay() {
       state.costumeEntries = ps.costumeEntries;
       renderCostumeEntries();
     }
+    // Restore next track
+    if (ps.nextTrack) { state.nextTrack = ps.nextTrack; updateNextTrack(ps.nextTrack); }
+    // Restore guest's own vote for current track (prevent double-voting after reconnect)
+    if (ps.guestVotes && state.guestId && ps.currentTrack) {
+      const myVotes = ps.guestVotes[state.guestId];
+      const trackKey = ps.currentTrack.title || 'current';
+      if (myVotes && myVotes[trackKey]) {
+        state.currentVote = myVotes[trackKey];
+        updateVoteButtons();
+      }
+    }
     saveSession();
   });
 
@@ -716,6 +728,11 @@ function connectToRelay() {
     console.log('[Track] New track → vote reset, buttons re-bound');
   });
 
+  socket.on('nextTrack:update', (track) => {
+    state.nextTrack = track;
+    updateNextTrack(track);
+  });
+
   socket.on('mode:change', (data) => {
     state.mode = data.mode;
     updateDJMode();
@@ -814,6 +831,18 @@ function updateNowPlaying(track) {
     artworkEl.innerHTML = '';
     vinylLabel.innerHTML = '<span class="vinyl-note">♪</span>';
   }
+}
+
+function updateNextTrack(track) {
+  const bar = $('next-track-bar');
+  if (!bar) return;
+  if (!track || !track.title) {
+    bar.style.display = 'none';
+    return;
+  }
+  $('next-track-title').textContent = track.title;
+  $('next-track-artist').textContent = track.artist || '';
+  bar.style.display = 'block';
 }
 
 function updateDJMode() {

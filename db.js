@@ -61,6 +61,7 @@ function partyToDoc(party) {
     costumeVoters: party.costumeVoters,
     participantScores: party.participantScores,
     guestGenreVotes: party.guestGenreVotes,
+    sessionTokens: party.sessionTokens || {},  // Persist for guest reconnection after server restart
     createdAt: party.createdAt,
     endedAt: party.endedAt || null
   };
@@ -87,6 +88,7 @@ function docToPartyState(doc) {
   party.guestGenreVotes = doc.guestGenreVotes || {};
   party.hostSecret = doc.hostSecret || '';
   party.partyType = doc.partyType || 'hosted';
+  party.sessionTokens = doc.sessionTokens || {};  // Restore guest reconnection tokens
   party.createdAt = doc.createdAt ? new Date(doc.createdAt).toISOString() : party.createdAt;
 
   // Rebuild runtime Sets from persisted data

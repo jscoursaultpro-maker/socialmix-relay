@@ -21,6 +21,7 @@ const PartySchema = new mongoose.Schema({
   costumeVoters:    { type: mongoose.Schema.Types.Mixed, default: {} },
   participantScores:{ type: mongoose.Schema.Types.Mixed, default: {} },
   guestGenreVotes:  { type: mongoose.Schema.Types.Mixed, default: {} },
+  sessionTokens:    { type: mongoose.Schema.Types.Mixed, default: {} },
   createdAt:        { type: Date, default: Date.now },
   endedAt:          { type: Date, default: null }
 }, {

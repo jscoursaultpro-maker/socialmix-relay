@@ -520,7 +520,7 @@ io.on('connection', (socket) => {
 
   socket.on('host:trackHistory', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    const history = data.history || data || [];
+    // Build vote counts from guest votes
     const trackVotes = {};
     for (const gId in party.guestVotes) {
       const votes = party.guestVotes[gId];
@@ -532,7 +532,13 @@ io.on('connection', (socket) => {
         else if (t === 'meh') trackVotes[tId].meh++;
       }
     }
-    const enriched = (history || []).map(t => ({ ...t, fireCount: trackVotes[t.title]?.fire || 0, likeCount: trackVotes[t.title]?.like || 0, mehCount: trackVotes[t.title]?.meh || 0 }));
+    // Enrich the SERVER's own trackHistory with vote counts (don't replace it)
+    const enriched = party.trackHistory.map(t => ({
+      ...t,
+      fireCount: trackVotes[t.title]?.fire || 0,
+      likeCount: trackVotes[t.title]?.like || 0,
+      mehCount: trackVotes[t.title]?.meh || 0
+    }));
     party.trackHistory = enriched;
     io.to(`guest:${party.code}`).emit('history:update', enriched);
   });
