@@ -294,17 +294,21 @@ function addPhotoToParty(party, photo) {
 }
 
 function addPoints(party, participantId, name, points, reason) {
+  // Use normalized name as stable key (participantId changes between reconnections)
+  const normalizedName = (name || participantId || 'Guest').trim();
   let key;
   if (participantId === 'host') { key = 'host'; }
   else {
-    const existing = Object.entries(party.participantScores).find(([k, v]) => v.participantId === participantId || k === name);
-    key = existing ? existing[0] : (name || participantId);
+    // First try exact name match, then fall back to participantId match
+    const byName = Object.entries(party.participantScores).find(([k]) => k === normalizedName);
+    const byId = Object.entries(party.participantScores).find(([, v]) => v.participantId === participantId);
+    key = byName ? byName[0] : (byId ? byId[0] : normalizedName);
   }
-  if (!party.participantScores[key]) party.participantScores[key] = { name: name || key, score: 0, voteCount: 0, participantId: participantId || key };
+  if (!party.participantScores[key]) party.participantScores[key] = { name: normalizedName, score: 0, voteCount: 0, participantId: participantId || key };
   party.participantScores[key].score += points;
-  if (name && name !== 'DJ' && name !== 'Guest') party.participantScores[key].name = name;
+  if (name && name !== 'DJ' && name !== 'Guest') party.participantScores[key].name = normalizedName;
   if (participantId) party.participantScores[key].participantId = participantId;
-  console.log(`⭐ [${party.code}] +${points}pts → ${name} (${reason}) [total: ${party.participantScores[key].score}]`);
+  console.log(`⭐ [${party.code}] +${points}pts → ${normalizedName} (${reason}) [total: ${party.participantScores[key].score}]`);
   broadcastLeaderboard(party);
 }
 
@@ -760,7 +764,7 @@ io.on('connection', (socket) => {
     }
     
     // Per-guest photo cap (5 photos, costume photos excluded)
-    const GUEST_PHOTO_CAP = 5;
+    const GUEST_PHOTO_CAP = 15;
     const guestPhotoCount = party.photos.filter(p => p.guestName === data.guestName && !p.isCostume).length;
     if (guestPhotoCount >= GUEST_PHOTO_CAP) {
       console.warn(`📸 [${party.code}] Photo cap reached for ${data.guestName} (${guestPhotoCount}/${GUEST_PHOTO_CAP})`);

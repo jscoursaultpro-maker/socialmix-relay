@@ -171,6 +171,7 @@ function showScreen(name) {
     populateMissions();
     updateMyPhotosGrid();
     refreshAllPhotos();
+    renderCostumeEntries();
   }
 }
 
@@ -883,6 +884,8 @@ function setupVoteButtons() {
       setTimeout(() => { $('vote-status').textContent = ''; }, 3000);
     });
   });
+  // Reset visual state — cloneNode(true) preserves selected/dimmed classes
+  updateVoteButtons();
 }
 
 function updateVoteButtons() {
