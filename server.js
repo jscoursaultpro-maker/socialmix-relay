@@ -7,6 +7,7 @@ import { dirname, join } from 'path';
 import { createPartyState, isValidPartyCode } from './partyState.js';
 import { connectDB, restoreParties, startFlushLoop, stopFlushLoop, flushEndedParty } from './db.js';
 import { randomUUID } from 'crypto';
+import mongoose from 'mongoose';
 import Friendship from './models/Friendship.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,7 +58,16 @@ app.get('/api/status', (req, res) => {
 });
 app.get('/status', (req, res) => {
   const codes = [...parties.keys()];
-  res.json({ status: 'Social Mix Relay Server 🎧', version: 'v14-mongo', activeParties: codes.length, codes, uptime: Math.floor(process.uptime()) + 's' });
+  const mongoState = ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown';
+  res.json({
+    status: 'Social Mix Relay Server 🎧',
+    version: 'v15-parity',
+    activeParties: codes.length,
+    codes,
+    uptime: Math.floor(process.uptime()) + 's',
+    mongo: mongoState,
+    mongoURI: process.env.MONGO_URI ? '✅ configured' : '❌ not set'
+  });
 });
 
 // ─── Deezer Proxy ───────────────────────────────────────────────────
