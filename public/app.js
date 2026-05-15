@@ -519,23 +519,28 @@ function connectToRelay() {
     if (ps.mode) { state.mode = ps.mode; updateDJMode(); }
     if (ps.participants) { updateTrombinoscope(ps.participants); }
     if (ps.photos && ps.photos.length) {
-      // Clear diapo grid and rebuild from server (single source of truth)
-      const grid = $('diapo-grid');
-      if (grid) grid.innerHTML = '';
-      state.diapoPhotos = new Set();
-      ps.photos.forEach(p => {
-        const key = (p.dataURL || '').substring(0, 100);
-        if (!state.diapoPhotos.has(key)) {
-          addDiapoPhoto(p.dataURL, p.guestName);
-        }
-      });
-      // Also add my own photos that might not be on server yet
-      (state.myPhotos || []).forEach(url => {
-        const key = (url || '').substring(0, 100);
-        if (!state.diapoPhotos.has(key)) {
-          addDiapoPhoto(url, state.guestName);
-        }
-      });
+      // Only rebuild diapo if photos have actual dataURL (full state).
+      // Lightweight state (resync) sends metadata only — skip grid rebuild.
+      const hasFullPhotos = ps.photos.some(p => p.dataURL);
+      if (hasFullPhotos) {
+        const grid = $('diapo-grid');
+        if (grid) grid.innerHTML = '';
+        state.diapoPhotos = new Set();
+        ps.photos.forEach(p => {
+          if (!p.dataURL) return;
+          const key = (p.dataURL || '').substring(0, 100);
+          if (!state.diapoPhotos.has(key)) {
+            addDiapoPhoto(p.dataURL, p.guestName);
+          }
+        });
+        // Also add my own photos that might not be on server yet
+        (state.myPhotos || []).forEach(url => {
+          const key = (url || '').substring(0, 100);
+          if (!state.diapoPhotos.has(key)) {
+            addDiapoPhoto(url, state.guestName);
+          }
+        });
+      }
     }
     // Costume contest entries: sync from server on join
     if (ps.costumeEntries && ps.costumeEntries.length) {

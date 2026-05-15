@@ -404,6 +404,64 @@ function stripSecret(obj) {
   const { hostSecret, ...clean } = obj;
   return clean;
 }
+
+// Build a lightweight party:state payload for WebSocket sync.
+// CRITICAL: Photos in base64 can push the payload to >1MB, which exceeds
+// the iOS URLSessionWebSocketTask default limit (1MB) and causes silent
+// message drops → host never receives state → all sync breaks.
+//
+// This function:
+// 1. Replaces photos[] with photosMeta[] (guestName + timestamp only, no base64)
+// 2. Caps trackHistory to the last 20 entries
+// 3. Strips participants' profile photos (keep just name, emoji, id)
+// 4. Removes internal server fields
+function buildLightState(party) {
+  // Photo metadata only — no base64 dataURL
+  const photosMeta = (party.photos || []).map(p => ({
+    guestName: p.guestName || 'Guest',
+    sentAt: p.sentAt || null,
+    caption: p.caption || null,
+    isCostume: p.isCostume || false
+  }));
+
+  // Lightweight participants — strip heavy profile photos
+  const lightParticipants = (party.participants || []).map(p => ({
+    id: p.id,
+    name: p.name,
+    emoji: p.emoji,
+    isHost: p.isHost || false,
+    connected: p.connected !== false,
+    partyCode: p.partyCode,
+    joinedAt: p.joinedAt,
+    // Keep photo for small avatar thumbs but cap at 10KB
+    photo: (p.photo && p.photo.length < 10 * 1024) ? p.photo : undefined
+  }));
+
+  // Cap track history to last 20
+  const recentHistory = (party.trackHistory || []).slice(-20);
+
+  const light = {
+    code: party.code,
+    participants: lightParticipants,
+    suggestions: party.suggestions || [],
+    trackHistory: recentHistory,
+    currentTrack: party.currentTrack || null,
+    genreVotes: party.genreVotes || {},
+    guestGenreVotes: party.guestGenreVotes || {},
+    guestVotes: party.guestVotes || {},
+    costumeEntries: party.costumeEntries || [],
+    leaderboard: party.leaderboard || [],
+    hostProfile: party.hostProfile || null,
+    // Photo metadata instead of full photos
+    photos: photosMeta,
+    photosCount: (party.photos || []).length
+  };
+
+  const sizeKB = Math.round(JSON.stringify(light).length / 1024);
+  console.log(`📦 [${party.code}] buildLightState: ${sizeKB} KB (${lightParticipants.length} participants, ${photosMeta.length} photos meta, ${recentHistory.length} tracks, ${(party.suggestions || []).length} suggestions)`);
+
+  return light;
+}
 // ─── Socket.IO Connection Handling ──────────────────────────────────
 io.on('connection', (socket) => {
   console.log(`🔌 Connected: ${socket.id}`);
@@ -475,11 +533,8 @@ io.on('connection', (socket) => {
       const guestCount = existing.participants.filter(p => !p.isHost).length;
       console.log(`🔄 Party RESUMED: ${code} (host: "${hostName}", secret: ****${lastFour}, guests: ${guestCount}, tracks: ${existing.trackHistory.length})`);
 
-      // Re-send full state to host
-      socket.emit('party:state', {
-        ...existing, photoHashes: undefined, profilePointsGiven: undefined,
-        _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined
-      });
+      // Re-send lightweight state to host (no base64 photos)
+      socket.emit('party:state', buildLightState(existing));
 
       // Notify guests the host is back
       io.to(`guest:${code}`).emit('party:started', { code, profile: existing.hostProfile });
@@ -651,10 +706,7 @@ io.on('connection', (socket) => {
     party.sessionTokens[sessionToken] = guestName;
     party.isDirty = true;
     recomputeGenreVotes(party);
-    socket.emit('party:state', {
-      ...party, photoHashes: undefined, profilePointsGiven: undefined,
-      _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined
-    });
+    socket.emit('party:state', buildLightState(party));
     // Send session token + userId separately (client stores them)
     socket.emit('session:token', { sessionToken, partyCode: code, userId });
     io.to(`host:${code}`).emit('guest:joined', guest);
@@ -704,10 +756,8 @@ io.on('connection', (socket) => {
     cancelCleanup(code);
 
     // Send full state
-    socket.emit('party:state', {
-      ...party, photoHashes: undefined, profilePointsGiven: undefined,
-      _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined
-    });
+    // Send lightweight state (no base64 photos)
+    socket.emit('party:state', buildLightState(party));
     io.to(`host:${code}`).emit('guest:joined', participant);
     io.to(`guest:${code}`).emit('participants:update', party.participants);
 
@@ -721,12 +771,12 @@ io.on('connection', (socket) => {
 
   socket.on('guest:requestState', () => {
     const party = getParty(socket); if (!party) return;
-    socket.emit('party:state', { ...party, photoHashes: undefined, profilePointsGiven: undefined, _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined });
+    socket.emit('party:state', buildLightState(party));
   });
 
   socket.on('host:requestState', (data) => {
     const party = getParty(socket); if (!party) return;
-    socket.emit('party:state', { ...party, photoHashes: undefined, profilePointsGiven: undefined, _genreVotedOnce: undefined, sessionTokens: undefined, disconnectTimers: undefined });
+    socket.emit('party:state', buildLightState(party));
     console.log(`🔄 [${party.code}] Host requested state resync`);
   });
 
