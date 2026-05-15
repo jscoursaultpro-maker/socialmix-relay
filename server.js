@@ -20,8 +20,10 @@ const PORT = process.env.PORT || 3069;
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
   maxHttpBufferSize: 10e6,
-  pingTimeout: 60000,
-  pingInterval: 25000
+  pingTimeout: 120000,     // 2 min — tolerate iOS background/network hiccups
+  pingInterval: 25000,     // 25s — keep-alive heartbeat
+  connectTimeout: 30000,   // 30s — connection handshake timeout
+  allowEIO3: false         // EIO4 only (matches iOS client)
 });
 
 // ─── Multi-Party State ──────────────────────────────────────────────
@@ -637,7 +639,14 @@ io.on('connection', (socket) => {
       consentTimestamp: data.consentTimestamp || Date.now(),
       sessionToken, connected: true
     };
-    party.participants = party.participants.filter(p => p.name !== guest.name);
+    // Remove any existing entry with same name OR same userId (prevents duplicates on reconnect)
+    // IMPORTANT: Never remove the host entry even if name matches
+    party.participants = party.participants.filter(p => {
+      if (p.isHost) return true;  // Never remove the host
+      if (p.name === guest.name) return false;   // Same name → remove old guest
+      if (userId && p.userId === userId) return false; // Same userId → remove old
+      return true;  // Keep everyone else
+    });
     party.participants.push(guest);
     party.sessionTokens[sessionToken] = guestName;
     party.isDirty = true;
@@ -656,7 +665,8 @@ io.on('connection', (socket) => {
         addPoints(party, socket.id, guest.name, 25, 'profile complete');
       }
     }
-    console.log(`👤 [${code}] Guest joined: ${guest.emoji} ${guest.name} (token: ${sessionToken.substring(0, 8)}...)`);
+    console.log(`👤 [${code}] Guest joined: ${guest.emoji} ${guest.name} (token: ${sessionToken.substring(0, 8)}...) — Total participants: ${party.participants.length}`)
+    console.log(`👤 [${code}] Participant list: ${party.participants.map(p => `${p.name}${p.isHost ? ' [HOST]' : ''}`).join(', ')}`);
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -750,7 +760,11 @@ io.on('connection', (socket) => {
     const party = getMutableParty(socket); if (!party) return;
     const suggestion = { ...data, sentAt: new Date().toISOString() };
     party.suggestions.push(suggestion);
-    io.to(`host:${party.code}`).emit('guest:suggested', suggestion);
+    const hostRoom = `host:${party.code}`;
+    const hostSockets = io.sockets.adapter.rooms.get(hostRoom);
+    const hostCount = hostSockets ? hostSockets.size : 0;
+    io.to(hostRoom).emit('guest:suggested', suggestion);
+    console.log(`🎵 [${party.code}] SUGGEST: "${data.title || '?'}" by ${data.guestName || '?'} → host room has ${hostCount} socket(s)`);
     if (data.guestId || data.guestName) addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${data.title || data.query}`);
   });
 
@@ -765,15 +779,15 @@ io.on('connection', (socket) => {
   socket.on('guest:photo', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     
-    // Payload size guard — reject > 300KB base64 (~225KB raw)
+    // Payload size guard — reject > 500KB base64 (~375KB raw)
     const payloadSize = (data.dataURL || '').length;
-    if (payloadSize > 300 * 1024) {
-      console.warn(`📸 [${party.code}] Photo rejected: payload too large (${Math.round(payloadSize/1024)} KB) from ${data.guestName}`);
-      socket.emit('photo:error', { error: 'PHOTO_TOO_LARGE', message: '📸 Photo trop volumineuse. Réessaye avec une photo plus petite.' });
+    if (payloadSize > 500 * 1024) {
+      console.warn(`📸 [${party.code}] Photo REJECTED: ${Math.round(payloadSize/1024)} KB from ${data.guestName} (cap: 500KB)`);
+      socket.emit('photo:error', { error: 'PHOTO_TOO_LARGE', message: '📸 Photo trop volumineuse même après compression. Essayez une photo plus simple.' });
       return;
     }
     
-    // Per-guest photo cap (5 photos, costume photos excluded)
+    // Per-guest photo cap (costume photos excluded)
     const GUEST_PHOTO_CAP = 15;
     const guestPhotoCount = party.photos.filter(p => p.guestName === data.guestName && !p.isCostume).length;
     if (guestPhotoCount >= GUEST_PHOTO_CAP) {
@@ -784,10 +798,12 @@ io.on('connection', (socket) => {
     
     const photo = { dataURL: data.dataURL, guestName: data.guestName || 'Guest', caption: data.caption || null, sentAt: new Date().toISOString() };
     if (!addPhotoToParty(party, photo)) return;
+    const hostRoom = `host:${party.code}`;
+    const hostSockets = io.sockets.adapter.rooms.get(hostRoom);
     socket.broadcast.to(`guest:${party.code}`).emit('photo:shared', photo);
-    io.to(`host:${party.code}`).emit('guest:photo', photo);
+    io.to(hostRoom).emit('guest:photo', photo);
     addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 20, 'photo');
-    console.log(`📸 [${party.code}] Photo from ${data.guestName} (${guestPhotoCount + 1}/${GUEST_PHOTO_CAP}, ${Math.round(payloadSize/1024)} KB)`);
+    console.log(`📸 [${party.code}] Photo ACCEPTED: ${data.guestName} (${guestPhotoCount + 1}/${GUEST_PHOTO_CAP}, ${Math.round(payloadSize/1024)} KB, host sockets: ${hostSockets ? hostSockets.size : 0})`);
   });
 
   socket.on('guest:message', (data) => {
@@ -957,11 +973,13 @@ io.on('connection', (socket) => {
   // DISCONNECT
   // ═══════════════════════════════════════════════════════════════════
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', (reason) => {
     const code = socket.partyCode;
     const party = code ? parties.get(code) : null;
     if (party) {
       const participant = party.participants.find(p => p.id === socket.id);
+      const pName = participant?.name || 'unknown';
+      console.log(`🔌 [${code}] DISCONNECT: ${pName} (socket: ${socket.id}, reason: ${reason})`);
 
       if (participant && participant.sessionToken) {
         // ── GUEST with session token: grace period (4h) ──
@@ -981,11 +999,12 @@ io.on('connection', (socket) => {
             io.to(`guest:${code}`).emit('votes:update', { genreVotes: totals });
           }
           io.to(`guest:${code}`).emit('participants:update', party.participants);
-          io.to(`host:${code}`).emit('guest:left', { id: participant.name });
+          // CR1 FIX: Send both id AND name so host can match by either
+          io.to(`host:${code}`).emit('guest:left', { id: socket.id, name: participant.name });
           party.isDirty = true;
-          console.log(`🗑️ [${code}] Guest ${participant.name} removed after 4h grace period`);
+          console.log(`🗑️ [${code}] Guest ${participant.name} removed after grace period`);
         }, GRACE_MS);
-        console.log(`⏸️ Disconnected (grace 4h): ${participant.name} (party: ${code})`);
+        console.log(`⏸️ [${code}] Grace period started for ${participant.name}`);
       } else {
         // ── HOST or guest without token: immediate removal ──
         if (participant && party.guestGenreVotes[participant.name]) {
@@ -996,8 +1015,9 @@ io.on('connection', (socket) => {
         }
         party.participants = party.participants.filter(p => p.id !== socket.id);
         io.to(`guest:${code}`).emit('participants:update', party.participants);
-        io.to(`host:${code}`).emit('guest:left', { id: socket.id });
-        console.log(`❌ Disconnected: ${socket.id} (party: ${code})`);
+        // CR1 FIX: Send both id AND name so host can match by either
+        io.to(`host:${code}`).emit('guest:left', { id: socket.id, name: pName });
+        console.log(`❌ [${code}] Removed immediately: ${pName} (${socket.id})`);
       }
 
       // Schedule party cleanup if no sockets remain

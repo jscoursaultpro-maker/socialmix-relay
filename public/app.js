@@ -1704,25 +1704,62 @@ function handleGalleryPhoto(e) {
     return;
   }
   
-  readFileAsDataURL(file, (dataURL) => {
-    if (!dataURL) { alert('❌ Erreur photo'); return; }
+  // Retry cascade: quality 0.70 → 0.50 → 0.35
+  const MAX_BASE64_SIZE = 500 * 1024; // 500KB base64 = server cap
+  const QUALITIES = [0.70, 0.50, 0.35];
+  const MAX_PHOTO_SIZE = 1200;
+  
+  function tryCompress(qualityIndex) {
+    const quality = QUALITIES[qualityIndex];
+    console.log('[Photo] Trying compression: quality=' + quality + ' (attempt ' + (qualityIndex + 1) + '/' + QUALITIES.length + ')');
     
-    // Add to MES PHOTOS
-    state.myPhotos = state.myPhotos || [];
-    state.myPhotos.push(dataURL);
-    updateMyPhotosGrid();
-    populateMissions(); // refresh Paparazzi mission
-    
-    // Send as gallery photo to host diaporama
-    if (socket && socket.connected) {
-      socket.emit('guest:photo', {
-        dataURL: dataURL,
-        guestName: state.guestName
-      });
-      console.log('[GalleryPhoto] Emitted guest:photo (' + state.myPhotos.length + '/' + GUEST_PHOTO_CAP + ')');
-    }
-    saveSession();
-  });
+    resizeImage(file, MAX_PHOTO_SIZE, quality, (dataURL) => {
+      if (!dataURL) {
+        // Canvas failed entirely — use raw reader as last resort
+        console.warn('[Photo] Canvas resize failed at quality ' + quality);
+        if (qualityIndex < QUALITIES.length - 1) {
+          tryCompress(qualityIndex + 1);
+        } else {
+          alert('❌ Impossible de compresser cette photo. Essayez une photo plus simple.');
+        }
+        return;
+      }
+      
+      const sizeKB = Math.round(dataURL.length / 1024);
+      console.log('[Photo] Compressed: quality=' + quality + ', size=' + sizeKB + 'KB (cap: ' + Math.round(MAX_BASE64_SIZE / 1024) + 'KB)');
+      
+      if (dataURL.length > MAX_BASE64_SIZE && qualityIndex < QUALITIES.length - 1) {
+        // Too large — retry with lower quality
+        console.log('[Photo] Still too large (' + sizeKB + 'KB), retrying with quality=' + QUALITIES[qualityIndex + 1]);
+        tryCompress(qualityIndex + 1);
+        return;
+      }
+      
+      if (dataURL.length > MAX_BASE64_SIZE) {
+        // All qualities exhausted — give clear UX message
+        alert('📸 Cette photo est trop détaillée (' + sizeKB + ' KB même après compression). Essayez une photo plus simple ou un selfie.');
+        console.warn('[Photo] REJECTED: all qualities exhausted, final size=' + sizeKB + 'KB');
+        return;
+      }
+      
+      // Success — add and send
+      state.myPhotos = state.myPhotos || [];
+      state.myPhotos.push(dataURL);
+      updateMyPhotosGrid();
+      populateMissions();
+      
+      if (socket && socket.connected) {
+        socket.emit('guest:photo', {
+          dataURL: dataURL,
+          guestName: state.guestName
+        });
+        console.log('[Photo] ✅ Sent: quality=' + quality + ', size=' + sizeKB + 'KB (' + state.myPhotos.length + '/' + GUEST_PHOTO_CAP + ')');
+      }
+      saveSession();
+    });
+  }
+  
+  tryCompress(0);
 }
 
 function renderCostumeEntries() {
