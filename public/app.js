@@ -32,7 +32,7 @@ let state = {
   nextTrack: null,
   mode: 'appMix',
   connected: false,
-  diapoPhotos: [],
+  diapoPhotos: new Set(),
   allVotes: [],
   missionPoints: 0,
   leaderboard: [],
@@ -2068,7 +2068,7 @@ function handleDiapoPhoto(e) {
   
   e.target.value = '';
   state.myPhotos = state.myPhotos || [];
-  state.diapoPhotos = state.diapoPhotos || [];
+  if (!(state.diapoPhotos instanceof Set)) state.diapoPhotos = new Set();
   
   // Check per-guest photo cap (costume photos excluded)
   if (state.myPhotos.length >= GUEST_PHOTO_CAP) {
@@ -2091,7 +2091,7 @@ function handleDiapoPhoto(e) {
     console.log('[Photo] Cloudinary URL OK:', cloudUrl);
     
     state.myPhotos.push(cloudUrl);
-    addDiapoPhoto(cloudUrl, state.guestName);
+    try { addDiapoPhoto(cloudUrl, state.guestName); } catch(e) { console.warn('[Photo] addDiapoPhoto error:', e); }
     updateMyPhotosGrid();
     saveSession();
     
