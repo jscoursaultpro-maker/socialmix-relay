@@ -2090,7 +2090,6 @@ function handleDiapoPhoto(e) {
     
     console.log('[Photo] Cloudinary URL OK:', cloudUrl);
     
-    state.diapoPhotos.push(cloudUrl);
     state.myPhotos.push(cloudUrl);
     addDiapoPhoto(cloudUrl, state.guestName);
     updateMyPhotosGrid();
