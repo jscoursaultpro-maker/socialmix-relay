@@ -8,7 +8,7 @@ const STORAGE_KEY = 'socialmix_guest';
 const PROFILE_KEY = 'socialmix_profile';
 const SESSION_KEY = 'socialmix_session';
 const CONSENT_KEY = 'socialmix_consent';
-const GENRES = ['Dance', 'Disco', 'Hip-Hop', 'House', 'Electro', 'Pop', 'R&B', 'Latin', 'Club', 'Rock'];
+const GENRES = ['Dance', 'Disco', 'Hip-Hop', 'House', 'Electro', 'Pop', 'R&B', 'Latin', 'Club', 'Rock', 'Variété Festive'];
 const EMOJIS = ['🎉','🕺','💃','🎶','🌟','🤩','😎','🎭','🔥','💪','✨','💫','🎵','🥳','😈','🦄'];
 
 // ─── State ───────────────────────────────────────────
@@ -221,6 +221,10 @@ function setupLanding() {
       `;
       document.body.prepend(banner);
     }
+  }
+  
+  if ($('show-qr-btn')) {
+    $('show-qr-btn').addEventListener('click', showPartyQR);
   }
   
   $('landing-cta').addEventListener('click', () => {
@@ -1561,7 +1565,7 @@ function updateEngagementFromVotes() {
   const active = Object.entries(userVoteCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
-    .map(([name, votes]) => ({ name, votes, emoji: '🕺' }));
+    .map(([name, votes]) => ({ name, value: votes + ' votes', emoji: '🕺' }));
   renderUserList('active-users', active, false);
   
   // Ghosts — empty for now
@@ -1696,17 +1700,21 @@ function handleCostumePhoto(e) {
   if (!file) return;
   e.target.value = '';
   
-  readFileAsDataURL(file, (dataURL) => {
+  readFileAsDataURL(file, async (dataURL) => {
     if (!dataURL) { alert('❌ Erreur photo'); return; }
+    
+    // Upload to Cloudinary instead of broadcasting Base64
+    const cloudUrl = await uploadToCloudinary(dataURL);
+    if (!cloudUrl) return;
     
     // Update local entry
     const myEntry = (state.costumeEntries || []).find(en => en.guestId === state.guestId);
-    if (myEntry) myEntry.photo = dataURL;
+    if (myEntry) myEntry.photo = cloudUrl;
     renderCostumeEntries();
     
     // Also add to MES PHOTOS
     state.myPhotos = state.myPhotos || [];
-    state.myPhotos.push(dataURL);
+    state.myPhotos.push(cloudUrl);
     updateMyPhotosGrid();
     populateMissions(); // refresh Paparazzi mission
     
@@ -1714,7 +1722,7 @@ function handleCostumePhoto(e) {
     if (socket && socket.connected) {
       socket.emit('costume:photo', {
         guestId: state.guestId,
-        photo: dataURL
+        photo: cloudUrl
       });
       console.log('[CostumePhoto] Emitted costume:photo');
     }
@@ -1725,75 +1733,7 @@ function handleCostumePhoto(e) {
 // Gallery photo handler — clone of handleCostumePhoto WITHOUT costume entry update
 const GUEST_PHOTO_CAP = 5;
 
-function handleGalleryPhoto(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  e.target.value = '';
-  
-  // Check per-guest photo cap (costume photos excluded)
-  const currentCount = (state.myPhotos || []).length;
-  if (currentCount >= GUEST_PHOTO_CAP) {
-    alert('📷 Limite atteinte ! Tu as déjà pris ' + GUEST_PHOTO_CAP + ' photos. Supprime-en une pour en ajouter une autre.');
-    return;
-  }
-  
-  // Retry cascade: quality 0.70 → 0.50 → 0.35
-  const MAX_BASE64_SIZE = 500 * 1024; // 500KB base64 = server cap
-  const QUALITIES = [0.70, 0.50, 0.35];
-  const MAX_PHOTO_SIZE = 1200;
-  
-  function tryCompress(qualityIndex) {
-    const quality = QUALITIES[qualityIndex];
-    console.log('[Photo] Trying compression: quality=' + quality + ' (attempt ' + (qualityIndex + 1) + '/' + QUALITIES.length + ')');
-    
-    resizeImage(file, MAX_PHOTO_SIZE, quality, (dataURL) => {
-      if (!dataURL) {
-        // Canvas failed entirely — use raw reader as last resort
-        console.warn('[Photo] Canvas resize failed at quality ' + quality);
-        if (qualityIndex < QUALITIES.length - 1) {
-          tryCompress(qualityIndex + 1);
-        } else {
-          alert('❌ Impossible de compresser cette photo. Essayez une photo plus simple.');
-        }
-        return;
-      }
-      
-      const sizeKB = Math.round(dataURL.length / 1024);
-      console.log('[Photo] Compressed: quality=' + quality + ', size=' + sizeKB + 'KB (cap: ' + Math.round(MAX_BASE64_SIZE / 1024) + 'KB)');
-      
-      if (dataURL.length > MAX_BASE64_SIZE && qualityIndex < QUALITIES.length - 1) {
-        // Too large — retry with lower quality
-        console.log('[Photo] Still too large (' + sizeKB + 'KB), retrying with quality=' + QUALITIES[qualityIndex + 1]);
-        tryCompress(qualityIndex + 1);
-        return;
-      }
-      
-      if (dataURL.length > MAX_BASE64_SIZE) {
-        // All qualities exhausted — give clear UX message
-        alert('📸 Cette photo est trop détaillée (' + sizeKB + ' KB même après compression). Essayez une photo plus simple ou un selfie.');
-        console.warn('[Photo] REJECTED: all qualities exhausted, final size=' + sizeKB + 'KB');
-        return;
-      }
-      
-      // Success — add and send
-      state.myPhotos = state.myPhotos || [];
-      state.myPhotos.push(dataURL);
-      updateMyPhotosGrid();
-      populateMissions();
-      
-      if (socket && socket.connected) {
-        socket.emit('guest:photo', {
-          dataURL: dataURL,
-          guestName: state.guestName
-        });
-        console.log('[Photo] ✅ Sent: quality=' + quality + ', size=' + sizeKB + 'KB (' + state.myPhotos.length + '/' + GUEST_PHOTO_CAP + ')');
-      }
-      saveSession();
-    });
-  }
-  
-  tryCompress(0);
-}
+// handleGalleryPhoto has been merged into handleDiapoPhoto and is no longer used
 
 function renderCostumeEntries() {
   const grid = $('costume-grid');
@@ -2138,24 +2078,28 @@ function handleDiapoPhoto(e) {
   }
   
   // Use FileReader (more reliable on mobile than createObjectURL)
-  readFileAsDataURL(file, (dataURL) => {
+  readFileAsDataURL(file, async (dataURL) => {
     if (!dataURL) {
       console.error('[Photo] Failed to read file');
       alert('❌ Erreur lors de la lecture de la photo');
       return;
     }
     
-    console.log('[Photo] Read OK, length:', dataURL.length);
+    // Upload to Cloudinary instead of broadcasting Base64
+    const cloudUrl = await uploadToCloudinary(dataURL);
+    if (!cloudUrl) return;
     
-    state.diapoPhotos.push(dataURL);
-    state.myPhotos.push(dataURL);
-    addDiapoPhoto(dataURL, state.guestName);
+    console.log('[Photo] Cloudinary URL OK:', cloudUrl);
+    
+    state.diapoPhotos.push(cloudUrl);
+    state.myPhotos.push(cloudUrl);
+    addDiapoPhoto(cloudUrl, state.guestName);
     updateMyPhotosGrid();
     saveSession();
     
     if (socket && socket.connected) {
       socket.emit('guest:photo', {
-        dataURL: dataURL,
+        dataURL: cloudUrl,
         guestName: state.guestName
       });
       console.log('[Photo] Emitted to server');
@@ -2163,6 +2107,42 @@ function handleDiapoPhoto(e) {
       console.warn('[Photo] Socket not connected!');
     }
   });
+}
+
+// ═══════════════════════════════════════════
+// CLOUDINARY UPLOAD
+// ═══════════════════════════════════════════
+async function uploadToCloudinary(dataURL) {
+  const CLOUD_NAME = 'dtj9ds4xi';
+  const UPLOAD_PRESET = 'socialmix_preset';
+  
+  let indicator = document.createElement('div');
+  indicator.id = 'upload-indicator';
+  indicator.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);color:white;padding:16px 28px;border-radius:14px;font-size:13px;font-weight:800;z-index:99999;backdrop-filter:blur(10px);';
+  indicator.textContent = '☁️ Envoi dans le cloud...';
+  document.body.appendChild(indicator);
+  
+  try {
+    const formData = new FormData();
+    formData.append('file', dataURL);
+    formData.append('upload_preset', UPLOAD_PRESET);
+    
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!res.ok) throw new Error('Cloudinary error');
+    
+    const data = await res.json();
+    indicator.remove();
+    return data.secure_url;
+  } catch (err) {
+    console.error('[Cloudinary] Upload failed:', err);
+    indicator.remove();
+    alert('❌ Erreur lors de l\\'envoi de la photo. Réessaie !');
+    return null;
+  }
 }
 
 // Reliable file reading + resize for mobile
@@ -2350,6 +2330,23 @@ function quitParty() {
   $('dj-live-banner').classList.add('hidden');
   
   showScreen('landing');
+}
+
+// ═══════════════════════════════════════════
+// QR CODE SHARING
+// ═══════════════════════════════════════════
+function showPartyQR() {
+  if (!state.partyCode) return;
+  const qrModal = $('qr-modal');
+  const qrImg = $('qr-code-img');
+  const qrText = $('qr-code-text');
+  
+  if (qrModal && qrImg && qrText) {
+    const partyUrl = `https://socialmix.app/?code=${state.partyCode}`;
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(partyUrl)}`;
+    qrText.textContent = state.partyCode;
+    qrModal.classList.remove('hidden');
+  }
 }
 
 // ═══════════════════════════════════════════

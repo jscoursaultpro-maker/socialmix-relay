@@ -328,6 +328,7 @@ function broadcastLeaderboard(party) {
   const lb = Object.values(party.participantScores)
     .map(d => ({ id: d.participantId === 'host' ? 'host' : d.name, name: d.name, points: d.score }))
     .sort((a, b) => b.points - a.points);
+  party.leaderboard = lb;
   io.to(`guest:${party.code}`).emit('leaderboard:update', lb);
   io.to(`host:${party.code}`).emit('leaderboard:update', lb);
 }
@@ -565,6 +566,7 @@ io.on('connection', (socket) => {
     party.currentTrack = track;
     if (track && (!party.trackHistory.length || party.trackHistory[0]?.title !== track.title)) {
       party.trackHistory.unshift({ ...track, playedAt: new Date().toISOString() });
+      addPoints(party, 'host', 'DJ', 15, 'nouveau titre : ' + track.title);
     }
     io.to(`guest:${party.code}`).emit('track:update', stripSecret(track));
     console.log(`🎵 [${party.code}] Track: ${track?.title} — ${track?.artist}`);

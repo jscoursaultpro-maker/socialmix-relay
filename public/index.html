@@ -84,10 +84,8 @@
                     <img id="profile-photo-preview" class="photo-preview hidden" alt="Photo">
                 </div>
                 <div class="photo-actions">
-                    <label class="photo-btn selfie-btn" for="camera-input">📷 SELFIE</label>
-                    <input type="file" id="camera-input" accept="image/*" capture="user" hidden>
-                    <label class="photo-btn gallery-btn" for="gallery-input">🖼️ GALERIE</label>
-                    <input type="file" id="gallery-input" accept="image/*" hidden>
+                    <label class="photo-btn selfie-btn" for="camera-input">📸 AJOUTER UNE PHOTO</label>
+                    <input type="file" id="camera-input" accept="image/*" hidden>
                     <button id="photo-delete" class="photo-delete-btn hidden">🗑️</button>
                 </div>
             </div>
@@ -188,6 +186,7 @@
                     <span class="crown">👑</span>
                     <span id="trending-genre">Electro</span>
                 </div>
+                <button id="show-qr-btn" class="hub-shortcut-btn" title="Partager">📲</button>
                 <button id="edit-profile-btn" class="hub-shortcut-btn" title="Mon profil">👤</button>
             </div>
         </div>
@@ -383,12 +382,8 @@
                 <!-- Camera photo — opens camera directly on mobile -->
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <div style="position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:4px; padding:8px 16px; background:linear-gradient(135deg,#00c853,#00bfa5); border-radius:10px; cursor:pointer; font-size:11px; font-weight:800; color:#0a0e1a;">
-                        📷 PRENDRE UNE PHOTO
-                        <input type="file" id="camera-photo-input" accept="image/*" capture="environment" onchange="handleGalleryPhoto(event)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
-                    </div>
-                    <div style="position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:4px; padding:8px 16px; background:linear-gradient(135deg,#7c3aed,#6d28d9); border-radius:10px; cursor:pointer; font-size:11px; font-weight:800; color:white;">
-                        🖼️ DEPUIS MA GALERIE
-                        <input type="file" id="gallery-photo-input" accept="image/*" onchange="handleGalleryPhoto(event)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
+                        📸 AJOUTER UNE PHOTO
+                        <input type="file" id="camera-photo-input" accept="image/*" onchange="handleDiapoPhoto(event)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
                     </div>
                 </div>
                 
@@ -543,6 +538,22 @@
             </button>
             <button id="modal-stay" class="modal-stay-btn">RESTER À LA SOIRÉE</button>
             <button id="modal-leave" class="modal-leave-btn">QUITTER DÉFINITIVEMENT</button>
+        </div>
+    </div>
+
+    <!-- ═══ QR CODE MODAL ═══ -->
+    <div id="qr-modal" class="modal-overlay hidden" onclick="this.classList.add('hidden')">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-emoji">📱</div>
+            <h3 class="modal-title">Partager la Soirée</h3>
+            <p class="modal-text" style="margin-bottom: 16px;">Fais scanner ce QR Code à tes amis pour qu'ils rejoignent directement la soirée !</p>
+            <div style="background:white; padding:16px; border-radius:12px; display:inline-block; margin:0 auto;">
+                <img id="qr-code-img" src="" alt="QR Code" style="width:180px; height:180px; display:block;">
+            </div>
+            <div style="font-size:24px; font-weight:900; letter-spacing:4px; color:#00e0c4; margin-top:16px;" id="qr-code-text"></div>
+            <button class="cta-btn" onclick="document.getElementById('qr-modal').classList.add('hidden')" style="margin-top:20px;">
+                <span>✅</span> FERMER
+            </button>
         </div>
     </div>
 
