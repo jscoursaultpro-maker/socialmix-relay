@@ -2140,7 +2140,7 @@ async function uploadToCloudinary(dataURL) {
   } catch (err) {
     console.error('[Cloudinary] Upload failed:', err);
     indicator.remove();
-    alert('❌ Erreur lors de l\\'envoi de la photo. Réessaie !');
+    alert("❌ Erreur lors de l'envoi de la photo. Réessaie !");
     return null;
   }
 }
