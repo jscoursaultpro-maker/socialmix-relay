@@ -8,7 +8,7 @@ const STORAGE_KEY = 'socialmix_guest';
 const PROFILE_KEY = 'socialmix_profile';
 const SESSION_KEY = 'socialmix_session';
 const CONSENT_KEY = 'socialmix_consent';
-const GENRES = ['Dance', 'Disco', 'Hip-Hop', 'House', 'Electro', 'Pop', 'R&B', 'Latin', 'Club', 'Rock', 'Variété Festive'];
+const GENRES = ['Dance', 'Disco', 'Hip-Hop', 'House', 'Electro', 'Pop', 'R&B', 'Latin', 'Club', 'Rock', 'COCOVARIET'];
 const EMOJIS = ['🎉','🕺','💃','🎶','🌟','🤩','😎','🎭','🔥','💪','✨','💫','🎵','🥳','😈','🦄'];
 
 // ─── State ───────────────────────────────────────────

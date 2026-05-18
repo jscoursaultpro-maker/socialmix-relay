@@ -831,7 +831,7 @@ html, body {
   color: var(--turquoise);
   box-shadow: 0 0 16px var(--turquoise-glow);
 }
-.genre-name { font-size: 8px; font-weight: 900; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.genre-name { font-size: 14px; font-weight: 900; letter-spacing: 0.5px; text-align: center; }
 .genre-count { font-size: 8px; font-weight: 600; margin-top: 3px; opacity: 0.5; }
 
 /* Chart Bars */
