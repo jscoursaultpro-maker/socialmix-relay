@@ -307,7 +307,6 @@ function setupProfile() {
   
   // Photo handlers
   $('camera-input').addEventListener('change', handlePhotoInput);
-  $('gallery-input').addEventListener('change', handlePhotoInput);
   $('photo-delete').addEventListener('click', () => {
     state.guestPhoto = null;
     $('profile-photo-preview').classList.add('hidden');
