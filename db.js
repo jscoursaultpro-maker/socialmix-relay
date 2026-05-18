@@ -9,7 +9,7 @@ import { createPartyState } from './partyState.js';
 
 const FLUSH_INTERVAL = 30_000; // 30 seconds
 const STALE_THRESHOLD = 24 * 60 * 60 * 1000; // 24 hours
-const MAX_PERSISTED_PHOTOS = 80; // ~16MB doc limit safety
+
 
 let connected = false;
 let flushTimer = null;
@@ -38,8 +38,7 @@ export async function connectDB() {
 
 // ─── Party → Mongo document ─────────────────────────────────────────
 function partyToDoc(party) {
-  // Limit photos to MAX_PERSISTED_PHOTOS to stay under 16MB
-  const photos = party.photos.slice(0, MAX_PERSISTED_PHOTOS);
+  const photos = party.photos;
   return {
     code: party.code,
     hostSecret: party.hostSecret || '',

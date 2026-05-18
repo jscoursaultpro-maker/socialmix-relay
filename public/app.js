@@ -55,6 +55,26 @@ function showToast(message, duration = 3000) {
   setTimeout(() => { toast.style.opacity = '0'; }, duration);
 }
 
+function showSuggestionToast(message, status) {
+  const colors = {
+    pending: 'linear-gradient(135deg,#666,#888)',
+    accepted: 'linear-gradient(135deg,#00b8a9,#00e0c4)',
+    played: 'linear-gradient(135deg,#ff6b35,#ffd700)',
+    refused: 'linear-gradient(135deg,#ff4444,#cc0000)'
+  };
+  let toast = document.getElementById('suggestion-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'suggestion-toast';
+    toast.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);color:#fff;padding:12px 24px;border-radius:14px;font-size:14px;font-weight:700;z-index:99999;opacity:0;transition:opacity 0.4s;pointer-events:none;text-align:center;max-width:85vw;box-shadow:0 4px 20px rgba(0,0,0,0.4);';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.style.background = colors[status] || colors.pending;
+  toast.style.opacity = '1';
+  setTimeout(() => { toast.style.opacity = '0'; }, status === 'played' ? 5000 : 3000);
+}
+
 // ─── URL Params ──────────────────────────────────────
 function getURLParams() {
   const params = new URLSearchParams(window.location.search);
@@ -775,6 +795,14 @@ function connectToRelay() {
   socket.on('photo:error', (data) => {
     console.warn('[Photo] Server error:', data.error);
     alert(data.message || data.error || 'Erreur photo');
+  });
+
+  // Suggestion status feedback from host
+  socket.on('suggestion:status', (data) => {
+    // Only show notification to the guest who sent the suggestion
+    if (data.guestName && data.guestName !== state.guestName) return;
+    console.log('[Suggestion] Status update:', data.status, data.title);
+    showSuggestionToast(data.message || `Suggestion: ${data.status}`, data.status);
   });
 
   // Costume entries updated from server
