@@ -444,8 +444,14 @@ function buildLightState(party) {
     costumeEntries: party.costumeEntries || [],
     leaderboard: party.leaderboard || [],
     hostProfile: party.hostProfile || null,
-    // Send all photos directly since they are Cloudinary URLs
-    photos: party.photos || [],
+    // Strip legacy Base64 dataURLs to prevent massive payloads and socket crashes
+    photos: (party.photos || []).map(p => {
+      const cleanPhoto = { ...p };
+      if (cleanPhoto.dataURL && cleanPhoto.dataURL.length > 500) {
+        delete cleanPhoto.dataURL;
+      }
+      return cleanPhoto;
+    }),
     photosCount: (party.photos || []).length
   };
 
