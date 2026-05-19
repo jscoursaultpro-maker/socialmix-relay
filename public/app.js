@@ -2147,7 +2147,7 @@ async function uploadToCloudinary(dataURL) {
 // Params: 1200px max long side, JPEG quality 0.70 (validated for party photos)
 function readFileAsDataURL(file, callback) {
   const MAX_PHOTO_SIZE = 1200;
-  const JPEG_QUALITY = 0.70;
+  const JPEG_QUALITY = 0.85;
   
   // Show compression indicator if it takes > 500ms
   let compressionTimer = null;
@@ -2208,13 +2208,18 @@ function resizeImage(file, maxSize, quality, callback) {
     let w = img.width, h = img.height;
     const longestSide = Math.max(w, h);
     
-    // Skip resize if already under maxSize — avoid recompression artifacts
+    // Even small images must go through canvas for PNG→JPEG conversion
+    // (iPhone screenshots can be small but still PNG = huge base64)
     if (longestSide <= maxSize) {
-      console.log('[Photo] Already small (' + w + 'x' + h + '), skipping resize');
-      const reader = new FileReader();
-      reader.onload = () => { URL.revokeObjectURL(img.src); callback(reader.result); };
-      reader.onerror = () => { URL.revokeObjectURL(img.src); callback(null); };
-      reader.readAsDataURL(file);
+      console.log('[Photo] Small image (' + w + 'x' + h + '), converting to JPEG without resize');
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataURL = canvas.toDataURL('image/jpeg', quality);
+      URL.revokeObjectURL(img.src);
+      callback(dataURL);
       return;
     }
     
