@@ -814,9 +814,12 @@ io.on('connection', (socket) => {
     const party = getMutableParty(socket); if (!party) return;
     const suggestion = {
       ...data,
-      status: 'pending',       // pending → accepted → played / refused
+      status: 'pending',       // pending → queued → next → played / dismissed
       sentAt: new Date().toISOString(),
-      statusUpdatedAt: null,
+      queuedAt: null,
+      playingAt: null,
+      playedAt: null,
+      dismissedAt: null,
       socketId: socket.id       // Track originator for status feedback
     };
     party.suggestions.push(suggestion);
@@ -829,7 +832,7 @@ io.on('connection', (socket) => {
       title: data.title || data.query,
       artist: data.artist || '',
       status: 'pending',
-      message: '💡 Suggestion envoyée à l\'organisateur'
+      message: '💡 Suggestion envoyée !'
     });
     console.log(`🎵 [${party.code}] SUGGEST: "${data.title || '?'}" by ${data.guestName || '?'} → host room has ${hostCount} socket(s)`);
     if (data.guestId || data.guestName) addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${data.title || data.query}`);
@@ -848,7 +851,7 @@ io.on('connection', (socket) => {
     );
     if (match) {
       match.status = 'played';
-      match.statusUpdatedAt = new Date().toISOString();
+      match.playedAt = new Date().toISOString();
       // Notify the originating guest
       const guestRoom = `guest:${party.code}`;
       io.to(guestRoom).emit('suggestion:status', {
@@ -856,7 +859,7 @@ io.on('connection', (socket) => {
         artist: match.artist || '',
         guestName: data.guestName,
         status: 'played',
-        message: `🎶 "${match.title || match.query}" joue maintenant grâce à toi ! +10 points bonus`
+        message: `🎉 Well done! "${match.title || match.query}" a été jouée ! +10 pts bonus`
       });
     }
     console.log(`🎵 [${party.code}] SUGGESTION PLAYED: "${data.trackTitle}" suggested by ${data.guestName}`);
@@ -869,17 +872,39 @@ io.on('connection', (socket) => {
       (s.guestName || '') === (data.guestName || '')
     );
     if (match) {
-      match.status = 'accepted';
-      match.statusUpdatedAt = new Date().toISOString();
+      match.status = 'queued';
+      match.queuedAt = new Date().toISOString();
       const guestRoom = `guest:${party.code}`;
       io.to(guestRoom).emit('suggestion:status', {
         title: match.title || match.query,
         artist: match.artist || '',
         guestName: data.guestName,
-        status: 'accepted',
-        message: `✅ L'organisateur va jouer "${match.title || match.query}"`
+        status: 'queued',
+        message: `🎶 Coming soon! "${match.title || match.query}" est dans la file`
       });
-      console.log(`🎵 [${party.code}] SUGGESTION ACCEPTED: "${data.trackTitle}" by ${data.guestName}`);
+      console.log(`🎵 [${party.code}] SUGGESTION QUEUED: "${data.trackTitle}" by ${data.guestName}`);
+    }
+  });
+
+  // New event: mark a suggestion as "next to play"
+  socket.on('host:nextSuggestion', (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    const match = party.suggestions.find(s =>
+      (s.title || '').toLowerCase() === (data.trackTitle || '').toLowerCase() &&
+      (s.guestName || '') === (data.guestName || '')
+    );
+    if (match) {
+      match.status = 'next';
+      match.playingAt = new Date().toISOString();
+      const guestRoom = `guest:${party.code}`;
+      io.to(guestRoom).emit('suggestion:status', {
+        title: match.title || match.query,
+        artist: match.artist || '',
+        guestName: data.guestName,
+        status: 'next',
+        message: `🔥 Next is yours! "${match.title || match.query}" arrive !`
+      });
+      console.log(`🎵 [${party.code}] SUGGESTION NEXT: "${data.trackTitle}" by ${data.guestName}`);
     }
   });
 
@@ -890,17 +915,17 @@ io.on('connection', (socket) => {
       (s.guestName || '') === (data.guestName || '')
     );
     if (match) {
-      match.status = 'refused';
-      match.statusUpdatedAt = new Date().toISOString();
+      match.status = 'dismissed';
+      match.dismissedAt = new Date().toISOString();
       const guestRoom = `guest:${party.code}`;
       io.to(guestRoom).emit('suggestion:status', {
         title: match.title || match.query,
         artist: match.artist || '',
         guestName: data.guestName,
-        status: 'refused',
-        message: `❌ Suggestion non retenue cette fois`
+        status: 'dismissed',
+        message: `Maybe next time! On garde ta suggestion en tête 😉`
       });
-      console.log(`🎵 [${party.code}] SUGGESTION REFUSED: "${data.trackTitle}" by ${data.guestName}`);
+      console.log(`🎵 [${party.code}] SUGGESTION DISMISSED: "${data.trackTitle}" by ${data.guestName}`);
     }
   });
 
