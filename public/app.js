@@ -84,6 +84,40 @@ function showSuggestionToast(message, status) {
   }, duration);
 }
 
+function updateSuggestionBadge(title, status, message) {
+  // Find the suggestion item in the list by title
+  const items = document.querySelectorAll('.suggestion-item[data-suggest-title]');
+  for (const item of items) {
+    if (item.getAttribute('data-suggest-title') === title) {
+      const badge = item.querySelector('.suggest-status-badge');
+      if (!badge) continue;
+
+      const configs = {
+        pending:   { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
+        queued:    { dot: '#00b8a9', icon: '🎶', label: 'Coming soon !' },
+        next:      { dot: '#ff6b35', icon: '🔥', label: 'C\'est la prochaine !' },
+        played:    { dot: '#ffd700', icon: '🎉', label: 'Bien joué !' },
+        dismissed: { dot: '#667',    icon: '😉', label: 'Peut-être la prochaine fois' },
+        accepted:  { dot: '#00b8a9', icon: '🎶', label: 'Acceptée !' },
+        refused:   { dot: '#667',    icon: '😉', label: 'Refusée' }
+      };
+      const c = configs[status] || configs.pending;
+      const displayMsg = message || `${c.icon} ${c.label}`;
+
+      badge.style.color = c.dot;
+      badge.innerHTML = `
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c.dot};box-shadow:0 0 4px ${c.dot};"></span>
+        ${escapeHtml(displayMsg)}
+      `;
+      // Subtle pulse animation
+      badge.style.animation = 'none';
+      badge.offsetHeight; // trigger reflow
+      badge.style.animation = 'fadeIn 0.4s ease';
+      break;
+    }
+  }
+}
+
 // ─── URL Params ──────────────────────────────────────
 function getURLParams() {
   const params = new URLSearchParams(window.location.search);
@@ -815,6 +849,9 @@ function connectToRelay() {
     if (data.guestName && data.guestName !== state.guestName) return;
     console.log('[Suggestion] Status update:', data.status, data.title);
     showSuggestionToast(data.message || `Suggestion: ${data.status}`, data.status);
+    
+    // Update persistent status badge in suggestion list
+    updateSuggestionBadge(data.title, data.status, data.message);
   });
 
   // Costume entries updated from server
@@ -1156,12 +1193,23 @@ function sendSuggestion(deezerID, title, artist, coverURL, duration) {
   console.log(`[Suggest] ✅ Sent: ${title} by ${artist} (ID: ${deezerID})`);
   
   // Add to sent list
-  state.suggestions.push({ title, artist, deezerID });
+  state.suggestions.push({ title, artist, deezerID, status: 'pending' });
   
   const list = $('suggestions-list');
   const item = document.createElement('div');
   item.className = 'suggestion-item';
-  item.innerHTML = `<span class="suggestion-check">✅</span> ${escapeHtml(title)} — ${escapeHtml(artist)}`;
+  item.setAttribute('data-suggest-title', title);
+  item.innerHTML = `
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="suggestion-check">✅</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(title)} — ${escapeHtml(artist)}</span>
+      </div>
+      <div class="suggest-status-badge" style="margin-top:4px;font-size:9px;font-weight:800;color:rgba(255,255,255,0.4);display:flex;align-items:center;gap:4px;">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#888;"></span>
+        💡 Envoyée au DJ
+      </div>
+    </div>`;
   list.appendChild(item);
   
   saveSession();
