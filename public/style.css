@@ -947,23 +947,26 @@ html, body {
 
 /* Quit Button */
 .quit-btn {
-  width: 100%; padding: 14px;
-  background: transparent;
-  border: 1px solid rgba(255, 59, 92, 0.25);
+  width: 100%; padding: 16px;
+  background: rgba(255, 59, 92, 0.06);
+  border: 1px solid rgba(255, 59, 92, 0.3);
   border-radius: var(--radius-md);
-  color: rgba(255, 59, 92, 0.7);
-  font-size: 12px; font-weight: 900;
+  color: rgba(255, 59, 92, 0.8);
+  font-size: 13px; font-weight: 900;
   font-family: var(--font); letter-spacing: 0.5px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  margin-bottom: 40px;
+  margin-bottom: 60px;
   position: relative;
   z-index: 10;
   -webkit-tap-highlight-color: rgba(255, 59, 92, 0.2);
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
 }
 .quit-btn:hover {
-  background: rgba(255, 59, 92, 0.08);
+  background: rgba(255, 59, 92, 0.12);
   border-color: rgba(255, 59, 92, 0.5);
   color: var(--danger);
 }
@@ -982,6 +985,7 @@ html, body {
   background: linear-gradient(180deg, transparent, var(--bg-deep));
   font-size: 9px; font-weight: 700;
   color: var(--text-dim); z-index: 100;
+  pointer-events: none;
 }
 .conn-dot {
   width: 6px; height: 6px; border-radius: 50%;
@@ -1213,22 +1217,32 @@ html, body {
 .modal-title { font-size: 20px; font-weight: 900; margin-bottom: 6px; }
 .modal-text { font-size: 12px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.4; }
 .modal-stay-btn {
-  width: 100%; padding: 12px; margin-top: 10px;
+  width: 100%; padding: 14px; margin-top: 10px;
   background: var(--surface2);
   border: 1px solid rgba(0,224,195,0.3);
   border-radius: 50px;
   color: var(--turquoise);
-  font-size: 12px; font-weight: 900;
+  font-size: 13px; font-weight: 900;
   font-family: var(--font);
   cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(0,224,196,0.3);
 }
 .modal-leave-btn {
-  width: 100%; padding: 10px; margin-top: 8px;
-  background: transparent; border: none;
-  color: var(--text-dim);
-  font-size: 10px; font-weight: 900;
+  width: 100%; padding: 14px; margin-top: 8px;
+  background: rgba(255, 59, 92, 0.08);
+  border: 1px solid rgba(255, 59, 92, 0.2);
+  border-radius: 50px;
+  color: rgba(255, 59, 92, 0.8);
+  font-size: 11px; font-weight: 900;
   font-family: var(--font);
   cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255, 59, 92, 0.3);
 }
 
 /* ═══════════════════════════════════════════
