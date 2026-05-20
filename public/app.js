@@ -2357,39 +2357,125 @@ function setupExitModal() {
 }
 
 function quitParty() {
+  // Show the end-of-party screen instead of just going to landing
+  // Build a minimal end screen with social hub access
+  const trackHistory = state.trackHistory || [];
+  const participants = state.participants || [];
+  const photos = state.photos || [];
+  
+  // Disconnect socket
   if (socket) { socket.disconnect(); socket = null; }
-  localStorage.removeItem(STORAGE_KEY);
   clearResumeSession();
   
-  // Reset all state
-  state.partyCode = '';
-  state.currentVote = null;
-  state.selectedGenre = null;
-  state.genreVotes = {};
-  state.trackHistory = [];
-  state.suggestions = [];
-  state.currentTrack = null;
-  state.mode = 'appMix';
-  state.connected = false;
+  // Build the end screen (reuse the party:ended screen structure)
+  const cockpit = $('cockpit-screen');
   
-  // Also clear profile for clean restart
-  state.guestName = '';
-  state.guestEmoji = '';
-  state.guestPhoto = null;
-  localStorage.removeItem('socialmix-profile');
+  // Build participant grid
+  window._endPartyParticipants = participants;
+  window._endPartyPhotos = photos;
   
-  // Reset cockpit UI
-  $('np-title').textContent = 'En attente...';
-  $('np-artist').textContent = '—';
-  $('np-bpm').textContent = '— BPM';
-  $('np-genre').textContent = '—';
-  const vinylLabel = $('vinyl-label');
-  if (vinylLabel) vinylLabel.innerHTML = '<span class="vinyl-note">♪</span>';
-  $('vote-status').textContent = '';
-  $('suggestions-list').innerHTML = '';
-  $('dj-live-banner').classList.add('hidden');
+  let trombiHTML = '';
+  if (participants.length) {
+    trombiHTML = participants.map((p, pidx) => {
+      const shortName = (p.name || 'Guest').length > 6 ? (p.name || 'Guest').substring(0, 6) + '…' : (p.name || 'Guest');
+      const avatarContent = p.photo
+        ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">`
+        : `<span style="font-size:28px;">${p.emoji || '🎉'}</span>`;
+      return `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="showEndContactCard(${pidx})">
+          <div style="width:56px;height:56px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,0.2);border:2px solid rgba(0,224,196,0.3);">${avatarContent}</div>
+          <div style="font-size:9px;font-weight:700;color:white;">${shortName}</div>
+        </div>`;
+    }).join('');
+  }
   
-  showScreen('landing');
+  // Build photo gallery
+  let galleryHTML = '';
+  if (photos.length) {
+    galleryHTML = photos.map((p, i) => `
+      <div style="position:relative;" data-photo-idx="${i}">
+        <img src="${p.dataURL}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:2px solid rgba(255,255,255,0.1);cursor:pointer" onclick="showEndPhotoLightbox('${i}')">
+        <div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.5);text-align:center;margin-top:2px;">${(p.guestName || 'Guest').substring(0, 8)}</div>
+      </div>`).join('');
+  }
+  
+  // Build favorite tracks
+  const myFires = (state.allVotes || []).filter(v => v.type === 'fire' && v.guestName === state.guestName);
+  const fireTrackTitles = [...new Set(myFires.map(v => v.trackTitle))];
+  const favTracks = trackHistory.filter(t => fireTrackTitles.includes(t.title));
+  let favTracksHTML = '';
+  if (favTracks.length) {
+    favTracksHTML = favTracks.map(t => {
+      const q = encodeURIComponent(`${t.artist} ${t.title}`);
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:4px;">
+          <span style="font-size:18px;">🔥</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:800;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(t.title)}</div>
+            <div style="font-size:10px;color:var(--text-dim);">${escapeHtml(t.artist)}</div>
+            <div style="display:flex;gap:6px;margin-top:3px;">
+              <a href="https://open.spotify.com/search/${q}" target="_blank" style="font-size:8px;font-weight:700;color:#1DB954;background:rgba(29,185,84,0.1);padding:2px 6px;border-radius:4px;text-decoration:none;">Spotify</a>
+              <a href="https://music.apple.com/search?term=${q}" target="_blank" style="font-size:8px;font-weight:700;color:#fc3c44;background:rgba(252,60,68,0.1);padding:2px 6px;border-radius:4px;text-decoration:none;">Apple</a>
+              <a href="https://www.deezer.com/search/${q}" target="_blank" style="font-size:8px;font-weight:700;color:#a855f7;background:rgba(168,85,247,0.1);padding:2px 6px;border-radius:4px;text-decoration:none;">Deezer</a>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+  
+  cockpit.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;padding:20px;text-align:center;overflow-y:auto;max-height:100vh;-webkit-overflow-scrolling:touch">
+      <div style="font-size:50px;margin-bottom:8px">👋</div>
+      <h2 style="color:white;font-size:22px;font-weight:900;margin-bottom:2px">MERCI D'ÊTRE VENU(E) !</h2>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">À bientôt pour une prochaine soirée Social Mix 🎧</p>
+      
+      ${favTracksHTML ? `
+        <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
+          <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">🎵 TES TITRES PRÉFÉRÉS</div>
+          ${favTracksHTML}
+        </div>` : ''}
+      
+      ${trombiHTML ? `
+        <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
+          <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">👥 LE CREW</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">${trombiHTML}</div>
+          <div style="font-size:9px;color:var(--text-dim);margin-top:8px">Tape un nom pour ajouter à tes contacts</div>
+        </div>` : ''}
+      
+      ${galleryHTML ? `
+        <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
+          <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">📸 PHOTOS (${photos.length})</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px" id="end-photo-grid">${galleryHTML}</div>
+        </div>` : ''}
+      
+      <button onclick="window.location.reload()" class="cta-btn" style="width:100%;max-width:300px;margin-top:12px;-webkit-appearance:none;touch-action:manipulation;">🔄 REJOINDRE UNE AUTRE SOIRÉE</button>
+      
+      <div style="margin-top:16px;padding:14px 20px;background:linear-gradient(135deg,rgba(0,210,255,0.08),rgba(138,43,226,0.06));border:1px solid rgba(0,210,255,0.15);border-radius:12px;width:100%;max-width:300px;text-align:center;">
+        <div style="font-size:20px;margin-bottom:4px;">📱</div>
+        <div style="font-size:11px;font-weight:800;color:white;margin-bottom:2px;">TÉLÉCHARGE L'APP</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-bottom:8px;">Garde un accès à tes soirées Social Mix</div>
+        <button onclick="alert('Bientôt disponible sur l\\'App Store ! 🎧')" style="padding:8px 20px;background:linear-gradient(135deg,#00d2ff,#8a2be2);border:none;border-radius:10px;font-size:11px;font-weight:800;color:white;cursor:pointer;-webkit-appearance:none;touch-action:manipulation;">🍎 DISPONIBLE BIENTÔT</button>
+      </div>
+      
+      <div style="height:40px"></div>
+    </div>
+    
+    <!-- Contact card overlay -->
+    <div id="end-contact-card" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px" onclick="this.style.display='none'">
+      <div id="end-contact-emoji" style="font-size:60px"></div>
+      <div id="end-contact-name" style="font-size:22px;font-weight:900;color:white"></div>
+      <button id="end-contact-btn" style="padding:10px 24px;background:linear-gradient(135deg,#00e0c4,#00b8a9);border:none;border-radius:10px;font-size:12px;font-weight:800;color:#0a0e1a;cursor:pointer;-webkit-appearance:none;touch-action:manipulation;" onclick="event.stopPropagation()">📇 AJOUTER AUX CONTACTS</button>
+      <div onclick="event.stopPropagation();this.parentElement.style.display='none'" style="margin-top:8px;font-size:11px;font-weight:800;color:rgba(255,255,255,0.4);cursor:pointer;-webkit-appearance:none;touch-action:manipulation;">✕ FERMER</div>
+    </div>
+    
+    <!-- Photo lightbox overlay -->
+    <div id="end-photo-lightbox" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:20px" onclick="this.style.display='none'">
+      <img id="end-photo-img" style="max-width:90%;max-height:60vh;border-radius:14px;border:2px solid rgba(0,224,196,0.3)">
+      <div id="end-photo-author" style="font-size:12px;font-weight:700;color:var(--text-dim)"></div>
+      <button id="end-photo-save" style="padding:10px 24px;background:linear-gradient(135deg,#00c853,#00bfa5);border:none;border-radius:10px;font-size:12px;font-weight:800;color:#0a0e1a;cursor:pointer;-webkit-appearance:none;touch-action:manipulation;" onclick="event.stopPropagation()">💾 ENREGISTRER</button>
+      <div onclick="event.stopPropagation();this.parentElement.style.display='none'" style="margin-top:4px;font-size:11px;font-weight:800;color:rgba(255,255,255,0.4);cursor:pointer">✕ FERMER</div>
+    </div>`;
+  showScreen('cockpit');
 }
 
 // ═══════════════════════════════════════════
