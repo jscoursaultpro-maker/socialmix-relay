@@ -207,7 +207,11 @@ function loadResumeSession() {
 }
 
 function clearResumeSession() {
-  localStorage.removeItem(SESSION_KEY);
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch(e) {
+    console.warn("Could not clear session", e);
+  }
   state.sessionToken = null;
 }
 
@@ -2408,6 +2412,7 @@ function quitParty() {
   
   // Build the end screen (reuse the party:ended screen structure)
   const cockpit = $('cockpit-screen');
+  showScreen('cockpit'); // Ensure we are on the cockpit screen
   
   // Build participant grid
   window._endPartyParticipants = participants;
