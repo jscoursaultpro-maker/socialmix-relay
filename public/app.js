@@ -819,6 +819,8 @@ function connectToRelay() {
   socket.on('history:update', (history) => {
     state.trackHistory = history;
     updateHistory();
+    renderGuestSuggestions();
+    populateMissions();
     saveSession();
   });
 
@@ -1213,7 +1215,44 @@ function sendSuggestion(deezerID, title, artist, coverURL, duration) {
   list.appendChild(item);
   
   saveSession();
-  populateMissions();
+}
+
+function renderGuestSuggestions() {
+  const list = $('suggestions-list');
+  if (!list) return;
+  list.innerHTML = '';
+  
+  (state.suggestions || []).forEach(sugg => {
+    const item = document.createElement('div');
+    item.className = 'suggestion-item';
+    item.setAttribute('data-suggest-title', sugg.title);
+    
+    // Configs for status
+    const configs = {
+      pending:   { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
+      queued:    { dot: '#00b8a9', icon: '🎶', label: 'Coming soon !' },
+      next:      { dot: '#ff6b35', icon: '🔥', label: "C'est la prochaine !" },
+      played:    { dot: '#ffd700', icon: '🎉', label: 'Bien joué !' },
+      dismissed: { dot: '#667',    icon: '😉', label: 'Peut-être la prochaine fois' },
+      accepted:  { dot: '#00b8a9', icon: '🎶', label: 'Acceptée !' },
+      refused:   { dot: '#667',    icon: '😉', label: 'Refusée' }
+    };
+    const c = configs[sugg.status] || configs.pending;
+    const msg = sugg.message || `${c.icon} ${c.label}`;
+    
+    item.innerHTML = `
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="suggestion-check">✅</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(sugg.title)} — ${escapeHtml(sugg.artist)}</span>
+        </div>
+        <div class="suggest-status-badge" style="margin-top:4px;font-size:9px;font-weight:800;color:${c.dot};display:flex;align-items:center;gap:4px;">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c.dot};box-shadow:0 0 4px ${c.dot};"></span>
+          ${escapeHtml(msg)}
+        </div>
+      </div>`;
+    list.appendChild(item);
+  });
 }
 
 // Helpers for safe HTML rendering
