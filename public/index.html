@@ -531,13 +531,13 @@
     <div id="exit-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <div class="modal-emoji">👋</div>
-            <h3 class="modal-title">Tu nous quittes déjà</h3>
+            <h3 class="modal-title">Tu nous quittes déjà ?</h3>
             <p class="modal-text">Tu pourras retrouver le Social Hub de la soirée à tout moment.</p>
-            <button id="modal-hub" class="cta-btn">
+            <button id="modal-hub" class="cta-btn" onclick="document.getElementById('exit-modal').classList.add('hidden'); if(typeof showScreen==='function') showScreen('hub');">
                 <span>✨</span> VOIR LE SOCIAL HUB
             </button>
-            <button id="modal-stay" class="modal-stay-btn">RESTER À LA SOIRÉE</button>
-            <button id="modal-leave" class="modal-leave-btn">QUITTER DÉFINITIVEMENT</button>
+            <button id="modal-stay" class="modal-stay-btn" onclick="document.getElementById('exit-modal').classList.add('hidden');">RESTER À LA SOIRÉE</button>
+            <button id="modal-leave" class="modal-leave-btn" onclick="document.getElementById('exit-modal').classList.add('hidden'); if(typeof quitParty==='function') quitParty();">QUITTER DÉFINITIVEMENT</button>
         </div>
     </div>
 
