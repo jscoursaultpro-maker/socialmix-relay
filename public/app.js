@@ -1234,9 +1234,9 @@ function renderGuestSuggestions() {
     // Configs for status
     const configs = {
       pending:   { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
-      queued:    { dot: '#00b8a9', icon: '🎶', label: 'Coming soon !' },
-      next:      { dot: '#ff6b35', icon: '🔥', label: "C'est la prochaine !" },
-      played:    { dot: '#ffd700', icon: '🎉', label: 'Bien joué !' },
+      queued:    { dot: '#00b8a9', icon: '🎶', label: 'Coming soon' },
+      next:      { dot: '#ff6b35', icon: '🔥', label: 'Next !' },
+      played:    { dot: '#ffd700', icon: '🎉', label: 'Well done !' },
       dismissed: { dot: '#667',    icon: '😉', label: 'Peut-être la prochaine fois' },
       accepted:  { dot: '#00b8a9', icon: '🎶', label: 'Acceptée !' },
       refused:   { dot: '#667',    icon: '😉', label: 'Refusée' }
