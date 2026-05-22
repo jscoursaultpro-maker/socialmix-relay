@@ -444,6 +444,8 @@ function buildLightState(party) {
     costumeEntries: party.costumeEntries || [],
     leaderboard: party.leaderboard || [],
     hostProfile: party.hostProfile || null,
+    // Recent messages (last 50) for resync
+    messages: (party.messages || []).slice(-50),
     // Strip legacy Base64 dataURLs to prevent massive payloads and socket crashes
     photos: (party.photos || []).map(p => {
       const cleanPhoto = { ...p };
@@ -961,14 +963,22 @@ io.on('connection', (socket) => {
 
   socket.on('guest:message', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    const msg = { guestName: data.guestName || 'Guest', message: data.message || '', guestPhoto: data.guestPhoto || null, guestEmoji: data.guestEmoji || '🎉' };
+    const msg = { id: Date.now().toString(), guestName: data.guestName || 'Guest', message: data.message || '', guestPhoto: data.guestPhoto || null, guestEmoji: data.guestEmoji || '🎉', sentAt: new Date().toISOString() };
+    // Store in party state for resync
+    if (!party.messages) party.messages = [];
+    party.messages.push(msg);
+    // Broadcast to host AND all other guests
     io.to(`host:${party.code}`).emit('guest:message', msg);
+    socket.broadcast.to(`guest:${party.code}`).emit('guest:message', msg);
     addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 10, 'message');
   });
 
   socket.on('host:message', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    const msg = { guestName: data.guestName || 'DJ', message: data.message || '', guestEmoji: data.guestEmoji || '🎧' };
+    const msg = { id: Date.now().toString(), guestName: data.guestName || 'DJ', message: data.message || '', guestEmoji: data.guestEmoji || '🎧', sentAt: new Date().toISOString() };
+    // Store in party state for resync
+    if (!party.messages) party.messages = [];
+    party.messages.push(msg);
     io.to(`guest:${party.code}`).emit('guest:message', msg);
     addPoints(party, 'host', data.guestName || 'DJ', 10, 'message');
   });
