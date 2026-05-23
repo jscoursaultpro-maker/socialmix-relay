@@ -791,7 +791,7 @@ io.on('connection', (socket) => {
     if (!party.guestVotes[data.guestId]) party.guestVotes[data.guestId] = {};
     party.guestVotes[data.guestId][data.trackId || 'current'] = data.type;
     io.to(`host:${party.code}`).emit('guest:voted', data);
-    io.to(`guest:${party.code}`).emit('vote:received', data);
+    io.to(`guest:${party.code}`).emit('guest:voted', data);
     if (data.guestId) addPoints(party, data.guestId, data.guestName || 'Guest', 10, `vote ${data.type}`);
   });
 

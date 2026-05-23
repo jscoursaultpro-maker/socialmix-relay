@@ -2836,15 +2836,16 @@ function renderMissions() {
 }
 
 function renderLeaderboard() {
-  const container = $('participant-leaderboard');
-  if (!container) return;
+  const containers = [$('participant-leaderboard'), $('cockpit-leaderboard')].filter(Boolean);
+  if (containers.length === 0) return;
   const lb = state.leaderboard || [];
   if (lb.length === 0) {
-    container.innerHTML = '<div style="text-align:center; color:rgba(255,255,255,0.3); font-size:11px; padding:12px;">⏳ En attente d\'activité...</div>';
+    const empty = '<div style="text-align:center; color:rgba(255,255,255,0.3); font-size:11px; padding:12px;">⏳ En attente d\'activité...</div>';
+    containers.forEach(c => c.innerHTML = empty);
     return;
   }
   const medals = ['🥇', '🥈', '🥉'];
-  container.innerHTML = lb.slice(0, 10).map((p, i) => {
+  const html = lb.slice(0, 10).map((p, i) => {
     const medal = medals[i] || `${i + 1}.`;
     const isMe = p.id === state.guestId;
     const highlight = isMe ? 'background:rgba(255,193,7,0.1); border:1px solid rgba(255,193,7,0.3);' : 'background:rgba(255,255,255,0.03);';
@@ -2856,4 +2857,5 @@ function renderLeaderboard() {
       </div>
     `;
   }).join('');
+  containers.forEach(c => c.innerHTML = html);
 }
