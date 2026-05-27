@@ -957,8 +957,8 @@ function updateNowPlaying(track) {
     if (track.suggestedBy) {
       suggesterEl.style.display = 'inline-flex';
       suggesterName.textContent = track.suggestedBy;
-      suggesterIcon.textContent = '✨';
-      suggesterText.textContent = 'Mis le feu par';
+      suggesterIcon.textContent = '🔥';
+      suggesterText.textContent = 'Titre choisi par';
     } else if (state.mode === 'appMix') { // appMix = Jukebox mode
       suggesterEl.style.display = 'inline-flex';
       suggesterName.textContent = 'DJ Brain';
@@ -1389,7 +1389,9 @@ function updateHistory() {
       <div class="history-info">
         <div class="history-title">${track.title}${genreBadge}</div>
         <div class="history-artist">${track.artist}</div>
-        ${track.suggestedBy ? `<div style="margin-top:2px; font-size:10px; color:#00d2ff; font-weight:600;">✨ Mis le feu par ${escapeAttr(track.suggestedBy)}</div>` : ''}
+        ${track.suggestedBy 
+          ? `<div style="margin-top:2px; font-size:10px; color:#00d2ff; font-weight:600;">🔥 Titre choisi par ${escapeAttr(track.suggestedBy)}</div>` 
+          : `<div style="margin-top:2px; font-size:10px; color:#c651cd; font-weight:600;">🤖 Mixé par le DJ Brain</div>`}
         ${voteBadges ? `<div style="margin-top:2px;">${voteBadges}</div>` : ''}
         <div class="history-links">
           <a class="stream-link spotify" href="https://open.spotify.com/search/${query}" target="_blank">Spotify</a>
