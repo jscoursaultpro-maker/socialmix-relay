@@ -1,0 +1,88 @@
+{
+  "scenario": "SINGLE_PARTY",
+  "targetUrl": "http://localhost:3069",
+  "config": {
+    "NUM_GUESTS": 5,
+    "NUM_PARTIES": 5,
+    "GUESTS_PER_PARTY": 20,
+    "DURATION_SEC": 10,
+    "RAMP_SEC": 3
+  },
+  "durationSec": 15.021,
+  "latency": {
+    "samples": 1,
+    "p50": 1.3702919999996084,
+    "p95": 1.3702919999996084,
+    "p99": 1.3702919999996084,
+    "max": 1.3702919999996084
+  },
+  "votes": {
+    "emitted": 1,
+    "received": 1
+  },
+  "messages": {
+    "sent": 0,
+    "received": 0
+  },
+  "suggestions": {
+    "sent": 0
+  },
+  "photos": {
+    "sent": 0
+  },
+  "connections": {
+    "attempted": 5,
+    "succeeded": 5
+  },
+  "reconnects": {
+    "total": 0,
+    "succeeded": 0,
+    "maxPerClient": 0
+  },
+  "ram": {
+    "peakMB": "62.5",
+    "samples": 1,
+    "saturated400MB": false
+  },
+  "crossPartyLeaks": 0,
+  "unexpectedDisconnects": 0,
+  "errors": [],
+  "checks": [
+    {
+      "name": "Latency p95 < 500ms",
+      "pass": true,
+      "value": "1.4ms"
+    },
+    {
+      "name": "Latency p99 < 1000ms",
+      "pass": true,
+      "value": "1.4ms"
+    },
+    {
+      "name": "Peak RAM < 400 MB",
+      "pass": true,
+      "value": "62.5 MB"
+    },
+    {
+      "name": "No cross-party leaks (MULTI_PARTY)",
+      "pass": true,
+      "value": "0 leaks"
+    },
+    {
+      "name": "No unexpected disconnects",
+      "pass": true,
+      "value": "0"
+    },
+    {
+      "name": "No unhandled errors",
+      "pass": true,
+      "value": "0 errors"
+    },
+    {
+      "name": "Reconnect success rate 100% (RECONNECT_STORM)",
+      "pass": true,
+      "value": "N/A"
+    }
+  ],
+  "verdict": "PASS ✅"
+}
