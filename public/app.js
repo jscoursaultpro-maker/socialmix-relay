@@ -181,10 +181,21 @@ function loadSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (saved) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCode = urlParams.get('code');
+      
       state.guestId = saved.guestId;
       state.partyCode = saved.partyCode || '';
-      state.suggestions = saved.suggestions || [];
-      state.trackHistory = saved.trackHistory || [];
+      
+      if (urlCode && state.partyCode && urlCode.toUpperCase() !== state.partyCode.toUpperCase()) {
+        // The user is joining a NEW party via URL link. We MUST ignore the old suggestions.
+        state.partyCode = urlCode.toUpperCase();
+        state.suggestions = [];
+        state.trackHistory = [];
+      } else {
+        state.suggestions = saved.suggestions || [];
+        state.trackHistory = saved.trackHistory || [];
+      }
       return true;
     }
   } catch(e) {}
@@ -478,7 +489,14 @@ function enterCockpit() {
   showScreen('cockpit');
   
   // ★ Reset suggestions from previous party
-  state.suggestions = [];
+  // Check if we changed party
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  if (saved.partyCode !== state.partyCode) {
+    state.suggestions = [];
+    state.trackHistory = [];
+    saveSession();
+  }
+
   const suggestList = $('suggestions-list');
   if (suggestList) suggestList.innerHTML = '';
   
