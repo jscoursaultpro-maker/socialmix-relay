@@ -817,6 +817,7 @@ function connectToRelay() {
   });
 
   socket.on('track:update', (track) => {
+    const isNew = state.currentTrack?.title !== track?.title;
     state.currentTrack = track;
     state.currentVote = null;
     updateNowPlaying(track);
@@ -825,6 +826,12 @@ function connectToRelay() {
     setupVoteButtons();
     saveSession();
     console.log('[Track] New track → vote reset, buttons re-bound');
+    
+    // ★ Phase Visibilité : Moment de gloire (Haptic + Toast)
+    if (isNew && track?.suggestedBy && track.suggestedBy === state.guestName) {
+      if (navigator.vibrate) navigator.vibrate([100, 100, 200]);
+      showToast('🎉 Ton morceau passe maintenant ! Regarde la piste !', 5000);
+    }
   });
 
   socket.on('nextTrack:update', (track) => {
