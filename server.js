@@ -9,9 +9,28 @@ import { connectDB, restoreParties, startFlushLoop, stopFlushLoop, flushEndedPar
 import { randomUUID } from 'crypto';
 import mongoose from 'mongoose';
 import Friendship from './models/Friendship.js';
+import Track from './models/Track.js';                     // ★ Phase 3
+import HostPreference from './models/HostPreference.js';   // ★ Phase 3
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// ★ Phase 3 — FallbackHash normalization (mirrors EditorialSeedLoader.swift)
+function fallbackHash(title, artist) {
+  const normalize = (s) => s
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\b(feat\.?|ft\.?|featuring)\b/gi, '')
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return `${normalize(title || '')}_${normalize(artist || '')}`;
+}
+
+// ★ Phase 3 — Debounced vote aggregation
+const pendingRatings = new Map();  // partyCode → Map<trackKey, {feu,cool,bof,genre,hour}>
 
 const app = express();
 const server = createServer(app);
@@ -70,6 +89,37 @@ app.get('/status', (req, res) => {
     mongo: mongoState,
     mongoURI: process.env.MONGO_URI ? '✅ configured' : '❌ not set'
   });
+});
+
+// ★ Phase 3 — GET /api/tracks/snapshot (DJ Brain cache)
+app.get('/api/tracks/snapshot', async (req, res) => {
+  try {
+    const genres = req.query.genres ? req.query.genres.split(',') : [];
+    const limit = parseInt(req.query.limit) || 200;
+    
+    const filter = genres.length > 0 ? { genre: { $in: genres } } : {};
+    
+    const tracks = await Track.find(filter)
+      .sort({ 'performance.feuRatio': -1, 'performance.totalPlays': -1 })
+      .limit(limit)
+      .lean();
+    
+    console.log(`[API] 📊 Snapshot: ${tracks.length} tracks (genres: ${genres.join(',') || 'all'})`);
+    res.json({ tracks, count: tracks.length });
+  } catch (err) {
+    console.error('[API] ❌ Snapshot error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch snapshot' });
+  }
+});
+
+// ★ Phase 3 — GET /api/host/:hostId/preferences
+app.get('/api/host/:hostId/preferences', async (req, res) => {
+  try {
+    const prefs = await HostPreference.findOne({ hostId: req.params.hostId }).lean();
+    res.json(prefs || { hostId: req.params.hostId, genreBoosts: {}, boostedISRCs: [], bannedISRCs: [] });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch preferences' });
+  }
 });
 
 // ─── Deezer Proxy ───────────────────────────────────────────────────
@@ -454,7 +504,8 @@ function buildLightState(party) {
       }
       return cleanPhoto;
     }),
-    photosCount: (party.photos || []).length
+    photosCount: (party.photos || []).length,
+    playedKeys: party.playedKeys || []   // ★ Phase 3: anti-replay keys
   };
 
   const sizeKB = Math.round(JSON.stringify(light).length / 1024);
@@ -793,6 +844,20 @@ io.on('connection', (socket) => {
     io.to(`host:${party.code}`).emit('guest:voted', data);
     io.to(`guest:${party.code}`).emit('guest:voted', data);
     if (data.guestId) addPoints(party, data.guestId, data.guestName || 'Guest', 10, `vote ${data.type}`);
+    
+    // ★ Phase 3 — Queue rating for debounced aggregation
+    if (data.type && data.trackTitle) {
+      const trackKey = data.isrc || fallbackHash(data.trackTitle, data.trackArtist || '');
+      if (!pendingRatings.has(party.code)) pendingRatings.set(party.code, new Map());
+      const partyPending = pendingRatings.get(party.code);
+      if (!partyPending.has(trackKey)) {
+        partyPending.set(trackKey, { feu: 0, cool: 0, bof: 0, isrc: data.isrc, title: data.trackTitle, artist: data.trackArtist, genre: party._dominantGenre || '' });
+      }
+      const entry = partyPending.get(trackKey);
+      if (data.type === 'fire') entry.feu++;
+      else if (data.type === 'like') entry.cool++;
+      else if (data.type === 'meh') entry.bof++;
+    }
   });
 
   socket.on('guest:genreVote', (data) => {
@@ -838,6 +903,71 @@ io.on('connection', (socket) => {
     });
     console.log(`🎵 [${party.code}] SUGGEST: "${data.title || '?'}" by ${data.guestName || '?'} → host room has ${hostCount} socket(s)`);
     if (data.guestId || data.guestName) addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${data.title || data.query}`);
+  });
+
+  // ★ Phase 3 — Track played event (anti-replay + performance tracking)
+  socket.on('host:trackPlayed', async (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    
+    const { title, artist, genre, isrc, deezerID, vibeScore } = data;
+    const hash = fallbackHash(title, artist);
+    
+    // 1. Add to playedKeys (both ISRC and fallbackHash)
+    if (!party.playedKeys) party.playedKeys = [];
+    if (isrc && !party.playedKeys.includes(isrc)) party.playedKeys.push(isrc);
+    if (hash && !party.playedKeys.includes(hash)) party.playedKeys.push(hash);
+    if (deezerID && !party.playedKeys.includes(String(deezerID))) party.playedKeys.push(String(deezerID));
+    
+    console.log(`🎵 [${party.code}] Track played: "${title}" — ${artist} (keys: ${party.playedKeys.length})`);
+    
+    // 2. Upsert Track in MongoDB (async, non-blocking)
+    try {
+      const hour = new Date().getHours();
+      const hourBucket = hour < 21 ? '18-21' : hour < 23 ? '21-23' : hour < 1 || hour >= 23 ? '23-01' : '01-03';
+      const partyGenre = party._dominantGenre || genre || '';
+      
+      const filter = isrc ? { isrc } : { fallbackHash: hash };
+      const update = {
+        $setOnInsert: {
+          isrc: isrc || undefined,
+          fallbackHash: hash,
+          title, artist, genre: genre || '',
+          source: 'exploration',
+          'providers.deezer.trackId': deezerID || undefined,
+        },
+        $inc: {
+          'performance.totalPlays': 1,
+          [`performance.genreContexts.${partyGenre}.plays`]: partyGenre ? 1 : 0,
+          [`performance.hourBuckets.${hourBucket}.plays`]: 1,
+        },
+        $set: {
+          'performance.avgVibeAtPlay': vibeScore || 0,
+          updatedAt: new Date(),
+        }
+      };
+      
+      await Track.findOneAndUpdate(filter, update, { upsert: true, new: true });
+    } catch (err) {
+      console.error(`[Track] ❌ Upsert error: ${err.message}`);
+    }
+  });
+
+  // ★ Phase 3 — Host preferences update
+  socket.on('host:updatePreferences', async (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    const hostId = data.hostId;
+    if (!hostId) return;
+    
+    try {
+      await HostPreference.findOneAndUpdate(
+        { hostId },
+        { $set: { genreBoosts: data.genreBoosts || {}, boostedISRCs: data.boostedISRCs || [], bannedISRCs: data.bannedISRCs || [] } },
+        { upsert: true, new: true }
+      );
+      console.log(`[Prefs] ✅ Updated preferences for host ${hostId}`);
+    } catch (err) {
+      console.error(`[Prefs] ❌ Error: ${err.message}`);
+    }
   });
 
   socket.on('host:suggestionPlayed', (data) => {
@@ -928,6 +1058,34 @@ io.on('connection', (socket) => {
         message: `Maybe next time! On garde ta suggestion en tête 😉`
       });
       console.log(`🎵 [${party.code}] SUGGESTION DISMISSED: "${data.trackTitle}" by ${data.guestName}`);
+    }
+  });
+
+  // Cancel a suggestion (guest or host cancels before it's played)
+  socket.on('guest:cancelSuggestion', (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    const idx = party.suggestions.findIndex(s =>
+      (s.title || '').toLowerCase() === (data.title || '').toLowerCase() &&
+      (s.guestName || '') === (data.guestName || '') &&
+      s.status === 'pending'
+    );
+    if (idx !== -1) {
+      party.suggestions.splice(idx, 1);
+      // Notify host to remove from their list
+      const hostRoom = `host:${party.code}`;
+      io.to(hostRoom).emit('suggestion:cancelled', {
+        title: data.title,
+        guestName: data.guestName
+      });
+      // Confirm to guest
+      socket.emit('suggestion:status', {
+        title: data.title,
+        artist: data.artist || '',
+        guestName: data.guestName,
+        status: 'cancelled',
+        message: `🗑️ Suggestion annulée`
+      });
+      console.log(`🎵 [${party.code}] SUGGESTION CANCELLED: "${data.title}" by ${data.guestName}`);
     }
   });
 
@@ -1209,6 +1367,47 @@ async function boot() {
 
   // 3. Start flush loop
   startFlushLoop(parties);
+
+  // ★ Phase 3: Start debounced rating flush (every 10 seconds)
+  setInterval(async () => {
+    for (const [partyCode, trackMap] of pendingRatings.entries()) {
+      if (trackMap.size === 0) continue;
+      
+      for (const [trackKey, r] of trackMap.entries()) {
+        try {
+          const filter = r.isrc ? { isrc: r.isrc } : { fallbackHash: trackKey };
+          const totalNew = r.feu + r.cool + r.bof;
+          if (totalNew === 0) continue;
+          
+          const track = await Track.findOne(filter);
+          if (track) {
+            const oldFeu = track.performance?.ratings?.feu || 0;
+            const oldCool = track.performance?.ratings?.cool || 0;
+            const oldBof = track.performance?.ratings?.bof || 0;
+            const newFeu = oldFeu + r.feu;
+            const newTotal = newFeu + oldCool + r.cool + oldBof + r.bof;
+            
+            await Track.updateOne(filter, {
+              $inc: {
+                'performance.ratings.feu': r.feu,
+                'performance.ratings.cool': r.cool,
+                'performance.ratings.bof': r.bof,
+              },
+              $set: {
+                'performance.feuRatio': newTotal > 0 ? newFeu / newTotal : 0,
+              }
+            });
+          }
+        } catch (err) {
+          console.error(`[RatingFlush] ❌ ${trackKey}: ${err.message}`);
+        }
+      }
+      
+      const count = trackMap.size;
+      trackMap.clear();
+      if (count > 0) console.log(`[RatingFlush] ✅ Flushed ${count} track ratings for party ${partyCode}`);
+    }
+  }, 10000);
 
   // 4. Start HTTP server
   server.listen(PORT, '0.0.0.0', () => {

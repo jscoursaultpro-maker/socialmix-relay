@@ -477,6 +477,11 @@ function setupCodeScreen() {
 function enterCockpit() {
   showScreen('cockpit');
   
+  // ★ Reset suggestions from previous party
+  state.suggestions = [];
+  const suggestList = $('suggestions-list');
+  if (suggestList) suggestList.innerHTML = '';
+  
   $('greeting').textContent = `Hey ${state.guestName} !`;
   
   setupVoteButtons();

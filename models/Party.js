@@ -22,6 +22,7 @@ const PartySchema = new mongoose.Schema({
   participantScores:{ type: mongoose.Schema.Types.Mixed, default: {} },
   guestGenreVotes:  { type: mongoose.Schema.Types.Mixed, default: {} },
   sessionTokens:    { type: mongoose.Schema.Types.Mixed, default: {} },
+  playedKeys:       { type: [String], default: [] },   // ★ Phase 3: ISRC + fallbackHash of played tracks (anti-replay)
   createdAt:        { type: Date, default: Date.now },
   endedAt:          { type: Date, default: null }
 }, {
