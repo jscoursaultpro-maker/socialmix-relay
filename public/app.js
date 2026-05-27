@@ -193,7 +193,9 @@ function loadSession() {
         state.suggestions = [];
         state.trackHistory = [];
       } else {
-        state.suggestions = saved.suggestions || [];
+        // Keep only pending or active suggestions to avoid clutter across reloads
+        const rawSuggestions = saved.suggestions || [];
+        state.suggestions = rawSuggestions.filter(s => s.status === 'pending' || s.status === 'queued' || s.status === 'next');
         state.trackHistory = saved.trackHistory || [];
       }
       return true;
@@ -884,6 +886,14 @@ function connectToRelay() {
     // Only show notification to the guest who sent the suggestion
     if (data.guestName && data.guestName !== state.guestName) return;
     console.log('[Suggestion] Status update:', data.status, data.title);
+    
+    // Update state to persist status across reloads
+    const sugg = state.suggestions.find(s => s.title === data.title);
+    if (sugg) {
+      sugg.status = data.status;
+      saveSession();
+    }
+    
     showSuggestionToast(data.message || `Suggestion: ${data.status}`, data.status);
     
     // Update persistent status badge in suggestion list
@@ -1250,6 +1260,15 @@ function sendSuggestion(deezerID, title, artist, coverURL, duration) {
   });
   
   console.log(`[Suggest] ✅ Sent: ${title} by ${artist} (ID: ${deezerID})`);
+  
+  // Close dialog & clear autocomplete
+  setTimeout(() => {
+    const searchInput = $('suggest-input');
+    const searchResults = $('suggest-results');
+    if (searchInput) searchInput.value = '';
+    if (searchResults) searchResults.innerHTML = '';
+  }, 1000);
+  
   
   // Add to sent list
   state.suggestions.push({ title, artist, deezerID, status: 'pending' });
