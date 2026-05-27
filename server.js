@@ -11,6 +11,7 @@ import mongoose from 'mongoose';
 import Friendship from './models/Friendship.js';
 import Track from './models/Track.js';                     // ★ Phase 3
 import HostPreference from './models/HostPreference.js';   // ★ Phase 3
+import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRESS_METRICS=1
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1421,6 +1422,10 @@ async function boot() {
     console.log(`  ║  Guest:   http://${ip}:${PORT} (same URL!)`);
     console.log('  ═══════════════════════════════════════════════');
     console.log('');
+
+    // Optional server metrics — activated only with STRESS_METRICS=1
+    // No-op in production (zero cost, zero log noise).
+    startMetrics(io, parties);
   });
 }
 
