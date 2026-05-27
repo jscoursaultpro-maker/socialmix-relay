@@ -181,21 +181,10 @@ function loadSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (saved) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlCode = urlParams.get('code');
-      
       state.guestId = saved.guestId;
       state.partyCode = saved.partyCode || '';
-      
-      if (urlCode && state.partyCode && urlCode.toUpperCase() !== state.partyCode.toUpperCase()) {
-        // The user is joining a NEW party via URL link. We MUST ignore the old suggestions.
-        state.partyCode = urlCode.toUpperCase();
-        state.suggestions = [];
-        state.trackHistory = [];
-      } else {
-        state.suggestions = saved.suggestions || [];
-        state.trackHistory = saved.trackHistory || [];
-      }
+      state.suggestions = saved.suggestions || [];
+      state.trackHistory = saved.trackHistory || [];
       return true;
     }
   } catch(e) {}
@@ -489,14 +478,7 @@ function enterCockpit() {
   showScreen('cockpit');
   
   // ★ Reset suggestions from previous party
-  // Check if we changed party
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  if (saved.partyCode !== state.partyCode) {
-    state.suggestions = [];
-    state.trackHistory = [];
-    saveSession();
-  }
-
+  state.suggestions = [];
   const suggestList = $('suggestions-list');
   if (suggestList) suggestList.innerHTML = '';
   
@@ -930,29 +912,6 @@ function updateNowPlaying(track) {
   $('np-bpm').textContent = `${track.bpm || '—'} BPM`;
   $('np-genre').textContent = (track.genre || '—').toUpperCase();
   
-  // ★ NEW: Suggester Badge
-  const suggesterEl = $('np-suggester');
-  const suggesterName = $('np-suggester-name');
-  const suggesterIcon = $('np-suggester-icon');
-  const suggesterText = $('np-suggester-text');
-  
-  if (suggesterEl && suggesterName && suggesterIcon && suggesterText) {
-    if (track.suggestedBy) {
-      suggesterEl.style.display = 'inline-flex';
-      suggesterName.textContent = track.suggestedBy;
-      suggesterIcon.textContent = '✨';
-      suggesterText.textContent = 'Mis le feu par';
-    } else if (state.mode === 'appMix') { // appMix = Jukebox mode
-      suggesterEl.style.display = 'inline-flex';
-      suggesterName.textContent = 'DJ Brain';
-      suggesterIcon.textContent = '🤖';
-      suggesterText.textContent = 'Mixé par le';
-    } else {
-      // In DJ Live mode, don't show DJ Brain
-      suggesterEl.style.display = 'none';
-    }
-  }
-
   // Album artwork (from Shazam)
   const artworkEl = $('np-artwork');
   const vinylLabel = $('vinyl-label');
@@ -1363,7 +1322,6 @@ function updateHistory() {
       <div class="history-info">
         <div class="history-title">${track.title}${genreBadge}</div>
         <div class="history-artist">${track.artist}</div>
-        ${track.suggestedBy ? `<div style="margin-top:2px; font-size:10px; color:#00d2ff; font-weight:600;">✨ Mis le feu par ${escapeAttr(track.suggestedBy)}</div>` : ''}
         ${voteBadges ? `<div style="margin-top:2px;">${voteBadges}</div>` : ''}
         <div class="history-links">
           <a class="stream-link spotify" href="https://open.spotify.com/search/${query}" target="_blank">Spotify</a>
