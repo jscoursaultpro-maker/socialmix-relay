@@ -92,6 +92,36 @@ SCENARIO=SOAK NUM_GUESTS=50 DURATION_SEC=1800 node stress-test/stress.js
 SCENARIO=SOAK NUM_GUESTS=50 DURATION_SEC=3600 TARGET_URL=https://staging.onrender.com node stress-test/stress.js
 ```
 
+### 5. HOST_UNDER_FIRE — vrai iPhone hôte sous pression ⭐
+
+**Rejoindre une vraie soirée EXISTANTE** sur ton iPhone (sans créer de fausse soirée).  
+Lance d'abord la soirée depuis l'app iOS, note le code, puis bombarde depuis le Mac.
+
+```bash
+# iPhone hôte → démarrer la soirée (ex. code TEUF25)
+# Puis sur le Mac :
+SCENARIO=HOST_UNDER_FIRE PARTY_CODE=TEUF25 NUM_GUESTS=30 DURATION_SEC=120 \
+  TARGET_URL=http://192.168.1.x:3069 node stress-test/stress.js
+
+# Contre le serveur Render (prod/staging)
+SCENARIO=HOST_UNDER_FIRE PARTY_CODE=TEUF25 NUM_GUESTS=50 DURATION_SEC=180 \
+  TARGET_URL=https://ton-server.onrender.com node stress-test/stress.js
+```
+
+**Ce que ça teste** — l'app hôte reste-t-elle fluide pendant que :
+- 30-50 guests votent simultanément (track + genre)
+- Le DJ Brain reçoit des votes de genre en continu → re-calcule
+- Des suggestions et SOS Bangers arrivent toutes les ~15s
+- Des messages chat et photos (Cloudinary) arrivent en rafale
+- Des participants entrent le concours déguisement
+
+**Vérifications manuelles sur le téléphone** :
+- [ ] UI Cockpit/CockpitView reste à 60 fps (pas de stuttering)
+- [ ] DJ Brain continue de proposer des titres (logs `[DJBrain] ✅ Accepted`)
+- [ ] Le leaderboard se met à jour
+- [ ] Les suggestions apparaissent dans la liste
+- [ ] Pas de crash / disconnect hôte inopiné
+
 ---
 
 ## Métriques serveur optionnelles
