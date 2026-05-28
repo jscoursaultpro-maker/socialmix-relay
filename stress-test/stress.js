@@ -334,19 +334,27 @@ function createGuest(partyCode, guestIndex, partyIndex = 0, opts = {}) {
     const t0 = performance.now();
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error(`Reconnect timeout for ${guestName}`)), 10000);
+      let resolved = false;  // guard: only one path counts as success
+
+      function onSuccess() {
+        if (resolved) return;  // prevents double-counting between resume ACK and party:state
+        resolved = true;
+        clearTimeout(timeout);
+        connected = true;
+        metrics.connectionsSucceeded++;
+        metrics.reconnectsSucceeded++;
+        recordLatency(performance.now() - t0);
+        scheduleNextActivity();
+        resolve();
+      }
 
       socket.on('connect', () => {
         if (sessionToken) {
           socket.emit('guest:resume', { partyCode: ownPartyCode, sessionToken }, (ack) => {
             if (ack?.ok) {
-              clearTimeout(timeout);
-              connected = true;
-              metrics.connectionsSucceeded++;
-              metrics.reconnectsSucceeded++;
-              recordLatency(performance.now() - t0);
-              scheduleNextActivity();
-              resolve();
+              onSuccess();
             } else {
+              // Resume rejected — fall back to full join
               socket.emit('guest:join', { partyCode: ownPartyCode, name: guestName, guestName, emoji: guestEmoji, guestEmoji, guestId });
             }
           });
@@ -355,17 +363,8 @@ function createGuest(partyCode, guestIndex, partyIndex = 0, opts = {}) {
         }
       });
 
-      socket.on('party:state', () => {
-        if (!connected) {
-          clearTimeout(timeout);
-          connected = true;
-          metrics.connectionsSucceeded++;
-          metrics.reconnectsSucceeded++;
-          recordLatency(performance.now() - t0);
-          scheduleNextActivity();
-          resolve();
-        }
-      });
+      // party:state fires both after guest:join AND after a successful guest:resume
+      socket.on('party:state', () => onSuccess());
 
       socket.on('session:token', (data) => { sessionToken = data.sessionToken; });
       socket.on('connect_error', (err) => { clearTimeout(timeout); reject(err); });
