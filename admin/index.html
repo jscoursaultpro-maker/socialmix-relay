@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SocialMix — Back Office</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen" class="screen active">
+    <div class="login-card">
+      <div class="login-logo">
+        <span class="logo-icon">🎧</span>
+        <h1>SocialMix</h1>
+        <p class="login-sub">Back Office Admin</p>
+      </div>
+      <form id="login-form">
+        <div class="field">
+          <label>Mot de passe admin</label>
+          <input type="password" id="admin-password" placeholder="••••••••••••" autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">
+          <span>Connexion</span>
+          <span class="btn-icon">→</span>
+        </button>
+        <p id="login-error" class="error-msg hidden"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app" class="screen">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <span class="logo-icon">🎧</span>
+        <span class="logo-text">SocialMix</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#" class="nav-link active" data-page="dashboard">
+          <span class="nav-icon">📊</span><span>Dashboard</span>
+        </a></li>
+        <li><a href="#" class="nav-link" data-page="tracks">
+          <span class="nav-icon">🎵</span><span>Bibliothèque</span>
+          <span id="badge-unqualified" class="badge"></span>
+        </a></li>
+        <li><a href="#" class="nav-link" data-page="parties">
+          <span class="nav-icon">🎉</span><span>Soirées</span>
+        </a></li>
+        <li><a href="#" class="nav-link" data-page="analytics">
+          <span class="nav-icon">📈</span><span>Analytics</span>
+        </a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <button id="logout-btn" class="btn-ghost">Déconnexion</button>
+      </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main-content">
+
+      <!-- DASHBOARD PAGE -->
+      <section id="page-dashboard" class="page active">
+        <div class="page-header">
+          <h2>Dashboard</h2>
+          <p class="page-sub">Vue d'ensemble de la bibliothèque musicale</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">🎵</div>
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-label">Total titres</div>
+          </div>
+          <div class="stat-card accent-green">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" id="stat-qualified">—</div>
+            <div class="stat-label">Qualifiés</div>
+          </div>
+          <div class="stat-card accent-orange">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-value" id="stat-no-energy">—</div>
+            <div class="stat-label">Sans energy</div>
+          </div>
+          <div class="stat-card accent-red">
+            <div class="stat-icon">🥁</div>
+            <div class="stat-value" id="stat-no-bpm">—</div>
+            <div class="stat-label">Sans BPM</div>
+          </div>
+        </div>
+
+        <!-- Progression bar -->
+        <div class="card mt-20">
+          <div class="card-header">
+            <h3>Progression de la qualification</h3>
+            <span id="progress-pct" class="badge badge-blue">0%</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+          </div>
+          <p class="progress-hint">Objectif : qualifier les <span id="stat-no-energy-2">—</span> titres sans energy en priorité</p>
+        </div>
+
+        <!-- Genre breakdown -->
+        <div class="card mt-20">
+          <div class="card-header"><h3>Répartition par genre</h3></div>
+          <div id="genre-breakdown" class="genre-grid"></div>
+        </div>
+
+        <!-- Top fire tracks -->
+        <div class="card mt-20">
+          <div class="card-header"><h3>🔥 Top tracks (feuRatio)</h3></div>
+          <div id="top-feu-list" class="track-list-simple"></div>
+        </div>
+      </section>
+
+      <!-- TRACKS PAGE -->
+      <section id="page-tracks" class="page">
+        <div class="page-header">
+          <h2>Bibliothèque</h2>
+          <p class="page-sub">Qualifier les titres — écouter → renseigner genre, BPM, energy</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar card">
+          <div class="filter-group">
+            <label>Genre</label>
+            <select id="filter-genre">
+              <option value="all">Tous</option>
+              <option value="Electro">Electro</option>
+              <option value="House">House</option>
+              <option value="Disco">Disco</option>
+              <option value="Hip-Hop">Hip-Hop</option>
+              <option value="R&B">R&B</option>
+              <option value="Pop">Pop</option>
+              <option value="COCOVARIET">COCOVARIET</option>
+              <option value="Afro">Afro</option>
+              <option value="Latin">Latin</option>
+              <option value="Reggaeton">Reggaeton</option>
+              <option value="Années 80">Années 80</option>
+              <option value="Années 90">Années 90</option>
+              <option value="Rock">Rock</option>
+              <option value="Jazz">Jazz</option>
+              <option value="Chill">Chill</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Statut</label>
+            <select id="filter-status">
+              <option value="unqualified">À qualifier (priorité)</option>
+              <option value="all">Tous</option>
+              <option value="qualified">Qualifiés</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Trier par</label>
+            <select id="filter-sort">
+              <option value="energy_asc">Energy manquante d'abord</option>
+              <option value="title_asc">Titre A→Z</option>
+              <option value="feu_desc">🔥 feuRatio</option>
+              <option value="plays_desc">Lectures</option>
+            </select>
+          </div>
+          <div class="filter-group filter-search">
+            <label>Recherche</label>
+            <input type="text" id="filter-search" placeholder="Titre ou artiste..." />
+          </div>
+          <button id="btn-apply-filters" class="btn btn-secondary">Filtrer</button>
+        </div>
+
+        <!-- Tracks list -->
+        <div id="tracks-container" class="tracks-grid"></div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination"></div>
+      </section>
+
+      <!-- PARTIES PAGE -->
+      <section id="page-parties" class="page">
+        <div class="page-header">
+          <h2>Soirées</h2>
+          <p class="page-sub">Historique des soirées SocialMix</p>
+        </div>
+        <div id="parties-list" class="parties-list"></div>
+      </section>
+
+      <!-- ANALYTICS PAGE -->
+      <section id="page-analytics" class="page">
+        <div class="page-header">
+          <h2>Analytics</h2>
+          <p class="page-sub">Performance globale de la bibliothèque</p>
+        </div>
+        <div class="analytics-grid">
+          <div class="card">
+            <div class="card-header"><h3>Performance par genre</h3></div>
+            <div id="analytics-genre" class="analytics-table"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>🎙️ Top suggérés cross-soirées</h3></div>
+            <div id="analytics-suggested" class="analytics-table"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>▶️ Plus joués</h3></div>
+            <div id="analytics-played" class="analytics-table"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- QUALIFY MODAL -->
+  <div id="qualify-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-track-info">
+          <img id="modal-cover" class="modal-cover" src="" alt="" />
+          <div>
+            <h3 id="modal-title">—</h3>
+            <p id="modal-artist" class="text-dim">—</p>
+            <p id="modal-current-genre" class="badge badge-blue mt-4">—</p>
+          </div>
+        </div>
+        <button id="modal-close" class="btn-icon-close">✕</button>
+      </div>
+
+      <!-- Audio player -->
+      <div class="player-section">
+        <audio id="modal-audio" controls preload="none"></audio>
+        <p id="player-status" class="player-hint">Chargement du preview...</p>
+      </div>
+
+      <!-- Qualify form -->
+      <div class="qualify-form">
+        <div class="form-row">
+          <div class="field">
+            <label>Genre <span class="required">*</span></label>
+            <select id="q-genre">
+              <option value="Electro">Electro</option>
+              <option value="House">House</option>
+              <option value="Disco">Disco</option>
+              <option value="Hip-Hop">Hip-Hop</option>
+              <option value="R&B">R&B</option>
+              <option value="Pop">Pop</option>
+              <option value="COCOVARIET">COCOVARIET</option>
+              <option value="Afro">Afro</option>
+              <option value="Latin">Latin</option>
+              <option value="Reggaeton">Reggaeton</option>
+              <option value="Années 80">Années 80</option>
+              <option value="Années 90">Années 90</option>
+              <option value="Rock">Rock</option>
+              <option value="Jazz">Jazz</option>
+              <option value="Chill">Chill</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>BPM <span class="hint">(0 = auto depuis Deezer)</span></label>
+            <input type="number" id="q-bpm" min="0" max="250" placeholder="120" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Energy <span class="required">*</span> <span id="energy-value" class="energy-badge">—</span></label>
+          <div class="energy-slider-wrap">
+            <span class="energy-label-low">💤 Calme</span>
+            <input type="range" id="q-energy" min="1" max="10" step="1" value="5" />
+            <span class="energy-label-high">🔥 Peak</span>
+          </div>
+          <div class="energy-scale">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+            <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Moment soirée</label>
+          <div class="pill-group" id="moment-pills">
+            <button type="button" class="pill" data-value="warm-up">🌅 Warm-up</button>
+            <button type="button" class="pill active" data-value="all">📅 Tous</button>
+            <button type="button" class="pill" data-value="peak">⚡ Peak</button>
+            <button type="button" class="pill" data-value="closing">🌙 Closing</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Tags</label>
+          <div class="pill-group" id="tag-pills">
+            <button type="button" class="pill" data-value="safe">✅ Safe</button>
+            <button type="button" class="pill" data-value="sing-along">🎤 Sing-along</button>
+            <button type="button" class="pill" data-value="dancefloor">💃 Dancefloor</button>
+            <button type="button" class="pill" data-value="peak-time">⚡ Peak-time</button>
+            <button type="button" class="pill" data-value="risky">⚠️ Risqué</button>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="btn-skip" class="btn btn-ghost">Passer →</button>
+          <button id="btn-save-next" class="btn btn-primary">
+            <span>✓ Qualifier &amp; Suivant</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
