@@ -4,19 +4,21 @@ import { Server } from 'socket.io';
 import { networkInterfaces } from 'os';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { readFileSync } from 'fs';
 import { createPartyState, isValidPartyCode } from './partyState.js';
 import { connectDB, restoreParties, startFlushLoop, stopFlushLoop, flushEndedParty } from './db.js';
 import { randomUUID } from 'crypto';
 import mongoose from 'mongoose';
+import Party from './models/Party.js';
 import Friendship from './models/Friendship.js';
-import Track from './models/Track.js';                     // ★ Phase 3
-import HostPreference from './models/HostPreference.js';   // ★ Phase 3
+import Track from './models/Track.js';
+import HostPreference from './models/HostPreference.js';
 import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRESS_METRICS=1
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// ★ Phase 3 — FallbackHash normalization (mirrors EditorialSeedLoader.swift)
+// ─── FallbackHash normalization (mirrors EditorialSeedLoader.swift) ────
 function fallbackHash(title, artist) {
   const normalize = (s) => s
     .toLowerCase()
@@ -28,6 +30,97 @@ function fallbackHash(title, artist) {
     .replace(/\s+/g, ' ')
     .trim();
   return `${normalize(title || '')}_${normalize(artist || '')}`;
+}
+
+// ─── Genre normalization — unifies editorial_seed + track_metadata genres ─
+const GENRE_MAP = {
+  'Electro/Dance': 'Electro', 'Dance':    'Electro', 'Club':        'Electro',
+  'Pop FR':        'COCOVARIET', 'Variété Fr': 'COCOVARIET', 'Chanson': 'COCOVARIET',
+  'Dancehall':     'Afro',    'Afro House': 'Afro',
+  'Latino':        'Latin',   'Reggaeton': 'Reggaeton',
+  'R&B':           'R&B',     'Soul':      'R&B',
+  'Hip-Hop':       'Hip-Hop', 'Rap':       'Hip-Hop',
+  'House':         'House',   'Deep House': 'House', 'Funk': 'Disco',
+};
+function normalizeGenre(g) { return GENRE_MAP[g] || g || 'Electro'; }
+
+// ─── Admin auth middleware ───────────────────────────────────────────
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'socialmix-admin-2026';
+const ADMIN_TOKENS   = new Set(); // In-memory tokens (restart invalidates — acceptable)
+
+function adminAuth(req, res, next) {
+  const token = req.headers['x-admin-token'];
+  if (!token || !ADMIN_TOKENS.has(token))
+    return res.status(401).json({ error: 'Unauthorized — invalid or missing admin token' });
+  next();
+}
+
+// ─── Seed editorial catalog into MongoDB ────────────────────────────
+async function seedEditorialCatalog() {
+  try {
+    const count = await Track.countDocuments({ source: 'editorial' });
+    if (count > 0) {
+      console.log(`[Seed] ✅ Editorial catalog already seeded (${count} tracks). Skipping.`);
+      return;
+    }
+
+    // Chemin depuis relay-server/ → ../SocialMixApp/SocialMixApp/Resources/
+    const seedPath = join(__dirname, '..', 'SocialMixApp', 'SocialMixApp', 'Resources', 'editorial_seed.json');
+    let seedData;
+    try {
+      seedData = JSON.parse(readFileSync(seedPath, 'utf8'));
+    } catch {
+      // Fallback : même dossier que le serveur
+      const altPath = join(__dirname, 'editorial_seed.json');
+      try { seedData = JSON.parse(readFileSync(altPath, 'utf8')); }
+      catch { console.warn('[Seed] ⚠️ editorial_seed.json not found — skipping editorial seed'); return; }
+    }
+
+    const tracks = seedData.tracks || [];
+    console.log(`[Seed] 🌱 Seeding ${tracks.length} editorial tracks into MongoDB...`);
+
+    let inserted = 0, skipped = 0;
+    for (const t of tracks) {
+      if (!t.title || !t.artist) { skipped++; continue; }
+      const hash = t.fallbackHash || fallbackHash(t.title, t.artist);
+      const genre = normalizeGenre(t.genre);
+      const deezerTrackId = t.providers?.deezer?.trackId || null;
+
+      // Build Deezer cover art URL if we have an albumId
+      let coverArtURL = null;
+      if (t.providers?.deezer?.albumId) {
+        coverArtURL = `https://api.deezer.com/album/${t.providers.deezer.albumId}/image`;
+      }
+
+      const filter = t.isrc ? { isrc: t.isrc } : { fallbackHash: hash };
+      const doc = {
+        isrc:        t.isrc   || undefined,
+        fallbackHash: hash,
+        title:       t.title,
+        artist:      t.artist,
+        album:       t.album  || undefined,
+        genre,
+        bpm:         t.bpm   || 0,
+        energy:      t.energy || 0,
+        releaseYear: t.releaseYear || undefined,
+        coverArtURL,
+        source:      'editorial',
+        'providers.deezer.trackId':  deezerTrackId  || undefined,
+        'providers.deezer.albumId':  t.providers?.deezer?.albumId || undefined,
+      };
+
+      try {
+        await Track.findOneAndUpdate(filter, { $setOnInsert: doc }, { upsert: true, new: false });
+        inserted++;
+      } catch (e) {
+        if (e.code !== 11000) console.error(`[Seed] ❌ ${t.title}: ${e.message}`);
+        else skipped++; // Duplicate key — already exists
+      }
+    }
+    console.log(`[Seed] ✅ Editorial seed complete: ${inserted} inserted, ${skipped} skipped`);
+  } catch (err) {
+    console.error('[Seed] ❌ Seed failed:', err.message);
+  }
 }
 
 // ★ Phase 3 — Debounced vote aggregation
@@ -72,6 +165,12 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(join(__dirname, 'public')));
 
+// ─── Admin SPA ──────────────────────────────────────────────────────
+// Servi depuis /relay-server/admin/ — auth gérée par le SPA via token
+app.use('/admin', express.static(join(__dirname, 'admin')));
+app.get('/admin', (req, res) => res.sendFile(join(__dirname, 'admin', 'index.html')));
+app.get('/admin/*', (req, res) => res.sendFile(join(__dirname, 'admin', 'index.html')));
+
 // ─── Health check ───────────────────────────────────────────────────
 app.get('/api/status', (req, res) => {
   const codes = [...parties.keys()];
@@ -92,24 +191,193 @@ app.get('/status', (req, res) => {
   });
 });
 
-// ★ Phase 3 — GET /api/tracks/snapshot (DJ Brain cache)
+// GET /api/tracks/snapshot — DJ Brain cache (utilisé au démarrage de soirée)
+// Règle : réponse < 3s garantie par timeout côté iOS. Si Mongo KO → fallback JSON.
 app.get('/api/tracks/snapshot', async (req, res) => {
   try {
-    const genres = req.query.genres ? req.query.genres.split(',') : [];
-    const limit = parseInt(req.query.limit) || 200;
-    
-    const filter = genres.length > 0 ? { genre: { $in: genres } } : {};
-    
+    const genres   = req.query.genres ? req.query.genres.split(',') : [];
+    const limit     = Math.min(parseInt(req.query.limit) || 500, 1000);
+    const adminOnly = req.query.adminOnly === 'true';
+
+    const filter = {};
+    if (genres.length > 0) filter.genre = { $in: genres };
+    if (adminOnly) filter.adminQualified = true;
+
     const tracks = await Track.find(filter)
-      .sort({ 'performance.feuRatio': -1, 'performance.totalPlays': -1 })
+      .sort({ adminQualified: -1, 'performance.feuRatio': -1, 'performance.totalPlays': -1 })
       .limit(limit)
+      .select('isrc fallbackHash title artist genre bpm energy coverArtURL providers source adminQualified tags partyMoment suggestCount performance.totalPlays performance.feuRatio performance.avgVibeAtPlay performance.genreContexts performance.hourBuckets')
       .lean();
-    
-    console.log(`[API] 📊 Snapshot: ${tracks.length} tracks (genres: ${genres.join(',') || 'all'})`);
-    res.json({ tracks, count: tracks.length });
+
+    console.log(`[API] 📊 Snapshot: ${tracks.length} tracks (genres: ${genres.join(',') || 'all'}, adminOnly: ${adminOnly})`);
+    res.json({ tracks, count: tracks.length, generatedAt: new Date().toISOString() });
   } catch (err) {
     console.error('[API] ❌ Snapshot error:', err.message);
     res.status(500).json({ error: 'Failed to fetch snapshot' });
+  }
+});
+
+// ─── Admin API ────────────────────────────────────────────────────────
+
+// POST /api/admin/auth — obtenir un token admin
+app.post('/api/admin/auth', (req, res) => {
+  const { password } = req.body || {};
+  if (password !== ADMIN_PASSWORD)
+    return res.status(403).json({ error: 'Invalid password' });
+  const token = randomUUID();
+  ADMIN_TOKENS.add(token);
+  // Tokens expirent après 24h
+  setTimeout(() => ADMIN_TOKENS.delete(token), 24 * 60 * 60 * 1000);
+  res.json({ token });
+});
+
+// GET /api/admin/tracks — liste paginée avec filtres
+app.get('/api/admin/tracks', adminAuth, async (req, res) => {
+  try {
+    const page    = Math.max(1, parseInt(req.query.page) || 1);
+    const limit   = Math.min(parseInt(req.query.limit) || 50, 200);
+    const skip    = (page - 1) * limit;
+    const genre   = req.query.genre;
+    const status  = req.query.status; // 'qualified' | 'unqualified' | 'all'
+    const search  = req.query.search;
+    const sortBy  = req.query.sort || 'energy_asc'; // energy_asc, feu_desc, plays_desc, title_asc
+
+    const filter = {};
+    if (genre && genre !== 'all') filter.genre = genre;
+    if (status === 'qualified')   filter.adminQualified = true;
+    if (status === 'unqualified') filter.$or = [{ adminQualified: false }, { energy: 0 }, { bpm: 0 }];
+    if (search) filter.$or = [
+      { title:  { $regex: search, $options: 'i' } },
+      { artist: { $regex: search, $options: 'i' } }
+    ];
+
+    const sortMap = {
+      energy_asc:  { adminQualified: 1, energy: 1 },
+      feu_desc:    { 'performance.feuRatio': -1 },
+      plays_desc:  { 'performance.totalPlays': -1 },
+      title_asc:   { title: 1 },
+    };
+    const sort = sortMap[sortBy] || sortMap.energy_asc;
+
+    const [tracks, total] = await Promise.all([
+      Track.find(filter).sort(sort).skip(skip).limit(limit).lean(),
+      Track.countDocuments(filter)
+    ]);
+
+    res.json({ tracks, total, page, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    console.error('[Admin] ❌ tracks list error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/admin/tracks/:id — qualifier/éditer un titre
+app.patch('/api/admin/tracks/:id', adminAuth, async (req, res) => {
+  try {
+    const { genre, bpm, energy, tags, adminQualified, partyMoment, coverArtURL } = req.body;
+    const update = { $set: {} };
+    if (genre        !== undefined) update.$set.genre         = normalizeGenre(genre);
+    if (bpm          !== undefined) update.$set.bpm           = Number(bpm);
+    if (energy       !== undefined) update.$set.energy        = Math.min(10, Math.max(0, Number(energy)));
+    if (tags         !== undefined) update.$set.tags          = tags;
+    if (adminQualified !== undefined) update.$set.adminQualified = Boolean(adminQualified);
+    if (partyMoment  !== undefined) update.$set.partyMoment   = partyMoment;
+    if (coverArtURL  !== undefined) update.$set.coverArtURL   = coverArtURL;
+    const track = await Track.findByIdAndUpdate(req.params.id, update, { new: true }).lean();
+    if (!track) return res.status(404).json({ error: 'Track not found' });
+    res.json(track);
+  } catch (err) {
+    console.error('[Admin] ❌ track update error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/stats — dashboard stats
+app.get('/api/admin/stats', adminAuth, async (req, res) => {
+  try {
+    const [total, qualified, noEnergy, noBpm, byGenre, topFeu, recentParties] = await Promise.all([
+      Track.countDocuments(),
+      Track.countDocuments({ adminQualified: true }),
+      Track.countDocuments({ energy: 0 }),
+      Track.countDocuments({ bpm: 0 }),
+      Track.aggregate([
+        { $group: { _id: '$genre', count: { $sum: 1 }, qualified: { $sum: { $cond: ['$adminQualified', 1, 0] } } } },
+        { $sort: { count: -1 } }
+      ]),
+      Track.find({ 'performance.totalPlays': { $gt: 0 } })
+        .sort({ 'performance.feuRatio': -1 })
+        .limit(10)
+        .select('title artist genre performance.feuRatio performance.totalPlays')
+        .lean(),
+      Party.find({ endedAt: { $ne: null } })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('code createdAt endedAt trackHistory participants')
+        .lean()
+    ]);
+    res.json({ total, qualified, noEnergy, noBpm, byGenre, topFeu, recentParties });
+  } catch (err) {
+    console.error('[Admin] ❌ stats error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/parties — historique des soirées
+app.get('/api/admin/parties', adminAuth, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const parties = await Party.find()
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .select('code createdAt endedAt trackHistory participants suggestions vibeScore')
+      .lean();
+    res.json({ parties, count: parties.length });
+  } catch (err) {
+    console.error('[Admin] ❌ parties error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/analytics — performance globale
+app.get('/api/admin/analytics', adminAuth, async (req, res) => {
+  try {
+    const [byGenre, topSuggested, topPlayed] = await Promise.all([
+      Track.aggregate([
+        { $match: { 'performance.totalPlays': { $gt: 0 } } },
+        { $group: {
+          _id: '$genre',
+          avgFeuRatio:  { $avg: '$performance.feuRatio' },
+          totalPlays:   { $sum: '$performance.totalPlays' },
+          trackCount:   { $sum: 1 }
+        }},
+        { $sort: { avgFeuRatio: -1 } }
+      ]),
+      Track.find({ suggestCount: { $gt: 0 } })
+        .sort({ suggestCount: -1 })
+        .limit(20)
+        .select('title artist genre suggestCount performance.feuRatio')
+        .lean(),
+      Track.find({ 'performance.totalPlays': { $gt: 0 } })
+        .sort({ 'performance.totalPlays': -1 })
+        .limit(20)
+        .select('title artist genre performance.totalPlays performance.feuRatio')
+        .lean()
+    ]);
+    res.json({ byGenre, topSuggested, topPlayed });
+  } catch (err) {
+    console.error('[Admin] ❌ analytics error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/deezer/preview/:trackId — proxy preview URL pour le player admin
+app.get('/api/admin/deezer/preview/:trackId', adminAuth, async (req, res) => {
+  try {
+    const r = await fetch(`https://api.deezer.com/track/${req.params.trackId}`);
+    const data = await r.json();
+    res.json({ preview: data.preview || null, cover: data.album?.cover_medium || null });
+  } catch (err) {
+    res.status(500).json({ error: 'Deezer preview fetch failed' });
   }
 });
 
@@ -384,10 +652,33 @@ function broadcastLeaderboard(party) {
   io.to(`host:${party.code}`).emit('leaderboard:update', lb);
 }
 
+const GENRE_VOTE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
 function recomputeGenreVotes(party) {
+  const now = Date.now();
   const totals = {};
-  if (party.guestGenreVotes) Object.values(party.guestGenreVotes).forEach(g => { totals[g] = (totals[g] || 0) + 1; });
+  const expiry = party.guestGenreVoteExpiry || {};
+
+  // N'inclure que les votes NON expirés
+  if (party.guestGenreVotes) {
+    for (const [voterKey, genre] of Object.entries(party.guestGenreVotes)) {
+      const exp = expiry[voterKey];
+      // L'hôte (__HOST__) ne jamais expire ; les guests ont un TTL 30min
+      if (voterKey !== '__HOST__' && exp && now > exp) continue;
+      totals[genre] = (totals[genre] || 0) + 1;
+    }
+  }
+
+  // Calculer le genre dominant
+  const dominant = Object.entries(totals).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+
+  if (dominant) {
+    // Mémoriser comme dernier dominant (fallback si votes expirent plus tard)
+    party._lastDominantGenre = dominant;
+  }
+
   party.genreVotes = totals;
+  party._dominantGenre = dominant || party._lastDominantGenre || null;
   return totals;
 }
 
@@ -625,12 +916,53 @@ io.on('connection', (socket) => {
     const party = getMutableParty(socket); if (!party) return;
     party.currentTrack = track;
     if (track && (!party.trackHistory.length || party.trackHistory[0]?.title !== track.title)) {
-      party.trackHistory.unshift({ ...track, playedAt: new Date().toISOString() });
+      // ★ P0-3 — Attribution : qui a demandé ce titre ?
+      let requestedBy = { source: 'djbrain', guestName: null };
+
+      // 1. Chercher dans les suggestions récentes (queued ou next)
+      if (track.fromSuggestion || track.suggestionId) {
+        const matchedSugg = party.suggestions.find(s =>
+          (s.title || '').toLowerCase() === (track.title || '').toLowerCase() &&
+          (s.artist || '').toLowerCase() === (track.artist || '').toLowerCase() &&
+          ['queued', 'next', 'pending'].includes(s.status)
+        );
+        if (matchedSugg) {
+          requestedBy = { source: 'suggestion', guestName: matchedSugg.guestName || null, guestId: matchedSugg.guestId || null };
+          // Marquer la suggestion comme jouée
+          matchedSugg.status = 'played';
+          matchedSugg.playedAt = new Date().toISOString();
+        }
+      }
+
+      // 2. Fallback : recherche souple sur le titre seul si pas encore trouvé
+      if (requestedBy.source === 'djbrain') {
+        const softMatch = party.suggestions.find(s =>
+          (s.title || '').toLowerCase() === (track.title || '').toLowerCase() &&
+          ['queued', 'next'].includes(s.status)
+        );
+        if (softMatch) {
+          requestedBy = { source: 'suggestion', guestName: softMatch.guestName || null, guestId: softMatch.guestId || null };
+          softMatch.status = 'played';
+          softMatch.playedAt = new Date().toISOString();
+        }
+      }
+
+      party.trackHistory.unshift({
+        ...track,
+        playedAt: new Date().toISOString(),
+        requestedBy,
+      });
       addPoints(party, 'host', 'DJ', 15, 'nouveau titre : ' + track.title);
+
+      // Si c'est une suggestion acceptée, bonus de points au guest
+      if (requestedBy.source === 'suggestion' && requestedBy.guestId) {
+        addPoints(party, requestedBy.guestId, requestedBy.guestName || 'Guest', 20, `suggestion jouée: ${track.title}`);
+      }
     }
     io.to(`guest:${party.code}`).emit('track:update', stripSecret(track));
     console.log(`🎵 [${party.code}] Track: ${track?.title} — ${track?.artist}`);
   });
+
 
   socket.on('host:modeChange', (data) => {
     const party = getMutableParty(socket); if (!party) return;
@@ -645,7 +977,12 @@ io.on('connection', (socket) => {
     if (genre) {
       if (!party.guestGenreVotes['__HOST__']) addPoints(party, 'host', data.guestName || 'DJ', 15, 'genre vote');
       party.guestGenreVotes['__HOST__'] = genre;
-    } else { delete party.guestGenreVotes['__HOST__']; }
+      // L'hôte ne jamais expire (pasde TTL)
+      if (!party.guestGenreVoteExpiry) party.guestGenreVoteExpiry = {};
+    } else {
+      delete party.guestGenreVotes['__HOST__'];
+      delete party.guestGenreVoteExpiry['__HOST__'];
+    }
     const totals = recomputeGenreVotes(party);
     io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: totals });
     io.to(`host:${party.code}`).emit('votes:update', { genreVotes: totals });
@@ -865,15 +1202,24 @@ io.on('connection', (socket) => {
     const party = getMutableParty(socket); if (!party) return;
     const voterKey = data.guestName || data.guestId || socket.id;
     const genre = data.genre;
+    if (!party.guestGenreVoteExpiry) party.guestGenreVoteExpiry = {};
     if (genre) {
       party.guestGenreVotes[voterKey] = genre;
+      // Expiration : 30 min à partir du vote
+      party.guestGenreVoteExpiry[voterKey] = Date.now() + GENRE_VOTE_TTL_MS;
       if (!party._genreVotedOnce[voterKey]) {
         party._genreVotedOnce[voterKey] = true;
         addPoints(party, data.guestId || socket.id, data.guestName || voterKey, 15, 'genre vote');
       }
-    } else { delete party.guestGenreVotes[voterKey]; }
+    } else {
+      delete party.guestGenreVotes[voterKey];
+      delete party.guestGenreVoteExpiry[voterKey];
+    }
     const totals = recomputeGenreVotes(party);
-    io.to(`host:${party.code}`).emit('guest:genreVoted', data);
+    io.to(`host:${party.code}`).emit('guest:genreVoted', {
+      ...data,
+      expiresAt: party.guestGenreVoteExpiry[voterKey] || null
+    });
     io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: totals });
     io.to(`host:${party.code}`).emit('votes:update', { genreVotes: totals });
   });
@@ -906,11 +1252,11 @@ io.on('connection', (socket) => {
     if (data.guestId || data.guestName) addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${data.title || data.query}`);
   });
 
-  // ★ Phase 3 — Track played event (anti-replay + performance tracking)
+  // Track played event — anti-replay + performance tracking + suggestion boost
   socket.on('host:trackPlayed', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
     
-    const { title, artist, genre, isrc, deezerID, vibeScore } = data;
+    const { title, artist, genre, isrc, deezerID, vibeScore, fromSuggestion } = data;
     const hash = fallbackHash(title, artist);
     
     // 1. Add to playedKeys (both ISRC and fallbackHash)
@@ -928,25 +1274,31 @@ io.on('connection', (socket) => {
       const partyGenre = party._dominantGenre || genre || '';
       
       const filter = isrc ? { isrc } : { fallbackHash: hash };
+      const inc = {
+        'performance.totalPlays': 1,
+        [`performance.hourBuckets.${hourBucket}.plays`]: 1,
+      };
+      if (partyGenre) inc[`performance.genreContexts.${partyGenre}.plays`] = 1;
+      // Boost suggestCount si ce play vient d'une suggestion (signal fort)
+      if (fromSuggestion) inc['suggestCount'] = 1;
+
       const update = {
         $setOnInsert: {
-          isrc: isrc || undefined,
+          isrc:         isrc || undefined,
           fallbackHash: hash,
-          title, artist, genre: genre || '',
-          source: 'exploration',
+          title,
+          artist,
+          genre:        normalizeGenre(genre || ''),
+          source:       'exploration',
           'providers.deezer.trackId': deezerID || undefined,
         },
-        $inc: {
-          'performance.totalPlays': 1,
-          [`performance.genreContexts.${partyGenre}.plays`]: partyGenre ? 1 : 0,
-          [`performance.hourBuckets.${hourBucket}.plays`]: 1,
-        },
+        $inc: inc,
         $set: {
           'performance.avgVibeAtPlay': vibeScore || 0,
           updatedAt: new Date(),
         }
       };
-      
+
       await Track.findOneAndUpdate(filter, update, { upsert: true, new: true });
     } catch (err) {
       console.error(`[Track] ❌ Upsert error: ${err.message}`);
@@ -1366,7 +1718,10 @@ async function boot() {
   // 2. Restore active parties from DB
   await restoreParties(parties);
 
-  // 3. Start flush loop
+  // 3. Seed editorial catalog (no-op if already seeded)
+  await seedEditorialCatalog();
+
+  // 4. Start flush loop
   startFlushLoop(parties);
 
   // ★ Phase 3: Start debounced rating flush (every 10 seconds)
@@ -1442,3 +1797,48 @@ process.on('SIGINT', async () => {
 });
 
 boot().catch(err => { console.error('Boot failed:', err); process.exit(1); });
+
+// ─── Genre Vote Purge Job (toutes les 5 min) ─────────────────────────
+// Supprime les votes expirés (TTL 30 min) et broadcast les mises à jour.
+// Si tous les votes expirent → retombe sur le dernier genre dominant.
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, party] of parties) {
+    if (party.endedAt) continue; // Ignorer les soirées terminées
+    const expiry = party.guestGenreVoteExpiry || {};
+    let changed = false;
+
+    for (const [voterKey, exp] of Object.entries(expiry)) {
+      if (voterKey === '__HOST__') continue; // L'hôte n'expire pas
+      if (now > exp) {
+        const expiredGenre = party.guestGenreVotes[voterKey];
+        delete party.guestGenreVotes[voterKey];
+        delete party.guestGenreVoteExpiry[voterKey];
+        changed = true;
+        console.log(`⏰ [${code}] Genre vote expiré: ${voterKey} → ${expiredGenre} (après 30min)`);
+      }
+    }
+
+    if (changed) {
+      const totals = recomputeGenreVotes(party);
+      party.isDirty = true;
+
+      // Broadcast la mise à jour à tout le monde
+      io.to(`guest:${code}`).emit('votes:update', {
+        genreVotes: totals,
+        fallbackGenre: party._lastDominantGenre || null
+      });
+      io.to(`host:${code}`).emit('votes:update', {
+        genreVotes: totals,
+        fallbackGenre: party._lastDominantGenre || null
+      });
+
+      const activeVotes = Object.keys(totals).length;
+      if (activeVotes === 0) {
+        console.log(`🎵 [${code}] Plus de votes actifs → fallback genre: ${party._lastDominantGenre || 'aucun'}`);
+      } else {
+        console.log(`✅ [${code}] Votes restants après purge: ${JSON.stringify(totals)}`);
+      }
+    }
+  }
+}, 5 * 60 * 1000); // Toutes les 5 minutes

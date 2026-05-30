@@ -28,6 +28,8 @@ export function createPartyState(code) {
     costumeVoters: {},         // {voterId: targetId}
     participantScores: {},     // {key: {name, score, voteCount, participantId}}
     guestGenreVotes: {},       // {voterKey: genre}
+    guestGenreVoteExpiry: {},  // {voterKey: expiresAt timestamp (ms)} — 30min TTL
+    _lastDominantGenre: null,  // Fallback quand tous les votes expirent
     profilePointsGiven: new Set(),
     _genreVotedOnce: {},
     // Metadata
