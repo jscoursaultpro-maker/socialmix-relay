@@ -847,7 +847,21 @@ function connectToRelay() {
   });
 
   socket.on('votes:update', (data) => {
+    const prevVotes = state.genreVotes || {};
     state.genreVotes = data.genreVotes || {};
+    // Si le serveur signale un fallback (tous les votes ont expiré)
+    if (data.fallbackGenre) state._fallbackGenre = data.fallbackGenre;
+
+    // Détecter si MON vote a expiré : mon genre n'est plus dans les votes actifs
+    if (state.selectedGenre && !state.genreVotes[state.selectedGenre]) {
+      const hadVotes = Object.values(prevVotes).length > 0;
+      if (hadVotes) {
+        // Mon vote a disparu → il a expiré
+        console.log('[Trend] Mon vote a expiré :', state.selectedGenre);
+        state._genreVoteExpired = true;
+        // NE PAS reset state.selectedGenre ici — on montre juste le badge
+      }
+    }
     setupGenreTrends();   // refresh genre button grid with new counts
     updateGenreChart();   // refresh chart bars + trending badge
   });
@@ -1055,35 +1069,70 @@ function updateVoteButtons() {
 function setupGenreTrends() {
   const grid = $('genre-grid');
   grid.innerHTML = '';
-  
+
+  // Bandeau "vote expiré" si mon vote n'est plus actif
+  const myVoteExpired = state._genreVoteExpired && state.selectedGenre &&
+    !(state.genreVotes[state.selectedGenre] > 0);
+
+  if (myVoteExpired) {
+    const banner = document.createElement('div');
+    banner.id = 'genre-expiry-banner';
+    banner.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,152,0,0.12);border:1px solid rgba(255,152,0,0.3);border-radius:10px;margin-bottom:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+    banner.innerHTML = `
+      <span style="font-size:18px;">⏰</span>
+      <div style="flex:1;">
+        <div style="font-size:11px;font-weight:800;color:#ffb300;">Vote expiré après 30 min</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);">Ton vote pour <b style="color:#ffb300">${state.selectedGenre}</b> n'est plus actif. Revote !</div>
+      </div>
+      <span style="font-size:18px;">🔁</span>
+    `;
+    // Tap sur la banniere = re-voter le même genre
+    banner.addEventListener('click', () => {
+      state._genreVoteExpired = false;
+      if (socket && socket.connected) {
+        socket.emit('guest:genreVote', {
+          genre: state.selectedGenre,
+          guestName: state.guestName,
+          guestId: state.guestId
+        });
+        showToast('🗳️ Vote renouvellé !');
+      }
+      setupGenreTrends();
+    });
+    grid.insertBefore(banner, grid.firstChild);
+  }
+
   GENRES.forEach(genre => {
     const btn = document.createElement('button');
-    const isSelected = state.selectedGenre === genre;
-    btn.className = 'genre-btn' + (isSelected ? ' selected' : '');
+    const isSelected = state.selectedGenre === genre && !myVoteExpired;
+    const isExpired  = state.selectedGenre === genre && myVoteExpired;
+    btn.className = 'genre-btn' + (isSelected ? ' selected' : '') + (isExpired ? ' expired' : '');
+    if (isExpired) btn.style.cssText = 'opacity:0.5;border-color:rgba(255,152,0,0.4);';
     btn.innerHTML = `
-      <div class="genre-name">${genre}</div>
+      <div class="genre-name">${genre}${isExpired ? ' ⏰' : ''}</div>
       <div class="genre-count">${state.genreVotes[genre] || 0} votes</div>
     `;
     btn.addEventListener('click', () => {
       const previousGenre = state.selectedGenre;
-      
+      state._genreVoteExpired = false; // Reset expiry on new vote
+
       // Toggle off if same genre, otherwise select new
-      if (state.selectedGenre === genre) {
+      if (state.selectedGenre === genre && !myVoteExpired) {
         state.selectedGenre = null;
       } else {
         state.selectedGenre = genre;
       }
-      
+
       // Update UI highlight only (counts come from server)
       setupGenreTrends();
-      
+
       // Server handles all counting
       if (socket && socket.connected) {
-        socket.emit('guest:genreVote', { 
+        socket.emit('guest:genreVote', {
           genre: state.selectedGenre,       // null = cancel
           previousGenre: previousGenre,     // what to decrement
-          guestName: state.guestName, 
-          guestId: state.guestId 
+          guestName: state.guestName,
+          guestId: state.guestId
         });
       }
       populateMissions(); // refresh mission progress
@@ -1096,9 +1145,22 @@ function updateGenreChart() {
   const container = $('chart-bars');
   const maxVotes = Math.max(...Object.values(state.genreVotes), 1);
   container.innerHTML = '';
-  
+
   const sorted = Object.entries(state.genreVotes).sort((a,b) => b[1] - a[1]).slice(0, 6);
-  
+
+  if (sorted.length === 0 && state._fallbackGenre) {
+    // Aucun vote actif — afficher le genre de fallback
+    container.innerHTML = `
+      <div style="text-align:center;padding:10px;">
+        <div style="font-size:10px;font-weight:800;color:rgba(255,152,0,0.8);letter-spacing:1px;margin-bottom:4px;">TENDANCE (dernière active)</div>
+        <div style="font-size:18px;font-weight:900;color:white;">${state._fallbackGenre}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:4px;">Vote pour influencer le DJ !</div>
+      </div>`;
+    $('trending-genre').textContent = state._fallbackGenre + ' *';
+    setupGenreTrends();
+    return;
+  }
+
   sorted.forEach(([genre, votes]) => {
     const pct = (votes / maxVotes * 100).toFixed(0);
     const row = document.createElement('div');
@@ -1112,7 +1174,7 @@ function updateGenreChart() {
     `;
     container.appendChild(row);
   });
-  
+
   if (sorted.length > 0) $('trending-genre').textContent = sorted[0][0];
   setupGenreTrends();
 }
@@ -1389,9 +1451,17 @@ function updateHistory() {
       <div class="history-info">
         <div class="history-title">${track.title}${genreBadge}</div>
         <div class="history-artist">${track.artist}</div>
-        ${track.suggestedBy 
-          ? `<div style="margin-top:2px; font-size:10px; color:#00d2ff; font-weight:600;">🔥 Titre choisi par ${escapeAttr(track.suggestedBy)}</div>` 
-          : `<div style="margin-top:2px; font-size:10px; color:#c651cd; font-weight:600;">🤖 Mixé par le DJ Brain</div>`}
+        ${(() => {
+          // Nouvelle structure requestedBy (P0-3)
+          const rb = track.requestedBy;
+          const byGuest = rb?.source === 'suggestion' && rb?.guestName
+            ? rb.guestName
+            : (track.suggestedBy || null);  // Fallback legacy
+          if (byGuest) {
+            return `<div style="margin-top:2px;font-size:10px;color:#00d2ff;font-weight:700;">✨ Demandé par ${escapeHtml(byGuest)}</div>`;
+          }
+          return `<div style="margin-top:2px;font-size:10px;color:rgba(187,134,252,0.8);font-weight:600;">🤖 DJ Brain</div>`;
+        })()}
         ${voteBadges ? `<div style="margin-top:2px;">${voteBadges}</div>` : ''}
         <div class="history-links">
           <a class="stream-link spotify" href="https://open.spotify.com/search/${query}" target="_blank">Spotify</a>
@@ -2003,13 +2073,16 @@ function showPhotoLightbox(src, name, entryGuestId) {
   
   const overlay = document.createElement('div');
   overlay.className = 'photo-lightbox';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;';
   overlay.innerHTML = `
-    <div style="color:white;font-size:14px;font-weight:800;margin-bottom:12px;">${name || 'Photo'}</div>
-    <img src="${src}" style="max-width:90%;max-height:65vh;border-radius:12px;object-fit:contain;">
-    <div style="display:flex;gap:12px;margin-top:16px;align-items:center;">
-      ${voteHTML}
-      <button class="lb-close-btn" style="padding:10px 30px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:white;font-size:12px;font-weight:800;cursor:pointer;">FERMER</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:400px;margin-bottom:12px;">
+      <div style="color:white;font-size:13px;font-weight:800;">📷 ${name || 'Photo'}</div>
+      <button class="lb-close-btn" style="width:36px;height:36px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:50%;color:white;font-size:18px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-appearance:none;touch-action:manipulation;">✕</button>
+    </div>
+    <img src="${src}" style="max-width:100%;max-height:70vh;border-radius:12px;object-fit:contain;">
+    ${voteHTML ? `<div style="margin-top:16px;">${voteHTML}</div>` : ''}
+    <div style="margin-top:16px;padding-bottom:20px;">
+      <button class="lb-close-btn" style="padding:12px 36px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:14px;color:white;font-size:13px;font-weight:800;cursor:pointer;-webkit-appearance:none;touch-action:manipulation;">✕ FERMER</button>
     </div>
   `;
   
@@ -2438,12 +2511,8 @@ function addDiapoPhoto(dataURL, guestName) {
   img.src = dataURL;
   img.alt = `photo de ${guestName || 'guest'}`;
   img.style.cssText = 'width:100%; border-radius:8px; aspect-ratio:1; object-fit:cover; cursor:pointer;';
-  img.addEventListener('click', () => {
-    const link = document.createElement('a');
-    link.href = dataURL;
-    link.download = `socialmix_${guestName || 'photo'}_${Date.now()}.jpg`;
-    link.click();
-  });
+  // Ouvre la lightbox avec bouton FERMER (plus de téléchargement automatique)
+  img.addEventListener('click', () => showPhotoLightbox(dataURL, guestName || 'Guest'));
   grid.appendChild(img);
   console.log('[Photo] Added to diapo-grid, total:', grid.children.length);
 }
