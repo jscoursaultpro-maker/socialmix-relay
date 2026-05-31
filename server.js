@@ -915,12 +915,16 @@ io.on('connection', (socket) => {
   socket.on('host:trackUpdate', (track) => {
     const party = getMutableParty(socket); if (!party) return;
     party.currentTrack = track;
+
+    // ★ R5 fix: hissé hors du bloc if — accessible à l'emit
+    let requestedBy = { source: 'djbrain', guestName: null };
+
     if (track && (!party.trackHistory.length || party.trackHistory[0]?.title !== track.title)) {
       // ★ P0-3 — Attribution : qui a demandé ce titre ?
-      let requestedBy = { source: 'djbrain', guestName: null };
+      // (requestedBy déclaré au-dessus — pas de re-déclaration avec let ici)
 
       // 1. Chercher dans les suggestions récentes (queued ou next)
-      if (track.fromSuggestion || track.suggestionId) {
+      if (track.fromSuggestion || track.suggestionId || track.source === 'djBrain_suggestion') {
         const matchedSugg = party.suggestions.find(s =>
           (s.title || '').toLowerCase() === (track.title || '').toLowerCase() &&
           (s.artist || '').toLowerCase() === (track.artist || '').toLowerCase() &&
@@ -934,7 +938,12 @@ io.on('connection', (socket) => {
         }
       }
 
-      // 2. Fallback : recherche souple sur le titre seul si pas encore trouvé
+      // 2. Fallback : si track.suggestedBy est renseigné côté iOS (C2/C3 fix), l'utiliser directement
+      if (requestedBy.source === 'djbrain' && track.suggestedBy) {
+        requestedBy = { source: 'suggestion', guestName: track.suggestedBy, guestId: null };
+      }
+
+      // 3. Fallback : recherche souple sur le titre seul si pas encore trouvé
       if (requestedBy.source === 'djbrain') {
         const softMatch = party.suggestions.find(s =>
           (s.title || '').toLowerCase() === (track.title || '').toLowerCase() &&
@@ -959,8 +968,10 @@ io.on('connection', (socket) => {
         addPoints(party, requestedBy.guestId, requestedBy.guestName || 'Guest', 20, `suggestion jouée: ${track.title}`);
       }
     }
-    io.to(`guest:${party.code}`).emit('track:update', stripSecret(track));
-    console.log(`🎵 [${party.code}] Track: ${track?.title} — ${track?.artist}`);
+
+    // ★ R5 fix: requestedBy inclus dans le payload — les guests voient l'attribution en temps réel
+    io.to(`guest:${party.code}`).emit('track:update', { ...stripSecret(track), requestedBy });
+    console.log(`🎵 [${party.code}] Track: ${track?.title} — ${track?.artist} (by: ${requestedBy.guestName || 'DJ Brain'})`);
   });
 
 
