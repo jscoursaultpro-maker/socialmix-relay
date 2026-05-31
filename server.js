@@ -919,7 +919,12 @@ io.on('connection', (socket) => {
     // ★ R5 fix: hissé hors du bloc if — accessible à l'emit
     let requestedBy = { source: 'djbrain', guestName: null };
 
-    if (track && (!party.trackHistory.length || party.trackHistory[0]?.title !== track.title)) {
+    if (track) {
+      // Normalize title for dedup: strip leading "ARTIST - " prefix, lowercase
+      const normTitle = (t) => (t || '').toLowerCase().replace(/^[^-]+ - /, '').trim();
+      const isNewTrack = !party.trackHistory.length ||
+        normTitle(party.trackHistory[0]?.title) !== normTitle(track.title);
+      if (isNewTrack) {
       // ★ P0-3 — Attribution : qui a demandé ce titre ?
       // (requestedBy déclaré au-dessus — pas de re-déclaration avec let ici)
 
@@ -967,7 +972,8 @@ io.on('connection', (socket) => {
       if (requestedBy.source === 'suggestion' && requestedBy.guestId) {
         addPoints(party, requestedBy.guestId, requestedBy.guestName || 'Guest', 20, `suggestion jouée: ${track.title}`);
       }
-    }
+    } // end if (isNewTrack)
+    } // end if (track)
 
     // ★ R5 fix: requestedBy inclus dans le payload — les guests voient l'attribution en temps réel
     io.to(`guest:${party.code}`).emit('track:update', { ...stripSecret(track), requestedBy });
@@ -1100,6 +1106,17 @@ io.on('connection', (socket) => {
     };
     // Remove any existing entry with same name OR same userId (prevents duplicates on reconnect)
     // IMPORTANT: Never remove the host entry even if name matches
+    // Also: if guest name matches the host name (self-join), skip entirely
+    const hostParticipant = party.participants.find(p => p.isHost);
+    const hostName = (hostParticipant?.name || '').trim().toLowerCase();
+    const guestTrimmed = guestName.trim().toLowerCase();
+    if (hostParticipant && (guestTrimmed === hostName || hostName.includes(guestTrimmed) || guestTrimmed.includes(hostName))) {
+      // Host is joining as guest (e.g. GuestExperienceView opened from host app) — skip duplicate
+      console.log(`[${code}] Host joining as guest (${guestName}) — skipping duplicate participant`);
+      socket.emit('party:state', buildLightState(party));
+      socket.emit('session:token', { sessionToken: randomUUID(), partyCode: code, userId: data.userId || socket.id });
+      return;
+    }
     party.participants = party.participants.filter(p => {
       if (p.isHost) return true;  // Never remove the host
       if (p.name === guest.name) return false;   // Same name → remove old guest
