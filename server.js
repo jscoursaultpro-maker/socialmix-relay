@@ -58,11 +58,9 @@ function adminAuth(req, res, next) {
 // ─── Seed editorial catalog into MongoDB ────────────────────────────
 async function seedEditorialCatalog() {
   try {
-    const count = await Track.countDocuments({ source: 'editorial' });
-    if (count > 0) {
-      console.log(`[Seed] ✅ Editorial catalog already seeded (${count} tracks). Skipping.`);
-      return;
-    }
+    const count = await Track.countDocuments({ source: { $in: ['editorial', 'host-library'] } });
+    console.log(`[Seed] 🔄 Running upsert seed (${count} existing tracks in DB)...`);
+    // No early return — $setOnInsert is a no-op on existing docs, safe to re-run.
 
     // Chemin depuis relay-server/ → ../SocialMixApp/SocialMixApp/Resources/
     const seedPath = join(__dirname, '..', 'SocialMixApp', 'SocialMixApp', 'Resources', 'editorial_seed.json');

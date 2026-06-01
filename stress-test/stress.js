@@ -20,6 +20,7 @@ import { performance } from 'perf_hooks';
 import { randomUUID } from 'crypto';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { USER_CATALOG, pickCatalogTrack } from './user-catalog.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -33,14 +34,11 @@ const GUESTS_PER_PARTY = parseInt(process.env.GUESTS_PER_PARTY || '20');
 const DURATION_SEC     = parseInt(process.env.DURATION_SEC     || '60');
 const RAMP_SEC         = parseInt(process.env.RAMP_SEC         || '30');
 
-// ─── Realistic test data ─────────────────────────────────────────────
+// ─── Realistic test data (user catalog + generic) ────────────────────
 const GENRES   = ['House', 'Electro', 'Pop', 'Hip-Hop', 'Disco', 'R&B', 'Latin', 'Afro'];
-const TITLES   = ['Blinding Lights', 'Levitating', 'One Dance', 'Starboy', 'Shape of You',
-                   'As It Was', 'Easy On Me', 'Heat Waves', 'Montero', 'good 4 u',
-                   'Flowers', 'Unholy', 'Anti-Hero', 'About Damn Time', 'Break My Soul'];
-const ARTISTS  = ['The Weeknd', 'Dua Lipa', 'Drake', 'Beyoncé', 'Ed Sheeran',
-                   'Harry Styles', 'Adele', 'Glass Animals', 'Lil Nas X', 'Olivia Rodrigo',
-                   'Miley Cyrus', 'Sam Smith', 'Taylor Swift', 'Lizzo', 'David Guetta'];
+// TITLES/ARTISTS now served from user-catalog.js — fallbacks for non-suggestion uses
+const TITLES   = USER_CATALOG.map(t => t.title);
+const ARTISTS  = USER_CATALOG.map(t => t.artist);
 const EMOJIS   = ['🎉', '🔥', '🎵', '🎤', '💃', '🕺', '🎶', '⚡', '🌟', '🎸', '🫶', '😎'];
 const MESSAGES = ['Trop bien ce son !', 'On adore !', 'Encore !', 'DJ t\'assures 🔥',
                    'Vibes au max', 'Mets du son !', 'Amazing !', 'On kiffe grave', 'Top !',
@@ -179,18 +177,18 @@ function createGuest(partyCode, guestIndex, partyIndex = 0, opts = {}) {
         });
 
       } else if (roll < 0.72) {
-        // ── Suggestion (feeds DJ Brain) ──
+        // ── Suggestion depuis la bibliothèque host (vrais deezerIDs) ──
         metrics.suggestionsSent++;
-        const title = pick(TITLES);
+        const track = pickCatalogTrack();
         const t0 = performance.now();
         socket.emit('guest:suggest', {
           guestId, guestName,
-          title,
-          artist: pick(ARTISTS),
-          deezerID: rand(100000, 999999),
+          title:    track.title,
+          artist:   track.artist,
+          deezerID: track.deezerID,
           coverURL: '',
-          duration: rand(180, 240),
-          query: `${pick(ARTISTS)} ${title}`,
+          duration: track.duration,
+          query:    `${track.artist} ${track.title}`,
         });
         socket.once('suggestion:status', () => recordLatency(performance.now() - t0));
 
@@ -236,22 +234,22 @@ function createGuest(partyCode, guestIndex, partyIndex = 0, opts = {}) {
         });
 
       } else {
-        // ── SOS Banger — high-urgency suggestion (~5%) ──
+        // ── SOS Banger — depuis la bibliothèque host ──
+        const sosBanger = pickCatalogTrack();
         metrics.sosBangerSent++;
-        const title = pick(TITLES);
         socket.emit('guest:suggest', {
           guestId, guestName,
-          title,
-          artist: pick(ARTISTS),
-          deezerID: rand(100000, 999999),
+          title:    sosBanger.title,
+          artist:   sosBanger.artist,
+          deezerID: sosBanger.deezerID,
           coverURL: '',
-          duration: rand(180, 240),
-          query: `${pick(ARTISTS)} ${title}`,
-          sosBanger: true,      // SOS flag (forwarded as-is in suggestion payload)
+          duration: sosBanger.duration,
+          query:    `${sosBanger.artist} ${sosBanger.title}`,
+          sosBanger: true,
           urgency: 'SOS',
         });
         metrics.suggestionsSent++;
-        console.log(`  🚨 SOS BANGER: ${guestName} → "${title}"`);
+        console.log(`  🚨 SOS BANGER: ${guestName} → "${sosBanger.title}" par ${sosBanger.artist}`);
       }
 
       scheduleNextActivity();
