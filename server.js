@@ -115,7 +115,7 @@ async function seedEditorialCatalog() {
       };
 
       try {
-        await Track.findOneAndUpdate(filter, update, { upsert: true, new: false });
+        await Track.findOneAndUpdate(filter, update, { upsert: true, returnDocument: 'before' });
         inserted++;
       } catch (e) {
         if (e.code !== 11000) console.error(`[Seed] ❌ ${t.title}: ${e.message}`);
