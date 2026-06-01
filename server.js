@@ -74,7 +74,7 @@ async function seedEditorialCatalog() {
       catch { console.warn('[Seed] ⚠️ editorial_seed.json not found — skipping editorial seed'); return; }
     }
 
-    const tracks = seedData.tracks || [];
+    const tracks = Array.isArray(seedData) ? seedData : (seedData.tracks || []);
     console.log(`[Seed] 🌱 Seeding ${tracks.length} editorial tracks into MongoDB...`);
 
     let inserted = 0, skipped = 0;
@@ -91,31 +91,38 @@ async function seedEditorialCatalog() {
       }
 
       const filter = t.isrc ? { isrc: t.isrc } : { fallbackHash: hash };
-      const doc = {
-        isrc:        t.isrc   || undefined,
-        fallbackHash: hash,
-        title:       t.title,
-        artist:      t.artist,
-        album:       t.album  || undefined,
-        genre,
-        bpm:         t.bpm   || 0,
-        energy:      t.energy || 0,
-        releaseYear: t.releaseYear || undefined,
-        coverArtURL,
-        source:      'editorial',
-        'providers.deezer.trackId':  deezerTrackId  || undefined,
-        'providers.deezer.albumId':  t.providers?.deezer?.albumId || undefined,
+
+      // $set → always enrich genre/bpm/deezerID (even for existing docs)
+      // $setOnInsert → only write identity fields on brand-new inserts
+      const update = {
+        $set: {
+          ...(genre                && { genre }),
+          ...(t.bpm > 0           && { bpm: t.bpm }),
+          ...(t.energy > 0        && { energy: t.energy }),
+          ...(deezerTrackId       && { 'providers.deezer.trackId': deezerTrackId }),
+          ...(t.providers?.deezer?.albumId && { 'providers.deezer.albumId': t.providers.deezer.albumId }),
+          ...(coverArtURL         && { coverArtURL }),
+        },
+        $setOnInsert: {
+          title:       t.title,
+          artist:      t.artist,
+          fallbackHash: hash,
+          ...(t.isrc        && { isrc: t.isrc }),
+          ...(t.album       && { album: t.album }),
+          ...(t.releaseYear && { releaseYear: t.releaseYear }),
+          source: 'editorial',
+        },
       };
 
       try {
-        await Track.findOneAndUpdate(filter, { $setOnInsert: doc }, { upsert: true, new: false });
+        await Track.findOneAndUpdate(filter, update, { upsert: true, new: false });
         inserted++;
       } catch (e) {
         if (e.code !== 11000) console.error(`[Seed] ❌ ${t.title}: ${e.message}`);
         else skipped++; // Duplicate key — already exists
       }
     }
-    console.log(`[Seed] ✅ Editorial seed complete: ${inserted} inserted, ${skipped} skipped`);
+    console.log(`[Seed] ✅ Editorial seed complete: ${inserted} upserted, ${skipped} skipped`);
   } catch (err) {
     console.error('[Seed] ❌ Seed failed:', err.message);
   }
