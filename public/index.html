@@ -277,25 +277,7 @@
             <div class="vote-status" id="vote-status"></div>
         </div>
 
-        <!-- Genre Trends -->
-        <div class="card trends-section">
-            <div class="section-header">
-                <span class="section-icon">📊</span>
-                <span class="section-title">VOTE TENDANCE <span style="font-size:8px;color:#00d2ff;opacity:0.6">v26</span></span>
-            </div>
-            <div class="genre-grid" id="genre-grid"></div>
-        </div>
-
-        <!-- Genre Chart -->
-        <div class="card chart-section" id="chart-section">
-            <div class="section-header">
-                <span class="section-icon">📈</span>
-                <span class="section-title">TENDANCES LIVE</span>
-            </div>
-            <div class="chart-bars" id="chart-bars"></div>
-        </div>
-
-        <!-- Suggest Track -->
+        <!-- Suggest Track — avant le trending pour éviter les sauts de layout -->
         <div class="card suggest-section">
             <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:6px;">
@@ -325,6 +307,24 @@
             <div id="suggest-hint" style="text-align:center;padding:6px 0;font-size:10px;color:rgba(255,255,255,0.3);font-weight:500;">
                 💡 Tape un titre ou un artiste, ou clique sur Explorer
             </div>
+        </div>
+
+        <!-- Genre Trends -->
+        <div class="card trends-section">
+            <div class="section-header">
+                <span class="section-icon">📊</span>
+                <span class="section-title">VOTE TENDANCE <span style="font-size:8px;color:#00d2ff;opacity:0.6">v26</span></span>
+            </div>
+            <div class="genre-grid" id="genre-grid"></div>
+        </div>
+
+        <!-- Genre Chart -->
+        <div class="card chart-section" id="chart-section">
+            <div class="section-header">
+                <span class="section-icon">📈</span>
+                <span class="section-title">TENDANCES LIVE</span>
+            </div>
+            <div class="chart-bars" id="chart-bars"></div>
         </div>
 
         <!-- Leaderboard (Classement) -->
