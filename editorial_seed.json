@@ -1,0 +1,2308 @@
+{
+  "tracks": [
+    {
+      "fallbackHash": "soleil bleu_bleu soleil",
+      "title": "Soleil Bleu",
+      "artist": "Bleu Soleil",
+      "genre": "Electro",
+      "bpm": 80,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3278913111,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "ciel_gims",
+      "title": "CIEL",
+      "artist": "GIMS",
+      "genre": "Hip-Hop",
+      "bpm": 81,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 3045169941,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "copines_aya nakamura",
+      "title": "Copines",
+      "artist": "Aya Nakamura",
+      "genre": "Hip-Hop",
+      "bpm": 90,
+      "energy": 7,
+      "releaseYear": 2018,
+      "providers": {
+        "deezer": {
+          "trackId": 576851242,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "one track mind_naïka",
+      "title": "ONE TRACK MIND",
+      "artist": "Naïka",
+      "genre": "Pop",
+      "bpm": 91,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3650665212,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "human nature_michael jackson",
+      "title": "Human Nature",
+      "artist": "Michael Jackson",
+      "genre": "R&B",
+      "bpm": 93,
+      "energy": 7,
+      "releaseYear": 1983,
+      "providers": {
+        "deezer": {
+          "trackId": 831196,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "girlfriend_tayc",
+      "title": "GIRLFRIEND",
+      "artist": "Tayc",
+      "genre": "Hip-Hop",
+      "bpm": 95,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3938003381,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "hate that i made you love me_ariana grande",
+      "title": "hate that i made you love me",
+      "artist": "Ariana Grande",
+      "genre": "Pop",
+      "bpm": 96,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 4045817471,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "la lune_christophe maé",
+      "title": "La lune",
+      "artist": "Christophe Maé",
+      "genre": "Pop",
+      "bpm": 98,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3760706922,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "lush life_zara larsson",
+      "title": "Lush Life",
+      "artist": "Zara Larsson",
+      "genre": "Pop",
+      "bpm": 98,
+      "energy": 7,
+      "releaseYear": 2015,
+      "providers": {
+        "deezer": {
+          "trackId": 144389048,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "comme caroline_zaho",
+      "title": "Comme Caroline",
+      "artist": "Zaho",
+      "genre": "Pop",
+      "bpm": 99,
+      "energy": 7,
+      "releaseYear": 2013,
+      "providers": {
+        "deezer": {
+          "trackId": 3814069442,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "netflix chill_zola",
+      "title": "NETFLIX CHILL",
+      "artist": "Zola",
+      "genre": "Hip-Hop",
+      "bpm": 100,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 4047900401,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "c'est à qui le tour_mylène farmer",
+      "title": "C'est à qui le tour",
+      "artist": "Mylène Farmer",
+      "genre": "House",
+      "bpm": 102,
+      "energy": 7,
+      "releaseYear": 2008,
+      "providers": {
+        "deezer": {
+          "trackId": 4030914551,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "i just might_bruno mars",
+      "title": "I Just Might",
+      "artist": "Bruno Mars",
+      "genre": "Pop",
+      "bpm": 103,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3867905101,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "fever dream_alex warren",
+      "title": "FEVER DREAM",
+      "artist": "Alex Warren",
+      "genre": "Pop",
+      "bpm": 108,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3869647201,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "18 carats_alonzo",
+      "title": "18 Carats",
+      "artist": "Alonzo",
+      "genre": "Hip-Hop",
+      "bpm": 110,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 3979681391,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "tití me preguntó_bad bunny",
+      "title": "Tití Me Preguntó",
+      "artist": "Bad Bunny",
+      "genre": "Reggaeton",
+      "bpm": 111,
+      "energy": 7,
+      "releaseYear": 2022,
+      "providers": {
+        "deezer": {
+          "trackId": 1741494317,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "feel good_charlotte cardin",
+      "title": "Feel Good",
+      "artist": "Charlotte Cardin",
+      "genre": "Pop",
+      "bpm": 111,
+      "energy": 7,
+      "releaseYear": 2023,
+      "providers": {
+        "deezer": {
+          "trackId": 2424911405,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "fashion designa_theodora",
+      "title": "FASHION DESIGNA",
+      "artist": "Theodora",
+      "genre": "Hip-Hop",
+      "bpm": 112,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 3060824431,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "ordinary_alex warren",
+      "title": "Ordinary",
+      "artist": "Alex Warren",
+      "genre": "Pop",
+      "bpm": 112,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3210709941,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "dtmf_bad bunny",
+      "title": "DtMF",
+      "artist": "Bad Bunny",
+      "genre": "Reggaeton",
+      "bpm": 113,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3171003131,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "what you want_angèle",
+      "title": "What You Want",
+      "artist": "Angèle",
+      "genre": "Electro",
+      "bpm": 114,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3827212511,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "mon bébé_rnboi",
+      "title": "MON BÉBÉ",
+      "artist": "RnBoi",
+      "genre": "Hip-Hop",
+      "bpm": 114,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 3602108062,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "dracula_tame impala",
+      "title": "Dracula",
+      "artist": "Tame Impala",
+      "genre": "Disco",
+      "bpm": 115,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3818963601,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "picasso_bigflo & oli",
+      "title": "Picasso",
+      "artist": "Bigflo & Oli",
+      "genre": "Hip-Hop",
+      "bpm": 115,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3884482901,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "tu dors ?_plk",
+      "title": "Tu dors ?",
+      "artist": "PLK",
+      "genre": "Hip-Hop",
+      "bpm": 115,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3862146611,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "where is my husband!_raye",
+      "title": "WHERE IS MY HUSBAND!",
+      "artist": "Raye",
+      "genre": "R&B",
+      "bpm": 116,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3548216281,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "dai dai_shakira",
+      "title": "Dai Dai",
+      "artist": "Shakira",
+      "genre": "Latin",
+      "bpm": 116,
+      "energy": 7,
+      "releaseYear": 2007,
+      "providers": {
+        "deezer": {
+          "trackId": 4015341011,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "la recette_jeck",
+      "title": "La recette",
+      "artist": "Jeck",
+      "genre": "Pop",
+      "bpm": 116,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3571311501,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "og_genezio",
+      "title": "OG",
+      "artist": "Genezio",
+      "genre": "Hip-Hop",
+      "bpm": 117,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3674551372,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "billie jean_michael jackson",
+      "title": "Billie Jean",
+      "artist": "Michael Jackson",
+      "genre": "Disco",
+      "bpm": 117,
+      "energy": 7,
+      "releaseYear": 1983,
+      "providers": {
+        "deezer": {
+          "trackId": 4603408,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "nuevayol_bad bunny",
+      "title": "NUEVAYoL",
+      "artist": "Bad Bunny",
+      "genre": "Reggaeton",
+      "bpm": 118,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3171002981,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "man i need_olivia dean",
+      "title": "Man I Need",
+      "artist": "Olivia Dean",
+      "genre": "Pop",
+      "bpm": 119,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3503857201,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "avec moi_rnboi",
+      "title": "AVEC MOI",
+      "artist": "RnBoi",
+      "genre": "Hip-Hop",
+      "bpm": 120,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 3732618262,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "j'oublie tout_jul",
+      "title": "J'oublie tout",
+      "artist": "Jul",
+      "genre": "Hip-Hop",
+      "bpm": 120,
+      "energy": 7,
+      "releaseYear": 2002,
+      "providers": {
+        "deezer": {
+          "trackId": 75867418,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "le monde est à moi_jul",
+      "title": "Le monde est à moi",
+      "artist": "Jul",
+      "genre": "Hip-Hop",
+      "bpm": 120,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 4013762661,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "sous la lune_jul",
+      "title": "Sous la lune",
+      "artist": "Jul",
+      "genre": "Hip-Hop",
+      "bpm": 120,
+      "energy": 7,
+      "releaseYear": 2019,
+      "providers": {
+        "deezer": {
+          "trackId": 701987352,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "été avec toi_adèle castillon",
+      "title": "Été avec toi",
+      "artist": "Adèle Castillon",
+      "genre": "Pop",
+      "bpm": 120,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 4034126871,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "ruinart_r2",
+      "title": "RUINART",
+      "artist": "R2",
+      "genre": "Hip-Hop",
+      "bpm": 122,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 3401257811,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "jamaican_hugel",
+      "title": "Jamaican",
+      "artist": "HUGEL",
+      "genre": "House",
+      "bpm": 122,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3889748961,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "la bandite_jul",
+      "title": "La bandite",
+      "artist": "Jul",
+      "genre": "Hip-Hop",
+      "bpm": 123,
+      "energy": 7,
+      "releaseYear": 2019,
+      "providers": {
+        "deezer": {
+          "trackId": 767071002,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "golden_huntr/x",
+      "title": "Golden",
+      "artist": "HUNTR/X",
+      "genre": "Pop",
+      "bpm": 123,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3412534581,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "c'est la cité_jul",
+      "title": "C'est la cité",
+      "artist": "Jul",
+      "genre": "Hip-Hop",
+      "bpm": 123,
+      "energy": 7,
+      "releaseYear": 2015,
+      "providers": {
+        "deezer": {
+          "trackId": 1426733732,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "feu vert_iss",
+      "title": "FEU VERT",
+      "artist": "ISS",
+      "genre": "Hip-Hop",
+      "bpm": 123,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3987094421,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "parisienne_gims",
+      "title": "PARISIENNE",
+      "artist": "GIMS",
+      "genre": "Hip-Hop",
+      "bpm": 123,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3484365861,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "pocahontas_plk",
+      "title": "Pocahontas",
+      "artist": "PLK",
+      "genre": "Hip-Hop",
+      "bpm": 124,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3862146511,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "the fate of ophelia_taylor swift",
+      "title": "The Fate of Ophelia",
+      "artist": "Taylor Swift",
+      "genre": "Pop",
+      "bpm": 124,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3579685431,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "paris_nono la grinta",
+      "title": "Paris",
+      "artist": "Nono La Grinta",
+      "genre": "Hip-Hop",
+      "bpm": 124,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3294048841,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "c'est dur d'aimer_jul",
+      "title": "C'est dur d'aimer",
+      "artist": "Jul",
+      "genre": "Hip-Hop",
+      "bpm": 124,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 4013762651,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "yakuza_rk",
+      "title": "YAKUZA",
+      "artist": "RK",
+      "genre": "House",
+      "bpm": 125,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 4043072601,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "elle voulait_rnboi",
+      "title": "ELLE VOULAIT",
+      "artist": "RnBoi",
+      "genre": "Hip-Hop",
+      "bpm": 125,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3835893541,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "bloqué_gims",
+      "title": "BLOQUÉ",
+      "artist": "GIMS",
+      "genre": "Hip-Hop",
+      "bpm": 126,
+      "energy": 7,
+      "releaseYear": 2013,
+      "providers": {
+        "deezer": {
+          "trackId": 3629572332,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "tour du monde_soolking",
+      "title": "Tour du monde",
+      "artist": "Soolking",
+      "genre": "Hip-Hop",
+      "bpm": 126,
+      "energy": 7,
+      "releaseYear": 2019,
+      "providers": {
+        "deezer": {
+          "trackId": 3469521671,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "à l'aise_triangle des bermudes",
+      "title": "À l'aise",
+      "artist": "TRIANGLE DES BERMUDES",
+      "genre": "Hip-Hop",
+      "bpm": 127,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3899366101,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "spa_gims",
+      "title": "SPA",
+      "artist": "GIMS",
+      "genre": "Pop",
+      "bpm": 127,
+      "energy": 7,
+      "releaseYear": 2015,
+      "providers": {
+        "deezer": {
+          "trackId": 3758716202,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "si antes te hubiera conocido_karol g",
+      "title": "Si Antes Te Hubiera Conocido",
+      "artist": "KAROL G",
+      "genre": "Reggaeton",
+      "bpm": 128,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 2846442802,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "beauty and a beat_justin bieber",
+      "title": "Beauty And A Beat",
+      "artist": "Justin Bieber",
+      "genre": "House",
+      "bpm": 128,
+      "energy": 7,
+      "releaseYear": 2012,
+      "providers": {
+        "deezer": {
+          "trackId": 37027991,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "méli-mélo_kulturr",
+      "title": "méli-mélo",
+      "artist": "kulturr",
+      "genre": "Hip-Hop",
+      "bpm": 128,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3675222292,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "new religion_bebe rexha",
+      "title": "New Religion",
+      "artist": "Bebe Rexha",
+      "genre": "House",
+      "bpm": 128,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3850680281,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "rené caovilla_gambi",
+      "title": "RENÉ CAOVILLA",
+      "artist": "Gambi",
+      "genre": "Hip-Hop",
+      "bpm": 128,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3921078891,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "avion de chasse_zeg p",
+      "title": "Avion de chasse",
+      "artist": "Zeg P",
+      "genre": "Hip-Hop",
+      "bpm": 130,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 4000152541,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "kendall_booba",
+      "title": "Kendall",
+      "artist": "Booba",
+      "genre": "Hip-Hop",
+      "bpm": 130,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 4047736081,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "maladie_mauvais djo",
+      "title": "Maladie",
+      "artist": "Mauvais Djo",
+      "genre": "Hip-Hop",
+      "bpm": 130,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 4045099331,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "pilé_mauvais djo",
+      "title": "Pilé",
+      "artist": "Mauvais Djo",
+      "genre": "Hip-Hop",
+      "bpm": 130,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 3499178151,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "soleil_gims",
+      "title": "Soleil",
+      "artist": "GIMS",
+      "genre": "Pop",
+      "bpm": 130,
+      "energy": 7,
+      "releaseYear": 2013,
+      "providers": {
+        "deezer": {
+          "trackId": 3935276381,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "love you_nono la grinta",
+      "title": "LOVE YOU",
+      "artist": "Nono La Grinta",
+      "genre": "Hip-Hop",
+      "bpm": 130,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3579710801,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "argent sale_la rvfleuze",
+      "title": "Argent Sale",
+      "artist": "La Rvfleuze",
+      "genre": "Hip-Hop",
+      "bpm": 130,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3837291721,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "talk to you_anotr",
+      "title": "Talk To You",
+      "artist": "ANOTR",
+      "genre": "House",
+      "bpm": 132,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3784724892,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "parlu_la rvfleuze",
+      "title": "PARLU",
+      "artist": "La Rvfleuze",
+      "genre": "Hip-Hop",
+      "bpm": 133,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3911003931,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "phénoménal_jul",
+      "title": "Phénoménal",
+      "artist": "Jul",
+      "genre": "Hip-Hop",
+      "bpm": 133,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3314018771,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "balek_triangle des bermudes",
+      "title": "Balek",
+      "artist": "TRIANGLE DES BERMUDES",
+      "genre": "Hip-Hop",
+      "bpm": 135,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3899366131,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "beat it_michael jackson",
+      "title": "Beat It",
+      "artist": "Michael Jackson",
+      "genre": "Pop",
+      "bpm": 139,
+      "energy": 7,
+      "releaseYear": 1983,
+      "providers": {
+        "deezer": {
+          "trackId": 4763165,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "hakayet_ven1",
+      "title": "Hakayet",
+      "artist": "VEN1",
+      "genre": "Hip-Hop",
+      "bpm": 139,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 2846025562,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "kyky2bondy_hamza",
+      "title": "KYKY2BONDY",
+      "artist": "Hamza",
+      "genre": "Hip-Hop",
+      "bpm": 140,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3330178491,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "parfum quartier_jul",
+      "title": "Parfum quartier",
+      "artist": "Jul",
+      "genre": "Hip-Hop",
+      "bpm": 141,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 410780162,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "asalto_jul",
+      "title": "Asalto",
+      "artist": "Jul",
+      "genre": "Electro",
+      "bpm": 142,
+      "energy": 7,
+      "releaseYear": 2013,
+      "providers": {
+        "deezer": {
+          "trackId": 600108042,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "gabriela_katseye",
+      "title": "Gabriela",
+      "artist": "KATSEYE",
+      "genre": "Pop",
+      "bpm": 146,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3412611901,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "pangor_djaksparo",
+      "title": "Pangor",
+      "artist": "Djaksparo",
+      "genre": "Hip-Hop",
+      "bpm": 146,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3977159061,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "sexy nana_aya nakamura",
+      "title": "Sexy Nana",
+      "artist": "Aya Nakamura",
+      "genre": "Hip-Hop",
+      "bpm": 148,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3995047821,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "soirée mondaine_oria",
+      "title": "Soirée mondaine",
+      "artist": "Oria",
+      "genre": "Pop",
+      "bpm": 150,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3651885972,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "zou bisou_theodora",
+      "title": "ZOU BISOU",
+      "artist": "Theodora",
+      "genre": "Hip-Hop",
+      "bpm": 150,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3380338381,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "melodrama_disiz",
+      "title": "melodrama",
+      "artist": "disiz",
+      "genre": "Hip-Hop",
+      "bpm": 154,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3558373981,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "b.m.s_rambo goyard",
+      "title": "B.M.S",
+      "artist": "Rambo Goyard",
+      "genre": "Hip-Hop",
+      "bpm": 154,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3809346722,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "miss kitoko_theodora",
+      "title": "Miss Kitoko",
+      "artist": "Theodora",
+      "genre": "Hip-Hop",
+      "bpm": 154,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3884172321,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "adriano_niska",
+      "title": "Adriano",
+      "artist": "Niska",
+      "genre": "Hip-Hop",
+      "bpm": 155,
+      "energy": 7,
+      "releaseYear": 2024,
+      "providers": {
+        "deezer": {
+          "trackId": 3442901201,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "end of beginning_djo",
+      "title": "End of Beginning",
+      "artist": "Djo",
+      "genre": "Pop",
+      "bpm": 160,
+      "energy": 7,
+      "releaseYear": 2022,
+      "providers": {
+        "deezer": {
+          "trackId": 1899060227,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "baddies_aya nakamura",
+      "title": "Baddies",
+      "artist": "Aya Nakamura",
+      "genre": "R&B",
+      "bpm": 160,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3356310051,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "sex model_plk",
+      "title": "Sex Model",
+      "artist": "PLK",
+      "genre": "Hip-Hop",
+      "bpm": 160,
+      "energy": 7,
+      "releaseYear": 2026,
+      "providers": {
+        "deezer": {
+          "trackId": 3842413311,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "self aware_temper city",
+      "title": "Self Aware",
+      "artist": "Temper City",
+      "genre": "Hip-Hop",
+      "bpm": 162,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3848530521,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "génération impolie_franglish",
+      "title": "Génération impolie",
+      "artist": "Franglish",
+      "genre": "Hip-Hop",
+      "bpm": 127,
+      "energy": 7,
+      "releaseYear": 2025,
+      "providers": {
+        "deezer": {
+          "trackId": 3591983602,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "paint it, black_the rolling stones",
+      "title": "Paint It, Black",
+      "artist": "The Rolling Stones",
+      "genre": "Pop",
+      "bpm": 158,
+      "energy": 7,
+      "releaseYear": 1966,
+      "providers": {
+        "deezer": {
+          "trackId": 7818900,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "boys don't cry_the cure",
+      "title": "Boys Don't Cry",
+      "artist": "The Cure",
+      "genre": "Pop",
+      "bpm": 85,
+      "energy": 7,
+      "releaseYear": 1985,
+      "providers": {
+        "deezer": {
+          "trackId": 1143625,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "i write sins not tragedies_panic! at the disco",
+      "title": "I Write Sins Not Tragedies",
+      "artist": "Panic! At the Disco",
+      "genre": "Pop",
+      "bpm": 85,
+      "energy": 7,
+      "releaseYear": 2005,
+      "providers": {
+        "deezer": {
+          "trackId": 5094040,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "loser_beck",
+      "title": "Loser",
+      "artist": "Beck",
+      "genre": "Pop",
+      "bpm": 85,
+      "energy": 7,
+      "releaseYear": 1993,
+      "providers": {
+        "deezer": {
+          "trackId": 432946872,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "killing in the name_rage against the machine",
+      "title": "Killing In The Name",
+      "artist": "Rage Against the Machine",
+      "genre": "Pop",
+      "bpm": 89,
+      "energy": 7,
+      "releaseYear": 1992,
+      "providers": {
+        "deezer": {
+          "trackId": 62082829,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "live forever_oasis",
+      "title": "Live Forever",
+      "artist": "Oasis",
+      "genre": "Pop",
+      "bpm": 91,
+      "energy": 7,
+      "releaseYear": 1994,
+      "providers": {
+        "deezer": {
+          "trackId": 987064552,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "give it away_red hot chili peppers",
+      "title": "Give It Away",
+      "artist": "Red Hot Chili Peppers",
+      "genre": "Pop",
+      "bpm": 92,
+      "energy": 7,
+      "releaseYear": 1991,
+      "providers": {
+        "deezer": {
+          "trackId": 725837,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "africa_toto",
+      "title": "Africa",
+      "artist": "Toto",
+      "genre": "Pop",
+      "bpm": 93,
+      "energy": 7,
+      "releaseYear": 1982,
+      "providers": {
+        "deezer": {
+          "trackId": 1079668,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "american idiot_green day",
+      "title": "American Idiot",
+      "artist": "Green Day",
+      "genre": "Pop",
+      "bpm": 93,
+      "energy": 7,
+      "releaseYear": 2004,
+      "providers": {
+        "deezer": {
+          "trackId": 773367,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "whatever_oasis",
+      "title": "Whatever",
+      "artist": "Oasis",
+      "genre": "Pop",
+      "bpm": 93,
+      "energy": 7,
+      "releaseYear": 1994,
+      "providers": {
+        "deezer": {
+          "trackId": 985704102,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "lullaby_the cure",
+      "title": "Lullaby",
+      "artist": "The Cure",
+      "genre": "Pop",
+      "bpm": 94,
+      "energy": 7,
+      "releaseYear": 1989,
+      "providers": {
+        "deezer": {
+          "trackId": 1143637,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "i love rock 'n roll_joan jett and the blackhearts",
+      "title": "I Love Rock 'N Roll",
+      "artist": "Joan Jett and the Blackhearts",
+      "genre": "Pop",
+      "bpm": 94,
+      "energy": 7,
+      "releaseYear": 1981,
+      "providers": {
+        "deezer": {
+          "trackId": 3081706951,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "teenage dirtbag_wheatus",
+      "title": "Teenage Dirtbag",
+      "artist": "Wheatus",
+      "genre": "Pop",
+      "bpm": 95,
+      "energy": 7,
+      "releaseYear": 2000,
+      "providers": {
+        "deezer": {
+          "trackId": 870041,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "help!_the beatles",
+      "title": "Help!",
+      "artist": "The Beatles",
+      "genre": "Pop",
+      "bpm": 95,
+      "energy": 7,
+      "releaseYear": 1965,
+      "providers": {
+        "deezer": {
+          "trackId": 116348610,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "no sleep till brooklyn_beastie boys",
+      "title": "No Sleep Till Brooklyn",
+      "artist": "Beastie Boys",
+      "genre": "Hip-Hop",
+      "bpm": 97,
+      "energy": 7,
+      "releaseYear": 1987,
+      "providers": {
+        "deezer": {
+          "trackId": 1085497,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "r u mine?_arctic monkeys",
+      "title": "R U Mine?",
+      "artist": "Arctic Monkeys",
+      "genre": "Pop",
+      "bpm": 97,
+      "energy": 7,
+      "releaseYear": 2012,
+      "providers": {
+        "deezer": {
+          "trackId": 70322132,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "the kids aren't alright_the offspring",
+      "title": "The Kids Aren't Alright",
+      "artist": "The Offspring",
+      "genre": "Pop",
+      "bpm": 100,
+      "energy": 7,
+      "releaseYear": 1998,
+      "providers": {
+        "deezer": {
+          "trackId": 137233986,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "all star_smash mouth",
+      "title": "All Star",
+      "artist": "Smash Mouth",
+      "genre": "Pop",
+      "bpm": 104,
+      "energy": 7,
+      "releaseYear": 1999,
+      "providers": {
+        "deezer": {
+          "trackId": 1565010,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "take me out_franz ferdinand",
+      "title": "Take Me Out",
+      "artist": "Franz Ferdinand",
+      "genre": "Pop",
+      "bpm": 104,
+      "energy": 7,
+      "releaseYear": 2003,
+      "providers": {
+        "deezer": {
+          "trackId": 4315684,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "walk this way_run-dmc",
+      "title": "Walk This Way",
+      "artist": "Run-DMC",
+      "genre": "Hip-Hop",
+      "bpm": 106,
+      "energy": 7,
+      "releaseYear": 1986,
+      "providers": {
+        "deezer": {
+          "trackId": 994702,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "new noise_refused",
+      "title": "New Noise",
+      "artist": "Refused",
+      "genre": "Pop",
+      "bpm": 106,
+      "energy": 7,
+      "releaseYear": 1998,
+      "providers": {
+        "deezer": {
+          "trackId": 378236081,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "more than a feeling_boston",
+      "title": "More Than a Feeling",
+      "artist": "Boston",
+      "genre": "Pop",
+      "bpm": 110,
+      "energy": 7,
+      "releaseYear": 1976,
+      "providers": {
+        "deezer": {
+          "trackId": 1037414,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "another one bites the dust_queen",
+      "title": "Another One Bites The Dust",
+      "artist": "Queen",
+      "genre": "Disco",
+      "bpm": 110,
+      "energy": 7,
+      "releaseYear": 1980,
+      "providers": {
+        "deezer": {
+          "trackId": 67503793,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "numb_linkin park",
+      "title": "Numb",
+      "artist": "Linkin Park",
+      "genre": "Pop",
+      "bpm": 110,
+      "energy": 7,
+      "releaseYear": 2003,
+      "providers": {
+        "deezer": {
+          "trackId": 677232,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "should i stay or should i go_the clash",
+      "title": "Should I Stay or Should I Go",
+      "artist": "The Clash",
+      "genre": "Pop",
+      "bpm": 113,
+      "energy": 7,
+      "releaseYear": 1982,
+      "providers": {
+        "deezer": {
+          "trackId": 69962764,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "basket case_green day",
+      "title": "Basket Case",
+      "artist": "Green Day",
+      "genre": "Pop",
+      "bpm": 113,
+      "energy": 7,
+      "releaseYear": 1994,
+      "providers": {
+        "deezer": {
+          "trackId": 678044,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "heart of glass_blondie",
+      "title": "Heart Of Glass",
+      "artist": "Blondie",
+      "genre": "Disco",
+      "bpm": 115,
+      "energy": 7,
+      "releaseYear": 1979,
+      "providers": {
+        "deezer": {
+          "trackId": 3121608,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "let's dance_david bowie",
+      "title": "Let's Dance",
+      "artist": "David Bowie",
+      "genre": "Pop",
+      "bpm": 115,
+      "energy": 7,
+      "releaseYear": 1983,
+      "providers": {
+        "deezer": {
+          "trackId": 565656032,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "the final countdown_europe",
+      "title": "The Final Countdown",
+      "artist": "Europe",
+      "genre": "Pop",
+      "bpm": 118,
+      "energy": 7,
+      "releaseYear": 1986,
+      "providers": {
+        "deezer": {
+          "trackId": 619310,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "supermassive black hole_muse",
+      "title": "Supermassive Black Hole",
+      "artist": "Muse",
+      "genre": "Pop",
+      "bpm": 120,
+      "energy": 7,
+      "releaseYear": 2006,
+      "providers": {
+        "deezer": {
+          "trackId": 3590186,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "enter sandman_metallica",
+      "title": "Enter Sandman",
+      "artist": "Metallica",
+      "genre": "Pop",
+      "bpm": 123,
+      "energy": 7,
+      "releaseYear": 1991,
+      "providers": {
+        "deezer": {
+          "trackId": 1483825212,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "welcome to the jungle_guns n' roses",
+      "title": "Welcome To The Jungle",
+      "artist": "Guns N' Roses",
+      "genre": "Pop",
+      "bpm": 123,
+      "energy": 7,
+      "releaseYear": 1987,
+      "providers": {
+        "deezer": {
+          "trackId": 518458092,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "smooth criminal_alien ant farm",
+      "title": "Smooth Criminal",
+      "artist": "Alien Ant Farm",
+      "genre": "Pop",
+      "bpm": 127,
+      "energy": 7,
+      "releaseYear": 2001,
+      "providers": {
+        "deezer": {
+          "trackId": 1108061,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "song 2_blur",
+      "title": "Song 2",
+      "artist": "Blur",
+      "genre": "Pop",
+      "bpm": 130,
+      "energy": 7,
+      "releaseYear": 1997,
+      "providers": {
+        "deezer": {
+          "trackId": 3102130,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "jump_van halen",
+      "title": "Jump",
+      "artist": "Van Halen",
+      "genre": "Pop",
+      "bpm": 130,
+      "energy": 7,
+      "releaseYear": 1984,
+      "providers": {
+        "deezer": {
+          "trackId": 97098410,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "bangin in your stereo_massive wagons",
+      "title": "Bangin in Your Stereo",
+      "artist": "Massive Wagons",
+      "genre": "Pop",
+      "bpm": 132,
+      "energy": 7,
+      "releaseYear": 2020,
+      "providers": {
+        "deezer": {
+          "trackId": 912458972,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "roxanne_the police",
+      "title": "Roxanne",
+      "artist": "The Police",
+      "genre": "Pop",
+      "bpm": 132,
+      "energy": 7,
+      "releaseYear": 1978,
+      "providers": {
+        "deezer": {
+          "trackId": 2525877,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "i wanna be your slave_måneskin",
+      "title": "I WANNA BE YOUR SLAVE",
+      "artist": "Måneskin",
+      "genre": "Pop",
+      "bpm": 134,
+      "energy": 7,
+      "releaseYear": 2021,
+      "providers": {
+        "deezer": {
+          "trackId": 1455296862,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "teenage kicks_the undertones",
+      "title": "Teenage Kicks",
+      "artist": "The Undertones",
+      "genre": "Pop",
+      "bpm": 135,
+      "energy": 7,
+      "releaseYear": 1978,
+      "providers": {
+        "deezer": {
+          "trackId": 3786091892,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "hate to say i told you so_the hives",
+      "title": "Hate To Say I Told You So",
+      "artist": "The Hives",
+      "genre": "Pop",
+      "bpm": 135,
+      "energy": 7,
+      "releaseYear": 2000,
+      "providers": {
+        "deezer": {
+          "trackId": 378310131,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "somebody told me_the killers",
+      "title": "Somebody Told Me",
+      "artist": "The Killers",
+      "genre": "Electro",
+      "bpm": 138,
+      "energy": 7,
+      "releaseYear": 2003,
+      "providers": {
+        "deezer": {
+          "trackId": 2947342,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "feel good inc._gorillaz",
+      "title": "Feel Good Inc.",
+      "artist": "Gorillaz",
+      "genre": "Electro",
+      "bpm": 139,
+      "energy": 7,
+      "releaseYear": 2005,
+      "providers": {
+        "deezer": {
+          "trackId": 3129407,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "mammamia_måneskin",
+      "title": "MAMMAMIA",
+      "artist": "Måneskin",
+      "genre": "Pop",
+      "bpm": 142,
+      "energy": 7,
+      "releaseYear": 2021,
+      "providers": {
+        "deezer": {
+          "trackId": 1515437352,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "goo goo muck_the cramps",
+      "title": "Goo Goo Muck",
+      "artist": "The Cramps",
+      "genre": "Pop",
+      "bpm": 142,
+      "energy": 7,
+      "releaseYear": 1980,
+      "providers": {
+        "deezer": {
+          "trackId": 3105736,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "pretty fly_the offspring",
+      "title": "Pretty Fly",
+      "artist": "The Offspring",
+      "genre": "Pop",
+      "bpm": 143,
+      "energy": 7,
+      "releaseYear": 1998,
+      "providers": {
+        "deezer": {
+          "trackId": 137233982,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "alright_supergrass",
+      "title": "Alright",
+      "artist": "Supergrass",
+      "genre": "Pop",
+      "bpm": 146,
+      "energy": 7,
+      "releaseYear": 1995,
+      "providers": {
+        "deezer": {
+          "trackId": 17542457,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "my sharona_the knack",
+      "title": "My Sharona",
+      "artist": "The Knack",
+      "genre": "Pop",
+      "bpm": 147,
+      "energy": 7,
+      "releaseYear": 1979,
+      "providers": {
+        "deezer": {
+          "trackId": 3248376,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "god save the queen_sex pistols",
+      "title": "God Save The Queen",
+      "artist": "Sex Pistols",
+      "genre": "Pop",
+      "bpm": 149,
+      "energy": 7,
+      "releaseYear": 1977,
+      "providers": {
+        "deezer": {
+          "trackId": 60742395,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "love is only a feeling_the darkness",
+      "title": "Love Is Only a Feeling",
+      "artist": "The Darkness",
+      "genre": "Pop",
+      "bpm": 158,
+      "energy": 7,
+      "releaseYear": 2003,
+      "providers": {
+        "deezer": {
+          "trackId": 846669,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "come out and play_the offspring",
+      "title": "Come Out and Play",
+      "artist": "The Offspring",
+      "genre": "Pop",
+      "bpm": 158,
+      "energy": 7,
+      "releaseYear": 1994,
+      "providers": {
+        "deezer": {
+          "trackId": 378299591,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "where is my mind?_pixies",
+      "title": "Where Is My Mind?",
+      "artist": "Pixies",
+      "genre": "Pop",
+      "bpm": 162,
+      "energy": 7,
+      "releaseYear": 1988,
+      "providers": {
+        "deezer": {
+          "trackId": 936899,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "no one knows_queens of the stone age",
+      "title": "No One Knows",
+      "artist": "Queens of the Stone Age",
+      "genre": "Pop",
+      "bpm": 172,
+      "energy": 7,
+      "releaseYear": 2002,
+      "providers": {
+        "deezer": {
+          "trackId": 7179758,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "can't stop_red hot chili peppers",
+      "title": "Can't Stop",
+      "artist": "Red Hot Chili Peppers",
+      "genre": "Pop",
+      "bpm": 183,
+      "energy": 7,
+      "releaseYear": 2002,
+      "providers": {
+        "deezer": {
+          "trackId": 725971,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "dimension_wolfmother",
+      "title": "Dimension",
+      "artist": "Wolfmother",
+      "genre": "Pop",
+      "bpm": 142,
+      "energy": 7,
+      "releaseYear": 2004,
+      "providers": {
+        "deezer": {
+          "trackId": 1182048,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    },
+    {
+      "fallbackHash": "shoot the runner_kasabian",
+      "title": "Shoot the Runner",
+      "artist": "Kasabian",
+      "genre": "Pop",
+      "bpm": 131,
+      "energy": 7,
+      "releaseYear": 2006,
+      "providers": {
+        "deezer": {
+          "trackId": 2205120,
+          "albumId": null
+        }
+      },
+      "source": "host-library"
+    }
+  ]
+}
