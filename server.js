@@ -674,10 +674,12 @@ function addPhotoToParty(party, photo) {
 }
 
 function addPoints(party, participantId, name, points, reason) {
-  // Use normalized name as stable key (participantId changes between reconnections)
-  const normalizedName = (name || participantId || 'Guest').trim();
+  // ★ E1 FIX: When participantId is 'host', ALWAYS use 'DJ' as the name.
+  // Never let a custom guestName (e.g. "🎧 Jean Sebastien") overwrite the host entry.
+  const isHost = participantId === 'host';
+  const normalizedName = isHost ? 'DJ' : (name || participantId || 'Guest').trim();
   let key;
-  if (participantId === 'host') { key = 'host'; }
+  if (isHost) { key = 'host'; }
   else {
     // First try exact name match, then fall back to participantId match
     const byName = Object.entries(party.participantScores).find(([k, v]) => k === normalizedName || v.name === normalizedName);
@@ -686,7 +688,15 @@ function addPoints(party, participantId, name, points, reason) {
   }
   if (!party.participantScores[key]) party.participantScores[key] = { name: normalizedName, score: 0, voteCount: 0, participantId: participantId || key };
   party.participantScores[key].score += points;
-  if (name && name !== 'DJ' && name !== 'Guest') party.participantScores[key].name = normalizedName;
+  // ★ E1 FIX: Host entry name is FROZEN to 'DJ'. For guests, update name normally.
+  if (isHost) {
+    if (party.participantScores[key].name !== 'DJ') {
+      console.log(`[addPoints] ⚠️ host entry name was "${party.participantScores[key].name}" — forced to "DJ" (auto-heal)`);
+      party.participantScores[key].name = 'DJ';
+    }
+  } else if (name && name !== 'DJ' && name !== 'Guest') {
+    party.participantScores[key].name = normalizedName;
+  }
   if (participantId) party.participantScores[key].participantId = participantId;
   console.log(`⭐ [${party.code}] +${points}pts → ${normalizedName} (${reason}) [total: ${party.participantScores[key].score}]`);
   broadcastLeaderboard(party);
