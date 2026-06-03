@@ -395,16 +395,60 @@ app.get('/api/host/:hostId/preferences', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch preferences' });
   }
 });
-
 // ─── Deezer Proxy ───────────────────────────────────────────────────
+
+// ★ D4: Server-side karaoke/cover filter (mirrors iOS SuggestionFilter.isClean)
+const BANNED_KEYWORDS = [
+  'karaoke', 'instrumental', 'cover', 'tribute', 'lullaby', 'slowed',
+  'sped up', 'reverb', '8d audio', 'nightcore', 'acoustic version',
+  'piano version', 'performance live',
+  'karaoke version', 'karaoke mix', 'version karaoke',
+  'in the style of', 'originally performed by', 'originally performed',
+  'made famous by', 'as performed by', 'as made famous',
+  'backing track', 'without vocals', 'sing along',
+  'rendu celebre', 'playback', 'tribute version', 'instrumental version',
+];
+
+function isDeezerTrackClean(track) {
+  const title = track.title || '';
+  const artist = track.artist?.name || '';
+  const album = track.album?.title || '';
+  // Normalize: lowercase, remove diacritics, replace separators with spaces
+  const raw = `${title} ${artist} ${album}`
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // strip diacritics
+    .toLowerCase()
+    .replace(/[-_.]/g, ' ');
+  for (const kw of BANNED_KEYWORDS) {
+    const re = new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    if (re.test(raw)) return false;
+  }
+  return true;
+}
+
 app.get('/api/deezer/search', async (req, res) => {
-  const q = req.query.q || '', limit = req.query.limit || 6;
-  try { const r = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=${limit}&order=RANKING`); res.json(await r.json()); }
+  const q = req.query.q || '', limit = parseInt(req.query.limit) || 6;
+  try {
+    // Over-request to compensate for filtered-out karaoke tracks
+    const fetchLimit = Math.min(limit * 3, 25);
+    const r = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=${fetchLimit}&order=RANKING`);
+    const json = await r.json();
+    if (json.data) {
+      const before = json.data.length;
+      json.data = json.data.filter(isDeezerTrackClean).slice(0, limit);
+      if (before !== json.data.length) console.log(`[Deezer] 🚫 Filtered ${before - json.data.length} karaoke/cover tracks for "${q}"`);
+    }
+    res.json(json);
+  }
   catch (err) { console.error('[Deezer] Search error:', err.message); res.status(500).json({ error: 'Deezer search failed' }); }
 });
 app.get('/api/deezer/chart', async (req, res) => {
-  const limit = req.query.limit || 8;
-  try { const r = await fetch(`https://api.deezer.com/chart/0/tracks?limit=${limit}`); res.json(await r.json()); }
+  const limit = parseInt(req.query.limit) || 8;
+  try {
+    const r = await fetch(`https://api.deezer.com/chart/0/tracks?limit=${Math.min(limit * 2, 20)}`);
+    const json = await r.json();
+    if (json.data) json.data = json.data.filter(isDeezerTrackClean).slice(0, limit);
+    res.json(json);
+  }
   catch (err) { console.error('[Deezer] Chart error:', err.message); res.status(500).json({ error: 'Deezer chart failed' }); }
 });
 
@@ -636,7 +680,7 @@ function addPoints(party, participantId, name, points, reason) {
   if (participantId === 'host') { key = 'host'; }
   else {
     // First try exact name match, then fall back to participantId match
-    const byName = Object.entries(party.participantScores).find(([k]) => k === normalizedName);
+    const byName = Object.entries(party.participantScores).find(([k, v]) => k === normalizedName || v.name === normalizedName);
     const byId = Object.entries(party.participantScores).find(([, v]) => v.participantId === participantId);
     key = byName ? byName[0] : (byId ? byId[0] : normalizedName);
   }
@@ -1359,7 +1403,10 @@ io.on('connection', (socket) => {
   socket.on('host:suggestionPlayed', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     if (data.guestName) {
-      addPoints(party, data.guestName, data.guestName, 10, `suggestion played: ${data.trackTitle || 'Unknown'}`);
+      const guestId = data.guestId || data.guestName;
+      if (guestId !== 'host') {
+          addPoints(party, guestId, data.guestName, 10, `suggestion played: ${data.trackTitle || 'Unknown'}`);
+      }
       addPoints(party, 'host', 'DJ', 5, `handled suggestion: ${data.trackTitle || 'Unknown'}`);
     }
     // Update suggestion status and notify the guest
