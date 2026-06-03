@@ -703,8 +703,16 @@ function addPoints(party, participantId, name, points, reason) {
 }
 
 function broadcastLeaderboard(party) {
+  // ★ E1: Resolve host's real display name from party data (internal name is frozen to "DJ")
+  const hostParticipant = party.participants.find(p => p.isHost);
+  const hostDisplayName = party.hostProfile?.name || hostParticipant?.name || 'DJ';
+  
   const lb = Object.values(party.participantScores)
-    .map(d => ({ id: d.participantId === 'host' ? 'host' : d.name, name: d.name, points: d.score }))
+    .map(d => ({
+      id: d.participantId === 'host' ? 'host' : d.name,
+      name: d.participantId === 'host' ? hostDisplayName : d.name,
+      points: d.score
+    }))
     .sort((a, b) => b.points - a.points);
   party.leaderboard = lb;
   io.to(`guest:${party.code}`).emit('leaderboard:update', lb);
