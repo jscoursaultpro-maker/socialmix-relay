@@ -707,6 +707,23 @@ function broadcastLeaderboard(party) {
   const hostParticipant = party.participants.find(p => p.isHost);
   const hostDisplayName = party.hostProfile?.name || hostParticipant?.name || 'DJ';
   
+  // ★ E1 AUTO-HEAL: Merge any ghost host entries into the real 'host' key.
+  // Ghost entries were created before the E1 fix when addPoints renamed the host entry.
+  const hostNameNorm = hostDisplayName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const hostEntry = party.participantScores['host'];
+  if (hostEntry) {
+    for (const [key, entry] of Object.entries(party.participantScores)) {
+      if (key === 'host') continue;
+      // Check if this entry's name matches the host (strip emoji prefix, normalize)
+      const entryNameNorm = (entry.name || '').replace(/^[\p{Emoji}\s]+/u, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      if (entryNameNorm && (entryNameNorm === hostNameNorm || hostNameNorm.includes(entryNameNorm) || entryNameNorm.includes(hostNameNorm))) {
+        console.log(`[E1 auto-heal] Merging ghost entry "${entry.name}" (${entry.score}pts) into host entry (${hostEntry.score}pts)`);
+        hostEntry.score += entry.score;
+        delete party.participantScores[key];
+      }
+    }
+  }
+  
   const lb = Object.values(party.participantScores)
     .map(d => ({
       id: d.participantId === 'host' ? 'host' : d.name,
