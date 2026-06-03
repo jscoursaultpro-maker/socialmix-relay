@@ -434,8 +434,15 @@ app.get('/api/deezer/search', async (req, res) => {
     const json = await r.json();
     if (json.data) {
       const before = json.data.length;
-      json.data = json.data.filter(isDeezerTrackClean).slice(0, limit);
-      if (before !== json.data.length) console.log(`[Deezer] 🚫 Filtered ${before - json.data.length} karaoke/cover tracks for "${q}"`);
+      json.data = json.data.filter(isDeezerTrackClean);
+      // ★ Dedup by title+artist (Deezer returns same song from multiple albums)
+      const seen = new Set();
+      json.data = json.data.filter(t => {
+        const key = `${(t.title||'').toLowerCase()}_${((t.artist||{}).name||'').toLowerCase()}`
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+        return seen.has(key) ? false : (seen.add(key), true);
+      }).slice(0, limit);
+      if (before !== json.data.length) console.log(`[Deezer] 🚫 Filtered ${before - json.data.length} karaoke/dupe tracks for "${q}"`);
     }
     res.json(json);
   }
