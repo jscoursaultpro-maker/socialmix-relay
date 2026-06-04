@@ -1323,9 +1323,12 @@ function sendSuggestion(deezerID, title, artist, coverURL, duration) {
   
   console.log(`[Suggest] ✅ Sent: ${title} by ${artist} (ID: ${deezerID})`);
   
-  // Close dialog & clear autocomplete
+  // ★ D5: Dismiss mobile keyboard immediately
+  const searchInput = $('suggest-input');
+  if (searchInput) searchInput.blur();
+  
+  // Close dialog & clear autocomplete (delayed for visual feedback)
   setTimeout(() => {
-    const searchInput = $('suggest-input');
     const searchResults = $('suggest-results');
     if (searchInput) searchInput.value = '';
     if (searchResults) searchResults.innerHTML = '';
