@@ -1455,3 +1455,37 @@ html, body {
   letter-spacing: 0.5px;
   white-space: nowrap;
 }
+
+/* App Store CTA */
+.cta-appstore {
+  margin-top: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(0,210,255,0.1), rgba(0,200,83,0.1));
+  border: 1px solid rgba(0,210,255,0.2);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 340px;
+  text-align: center;
+}
+.cta-appstore p {
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #00d2ff, #00bfa5);
+  border: none;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0a0e1a;
+  text-decoration: none;
+  width: 100%;
+  box-sizing: border-box;
+}
