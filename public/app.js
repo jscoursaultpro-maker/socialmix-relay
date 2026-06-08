@@ -8,7 +8,7 @@ const STORAGE_KEY = 'socialmix_guest';
 const PROFILE_KEY = 'socialmix_profile';
 const SESSION_KEY = 'socialmix_session';
 const CONSENT_KEY = 'socialmix_consent';
-const GENRES = ['Dance', 'Disco', 'Hip-Hop', 'House', 'Electro', 'Pop', 'R&B', 'Latin', 'Club', 'Rock', 'COCOVARIET'];
+const GENRES = ['House', 'Dance', 'Urban', 'Pop', 'Disco', 'Rock', 'Latin', 'Caliente', 'Lyrics'];
 const EMOJIS = ['🎉','🕺','💃','🎶','🌟','🤩','😎','🎭','🔥','💪','✨','💫','🎵','🥳','😈','🦄'];
 
 // ─── State ───────────────────────────────────────────
@@ -398,7 +398,7 @@ function setupProfile() {
       // Return to cockpit and update greeting
       state.editingFromCockpit = false;
       showScreen('cockpit');
-      $('greeting').textContent = `Hey ${state.guestName} !`;
+      $('greeting').textContent = `Hey ${state.guestName} ! 🎉`;
       // Re-emit join with updated profile
       if (socket && socket.connected) {
         socket.emit('guest:join', {
@@ -502,7 +502,17 @@ function enterCockpit() {
   const suggestList = $('suggestions-list');
   if (suggestList) suggestList.innerHTML = '';
   
-  $('greeting').textContent = `Hey ${state.guestName} !`;
+  $('greeting').textContent = `Hey ${state.guestName} ! 🎉`;
+  
+  if (state.guestPhoto) {
+    const avatarImg = $('header-avatar-img');
+    const avatarFallback = $('header-avatar-fallback');
+    if (avatarImg && avatarFallback) {
+      avatarImg.src = state.guestPhoto;
+      avatarImg.style.display = 'block';
+      avatarFallback.style.display = 'none';
+    }
+  }
   
   setupVoteButtons();
   setupGenreTrends();
@@ -942,6 +952,8 @@ function connectToRelay() {
       state.missionPoints = me.points;
       const el = $('points-total');
       if (el) el.textContent = state.missionPoints;
+      const headerEl = $('header-points-total');
+      if (headerEl) headerEl.textContent = state.missionPoints;
     }
   });
 }
@@ -2306,9 +2318,12 @@ function populateMissions() {
   // Display points from SERVER leaderboard (single source of truth)
   // The local calculation was broken — server tracks all point additions
   const pointsEl = $('points-total');
-  if (pointsEl) {
+  const headerPointsEl = $('header-points-total');
+  if (pointsEl || headerPointsEl) {
     const serverEntry = (state.leaderboard || []).find(p => p.id === state.guestId || p.name === state.guestName);
-    pointsEl.textContent = serverEntry ? serverEntry.points : (state.missionPoints || 0);
+    const pts = serverEntry ? serverEntry.points : (state.missionPoints || 0);
+    if (pointsEl) pointsEl.textContent = pts;
+    if (headerPointsEl) headerPointsEl.textContent = pts;
   }
 }
 
@@ -2679,7 +2694,7 @@ function showPartyQR() {
   const qrText = $('qr-code-text');
   
   if (qrModal && qrImg && qrText) {
-    const partyUrl = `https://socialmix.app/?code=${state.partyCode}`;
+    const partyUrl = `${window.location.origin}/?code=${state.partyCode}`;
     qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(partyUrl)}`;
     qrText.textContent = state.partyCode;
     qrModal.classList.remove('hidden');
@@ -2980,6 +2995,8 @@ function renderMissions() {
   // Update total
   const el = $('points-total');
   if (el) el.textContent = myPoints;
+  const headerEl = $('header-points-total');
+  if (headerEl) headerEl.textContent = myPoints;
 }
 
 function renderLeaderboard() {

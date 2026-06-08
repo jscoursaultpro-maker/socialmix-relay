@@ -175,19 +175,34 @@
         <!-- Header -->
         <div class="header">
             <div class="header-left">
-                <span class="header-icon">🎧</span>
-                <div>
-                    <div class="header-title">SOCIAL MIX</div>
-                    <div class="header-greeting" id="greeting">Hey !</div>
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                    <div class="header-title">🎧 SOCIAL MIX</div>
+                    <div class="header-greeting" id="greeting">Hey ! 🎉</div>
                 </div>
             </div>
-            <div class="header-right">
+            <div class="header-right" style="display:flex; align-items:center; gap:8px;">
                 <div class="trending-badge" id="trending-badge">
                     <span class="crown">👑</span>
                     <span id="trending-genre">Electro</span>
                 </div>
-                <button id="show-qr-btn" class="hub-shortcut-btn" title="Partager">📲</button>
-                <button id="edit-profile-btn" class="hub-shortcut-btn" title="Mon profil">👤</button>
+                
+                <div id="header-points-badge" style="display:flex; align-items:center; gap:4px; padding:4px 8px; background:rgba(255,193,7,0.15); border:1px solid rgba(255,193,7,0.3); border-radius:12px; cursor:pointer;" onclick="if(typeof showScreen==='function') showScreen('hub')">
+                    <span style="font-size:12px;">⭐</span>
+                    <span id="header-points-total" style="font-size:12px; font-weight:800; color:#ffc107;">0</span>
+                </div>
+
+                <button id="show-qr-btn" class="hub-shortcut-btn" title="Partager" style="background:rgba(0,210,255,0.1); border:1px solid rgba(0,210,255,0.3); color:#00d2ff; padding:6px; border-radius:50%; display:flex; align-items:center; justify-content:center; width:30px; height:30px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                </button>
+                
+                <button id="suggest-header-btn" class="hub-shortcut-btn" title="Suggérer" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; width:30px; height:30px;" onclick="document.querySelector('.suggest-section').scrollIntoView({behavior:'smooth'})">
+                    <span style="font-size:14px;">✨</span>
+                </button>
+
+                <button id="edit-profile-btn" class="hub-shortcut-btn" title="Mon profil" style="padding:0; border:none; background:transparent; display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; overflow:hidden;">
+                    <img id="header-avatar-img" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
+                    <div id="header-avatar-fallback" style="width:100%; height:100%; background:rgba(255,255,255,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px;">👤</div>
+                </button>
             </div>
         </div>
 
