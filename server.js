@@ -251,6 +251,7 @@ app.get('/api/admin/tracks', adminAuth, async (req, res) => {
     if (genre && genre !== 'all') filter.genre = genre;
     if (status === 'qualified')   filter.adminQualified = true;
     if (status === 'unqualified') filter.$or = [{ adminQualified: false }, { energy: 0 }, { bpm: 0 }];
+    if (status === 'exotic')      filter.isGuessed = true;
     if (search) filter.$or = [
       { title:  { $regex: search, $options: 'i' } },
       { artist: { $regex: search, $options: 'i' } }
@@ -407,6 +408,7 @@ const BANNED_KEYWORDS = [
   'made famous by', 'as performed by', 'as made famous',
   'backing track', 'without vocals', 'sing along',
   'rendu celebre', 'playback', 'tribute version', 'instrumental version',
+  'acapella', 'a cappella', 'sped'
 ];
 
 function isDeezerTrackClean(track) {
@@ -1375,7 +1377,7 @@ io.on('connection', (socket) => {
   socket.on('host:trackPlayed', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
     
-    const { title, artist, genre, isrc, deezerID, vibeScore, fromSuggestion } = data;
+    const { title, artist, genre, isrc, deezerID, vibeScore, fromSuggestion, isGuessed } = data;
     const hash = fallbackHash(title, artist);
     
     // 1. Add to playedKeys (both ISRC and fallbackHash)
@@ -1408,7 +1410,7 @@ io.on('connection', (socket) => {
           title,
           artist,
           genre:        normalizeGenre(genre || ''),
-          source:       'exploration',
+          source:       fromSuggestion ? 'suggestion' : 'exploration',
           'providers.deezer.trackId': deezerID || undefined,
         },
         $inc: inc,
@@ -1417,6 +1419,8 @@ io.on('connection', (socket) => {
           updatedAt: new Date(),
         }
       };
+      
+      if (isGuessed) update.$set.isGuessed = true;
 
       await Track.findOneAndUpdate(filter, update, { upsert: true, new: true });
     } catch (err) {
@@ -1744,6 +1748,10 @@ io.on('connection', (socket) => {
 
   socket.on('host:endParty', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    if (party.hostSocketId !== socket.id) {
+      console.warn(`⚠️ [${party.code}] Unauthorized endParty attempt from ${socket.id}`);
+      return;
+    }
     io.to(`guest:${party.code}`).emit('party:ended', {
       reason: 'La soirée est terminée ! Merci d\'avoir participé 🎉',
       scores: party.participantScores, trackHistory: party.trackHistory,
