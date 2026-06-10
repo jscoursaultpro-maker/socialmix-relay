@@ -181,6 +181,14 @@ function renderTrackRow(t, i) {
   const feuPill  = t.performance?.totalPlays > 0
     ? `<span class="meta-pill">${(t.performance.feuRatio * 100).toFixed(0)}% 🔥 (${t.performance.totalPlays} plays)</span>` : '';
 
+  const momentLabels = {
+    'warm-up': '🌅 Warm-up',
+    'all': '📅 Tous',
+    'vibe': '✨ Vibe',
+    'peak': '⚡ Peak'
+  };
+  const phasePill = t.partyMoment ? `<span class="meta-pill">${momentLabels[t.partyMoment] || esc(t.partyMoment)}</span>` : '';
+
   return `<div class="track-row ${qualified ? 'is-qualified' : ''}" data-index="${i}">
     ${cover}
     <div class="track-info">
@@ -191,6 +199,7 @@ function renderTrackRow(t, i) {
       <span class="meta-pill genre">${esc(t.genre)}</span>
       ${bpmPill}
       ${ePill}
+      ${phasePill}
       ${feuPill}
       ${qualified ? '<span class="meta-pill good">✅</span>' : ''}
     </div>
@@ -246,25 +255,56 @@ async function openQualifyModal(index) {
   // Reset audio
   const audio = document.getElementById('modal-audio');
   audio.src = '';
-  document.getElementById('player-status').textContent = 'Chargement du preview Deezer...';
+  document.getElementById('player-status').textContent = 'Chargement du preview...';
+
+  // Liens externes
+  const qStr = encodeURIComponent(`${track.title} ${track.artist}`);
+  document.getElementById('link-apple').href = `https://music.apple.com/search?term=${qStr}`;
+  document.getElementById('link-spotify').href = `https://open.spotify.com/search/${qStr}`;
+  if (track.providers?.deezer?.trackId) {
+    document.getElementById('link-deezer').href = `https://www.deezer.com/track/${track.providers.deezer.trackId}`;
+  } else {
+    document.getElementById('link-deezer').href = `https://www.deezer.com/search/${qStr}`;
+  }
 
   document.getElementById('qualify-modal').classList.remove('hidden');
 
-  // Load Deezer preview async
+  let previewFound = false;
+
+  // 1. Essai Deezer
   if (track.providers?.deezer?.trackId) {
     const res = await adminFetch(`/api/admin/deezer/preview/${track.providers.deezer.trackId}`);
     if (res?.ok) {
       const data = await res.json();
       if (data.preview) {
         audio.src = data.preview;
-        document.getElementById('player-status').textContent = '▶ Extrait 30s — Cliquer play pour écouter';
-        if (data.cover) { coverEl.src = data.cover; coverEl.style.display = 'block'; }
-      } else {
-        document.getElementById('player-status').textContent = 'Pas de preview disponible pour ce titre';
+        document.getElementById('player-status').innerHTML = '▶ Extrait Deezer — <span>Cliquer play pour écouter</span>';
+        if (data.cover && !track.coverArtURL) { coverEl.src = data.cover; coverEl.style.display = 'block'; }
+        previewFound = true;
       }
     }
-  } else {
-    document.getElementById('player-status').textContent = 'Pas d\'ID Deezer — preview indisponible';
+  }
+
+  // 2. Essai Apple Music (iTunes API) si Deezer n'a rien donné
+  if (!previewFound) {
+    document.getElementById('player-status').textContent = 'Recherche sur Apple Music...';
+    const query = encodeURIComponent(`${track.title} ${track.artist}`);
+    const res = await adminFetch(`/api/admin/itunes/preview?q=${query}`);
+    if (res?.ok) {
+      const data = await res.json();
+      if (data.preview) {
+        audio.src = data.preview;
+        document.getElementById('player-status').innerHTML = '▶ Extrait Apple Music — <span>Cliquer play pour écouter</span>';
+        if (data.cover && !track.coverArtURL && (!coverEl.src || coverEl.src === '')) { 
+          coverEl.src = data.cover; coverEl.style.display = 'block'; 
+        }
+        previewFound = true;
+      }
+    }
+  }
+
+  if (!previewFound) {
+    document.getElementById('player-status').textContent = '❌ Aucun extrait trouvé (ni Deezer, ni Apple Music)';
   }
 }
 
@@ -424,6 +464,50 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('filter-search').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') document.getElementById('btn-apply-filters').click();
+  });
+
+  // AI Prompt generator
+  document.getElementById('btn-ai-prompt').addEventListener('click', async () => {
+    // Si on est sur "Tous", on cible prioritairement les exotiques
+    const currentStatus = document.getElementById('filter-status').value;
+    const statusFilter = currentStatus === 'all' ? 'exotic' : currentStatus;
+    
+    const params = new URLSearchParams({
+      page: 1, limit: 60,
+      genre: State.filters.genre !== 'all' ? State.filters.genre : '',
+      status: statusFilter,
+      sort: State.filters.sort
+    });
+    
+    const res = await adminFetch(`/api/admin/tracks?${params}`);
+    if (!res?.ok) return toast('Erreur lors de la génération du prompt', 'error');
+    
+    const d = await res.json();
+    if (!d.tracks || d.tracks.length === 0) return toast('Aucun titre correspondant trouvé', 'warn');
+    
+    let prompt = "Salut Antigravity / Claude, voici une liste de titres exotiques remontés lors de nos soirées. Peux-tu les qualifier pour moi ?\n\n";
+    prompt += "Pour chaque titre, fournis :\n";
+    prompt += "- Le titre original\n";
+    prompt += "- L'artiste\n";
+    prompt += "- Le bon genre (PARMI : Electro, House, Disco, Hip-Hop, R&B, Pop, COCOVARIET, Afro, Latin, Reggaeton, Années 80, Années 90, Rock, Jazz, Chill)\n";
+    prompt += "- Le BPM (si tu peux l'estimer, ou laisse 0)\n";
+    prompt += "- L'Energy (de 1 à 10)\n";
+    prompt += "- Des tags pertinents si possible (safe, risqué, sing-along, dancefloor, peak-time)\n\n";
+    prompt += "Renvoie-moi le résultat au format JSON lisible (tableau d'objets) pour que je puisse les réinjecter facilement avec la base de données. Voici la structure attendue :\n";
+    prompt += "[\n  {\n    \"title\": \"Titre du morceau\",\n    \"artist\": \"Artiste\",\n    \"genre\": \"Genre parmi la liste ci-dessus\",\n    \"bpm\": 120,\n    \"energy\": 8,\n    \"tags\": [\"safe\", \"dancefloor\"]\n  }\n]\n\n";
+    prompt += "TITRES À QUALIFIER :\n";
+    
+    d.tracks.forEach(t => {
+      prompt += `- ${t.title} - ${t.artist} (Genre deviné: ${t.genre})\n`;
+    });
+    
+    try {
+      await navigator.clipboard.writeText(prompt);
+      toast(`🪄 Prompt généré pour ${d.tracks.length} titres et copié dans le presse-papier !`);
+    } catch (err) {
+      toast('Erreur lors de la copie (presse-papier bloqué ?)', 'error');
+      console.error(err);
+    }
   });
 
   // Energy slider

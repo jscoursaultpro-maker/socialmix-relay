@@ -151,6 +151,7 @@
             <label>Statut</label>
             <select id="filter-status">
               <option value="unqualified">À qualifier (priorité)</option>
+              <option value="exotic">Exotiques (isGuessed)</option>
               <option value="all">Tous</option>
               <option value="qualified">Qualifiés</option>
             </select>
@@ -169,6 +170,7 @@
             <input type="text" id="filter-search" placeholder="Titre ou artiste..." />
           </div>
           <button id="btn-apply-filters" class="btn btn-secondary">Filtrer</button>
+          <button id="btn-ai-prompt" class="btn btn-primary" style="margin-left: 8px;">🪄 Prompt IA</button>
         </div>
 
         <!-- Tracks list -->
@@ -231,6 +233,11 @@
       <div class="player-section">
         <audio id="modal-audio" controls preload="none"></audio>
         <p id="player-status" class="player-hint">Chargement du preview...</p>
+        <div class="external-links" style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
+          <a id="link-apple" href="#" target="_blank" class="btn btn-secondary" style="font-size: 11px; padding: 6px 10px;">🍎 Apple Music</a>
+          <a id="link-spotify" href="#" target="_blank" class="btn btn-secondary" style="font-size: 11px; padding: 6px 10px;">🟢 Spotify</a>
+          <a id="link-deezer" href="#" target="_blank" class="btn btn-secondary" style="font-size: 11px; padding: 6px 10px;">🟣 Deezer</a>
+        </div>
       </div>
 
       <!-- Qualify form -->
@@ -280,8 +287,8 @@
           <div class="pill-group" id="moment-pills">
             <button type="button" class="pill" data-value="warm-up">🌅 Warm-up</button>
             <button type="button" class="pill active" data-value="all">📅 Tous</button>
+            <button type="button" class="pill" data-value="vibe">✨ Vibe</button>
             <button type="button" class="pill" data-value="peak">⚡ Peak</button>
-            <button type="button" class="pill" data-value="closing">🌙 Closing</button>
           </div>
         </div>
 

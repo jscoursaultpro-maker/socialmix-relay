@@ -387,6 +387,24 @@ app.get('/api/admin/deezer/preview/:trackId', adminAuth, async (req, res) => {
   }
 });
 
+// GET /api/admin/itunes/preview — fetch preview from Apple Music (iTunes Search API)
+app.get('/api/admin/itunes/preview', adminAuth, async (req, res) => {
+  try {
+    const q = req.query.q || '';
+    if (!q) return res.json({ preview: null });
+    const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=1`);
+    const data = await r.json();
+    if (data.results && data.results.length > 0) {
+      const track = data.results[0];
+      res.json({ preview: track.previewUrl || null, cover: track.artworkUrl100 || null });
+    } else {
+      res.json({ preview: null });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'iTunes preview fetch failed' });
+  }
+});
+
 // ★ Phase 3 — GET /api/host/:hostId/preferences
 app.get('/api/host/:hostId/preferences', async (req, res) => {
   try {
