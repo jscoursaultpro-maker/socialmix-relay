@@ -533,6 +533,20 @@ app.get('/api/monitor/stats', adminAuth, (req, res) => {
 
   res.json({ total: tracks.length, needsReview, withBPM, withEnergy, withPhase, genres, phases });
 });
+
+// GET /api/monitor/export — télécharge curated_base_v3.json depuis le serveur
+app.get('/api/monitor/export', adminAuth, (req, res) => {
+  try {
+    const db = loadCuratedDB();
+    const filename = `curated_base_v3_${new Date().toISOString().slice(0,10)}.json`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.json(db);
+    console.log(`[Monitor] ⬇️ Export: ${db.tracks?.length || 0} tracks téléchargés`);
+  } catch (err) {
+    res.status(500).json({ error: 'Export failed', details: err.message });
+  }
+});
 // ────────────────────────────────────────────────────────────────────────────
 
 // ★ Phase 3 — GET /api/host/:hostId/preferences

@@ -312,6 +312,7 @@
     </select>
     <input type="text" id="search-input" placeholder="Rechercher..." oninput="debounceSearch()" style="width:150px" />
     <button onclick="startRockReclass()" style="background:linear-gradient(135deg,#ef4444,#7c3aed);color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;" title="Filtrer sur Rock et générer un prompt IA pour reclassifier">🎸 Reclasser Rock</button>
+    <button onclick="exportCuratedDB()" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;" title="Télécharger curated_base_v3.json depuis le serveur">⬇️ Exporter DB</button>
     <div class="saving" id="saving-indicator">
       <div class="spinner"></div>
       <span>Sauvegarde...</span>
@@ -554,6 +555,30 @@ function applySmartGenre(genre) {
 }
 
 // ─── Rock Reclassification Workflow ───
+// ─── Export curated_base_v3.json depuis Render ────────────
+async function exportCuratedDB() {
+  showToast('⏳ Export en cours...');
+  try {
+    const res = await fetch('/api/monitor/export', {
+      headers: { 'x-admin-token': adminToken }
+    });
+    if (!res.ok) { showToast('❌ Erreur lors de l\'export', 'error'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `curated_base_v3_${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ curated_base_v3.json téléchargé ! Remplace le fichier local + git push + lance rebuild-metadata.mjs');
+  } catch (e) {
+    showToast('❌ Export échoué : ' + e.message, 'error');
+  }
+}
+
 async function startRockReclass() {
   // 1. Set filter to Rock
   document.getElementById('genre-filter').value = 'Rock';
