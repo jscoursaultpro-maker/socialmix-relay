@@ -4,7 +4,7 @@ import { Server } from 'socket.io';
 import { networkInterfaces } from 'os';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { createPartyState, isValidPartyCode } from './partyState.js';
 import { connectDB, restoreParties, startFlushLoop, stopFlushLoop, flushEndedParty } from './db.js';
 import { randomUUID } from 'crypto';
@@ -17,6 +17,8 @@ import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRES
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const FEEDBACK_PATH = join(__dirname, 'socialmix_feedback.json');
 
 // ─── FallbackHash normalization (mirrors EditorialSeedLoader.swift) ────
 function fallbackHash(title, artist) {
@@ -49,11 +51,12 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'socialmix-admin-2026';
 const ADMIN_TOKENS   = new Set(); // In-memory tokens (restart invalidates — acceptable)
 
 function adminAuth(req, res, next) {
-  const token = req.headers['x-admin-token'];
+  const token = req.headers['x-admin-token'] || req.query.token;
   if (!token || !ADMIN_TOKENS.has(token))
     return res.status(401).json({ error: 'Unauthorized — invalid or missing admin token' });
   next();
 }
+
 
 // ─── Seed editorial catalog into MongoDB ────────────────────────────
 async function seedEditorialCatalog() {
@@ -387,6 +390,40 @@ app.get('/api/admin/deezer/preview/:trackId', adminAuth, async (req, res) => {
   }
 });
 
+// GET /api/monitor/stream/:trackId — streaming proxy audio (évite CORS Deezer CDN)
+app.get('/api/monitor/stream/:trackId', adminAuth, async (req, res) => {
+  try {
+    // 1. Récupérer l'URL de preview depuis l'API Deezer
+    const metaRes  = await fetch(`https://api.deezer.com/track/${req.params.trackId}`);
+    const meta     = await metaRes.json();
+    const previewUrl = meta.preview;
+    if (!previewUrl) return res.status(404).json({ error: 'No preview available' });
+
+    // 2. Streamer l'audio depuis Deezer CDN
+    const audioRes = await fetch(previewUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    if (!audioRes.ok) return res.status(502).json({ error: `Deezer CDN returned ${audioRes.status}` });
+
+    // 3. Retransmettre les headers et le body
+    res.setHeader('Content-Type', audioRes.headers.get('content-type') || 'audio/mpeg');
+    res.setHeader('Content-Length', audioRes.headers.get('content-length') || '');
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-cache');
+
+    // Pipe le stream directement
+    const { Readable } = await import('stream');
+    const webStream = audioRes.body;
+    const nodeStream = Readable.fromWeb(webStream);
+    nodeStream.pipe(res);
+  } catch (err) {
+    console.error('[Monitor Stream] ❌', err.message);
+    res.status(500).json({ error: 'Stream failed: ' + err.message });
+  }
+});
+
+
 // GET /api/admin/itunes/preview — fetch preview from Apple Music (iTunes Search API)
 app.get('/api/admin/itunes/preview', adminAuth, async (req, res) => {
   try {
@@ -404,6 +441,99 @@ app.get('/api/admin/itunes/preview', adminAuth, async (req, res) => {
     res.status(500).json({ error: 'iTunes preview fetch failed' });
   }
 });
+
+// ─── Monitor Curation API (curated_base_v3.json) ────────────────────────────
+const CURATED_DB_PATH = join(__dirname, 'curated_base_v3.json');
+
+function loadCuratedDB() {
+  try { return JSON.parse(readFileSync(CURATED_DB_PATH, 'utf-8')); }
+  catch { return { tracks: [] }; }
+}
+function saveCuratedDB(db) {
+  db.generatedAt = new Date().toISOString();
+  writeFileSync(CURATED_DB_PATH, JSON.stringify(db, null, 2));
+}
+
+// GET /api/monitor/tracks — liste paginée avec filtres
+app.get('/api/monitor/tracks', adminAuth, (req, res) => {
+  const db      = loadCuratedDB();
+  const tracks  = db.tracks || [];
+  const filter  = req.query.filter  || 'needs_review'; // 'needs_review' | 'all'
+  const genre   = req.query.genre   || '';
+  const search  = req.query.search  || '';
+  const page    = Math.max(1, parseInt(req.query.page) || 1);
+  const limit   = Math.min(parseInt(req.query.limit) || 50, 200);
+
+  let filtered = tracks;
+  if (filter === 'needs_review') filtered = filtered.filter(t => t.needs_review);
+  if (genre && genre !== 'all')  filtered = filtered.filter(t => t.genre === genre);
+  if (search) {
+    const q = search.toLowerCase();
+    filtered = filtered.filter(t =>
+      (t.title  || '').toLowerCase().includes(q) ||
+      (t.artist || '').toLowerCase().includes(q)
+    );
+  }
+
+  const total = filtered.length;
+  const paged = filtered.slice((page - 1) * limit, page * limit);
+
+  // Stats
+  const needsReviewTotal = tracks.filter(t => t.needs_review).length;
+  const genres = {};
+  tracks.forEach(t => { genres[t.genre || ''] = (genres[t.genre || ''] || 0) + 1; });
+
+  res.json({ tracks: paged, total, page, pages: Math.ceil(total / limit), needsReviewTotal, genreStats: genres });
+});
+
+// GET /api/monitor/track/:deezerID — un track par ID
+app.get('/api/monitor/track/:deezerID', adminAuth, (req, res) => {
+  const db  = loadCuratedDB();
+  const id  = parseInt(req.params.deezerID);
+  const t   = db.tracks.find(t => t.deezerID === id);
+  if (!t) return res.status(404).json({ error: 'Track not found' });
+  res.json(t);
+});
+
+// PATCH /api/monitor/track/:deezerID — sauvegarder les modifications
+app.patch('/api/monitor/track/:deezerID', adminAuth, (req, res) => {
+  const db  = loadCuratedDB();
+  const id  = parseInt(req.params.deezerID);
+  const t   = db.tracks.find(t => t.deezerID === id);
+  if (!t) return res.status(404).json({ error: 'Track not found' });
+
+  const { genre, energy, phase, needs_review, bpm } = req.body;
+  if (genre        !== undefined) t.genre        = genre;
+  if (energy       !== undefined) t.energy       = Math.min(10, Math.max(1, Number(energy)));
+  if (phase        !== undefined) t.phase        = phase;
+  if (needs_review !== undefined) t.needs_review = Boolean(needs_review);
+  // BPM uniquement si manquant
+  if (bpm !== undefined && bpm > 0 && (!t.bpm || t.bpm === 0)) t.bpm = Number(bpm);
+
+  saveCuratedDB(db);
+  console.log(`[Monitor] ✅ Track ${id} updated: genre=${t.genre} energy=${t.energy} phase=${t.phase} needs_review=${t.needs_review}`);
+  res.json(t);
+});
+
+// GET /api/monitor/stats — stats globales de la base
+app.get('/api/monitor/stats', adminAuth, (req, res) => {
+  const db = loadCuratedDB();
+  const tracks = db.tracks || [];
+  const genres = {}, phases = {};
+  let needsReview = 0, withBPM = 0, withEnergy = 0, withPhase = 0;
+
+  tracks.forEach(t => {
+    genres[t.genre || ''] = (genres[t.genre || ''] || 0) + 1;
+    phases[t.phase || ''] = (phases[t.phase || ''] || 0) + 1;
+    if (t.needs_review) needsReview++;
+    if (t.bpm > 0)    withBPM++;
+    if (t.energy > 0) withEnergy++;
+    if (t.phase)      withPhase++;
+  });
+
+  res.json({ total: tracks.length, needsReview, withBPM, withEnergy, withPhase, genres, phases });
+});
+// ────────────────────────────────────────────────────────────────────────────
 
 // ★ Phase 3 — GET /api/host/:hostId/preferences
 app.get('/api/host/:hostId/preferences', async (req, res) => {
@@ -477,6 +607,51 @@ app.get('/api/deezer/chart', async (req, res) => {
     res.json(json);
   }
   catch (err) { console.error('[Deezer] Chart error:', err.message); res.status(500).json({ error: 'Deezer chart failed' }); }
+});
+
+app.get('/api/party/:code/explore', async (req, res) => {
+  const code = req.params.code;
+  const limit = parseInt(req.query.limit) || 10;
+  
+  try {
+    const state = parties.get(code);
+    let targetGenre = "House"; // Default
+    if (state && state.currentTrack && state.currentTrack.genre) {
+        targetGenre = state.currentTrack.genre;
+    } else if (state && state.trackHistory && state.trackHistory.length > 0) {
+        targetGenre = state.trackHistory[state.trackHistory.length - 1].genre || "House";
+    }
+
+    if (!fs.existsSync(CURATED_DB_PATH)) {
+        return res.status(404).json({ error: 'DB not found' });
+    }
+    
+    const db = JSON.parse(fs.readFileSync(CURATED_DB_PATH, 'utf-8'));
+    const pool = db.tracks.filter(t => t.genre === targetGenre);
+    
+    // Fisher-Yates Shuffle
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    
+    const selected = pool.slice(0, limit);
+    
+    // Map to Deezer-like format expected by GuestViews.swift
+    const data = selected.map(t => ({
+        id: t.deezerID,
+        title: t.title,
+        artist: { name: t.artist },
+        album: { cover_medium: null }, // UI will use fallback
+        duration: t.duration || 0,
+        bpm: Math.round(t.bpm || 0)
+    }));
+    
+    res.json({ data });
+  } catch (err) {
+    console.error('[Explore] Error:', err.message);
+    res.status(500).json({ error: 'Explore failed' });
+  }
 });
 
 app.get('/api/state', (req, res) => {
@@ -1443,6 +1618,41 @@ io.on('connection', (socket) => {
       await Track.findOneAndUpdate(filter, update, { upsert: true, new: true });
     } catch (err) {
       console.error(`[Track] ❌ Upsert error: ${err.message}`);
+    }
+  });
+
+  // ★ Option 3 — Persist 19% fire tracks and fire scores
+  socket.on('host:track_feedback', (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    const { deezerID, title, artist, genre, bpm, fireCount, participantCount } = data;
+    if (!deezerID) return;
+    
+    try {
+      let feedback = {};
+      if (existsSync(FEEDBACK_PATH)) {
+        const raw = readFileSync(FEEDBACK_PATH, 'utf-8');
+        if (raw.trim()) feedback = JSON.parse(raw);
+      }
+      
+      const idStr = String(deezerID);
+      const existing = feedback[idStr] || { deezerID, title, artist, genre, bpm, fireCount: 0, participantCount: 0 };
+      
+      // Keep track of total fires for DJBrain
+      existing.fireCount += fireCount;
+      // Keep the highest participant count seen to avoid diluting the ratio
+      existing.participantCount = Math.max(existing.participantCount, participantCount);
+      
+      // Update metadata
+      existing.title = title || existing.title;
+      existing.artist = artist || existing.artist;
+      existing.genre = genre || existing.genre;
+      existing.bpm = bpm || existing.bpm;
+      
+      feedback[idStr] = existing;
+      writeFileSync(FEEDBACK_PATH, JSON.stringify(feedback, null, 2));
+      console.log(`🔥 [${party.code}] Track feedback saved: "${title}" (Total Fire: ${existing.fireCount})`);
+    } catch (err) {
+      console.error(`[Feedback] ❌ Error saving feedback: ${err.message}`);
     }
   });
 
