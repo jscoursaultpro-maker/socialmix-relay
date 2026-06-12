@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SocialMix — Monitor Curation</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg:       #0a0a0f;
+      --surface:  #13131a;
+      --card:     #1a1a24;
+      --border:   #2a2a3a;
+      --accent:   #7c3aed;
+      --accent2:  #06b6d4;
+      --green:    #10b981;
+      --orange:   #f59e0b;
+      --red:      #ef4444;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --white:    #ffffff;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Auth Screen ─────────────────────────────────── */
+    #auth-screen {
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh; flex-direction: column; gap: 16px;
+    }
+    #auth-screen h1 { font-size: 24px; color: var(--accent); }
+    #auth-screen input {
+      padding: 12px 20px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); font-size: 16px; width: 300px;
+    }
+    #auth-screen button {
+      padding: 12px 32px; border-radius: 8px;
+      background: var(--accent); color: white;
+      border: none; font-size: 16px; cursor: pointer; font-weight: 600;
+    }
+
+    /* ── Main Layout ─────────────────────────────────── */
+    #app { display: none; height: 100vh; flex-direction: column; }
+    #app.visible { display: flex; }
+
+    /* ── Top Bar ─────────────────────────────────────── */
+    .topbar {
+      display: flex; align-items: center; gap: 16px;
+      padding: 10px 20px; background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .topbar h1 { font-size: 16px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+    .progress-wrap { flex: 1; }
+    .progress-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 3px; transition: width 0.3s; }
+    .topbar select, .topbar input[type=text] {
+      padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-size: 13px;
+    }
+    .topbar select { cursor: pointer; }
+    .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .badge.review { background: rgba(239,68,68,0.2); color: var(--red); }
+    .badge.total  { background: rgba(124,58,237,0.2); color: var(--accent); }
+
+    /* ── Main Content ────────────────────────────────── */
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Track List (left) ───────────────────────────── */
+    .tracklist {
+      width: 300px; flex-shrink: 0;
+      overflow-y: auto; border-right: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .tracklist::-webkit-scrollbar { width: 4px; }
+    .tracklist::-webkit-scrollbar-track { background: transparent; }
+    .tracklist::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .track-item {
+      padding: 10px 14px; border-bottom: 1px solid rgba(42,42,58,0.5);
+      cursor: pointer; transition: background 0.15s;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .track-item:hover { background: var(--card); }
+    .track-item.active { background: rgba(124,58,237,0.15); border-left: 3px solid var(--accent); }
+    .track-item.done { opacity: 0.4; }
+
+    .track-item-info { flex: 1; min-width: 0; }
+    .track-item-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-item-artist { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-item-genre {
+      font-size: 10px; padding: 2px 6px; border-radius: 4px;
+      background: rgba(124,58,237,0.2); color: var(--accent);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .track-item-warn {
+      font-size: 10px; padding: 2px 6px; border-radius: 4px;
+      background: rgba(239,68,68,0.2); color: var(--red);
+      white-space: nowrap; flex-shrink: 0;
+    }
+
+    /* ── Editor (right) ──────────────────────────────── */
+    .editor { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+    .empty-state {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 48px; }
+
+    /* ── Now Playing Card ────────────────────────────── */
+    .now-playing {
+      background: var(--card); border-radius: 12px;
+      border: 1px solid var(--border); padding: 20px;
+      display: flex; gap: 20px; align-items: flex-start;
+    }
+    .cover {
+      width: 80px; height: 80px; border-radius: 10px;
+      background: var(--surface); object-fit: cover; flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+    .cover-placeholder {
+      width: 80px; height: 80px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; flex-shrink: 0;
+    }
+    .track-meta { flex: 1; }
+    .track-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .track-artist { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+    .track-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .chip.bpm    { background: rgba(6,182,212,0.15); color: var(--accent2); }
+    .chip.rank   { background: rgba(245,158,11,0.15); color: var(--orange); }
+    .chip.source { background: rgba(100,116,139,0.15); color: var(--muted); }
+    .chip.id     { background: rgba(100,116,139,0.1); color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+    /* ── Audio Player ────────────────────────────────── */
+    .player-wrap {
+      background: var(--card); border-radius: 12px;
+      border: 1px solid var(--border); padding: 16px;
+    }
+    .player-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .player-header span { font-size: 13px; font-weight: 600; }
+    .player-controls { display: flex; align-items: center; gap: 10px; }
+    .btn-play {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--accent); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; transition: all 0.2s; flex-shrink: 0;
+    }
+    .btn-play:hover { background: #6d28d9; transform: scale(1.05); }
+    .btn-play.playing { background: var(--green); }
+
+    .audio-progress { flex: 1; }
+    audio { display: none; }
+    .progress-track {
+      height: 4px; background: var(--border); border-radius: 2px;
+      cursor: pointer; position: relative; overflow: hidden;
+    }
+    .progress-played {
+      height: 100%; background: var(--accent2); border-radius: 2px;
+      width: 0%; transition: width 0.1s linear;
+    }
+    .time-label { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+    .no-preview { font-size: 12px; color: var(--muted); font-style: italic; }
+
+    /* ── Edit Fields ─────────────────────────────────── */
+    .fields-card {
+      background: var(--card); border-radius: 12px;
+      border: 1px solid var(--border); padding: 20px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .fields-card h3 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .field-row { display: flex; gap: 16px; align-items: flex-start; }
+    .field { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; font-weight: 500; color: var(--muted); }
+
+    .field select, .field input {
+      padding: 9px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif;
+      transition: border-color 0.2s;
+    }
+    .field select:focus, .field input:focus {
+      outline: none; border-color: var(--accent);
+    }
+
+    /* Energy slider */
+    .energy-row { display: flex; align-items: center; gap: 12px; }
+    .energy-slider {
+      -webkit-appearance: none; flex: 1; height: 6px;
+      border-radius: 3px; outline: none; cursor: pointer;
+      background: linear-gradient(to right, var(--green) 0%, var(--orange) 50%, var(--red) 100%);
+    }
+    .energy-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 20px; height: 20px;
+      border-radius: 50%; background: white; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4); border: 2px solid var(--accent);
+    }
+    .energy-value {
+      width: 40px; text-align: center; font-size: 22px; font-weight: 700;
+      font-family: 'JetBrains Mono', monospace; color: var(--white);
+    }
+
+    /* Phase recommendation */
+    .phase-reco {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 8px;
+      background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.2);
+      font-size: 12px; color: var(--accent2);
+    }
+    .phase-reco .label { font-weight: 600; }
+
+    /* ── Action Buttons ──────────────────────────────── */
+    .actions {
+      display: flex; gap: 10px; align-items: center;
+    }
+    .btn {
+      padding: 11px 24px; border-radius: 8px; border: none;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+    }
+    .btn-validate { background: var(--green); color: white; flex: 1; justify-content: center; }
+    .btn-validate:hover { background: #059669; }
+    .btn-skip { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+    .btn-skip:hover { border-color: var(--muted); color: var(--text); }
+    .btn-delete { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+    .btn-delete:hover { background: rgba(239,68,68,0.2); }
+    .btn-prev { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+
+    /* ── Keyboard Shortcuts ──────────────────────────── */
+    .shortcuts {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      padding: 10px 14px; background: rgba(0,0,0,0.3);
+      border-radius: 8px; border: 1px solid var(--border);
+    }
+    .shortcut { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+    kbd {
+      padding: 2px 6px; border-radius: 4px;
+      background: var(--surface); border: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text);
+    }
+
+    /* ── Toast ───────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      padding: 10px 18px; border-radius: 8px;
+      background: var(--green); color: white;
+      font-size: 13px; font-weight: 600;
+      opacity: 0; transform: translateY(10px);
+      transition: all 0.3s; pointer-events: none; z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--red); }
+
+    /* ── Saving indicator ────────────────────────────── */
+    .saving { display: none; align-items: center; gap: 6px; font-size: 12px; color: var(--accent2); }
+    .saving.active { display: flex; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 14px; height: 14px; border: 2px solid rgba(6,182,212,0.3); border-top-color: var(--accent2); border-radius: 50%; animation: spin 0.6s linear infinite; }
+  </style>
+</head>
+<body>
+
+<!-- Auth -->
+<div id="auth-screen">
+  <h1>🎧 Monitor Curation</h1>
+  <p style="color:var(--muted);font-size:13px">Entrez le mot de passe admin</p>
+  <input type="password" id="auth-input" placeholder="Mot de passe admin" />
+  <button onclick="login()">Connexion</button>
+  <p id="auth-error" style="color:var(--red);font-size:12px;display:none">Mot de passe incorrect</p>
+</div>
+
+<!-- App -->
+<div id="app">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <h1>🎛 Monitor</h1>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="progress-label">Chargement...</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <span class="badge review" id="badge-review">? à revoir</span>
+    <span class="badge total" id="badge-total">? total</span>
+    <select id="filter-select" onchange="applyFilter()">
+      <option value="needs_review">🔍 À revoir</option>
+      <option value="all">📋 Tous</option>
+    </select>
+    <select id="genre-filter" onchange="applyFilter()">
+      <option value="all">Tous genres</option>
+    </select>
+    <input type="text" id="search-input" placeholder="Rechercher..." oninput="debounceSearch()" style="width:150px" />
+    <button onclick="startRockReclass()" style="background:linear-gradient(135deg,#ef4444,#7c3aed);color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;" title="Filtrer sur Rock et générer un prompt IA pour reclassifier">🎸 Reclasser Rock</button>
+    <div class="saving" id="saving-indicator">
+      <div class="spinner"></div>
+      <span>Sauvegarde...</span>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Track List -->
+    <div class="tracklist" id="tracklist"></div>
+
+    <!-- Editor -->
+    <div class="editor" id="editor">
+      <div class="empty-state">
+        <div class="icon">🎵</div>
+        <p>Sélectionne un titre pour commencer</p>
+        <p style="font-size:12px;color:var(--muted)">ou appuie sur <kbd>→</kbd> pour avancer</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ────────────────────────────────────────────────
+let adminToken  = null;
+let tracks      = [];
+let currentIdx  = -1;
+let isPlaying   = false;
+let searchTimer = null;
+
+// Single global audio element — never duplicated in DOM
+const audioEl = new Audio();
+audioEl.preload = 'none';
+audioEl.ontimeupdate = updateAudioProgress;
+audioEl.onended = () => {
+  isPlaying = false;
+  const btn = document.getElementById('btn-play');
+  if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+};
+
+const GENRES = ['House','Electro','Disco','Pop','Hip-Hop','R&B','Latin','Reggaeton',
+                 'Afro','Rock','COCOVARIET','Chill','Ambient','Jazz','Classical',
+                 'Folk, World, & Country','Non-Music','Unknown'];
+
+const PHASES = ['arrivée','ambiance','groove','montée','apogée','redescente'];
+
+const PHASE_COLORS = {
+  'arrivée':    '#64748b',
+  'ambiance':   '#10b981',
+  'groove':     '#06b6d4',
+  'montée':     '#f59e0b',
+  'apogée':     '#ef4444',
+  'redescente': '#8b5cf6',
+};
+
+// ─── Auth ─────────────────────────────────────────────────
+async function login() {
+  const pw = document.getElementById('auth-input').value;
+  const r  = await fetch('/api/admin/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw })
+  });
+  if (!r.ok) {
+    document.getElementById('auth-error').style.display = 'block';
+    return;
+  }
+  const { token } = await r.json();
+  adminToken = token;
+  localStorage.setItem('monitor_token', token);
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  loadTracks();
+}
+
+// Auto-login from localStorage
+window.addEventListener('load', async () => {
+  const saved = localStorage.getItem('monitor_token');
+  if (saved) {
+    const r = await fetch('/api/monitor/stats', { headers: { 'x-admin-token': saved } });
+    if (r.ok) {
+      adminToken = saved;
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('app').classList.add('visible');
+      loadTracks();
+      return;
+    }
+    localStorage.removeItem('monitor_token');
+  }
+  document.getElementById('auth-input').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+});
+
+// ─── API ──────────────────────────────────────────────────
+function api(method, path, body) {
+  return fetch(path, {
+    method,
+    headers: { 'x-admin-token': adminToken, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  }).then(r => r.json());
+}
+
+// ─── Load Tracks ──────────────────────────────────────────
+async function loadTracks() {
+  const filter = document.getElementById('filter-select').value;
+  const genre  = document.getElementById('genre-filter').value;
+  const search = document.getElementById('search-input').value;
+
+  const params = new URLSearchParams({ filter, genre, search, limit: 200 });
+  const data   = await api('GET', `/api/monitor/tracks?${params}`);
+  tracks = data.tracks || [];
+
+  document.getElementById('badge-review').textContent = `${data.needsReviewTotal} à revoir`;
+  document.getElementById('badge-total').textContent  = `${Object.values(data.genreStats||{}).reduce((a,b)=>a+b,0)} total`;
+
+  // Populate genre filter
+  const gf = document.getElementById('genre-filter');
+  const cur = gf.value;
+  gf.innerHTML = '<option value="all">Tous genres</option>';
+  const gs = data.genreStats || {};
+  Object.entries(gs).sort((a,b)=>b[1]-a[1]).forEach(([g,c]) => {
+    if (!g) return;
+    const o = document.createElement('option');
+    o.value = g; o.textContent = `${g} (${c})`;
+    if (g === cur) o.selected = true;
+    gf.appendChild(o);
+  });
+
+  renderList();
+  if (currentIdx === -1 && tracks.length > 0) selectTrack(0);
+  else if (currentIdx >= 0) renderEditor();
+}
+
+function applyFilter() { currentIdx = -1; loadTracks(); }
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(applyFilter, 400);
+}
+
+// ─── Render List ──────────────────────────────────────────
+function renderList() {
+  const list = document.getElementById('tracklist');
+  list.innerHTML = '';
+
+  if (tracks.length === 0) {
+    list.innerHTML = '<div style="padding:20px;color:var(--muted);text-align:center;font-size:13px">Aucun titre trouvé ✅</div>';
+    return;
+  }
+
+  tracks.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = `track-item${i === currentIdx ? ' active' : ''}${!t.needs_review ? ' done' : ''}`;
+    div.innerHTML = `
+      <div class="track-item-info">
+        <div class="track-item-title">${t.title || '?'}</div>
+        <div class="track-item-artist">${t.artist || '?'}</div>
+      </div>
+      ${t.needs_review
+        ? `<span class="track-item-warn">⚠</span>`
+        : `<span class="track-item-genre">${t.genre || '?'}</span>`}
+    `;
+    div.onclick = () => selectTrack(i);
+    list.appendChild(div);
+  });
+
+  // Scroll active into view
+  const active = list.querySelector('.active');
+  if (active) active.scrollIntoView({ block: 'nearest' });
+
+  updateProgress();
+}
+
+function updateProgress() {
+  const done  = tracks.filter(t => !t.needs_review).length;
+  const total = tracks.length;
+  const pct   = total > 0 ? (done / total * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent =
+    `${done}/${total} traités${total > 0 ? ` (${Math.round(pct)}%)` : ''}`;
+}
+
+// ─── Select Track ─────────────────────────────────────────
+function selectTrack(idx) {
+  if (idx < 0 || idx >= tracks.length) return;
+  currentIdx = idx;
+  stopAudio();
+  renderList();
+  renderEditor();
+}
+
+// ─── Compute Phase Recommendation ─────────────────────────
+// ─── Smart Genre Suggestions for Rock reclassification ───
+function getSmartGenreSuggestions(t) {
+  const bpm = t.bpm || 0;
+  const artist = (t.artist || '').toLowerCase();
+  const title = (t.title || '').toLowerCase();
+  const suggestions = [];
+
+  // Known Electronic/House artists misclassified as Rock
+  const electroArtists = ['john summit','lane 8','madeon','swimming paul','afterglow','house arrest',
+    'night rider','sandy beach','adam ten','coral reef','bunt.','horizon blue','palm monkey',
+    'eliza rose','morning light','justify case','vside','naac','justin case'];
+  const hiphopArtists = ['dr. dre','dr dre','aya nakamura','nia archives','rudimental','buzz low'];
+  const popArtists = ['benson boone','harry styles','watermelon sugar','good luck babe','chappell roan',
+    'teddy swims','beautiful things','p!nk','good luck'];
+
+  if (electroArtists.some(a => artist.includes(a))) {
+    suggestions.push({ genre: bpm >= 120 ? 'House' : 'Electro', reason: '🔧 Artiste Electro/House' });
+  } else if (hiphopArtists.some(a => artist.includes(a))) {
+    suggestions.push({ genre: 'Hip-Hop', reason: '🎤 Artiste Hip-Hop' });
+  } else if (popArtists.some(a => artist.includes(a) || title.includes(a))) {
+    suggestions.push({ genre: 'Pop', reason: '🎵 Artiste Pop' });
+  }
+
+  // BPM-based suggestions
+  if (bpm >= 124 && bpm <= 140 && suggestions.length === 0) {
+    suggestions.push({ genre: 'House', reason: `⏱ BPM ${bpm} → House` });
+  } else if (bpm >= 140 && suggestions.length === 0) {
+    suggestions.push({ genre: 'Electro', reason: `⏱ BPM ${bpm} → Electro` });
+  }
+
+  if (suggestions.length === 0) return '';
+
+  return suggestions.map(s =>
+    `<button onclick="applySmartGenre('${s.genre}')" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;" title="Appliquer la suggestion">
+      💡 ${s.reason} → <strong>${s.genre}</strong>
+    </button>`
+  ).join('');
+}
+
+function applySmartGenre(genre) {
+  const sel = document.getElementById('f-genre');
+  if (sel) { sel.value = genre; onGenreChange(); }
+  // Remove the smart reco panel
+  const reco = document.getElementById('smart-reco');
+  if (reco) reco.remove();
+}
+
+// ─── Rock Reclassification Workflow ───
+async function startRockReclass() {
+  // 1. Set filter to Rock
+  document.getElementById('genre-filter').value = 'Rock';
+  document.getElementById('filter-select').value = 'all';
+  await loadTracks();
+
+  // 2. Generate AI prompt
+  if (tracks.length === 0) { showToast('Aucun titre Rock trouvé', 'warn'); return; }
+
+  const lines = tracks.map(t =>
+    `- "${t.title}" by ${t.artist} (BPM: ${t.bpm || '?'}, Energy: ${t.energy || '?'}/10, Rank: ${t.rank || '?'})`
+  ).join('\n');
+
+  const prompt = `Tu es un expert musical. J'ai ${tracks.length} titres classés en "Rock" dans ma base de données de soirées DJ. Beaucoup semblent mal classifiés (ex: artistes House, Pop, Hip-Hop, Electronic).
+
+Pour chaque titre ci-dessous, donne moi le bon genre parmi cette liste STRICTE :
+House, Electro, Disco, Pop, Hip-Hop, R&B, Latin, Reggaeton, Afro, Rock, COCOVARIET, Chill, Ambient, Jazz
+
+Réponds UNIQUEMENT avec un JSON array de cette forme :
+[
+  { "title": "Titre", "artist": "Artiste", "genre": "Bon genre" },
+  ...
+]
+
+TITRES À RECLASSIFIER :
+${lines}`;
+
+  try {
+    await navigator.clipboard.writeText(prompt);
+    showToast(`✅ ${tracks.length} titres Rock chargés + prompt copié !`);
+  } catch(e) {
+    console.error('Clipboard error', e);
+    showToast('Erreur clipboard — prompt dans la console', 'warn');
+    console.log(prompt);
+  }
+}
+
+function computePhase(bpm, genre, energy) {
+  // Genre overrides first
+  if (['Ambient','Classical','New Age'].includes(genre)) return 'arrivée';
+  if (['Jazz'].includes(genre)) return 'ambiance';
+  if (['Techno','Industrial','Hardcore'].includes(genre)) {
+    if (bpm < 128) return 'montée';
+    return 'apogée';
+  }
+  if (['Hip-Hop','R&B'].includes(genre)) {
+    if (bpm < 100) return 'ambiance';
+    if (bpm < 118) return 'groove';
+    return 'groove'; // Hip-Hop max phase = groove
+  }
+  // BPM-based
+  if (!bpm || bpm === 0) return 'groove'; // default
+  if (bpm < 88)  return 'arrivée';
+  if (bpm < 105) return 'ambiance';
+  if (bpm < 118) return 'groove';
+  if (bpm < 126) return 'montée';
+  if (bpm < 140) return 'apogée';
+  return 'apogée';
+}
+
+function energyFromBPM(bpm) {
+  if (!bpm || bpm === 0) return 5;
+  if (bpm < 80)  return 2;
+  if (bpm < 95)  return 3;
+  if (bpm < 105) return 4;
+  if (bpm < 115) return 5;
+  if (bpm < 120) return 6;
+  if (bpm < 128) return 7;
+  if (bpm < 135) return 8;
+  return 9;
+}
+
+// ─── Render Editor ────────────────────────────────────────
+function renderEditor() {
+  const t = tracks[currentIdx];
+  if (!t) return;
+
+  const recoPhase  = computePhase(t.bpm, t.genre, t.energy);
+  const curPhase   = t.phase || recoPhase;
+  const curEnergy  = t.energy || energyFromBPM(t.bpm);
+  const curGenre   = t.genre || '';
+  const rankLabel  = t.rank ? `#${Math.round(t.rank / 1000)}k` : 'N/A';
+
+  const genreOptions = GENRES.map(g =>
+    `<option value="${g}"${g === curGenre ? ' selected' : ''}>${g}</option>`
+  ).join('');
+
+  const phaseOptions = PHASES.map(p =>
+    `<option value="${p}"${p === curPhase ? ' selected' : ''}>${p}</option>`
+  ).join('');
+
+  const hasPreview = true;
+
+  // 1. Reset audio
+  audioEl.pause();
+  audioEl.src = '';
+  audioEl.currentTime = 0;
+  isPlaying = false;
+
+  // 2. Rendre le HTML EN PREMIER (bouton disabled dès le début)
+  document.getElementById('editor').innerHTML = `
+    <!-- Now Playing -->
+    <div class="now-playing">
+      <div class="cover-placeholder" id="cover-art" style="background:linear-gradient(135deg,#7c3aed,#06b6d4)">🎵</div>
+      <div class="track-meta">
+        <div class="track-title">${t.title || '?'}</div>
+        <div class="track-artist">${t.artist || '?'}</div>
+        <div class="track-chips">
+          ${t.bpm ? `<span class="chip bpm">♩ ${t.bpm} BPM</span>` : '<span class="chip bpm" style="opacity:0.4">BPM manquant</span>'}
+          <span class="chip rank">⭐ rank ${rankLabel}</span>
+          <span class="chip id">ID: ${t.deezerID}</span>
+          ${t.source ? `<span class="chip source">${t.source}</span>` : ''}
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);text-align:right">
+        ${currentIdx + 1} / ${tracks.length}
+      </div>
+    </div>
+
+    <!-- Player -->
+    <div class="player-wrap">
+      <div class="player-header">
+        <span>🔊 Preview Deezer (30s)</span>
+        ${!hasPreview ? '<span style="color:var(--red);font-size:12px">Pas de preview disponible</span>' : ''}
+      </div>
+      <div class="player-controls">
+        <button class="btn-play" id="btn-play" onclick="togglePlay()" disabled style="opacity:0.5">
+          ⏳
+        </button>
+        <div class="audio-progress">
+          <div class="progress-track" onclick="seekAudio(event)" id="progress-track">
+            <div class="progress-played" id="progress-played"></div>
+          </div>
+          <div class="time-label" id="time-label">0:00 / 0:30</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Fields -->
+    <div class="fields-card">
+      <h3>Informations</h3>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Genre</label>
+          <select id="f-genre" onchange="onGenreChange()">${genreOptions}</select>
+          ${curGenre === 'Rock' ? `<div id="smart-reco" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">${getSmartGenreSuggestions(t)}</div>` : ''}
+        </div>
+        <div class="field" style="flex:0.5">
+          <label>Phase</label>
+          <select id="f-phase">${phaseOptions}</select>
+        </div>
+      </div>
+
+      <div class="phase-reco" id="phase-reco">
+        <span>💡 Recommandation :</span>
+        <span class="label" style="color:${PHASE_COLORS[recoPhase]}">${recoPhase}</span>
+        <span style="color:var(--muted);font-size:11px">(${t.bpm} BPM + ${curGenre || '?'})</span>
+        <button onclick="applyReco()" style="margin-left:auto;padding:2px 8px;border-radius:4px;border:1px solid;border-color:${PHASE_COLORS[recoPhase]};background:transparent;color:${PHASE_COLORS[recoPhase]};cursor:pointer;font-size:11px">
+          Appliquer
+        </button>
+      </div>
+
+      <div class="field">
+        <label>Énergie (1 = doux • 10 = peak) — touches 1–9</label>
+        <div class="energy-row">
+          <input type="range" class="energy-slider" id="f-energy"
+            min="1" max="10" value="${curEnergy}" oninput="onEnergyChange()" />
+          <div class="energy-value" id="energy-val">${curEnergy}</div>
+        </div>
+      </div>
+
+      ${!t.bpm || t.bpm === 0 ? `
+      <div class="field">
+        <label>BPM (manquant — saisir)</label>
+        <input type="number" id="f-bpm" placeholder="ex: 120" min="60" max="200" />
+      </div>` : ''}
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn btn-prev" onclick="prevTrack()">← Préc</button>
+      <button class="btn btn-validate" onclick="validateTrack()">✅ Valider &amp; Suivant <kbd style="background:rgba(255,255,255,0.2);border:none">⏎</kbd></button>
+      <button class="btn btn-skip" onclick="skipTrack()">Passer →</button>
+      <button class="btn btn-delete" onclick="removeTrack()">🗑</button>
+    </div>
+
+    <!-- Shortcuts -->
+    <div class="shortcuts">
+      <div class="shortcut"><kbd>Space</kbd> play/pause</div>
+      <div class="shortcut"><kbd>↵</kbd> valider</div>
+      <div class="shortcut"><kbd>→</kbd> suivant</div>
+      <div class="shortcut"><kbd>←</kbd> précédent</div>
+      <div class="shortcut"><kbd>1–9</kbd> énergie</div>
+      <div class="shortcut"><kbd>A</kbd> arrivée</div>
+      <div class="shortcut"><kbd>B</kbd> ambiance</div>
+      <div class="shortcut"><kbd>G</kbd> groove</div>
+      <div class="shortcut"><kbd>M</kbd> montée</div>
+      <div class="shortcut"><kbd>P</kbd> apogée</div>
+      <div class="shortcut"><kbd>R</kbd> redescente</div>
+    </div>
+  `;
+
+  // 3. Lancer le fetch PRÈS AVOIR rendu le HTML (références DOM fraîches)
+  fetchFreshPreview(t.deezerID);
+
+  // Cover art asynchrone
+  if (hasPreview) {
+    const img = new Image();
+    img.onload = () => {
+      const el = document.getElementById('cover-art');
+      if (el) {
+        el.style.backgroundImage = `url(${img.src})`;
+        el.style.backgroundSize = 'cover';
+        el.textContent = '';
+      }
+    };
+    img.src = `https://api.deezer.com/album/${t.deezerID}/image`;
+  }
+}
+
+// ─── Fetch Fresh Preview URL ─────────────────────────────
+let _previewToken = null; // Annule les fetches obsolètes si on change de track
+
+async function fetchFreshPreview(deezerID) {
+  const myToken = Symbol();
+  _previewToken = myToken;
+
+  // Helpers qui utilisent toujours les références DOM courantes
+  const setLabel = t => { const el = document.getElementById('time-label'); if (el) el.textContent = t; };
+  const setBtn   = (disabled, txt) => {
+    const el = document.getElementById('btn-play');
+    if (!el) return;
+    el.disabled  = disabled;
+    el.style.opacity = disabled ? '0.5' : '1';
+    if (txt !== undefined) el.textContent = txt;
+  };
+
+  setLabel('⏳ Chargement...');
+  setBtn(true, '⏳');
+
+  try {
+    const data = await api('GET', `/api/admin/deezer/preview/${deezerID}`);
+
+    // Si l'utilisateur a déjà changé de track pendant le fetch — on abandonne
+    if (_previewToken !== myToken) return;
+
+    if (!data.preview) {
+      setLabel('❌ Pas de preview Deezer');
+      setBtn(true, '❌');
+      return;
+    }
+
+    // Proxy local → évite CORS Deezer CDN
+    audioEl.src = `/api/monitor/stream/${deezerID}?token=${adminToken}`;
+    audioEl.load();
+    setBtn(false, '▶');
+    setLabel('0:00 / 0:30');
+
+    if (data.cover) {
+      const el = document.getElementById('cover-art');
+      if (el) { el.style.backgroundImage = `url(${data.cover})`; el.style.backgroundSize = 'cover'; el.textContent = ''; }
+    }
+  } catch(e) {
+    if (_previewToken !== myToken) return;
+    setLabel('❌ Erreur réseau');
+    setBtn(true, '❌');
+    console.error('Preview error:', e);
+  }
+}
+
+// ─── Audio ────────────────────────────────────────────────
+function startAudio() {
+  if (!audioEl || !audioEl.src) return;
+  audioEl.play().then(() => {
+    isPlaying = true;
+    const btn = document.getElementById('btn-play');
+    if (btn) { btn.textContent = '⏸'; btn.classList.add('playing'); }
+  }).catch(() => {});
+}
+function stopAudio() {
+  if (!audioEl) return;
+  audioEl.pause(); audioEl.currentTime = 0;
+  isPlaying = false;
+  const btn = document.getElementById('btn-play');
+  if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+}
+function togglePlay() {
+  if (!audioEl || !audioEl.src) return;
+  if (isPlaying) { audioEl.pause(); isPlaying = false;
+    const btn = document.getElementById('btn-play'); if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+  } else { startAudio(); }
+}
+function seekAudio(e) {
+  if (!audioEl || !audioEl.duration) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const pct  = (e.clientX - rect.left) / rect.width;
+  audioEl.currentTime = pct * audioEl.duration;
+}
+function updateAudioProgress() {
+  if (!audioEl) return;
+  const dur = audioEl.duration || 30;
+  const pct = (audioEl.currentTime / dur) * 100;
+  const played = document.getElementById('progress-played');
+  const label  = document.getElementById('time-label');
+  if (played) played.style.width = pct + '%';
+  if (label) {
+    const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+    label.textContent = `${fmt(audioEl.currentTime)} / ${fmt(dur)}`;
+  }
+}
+
+// ─── Field Interactions ───────────────────────────────────
+function onGenreChange() {
+  const genre = document.getElementById('f-genre')?.value;
+  const t = tracks[currentIdx];
+  if (!t || !genre) return;
+  const reco = computePhase(t.bpm, genre, t.energy);
+  const recoEl = document.getElementById('phase-reco');
+  if (recoEl) {
+    const label = recoEl.querySelector('.label');
+    if (label) { label.textContent = reco; label.style.color = PHASE_COLORS[reco]; }
+  }
+}
+function onEnergyChange() {
+  const val = document.getElementById('f-energy')?.value;
+  const display = document.getElementById('energy-val');
+  if (display) display.textContent = val;
+}
+function applyReco() {
+  const t = tracks[currentIdx];
+  const genre = document.getElementById('f-genre')?.value;
+  const reco = computePhase(t?.bpm, genre, t?.energy);
+  const phaseEl = document.getElementById('f-phase');
+  if (phaseEl) phaseEl.value = reco;
+}
+
+// ─── Validate / Skip / Delete ─────────────────────────────
+async function validateTrack() {
+  const t = tracks[currentIdx];
+  if (!t) return;
+
+  const genre   = document.getElementById('f-genre')?.value  || t.genre;
+  const energy  = parseInt(document.getElementById('f-energy')?.value || t.energy || 5);
+  const phase   = document.getElementById('f-phase')?.value  || t.phase;
+  const bpmInput = document.getElementById('f-bpm');
+  const bpm     = bpmInput ? (parseInt(bpmInput.value) || 0) : 0;
+
+  showSaving(true);
+  await api('PATCH', `/api/monitor/track/${t.deezerID}`, {
+    genre, energy, phase, needs_review: false, bpm
+  });
+  showSaving(false);
+
+  t.genre       = genre;
+  t.energy      = energy;
+  t.phase       = phase;
+  t.needs_review = false;
+
+  showToast(`✅ "${t.title}" validé`);
+  stopAudio();
+  nextTrack();
+}
+
+function skipTrack() { stopAudio(); nextTrack(); }
+
+function nextTrack() {
+  if (currentIdx < tracks.length - 1) selectTrack(currentIdx + 1);
+  else showToast('🎉 Fin de la liste !', false);
+}
+function prevTrack() {
+  if (currentIdx > 0) selectTrack(currentIdx - 1);
+}
+
+async function removeTrack() {
+  const t = tracks[currentIdx];
+  if (!t) return;
+  if (!confirm(`Supprimer "${t.title}" de la base ?`)) return;
+  // Mark as excluded (genre = EXCLUDED)
+  await api('PATCH', `/api/monitor/track/${t.deezerID}`, {
+    genre: 'EXCLUDED', needs_review: false
+  });
+  t.genre = 'EXCLUDED';
+  t.needs_review = false;
+  showToast(`🗑 "${t.title}" marqué EXCLUDED`, false);
+  stopAudio();
+  tracks.splice(currentIdx, 1);
+  if (currentIdx >= tracks.length) currentIdx = tracks.length - 1;
+  renderList();
+  if (tracks.length > 0) renderEditor();
+}
+
+// ─── Keyboard Shortcuts ───────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (!adminToken || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+  if (e.code === 'Space')       { e.preventDefault(); togglePlay(); }
+  else if (e.code === 'Enter')  { e.preventDefault(); validateTrack(); }
+  else if (e.code === 'ArrowRight') { e.preventDefault(); skipTrack(); }
+  else if (e.code === 'ArrowLeft')  { e.preventDefault(); prevTrack(); }
+  else if (e.key >= '1' && e.key <= '9') {
+    const el = document.getElementById('f-energy');
+    if (el) { el.value = e.key; onEnergyChange(); }
+  }
+  else if (e.code === 'KeyA') setPhase('arrivée');
+  else if (e.code === 'KeyB') setPhase('ambiance');
+  else if (e.code === 'KeyG') setPhase('groove');
+  else if (e.code === 'KeyM') setPhase('montée');
+  else if (e.code === 'KeyP') setPhase('apogée');
+  else if (e.code === 'KeyR') setPhase('redescente');
+});
+
+function setPhase(p) {
+  const el = document.getElementById('f-phase');
+  if (el) el.value = p;
+}
+
+// ─── Helpers ─────────────────────────────────────────────
+function showSaving(on) {
+  document.getElementById('saving-indicator').classList.toggle('active', on);
+}
+function showToast(msg, success = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${success ? '' : 'error'} show`;
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
