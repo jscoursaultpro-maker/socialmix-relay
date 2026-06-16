@@ -18,6 +18,14 @@ import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+process.on('uncaughtException', (err) => {
+  if (err.code === 'UND_ERR_SOCKET' || err.message === 'terminated') {
+    console.error('⚠️ Caught undici fetch socket error (ignoring to prevent crash):', err.message);
+  } else {
+    console.error('🔥 Uncaught Exception:', err);
+  }
+});
+
 const FEEDBACK_PATH = join(__dirname, 'socialmix_feedback.json');
 
 // ─── FallbackHash normalization (mirrors EditorialSeedLoader.swift) ────
@@ -176,6 +184,7 @@ app.use(express.static(join(__dirname, 'public')));
 // ─── Admin SPA ──────────────────────────────────────────────────────
 // Servi depuis /relay-server/admin/ — auth gérée par le SPA via token
 app.use('/admin', express.static(join(__dirname, 'admin')));
+app.get('/admin/classify-prelive', (req, res) => res.sendFile(join(__dirname, 'admin', 'classify.html')));
 app.get('/admin', (req, res) => res.sendFile(join(__dirname, 'admin', 'index.html')));
 app.get('/admin/*', (req, res) => res.sendFile(join(__dirname, 'admin', 'index.html')));
 
@@ -283,7 +292,7 @@ app.get('/api/admin/tracks', adminAuth, async (req, res) => {
 // PATCH /api/admin/tracks/:id — qualifier/éditer un titre
 app.patch('/api/admin/tracks/:id', adminAuth, async (req, res) => {
   try {
-    const { genre, bpm, energy, tags, adminQualified, partyMoment, coverArtURL } = req.body;
+    const { genre, bpm, energy, tags, adminQualified, partyMoment, coverArtURL, phase, style } = req.body;
     const update = { $set: {} };
     if (genre        !== undefined) update.$set.genre         = normalizeGenre(genre);
     if (bpm          !== undefined) update.$set.bpm           = Number(bpm);
@@ -291,6 +300,8 @@ app.patch('/api/admin/tracks/:id', adminAuth, async (req, res) => {
     if (tags         !== undefined) update.$set.tags          = tags;
     if (adminQualified !== undefined) update.$set.adminQualified = Boolean(adminQualified);
     if (partyMoment  !== undefined) update.$set.partyMoment   = partyMoment;
+    if (phase        !== undefined) update.$set.phase         = phase;
+    if (style        !== undefined) update.$set.style         = style;
     if (coverArtURL  !== undefined) update.$set.coverArtURL   = coverArtURL;
     const track = await Track.findByIdAndUpdate(req.params.id, update, { new: true }).lean();
     if (!track) return res.status(404).json({ error: 'Track not found' });
@@ -432,15 +443,107 @@ app.get('/api/admin/itunes/preview', adminAuth, async (req, res) => {
     const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=1`);
     const data = await r.json();
     if (data.results && data.results.length > 0) {
-      const track = data.results[0];
-      res.json({ preview: track.previewUrl || null, cover: track.artworkUrl100 || null });
+      res.json({ preview: data.results[0].previewUrl });
     } else {
       res.json({ preview: null });
     }
   } catch (err) {
-    res.status(500).json({ error: 'iTunes preview fetch failed' });
+    res.status(500).json({ error: err.message });
   }
 });
+
+// ─── Classification Pre-Live API ──────────────────────────────────────────
+
+app.get('/api/admin/classify/tracks', adminAuth, async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(parseInt(req.query.limit) || 30, 100);
+    const skip = (page - 1) * limit;
+    
+    let filter = {};
+    if (req.query.phase === 'missing') {
+      filter.$or = [{ phase: null }, { phase: '' }];
+    }
+    if (req.query.genre && req.query.genre !== 'all') {
+      filter.genre = req.query.genre;
+    }
+    
+    // Sort by genre, then title
+    const tracks = await Track.find(filter)
+      .sort({ genre: 1, title: 1 })
+      .skip(skip)
+      .limit(limit)
+      .exec();
+      
+    const total = await Track.countDocuments(filter);
+    
+    res.json({
+      tracks,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/classify/suggest', adminAuth, async (req, res) => {
+  try {
+    const { title, artist, genre } = req.body;
+    
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({
+        suggestion: {
+          phase: "party",
+          danceability: 8,
+          energy: 7,
+          reason: "(MOCK) Pas de clé Gemini."
+        }
+      });
+    }
+
+    const prompt = `Pour la track "${title}" de "${artist}" (genre actuel: ${genre}), propose au format JSON STRICTEMENT (sans markdown) :
+{
+  "phase": "arrival" ou "ambiance" ou "takeoff" ou "groove" ou "party" ou "closing",
+  "energy": nombre entier de 1 à 10,
+  "danceability": nombre entier de 1 à 10 (1 = très dur à danser, 10 = irresistible),
+  "reason": "Justifie en 1 ligne courte"
+}`;
+
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      })
+    });
+    
+    const data = await r.json();
+    if (data.candidates && data.candidates[0] && data.candidates[0].content.parts[0].text) {
+      const contentText = data.candidates[0].content.parts[0].text;
+      const content = JSON.parse(contentText);
+      res.json({ suggestion: content });
+    } else {
+      res.status(500).json({ error: "No completion from Gemini", details: data });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/export/rebuild', adminAuth, (req, res) => {
+  const { exec } = require('child_process');
+  exec('node scripts/rebuild-metadata.mjs', { cwd: __dirname }, (error, stdout, stderr) => {
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+    res.json({ message: "Export réussi.", stdout, stderr });
+  });
+});
+
+
 
 // ─── Monitor Curation API (curated_base_v3.json) ────────────────────────────
 const CURATED_DB_PATH = join(__dirname, 'curated_base_v3.json');
@@ -461,11 +564,22 @@ app.get('/api/monitor/tracks', adminAuth, (req, res) => {
   const filter  = req.query.filter  || 'needs_review'; // 'needs_review' | 'all'
   const genre   = req.query.genre   || '';
   const search  = req.query.search  || '';
+  const phase   = req.query.phase   || '';
+  const sort    = req.query.sort    || 'default';
   const page    = Math.max(1, parseInt(req.query.page) || 1);
   const limit   = Math.min(parseInt(req.query.limit) || 50, 200);
 
   let filtered = tracks;
   if (filter === 'needs_review') filtered = filtered.filter(t => t.needs_review);
+  if (filter === 'unlabeled') filtered = filtered.filter(t => !t.is_labeled && !t.gpt_imported);
+  if (filter === 'gpt_imported') filtered = filtered.filter(t => t.gpt_imported);
+  if (filter === 'no_bpm') filtered = filtered.filter(t => !t.bpm || t.bpm === 0);
+  if (filter === 'no_energy') filtered = filtered.filter(t => !t.energy || t.energy === 0);
+  if (filter === 'incomplete') filtered = filtered.filter(t => !t.bpm || t.bpm === 0 || !t.energy || t.energy === 0);
+  if (phase && phase !== 'all') {
+    if (phase === 'unclassified') filtered = filtered.filter(t => !t.phase);
+    else filtered = filtered.filter(t => t.phase === phase);
+  }
   if (genre && genre !== 'all')  filtered = filtered.filter(t => t.genre === genre);
   if (search) {
     const q = search.toLowerCase();
@@ -475,15 +589,32 @@ app.get('/api/monitor/tracks', adminAuth, (req, res) => {
     );
   }
 
+  if (sort === 'bpm_asc') {
+    filtered.sort((a, b) => (a.bpm || 0) - (b.bpm || 0));
+  } else if (sort === 'bpm_desc') {
+    filtered.sort((a, b) => (b.bpm || 0) - (a.bpm || 0));
+  } else if (sort === 'energy_asc') {
+    filtered.sort((a, b) => (a.energy || 0) - (b.energy || 0));
+  } else if (sort === 'energy_desc') {
+    filtered.sort((a, b) => (b.energy || 0) - (a.energy || 0));
+  } else if (sort === 'rank_desc') {
+    filtered.sort((a, b) => (b.rank || 0) - (a.rank || 0));
+  }
+
   const total = filtered.length;
   const paged = filtered.slice((page - 1) * limit, page * limit);
 
   // Stats
   const needsReviewTotal = tracks.filter(t => t.needs_review).length;
+  const labeledTotal = tracks.filter(t => t.is_labeled).length;
   const genres = {};
-  tracks.forEach(t => { genres[t.genre || ''] = (genres[t.genre || ''] || 0) + 1; });
+  const phases = {};
+  tracks.forEach(t => { 
+    genres[t.genre || ''] = (genres[t.genre || ''] || 0) + 1; 
+    phases[t.phase || ''] = (phases[t.phase || ''] || 0) + 1;
+  });
 
-  res.json({ tracks: paged, total, page, pages: Math.ceil(total / limit), needsReviewTotal, genreStats: genres });
+  res.json({ tracks: paged, total, page, pages: Math.ceil(total / limit), needsReviewTotal, labeledTotal, genreStats: genres, phaseStats: phases });
 });
 
 // GET /api/monitor/track/:deezerID — un track par ID
@@ -502,17 +633,123 @@ app.patch('/api/monitor/track/:deezerID', adminAuth, (req, res) => {
   const t   = db.tracks.find(t => t.deezerID === id);
   if (!t) return res.status(404).json({ error: 'Track not found' });
 
-  const { genre, energy, phase, needs_review, bpm } = req.body;
+  const { genre, energy, phase, danceability, needs_review, bpm } = req.body;
   if (genre        !== undefined) t.genre        = genre;
   if (energy       !== undefined) t.energy       = Math.min(10, Math.max(1, Number(energy)));
   if (phase        !== undefined) t.phase        = phase;
+  if (danceability !== undefined) t.danceability = Math.min(10, Math.max(1, Number(danceability)));
   if (needs_review !== undefined) t.needs_review = Boolean(needs_review);
+  
+  if (req.body.is_labeled !== undefined) {
+    t.is_labeled = Boolean(req.body.is_labeled);
+  } else {
+    t.is_labeled = true;
+  }
+  
+  if (t.is_labeled) {
+    t.gpt_imported = false; // remove from the review queue
+  }
+  
   // BPM uniquement si manquant
   if (bpm !== undefined && bpm > 0 && (!t.bpm || t.bpm === 0)) t.bpm = Number(bpm);
 
   saveCuratedDB(db);
   console.log(`[Monitor] ✅ Track ${id} updated: genre=${t.genre} energy=${t.energy} phase=${t.phase} needs_review=${t.needs_review}`);
   res.json(t);
+});
+
+// POST /api/admin/import-gpt — bulk import GPT json
+app.post('/api/admin/import-gpt', adminAuth, (req, res) => {
+  const db = loadCuratedDB();
+  const arr = req.body.tracks;
+  if (!Array.isArray(arr)) return res.status(400).json({ error: "Invalid array" });
+
+  let updated = 0;
+  for (const up of arr) {
+    const track = db.tracks.find(t => t.deezerID === Number(up.id));
+    if (track) {
+      track.gpt_suggestion = {
+        genre: up.genre || null,
+        phase: up.phase || null,
+        energy: up.energy ? Math.min(10, Math.max(1, Number(up.energy))) : null,
+        danceability: up.danceability ? Math.min(10, Math.max(1, Number(up.danceability))) : null
+      };
+      track.is_labeled = false; // Ne valide pas automatiquement
+      track.gpt_imported = true; // Flag pour la file d'attente
+      updated++;
+    }
+  }
+
+  saveCuratedDB(db);
+  res.json({ success: true, updated });
+});
+
+// GET /api/admin/generate-prompt — auto generate GPT prompt for N tracks
+app.get('/api/admin/generate-prompt', adminAuth, (req, res) => {
+  const db = loadCuratedDB();
+  const count = parseInt(req.query.count) || 50;
+  const wave = req.query.wave || 'V1';
+  
+  // 1. Find unlabeled, not imported, and missing/0 energy
+  let targets = db.tracks.filter(t => !t.is_labeled && !t.gpt_imported && (!t.energy || t.energy === 0));
+  
+  // 2. Wave logic
+  if (wave === 'V1') {
+    const artistRegex = /(Daft Punk|ABBA|Major Lazer|Donna Summer|Boney M|Bee Gees|Stromae|Aya Nakamura|Maître Gims|Goldman|Sardou|Cabrel|Indila|Calogero|Beyoncé|David Guetta|Avicii|Pharrell|Justice|Bob Sinclar|Earth, Wind & Fire|Michael Jackson|Queen|Madonna|Diana Ross|Chic|Kool & The Gang|Sister Sledge|Gloria Gaynor)/i;
+    const titleRegex = /(Dancing Queen|One More Time|Around the World|Get Lucky|Levels|Titanium|Sapés Comme Jamais|Djadja|Encore un Matin|Hot Stuff|YMCA|Don't Stop Believin)/i;
+    targets = targets.filter(t => {
+      const art = typeof t.artist === 'object' ? t.artist.name : t.artist;
+      return artistRegex.test(art) || titleRegex.test(t.title);
+    });
+  } else if (wave === 'V2') {
+    const genresV2 = ["Soul", "Funk", "Lounge", "Jazz", "R&B", "Pop", "COCOVARIET", "Disco"];
+    targets = targets.filter(t => genresV2.includes(t.genre));
+  } else if (wave === 'V3') {
+    const genresV3 = ["Jazz", "Lounge", "Soul", "Funk", "Reggae"];
+    targets = targets.filter(t => genresV3.includes(t.genre));
+  }
+  // V4 is just targets directly (no extra filter)
+
+  // 3. Sort by popularity (descending rank)
+  targets.sort((a, b) => (b.rank || 0) - (a.rank || 0));
+  
+  // 4. Take the top N
+  targets = targets.slice(0, count);
+  if (targets.length === 0) {
+    return res.json({ prompt: null, message: `Aucun titre à traiter pour la vague ${wave} !` });
+  }
+
+  // 5. Generate the prompt string
+  let prompt = `Tu es un expert musical spécialisé dans le DJing et la curation de soirées. Je vais te donner une liste de ${targets.length} morceaux.\n`;
+  prompt += `ATTENTION CRITIQUE : Beaucoup de ces morceaux sont des reprises (covers) ou des remix. Fie-toi IMPÉRATIVEMENT à l'artiste, au BPM et au Genre actuel que je te fournis entre parenthèses.\n\n`;
+  
+  prompt += `INSTRUCTIONS COMPLÉMENTAIRES POUR CHATGPT\n\n`;
+  prompt += `1. ENERGY : note de 1 à 10 (1 = ballade calme apéro / 10 = peak time explosif)\n`;
+  prompt += `2. PHASE : choisir parmi arrival / ambiance / takeoff / groove / party / closing\n`;
+  prompt += `3. Si la track est un classique connu, OUI ajuste son genre pour le faire matcher avec :\n`;
+  prompt += `   - "House" pour la dance électronique 120-130 BPM\n`;
+  prompt += `   - "Disco" pour les classiques 70s-80s dansants\n`;
+  prompt += `   - "COCOVARIET" pour la chanson française populaire qui se chante\n`;
+  prompt += `   - "Pop" pour le mainstream international\n`;
+  prompt += `4. Tu peux marquer "uncertain" pour la phase si tu ne reconnais pas — JS vérifiera\n\n`;
+  
+  prompt += `EXEMPLES :\n`;
+  prompt += `- "Encore un matin" - Goldman → energy: 4, phase: arrival, genre: COCOVARIET\n`;
+  prompt += `- "Sapés Comme Jamais" - Maître Gims → energy: 9, phase: party, genre: COCOVARIET\n`;
+  prompt += `- "Sunny" - Boney M → energy: 7, phase: party, genre: Disco\n`;
+  prompt += `- "Levels" - Avicii → energy: 9, phase: party ou groove, genre: House\n`;
+  prompt += `- "Stand By Me" Ben E. King → energy: 5, phase: closing ou ambiance, genre: Soul\n\n`;
+
+  prompt += `Voici les ${targets.length} titres à classifier :\n`;
+  targets.forEach((t, i) => {
+    let artistName = typeof t.artist === 'object' ? t.artist.name : t.artist;
+    prompt += `- [ID: ${t.deezerID}] "${t.title}" par ${artistName || 'Inconnu'} (${t.genre || 'Inconnu'}, ${t.bpm || '?'} BPM)\n`;
+  });
+  
+  prompt += `\nRÉPONDS UNIQUEMENT avec un tableau JSON (sans aucun texte avant ou après) de cette forme :\n`;
+  prompt += `[\n  { "id": 123456, "genre": "...", "phase": "...", "energy": X, "danceability": Y }\n]`;
+
+  res.json({ prompt, count: targets.length });
 });
 
 // GET /api/monitor/stats — stats globales de la base

@@ -25,6 +25,7 @@ const TrackSchema = new mongoose.Schema({
   releaseYear:  Number,
   coverArtURL:  String,                                             // URL Deezer (stable, gratuit)
   duration:     { type: Number, default: 0 },                      // Durée en secondes
+  deezerRank:   { type: Number, default: 0 },                      // Popularité globale Deezer (0-1000000)
 
   // ─── Cross-Provider IDs (résolution ISRC → plateforme) ───────────
   providers: {

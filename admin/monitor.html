@@ -55,7 +55,7 @@
 
     /* ── Top Bar ─────────────────────────────────────── */
     .topbar {
-      display: flex; align-items: center; gap: 16px;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
       padding: 10px 20px; background: var(--surface);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
@@ -301,17 +301,47 @@
         <div class="progress-fill" id="progress-fill" style="width:0%"></div>
       </div>
     </div>
-    <span class="badge review" id="badge-review">? à revoir</span>
+    <span class="badge" id="badge-labeled" style="background:rgba(16,185,129,0.2);color:#10b981;">? labelisées</span>
     <span class="badge total" id="badge-total">? total</span>
     <select id="filter-select" onchange="applyFilter()">
       <option value="needs_review">🔍 À revoir</option>
+      <option value="unlabeled">⏳ Non labelisées</option>
+      <option value="gpt_imported">📥 Importés par GPT</option>
+      <option value="no_bpm">⏱️ BPM manquant</option>
+      <option value="no_energy">⚡ Énergie manquante</option>
+      <option value="incomplete">⚠️ BPM ou Énergie manquants</option>
       <option value="all">📋 Tous</option>
     </select>
     <select id="genre-filter" onchange="applyFilter()">
       <option value="all">Tous genres</option>
     </select>
+    <select id="phase-filter" onchange="applyFilter()">
+      <option value="all">Toutes phases</option>
+      <option value="missing">❓ Sans phase (Priorité)</option>
+      <option value="arrival">🌅 arrival</option>
+      <option value="ambiance">✨ ambiance</option>
+      <option value="groove">🌴 groove</option>
+      <option value="takeoff">🚀 takeoff</option>
+      <option value="party">🔥 party</option>
+      <option value="closing">🌙 closing</option>
+    </select>
+    <select id="sort-filter" onchange="applyFilter()">
+      <option value="default">Tri par défaut</option>
+      <option value="bpm_asc">BPM (croissant)</option>
+      <option value="bpm_desc">BPM (décroissant)</option>
+      <option value="rank_desc">Popularité (⭐ rank le plus haut)</option>
+    </select>
     <input type="text" id="search-input" placeholder="Rechercher..." oninput="debounceSearch()" style="width:150px" />
     <button onclick="startRockReclass()" style="background:linear-gradient(135deg,#ef4444,#7c3aed);color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;" title="Filtrer sur Rock et générer un prompt IA pour reclassifier">🎸 Reclasser Rock</button>
+    
+    <select id="wave-selector" style="border-radius:4px; border:1px solid #d1d5db; padding:4px; font-size:12px;">
+      <option value="V1">🥇 V1: Bangers</option>
+      <option value="V2">🥈 V2: Basse Energy</option>
+      <option value="V3">🥉 V3: Genres absents</option>
+      <option value="V4">🏅 V4: Reste (nettoyage)</option>
+    </select>
+    <button onclick="generateGPTPrompt()" style="background:linear-gradient(135deg,#eab308,#f97316);color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;" title="Copier un prompt pour 50 musiques à traiter">🪄 Pre-Label 50</button>
+    <button onclick="openImportGPT()" style="background:linear-gradient(135deg,#8b5cf6,#3b82f6);color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;" title="Importer le JSON renvoyé par ChatGPT">🤖 Importer GPT</button>
     <button onclick="exportCuratedDB()" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;" title="Télécharger curated_base_v3.json depuis le serveur">⬇️ Exporter DB</button>
     <div class="saving" id="saving-indicator">
       <div class="spinner"></div>
@@ -361,15 +391,15 @@ const GENRES = ['House','Electro','Disco','Pop','Hip-Hop','R&B','Latin','Reggaet
                  'Afro','Rock','COCOVARIET','Chill','Ambient','Jazz','Classical',
                  'Folk, World, & Country','Non-Music','Unknown'];
 
-const PHASES = ['arrivée','ambiance','groove','montée','apogée','redescente'];
+const PHASES = ['arrival','ambiance','groove','takeoff','party','closing'];
 
 const PHASE_COLORS = {
-  'arrivée':    '#64748b',
+  'arrival':    '#64748b',
   'ambiance':   '#10b981',
+  'takeoff':    '#f59e0b',
   'groove':     '#06b6d4',
-  'montée':     '#f59e0b',
-  'apogée':     '#ef4444',
-  'redescente': '#8b5cf6',
+  'party':      '#ef4444',
+  'closing':    '#8b5cf6',
 };
 
 // ─── Auth ─────────────────────────────────────────────────
@@ -422,14 +452,18 @@ function api(method, path, body) {
 async function loadTracks() {
   const filter = document.getElementById('filter-select').value;
   const genre  = document.getElementById('genre-filter').value;
+  const phase  = document.getElementById('phase-filter').value;
+  const sort   = document.getElementById('sort-filter').value;
   const search = document.getElementById('search-input').value;
 
-  const params = new URLSearchParams({ filter, genre, search, limit: 200 });
+  const params = new URLSearchParams({ filter, genre, phase, sort, search, limit: 200 });
   const data   = await api('GET', `/api/monitor/tracks?${params}`);
   tracks = data.tracks || [];
 
-  document.getElementById('badge-review').textContent = `${data.needsReviewTotal} à revoir`;
-  document.getElementById('badge-total').textContent  = `${Object.values(data.genreStats||{}).reduce((a,b)=>a+b,0)} total`;
+  const total = Object.values(data.genreStats||{}).reduce((a,b)=>a+b,0);
+  const labeled = data.labeledTotal || 0;
+  document.getElementById('badge-labeled').textContent = `✅ ${labeled} labelisées`;
+  document.getElementById('badge-total').textContent  = `${total} total`;
 
   // Populate genre filter
   const gf = document.getElementById('genre-filter');
@@ -442,6 +476,26 @@ async function loadTracks() {
     o.value = g; o.textContent = `${g} (${c})`;
     if (g === cur) o.selected = true;
     gf.appendChild(o);
+  });
+
+  // Populate phase filter
+  const pf = document.getElementById('phase-filter');
+  const pCur = pf.value;
+  pf.innerHTML = '<option value="all">Toutes phases</option><option value="missing">❓ Sans phase (Priorité)</option>';
+  if (pCur === 'missing') pf.value = 'missing';
+  
+  const ps = data.phaseStats || {};
+  const emojis = { 'arrival': '🌅', 'ambiance': '✨', 'takeoff': '🚀', 'groove': '🌴', 'party': '🔥', 'closing': '🌙' };
+  Object.entries(ps).sort((a,b)=>b[1]-a[1]).forEach(([p,c]) => {
+    const o = document.createElement('option');
+    if (!p) {
+      // Ignoré, pris en compte par 'missing'
+    } else {
+      const emo = emojis[p] || '⏳';
+      o.value = p; o.textContent = `${emo} ${p} (${c})`;
+      if (p === pCur) o.selected = true;
+      pf.appendChild(o);
+    }
   });
 
   renderList();
@@ -554,7 +608,61 @@ function applySmartGenre(genre) {
   if (reco) reco.remove();
 }
 
-// ─── Rock Reclassification Workflow ───
+// ─── Import GPT Workflow ─────────────────────────
+async function generateGPTPrompt() {
+  try {
+    showToast('⏳ Génération du prompt en cours...');
+    const wave = document.getElementById('wave-selector').value;
+    const res = await api('GET', `/api/admin/generate-prompt?count=50&wave=${wave}`);
+    if (!res.prompt) {
+      showToast(res.message || 'Aucune musique à traiter !');
+      return;
+    }
+    await navigator.clipboard.writeText(res.prompt);
+    showToast(`✅ Prompt copié ! (${res.count} musiques) Va le coller dans ChatGPT.`);
+  } catch (e) {
+    alert('Erreur: ' + e.message);
+  }
+}
+
+async function openImportGPT() {
+  const jsonStr = prompt("Colle ici le JSON renvoyé par ChatGPT :");
+  if (!jsonStr) return;
+
+  try {
+    const cleanStr = jsonStr.replace(/```(?:json)?/gi, '').trim();
+    let arr;
+    try {
+      arr = JSON.parse(cleanStr);
+    } catch (e) {
+      // Si ChatGPT a renvoyé des JSON-lines ou des objets séparés par des virgules sans crochets
+      let fixedStr = cleanStr.replace(/}\s*{/g, '},{');
+      if (!fixedStr.startsWith('[')) fixedStr = '[' + fixedStr + ']';
+      arr = JSON.parse(fixedStr);
+    }
+    
+    if (!Array.isArray(arr)) {
+      if (typeof arr === 'object' && arr !== null && arr.id) {
+        arr = [arr]; // Wrap single object in array
+      } else {
+        throw new Error("Le JSON doit être un tableau [...] ou un objet avec un 'id'");
+      }
+    }
+    
+    showToast(`⏳ Import de ${arr.length} titres en cours...`);
+    const res = await api('POST', `/api/admin/import-gpt`, { tracks: arr });
+    
+    showToast(`✅ ${res.updated}/${arr.length} titres mis à jour ! Raccourci vers "Importés par GPT"...`);
+    
+    // Switch filter automatically
+    document.getElementById('filter-select').value = 'gpt_imported';
+    applyFilter();
+  } catch(e) {
+    alert("Erreur de lecture du JSON. Assure-toi de copier uniquement le code commençant par [ et finissant par ]. Détails: " + e.message);
+  }
+}
+
+// ─── Math Recommendation ─────────────────────────
 // ─── Export curated_base_v3.json depuis Render ────────────
 async function exportCuratedDB() {
   showToast('⏳ Export en cours...');
@@ -618,11 +726,11 @@ ${lines}`;
 
 function computePhase(bpm, genre, energy) {
   // Genre overrides first
-  if (['Ambient','Classical','New Age'].includes(genre)) return 'arrivée';
+  if (['Ambient','Classical','New Age'].includes(genre)) return 'arrival';
   if (['Jazz'].includes(genre)) return 'ambiance';
   if (['Techno','Industrial','Hardcore'].includes(genre)) {
-    if (bpm < 128) return 'montée';
-    return 'apogée';
+    if (bpm < 128) return 'takeoff';
+    return 'party';
   }
   if (['Hip-Hop','R&B'].includes(genre)) {
     if (bpm < 100) return 'ambiance';
@@ -631,12 +739,12 @@ function computePhase(bpm, genre, energy) {
   }
   // BPM-based
   if (!bpm || bpm === 0) return 'groove'; // default
-  if (bpm < 88)  return 'arrivée';
+  if (bpm < 88)  return 'arrival';
   if (bpm < 105) return 'ambiance';
   if (bpm < 118) return 'groove';
-  if (bpm < 126) return 'montée';
-  if (bpm < 140) return 'apogée';
-  return 'apogée';
+  if (bpm < 126) return 'takeoff';
+  if (bpm < 140) return 'party';
+  return 'party';
 }
 
 function energyFromBPM(bpm) {
@@ -659,6 +767,7 @@ function renderEditor() {
   const recoPhase  = computePhase(t.bpm, t.genre, t.energy);
   const curPhase   = t.phase || recoPhase;
   const curEnergy  = t.energy || energyFromBPM(t.bpm);
+  const curDance   = t.danceability || 5;
   const curGenre   = t.genre || '';
   const rankLabel  = t.rank ? `#${Math.round(t.rank / 1000)}k` : 'N/A';
 
@@ -731,6 +840,13 @@ function renderEditor() {
           <label>Phase</label>
           <select id="f-phase">${phaseOptions}</select>
         </div>
+        <div class="field" style="flex:0.5">
+          <label>Danceability</label>
+          <div class="energy-row">
+            <input type="range" class="energy-slider" id="f-danceability" min="1" max="10" value="${curDance}" oninput="document.getElementById('dance-val').textContent = this.value" style="background: linear-gradient(to right, #64748b 0%, #10b981 50%, #06b6d4 100%);" />
+            <div class="energy-value" id="dance-val">${curDance}</div>
+          </div>
+        </div>
       </div>
 
       <div class="phase-reco" id="phase-reco">
@@ -741,7 +857,17 @@ function renderEditor() {
           Appliquer
         </button>
       </div>
-
+      
+      ${t.gpt_imported && t.gpt_suggestion ? `
+      <div class="phase-reco" style="margin-top:-8px; background:rgba(234, 179, 8, 0.1); border-color:rgba(234, 179, 8, 0.3); color:#eab308; display:flex; align-items:center;">
+        <span>🤖 GPT suggère :</span>
+        <span class="label" style="font-weight:normal; font-size:12px; margin-left:8px;">
+          ${t.gpt_suggestion.genre || '?'} • ${t.gpt_suggestion.phase || '?'} • Dance:${t.gpt_suggestion.danceability || '?'} • E:${t.gpt_suggestion.energy || '?'}
+        </span>
+        <button onclick="applyGPT()" style="margin-left:auto;padding:2px 8px;border-radius:4px;border:1px solid #eab308;background:transparent;color:#eab308;cursor:pointer;font-size:11px">
+          Appliquer
+        </button>
+      </div>` : ''}
       <div class="field">
         <label>Énergie (1 = doux • 10 = peak) — touches 1–9</label>
         <div class="energy-row">
@@ -759,6 +885,8 @@ function renderEditor() {
     </div>
 
     <!-- Actions -->
+
+
     <div class="actions">
       <button class="btn btn-prev" onclick="prevTrack()">← Préc</button>
       <button class="btn btn-validate" onclick="validateTrack()">✅ Valider &amp; Suivant <kbd style="background:rgba(255,255,255,0.2);border:none">⏎</kbd></button>
@@ -773,17 +901,20 @@ function renderEditor() {
       <div class="shortcut"><kbd>→</kbd> suivant</div>
       <div class="shortcut"><kbd>←</kbd> précédent</div>
       <div class="shortcut"><kbd>1–9</kbd> énergie</div>
-      <div class="shortcut"><kbd>A</kbd> arrivée</div>
+      <div class="shortcut"><kbd>A</kbd> arrival</div>
       <div class="shortcut"><kbd>B</kbd> ambiance</div>
       <div class="shortcut"><kbd>G</kbd> groove</div>
-      <div class="shortcut"><kbd>M</kbd> montée</div>
-      <div class="shortcut"><kbd>P</kbd> apogée</div>
-      <div class="shortcut"><kbd>R</kbd> redescente</div>
+      <div class="shortcut"><kbd>T</kbd> takeoff</div>
+      <div class="shortcut"><kbd>P</kbd> party</div>
+      <div class="shortcut"><kbd>C</kbd> closing</div>
     </div>
   `;
 
   // 3. Lancer le fetch PRÈS AVOIR rendu le HTML (références DOM fraîches)
   fetchFreshPreview(t.deezerID);
+  
+  // 4. Lancer l'IA en arrière-plan
+  autoSuggestIA(t);
 
   // Cover art asynchrone
   if (hasPreview) {
@@ -835,8 +966,17 @@ async function fetchFreshPreview(deezerID) {
     // Proxy local → évite CORS Deezer CDN
     audioEl.src = `/api/monitor/stream/${deezerID}?token=${adminToken}`;
     audioEl.load();
-    setBtn(false, '▶');
     setLabel('0:00 / 0:30');
+    
+    // Auto-play
+    audioEl.play().then(() => {
+      isPlaying = true;
+      setBtn(false, '⏸');
+      const btn = document.getElementById('btn-play');
+      if (btn) btn.classList.add('playing');
+    }).catch(e => {
+      setBtn(false, '▶');
+    });
 
     if (data.cover) {
       const el = document.getElementById('cover-art');
@@ -924,23 +1064,46 @@ async function validateTrack() {
   const genre   = document.getElementById('f-genre')?.value  || t.genre;
   const energy  = parseInt(document.getElementById('f-energy')?.value || t.energy || 5);
   const phase   = document.getElementById('f-phase')?.value  || t.phase;
+  const danceability = parseInt(document.getElementById('f-danceability')?.value || t.danceability || 5);
   const bpmInput = document.getElementById('f-bpm');
   const bpm     = bpmInput ? (parseInt(bpmInput.value) || 0) : 0;
 
   showSaving(true);
   await api('PATCH', `/api/monitor/track/${t.deezerID}`, {
-    genre, energy, phase, needs_review: false, bpm
+    genre, energy, phase, danceability, needs_review: false, bpm
   });
   showSaving(false);
 
   t.genre       = genre;
   t.energy      = energy;
   t.phase       = phase;
+  if (!t.is_labeled) {
+    const badge = document.getElementById('badge-labeled');
+    if (badge) {
+      const match = badge.textContent.match(/\d+/);
+      if (match) badge.textContent = `✅ ${parseInt(match[0]) + 1} labelisées`;
+    }
+  }
+  t.danceability = danceability;
   t.needs_review = false;
+  t.is_labeled   = true;
+  t.gpt_imported = false;
 
   showToast(`✅ "${t.title}" validé`);
   stopAudio();
-  nextTrack();
+
+  // Retire la track de la liste locale pour qu'elle disparaisse de la colonne de gauche
+  tracks.splice(currentIdx, 1);
+  updateProgress();
+  
+  if (tracks.length > 0) {
+    if (currentIdx >= tracks.length) currentIdx = 0;
+    renderList();
+    selectTrack(currentIdx);
+  } else {
+    renderList();
+    document.getElementById('editor-panel').innerHTML = '<div style="color:#64748b; text-align:center; margin-top:2rem;">Liste terminée !</div>';
+  }
 }
 
 function skipTrack() { stopAudio(); nextTrack(); }
@@ -983,13 +1146,38 @@ document.addEventListener('keydown', e => {
     const el = document.getElementById('f-energy');
     if (el) { el.value = e.key; onEnergyChange(); }
   }
-  else if (e.code === 'KeyA') setPhase('arrivée');
+  else if (e.code === 'KeyA') setPhase('arrival');
   else if (e.code === 'KeyB') setPhase('ambiance');
   else if (e.code === 'KeyG') setPhase('groove');
-  else if (e.code === 'KeyM') setPhase('montée');
-  else if (e.code === 'KeyP') setPhase('apogée');
-  else if (e.code === 'KeyR') setPhase('redescente');
+  else if (e.code === 'KeyT') setPhase('takeoff');
+  else if (e.code === 'KeyP') setPhase('party');
+  else if (e.code === 'KeyC') setPhase('closing');
+// Removed IA logic
+
 });
+
+function applyGPT() {
+  const t = tracks[currentIdx];
+  if (!t || !t.gpt_suggestion) return;
+  const s = t.gpt_suggestion;
+  
+  if (s.phase) {
+    const el = document.getElementById('f-phase');
+    if (el) el.value = s.phase;
+  }
+  if (s.genre) {
+    const el = document.getElementById('f-genre');
+    if (el) el.value = s.genre;
+  }
+  if (s.danceability) {
+    const el = document.getElementById('f-danceability');
+    if (el) { el.value = s.danceability; document.getElementById('dance-val').textContent = s.danceability; }
+  }
+  if (s.energy) {
+    const el = document.getElementById('f-energy');
+    if (el) { el.value = s.energy; onEnergyChange(); }
+  }
+}
 
 function setPhase(p) {
   const el = document.getElementById('f-phase');

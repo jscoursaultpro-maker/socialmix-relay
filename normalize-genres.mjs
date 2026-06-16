@@ -40,13 +40,13 @@ const MAP = {
   // Rock (garder pour les vrais rock)
   'rock':'Rock','alternative rock':'Rock','synth-pop (rock)':'Rock',
   // Chill
-  'chill':'Chill','ambient':'Chill','jazz':'Chill',
+  'chill':'Chill','jazz':'Chill',
   // Reggae
   'reggae':'Reggae',
 };
 
 // Genres à ne PAS toucher (déjà canoniques)
-const KEEP = new Set(['House','Electro','Hip-Hop','Disco','Latin','Pop','COCOVARIET','Afro','Rock','Chill','Reggae','R&B','Années 80','Années 90']);
+const KEEP = new Set(['House','Electro','Hip-Hop','Disco','Latin','Pop','COCOVARIET','Afro','Rock','Chill','Reggae','R&B','Années 80','Années 90','Ambient']);
 
 const all = await T.find({});
 let changed = 0;

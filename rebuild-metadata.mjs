@@ -104,9 +104,11 @@ for (const t of tracks) {
   newMeta[fileKey] = {
     title:        t.title,
     artist:       t.artist,
-    bpm:          t.bpm || 0,
-    energy:       t.energy || 0,
+    bpm:          t.bpm ? Math.round(t.bpm) : 0,
+    energy:       t.energy ? Math.round(t.energy) : 0,
     genre:        genre,
+    phase:        t.phase || null,
+    danceability: t.danceability || 0,
     deezerID:     t.deezerID || 0,
     ...(cover ? { cover_medium: cover } : {}),
     ...(t.isrc  ? { isrc: t.isrc }     : {}),
