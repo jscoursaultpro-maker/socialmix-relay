@@ -94,12 +94,12 @@ function updateSuggestionBadge(title, status, message) {
 
       const configs = {
         pending:   { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
-        queued:    { dot: '#00b8a9', icon: '🎶', label: 'Coming soon !' },
+        queued:    { dot: '#00b8a9', icon: '🎶', label: 'En file d\'attente' },
         next:      { dot: '#ff6b35', icon: '🔥', label: 'C\'est la prochaine !' },
         played:    { dot: '#ffd700', icon: '🎉', label: 'Bien joué !' },
-        dismissed: { dot: '#667',    icon: '😉', label: 'Peut-être la prochaine fois' },
-        accepted:  { dot: '#00b8a9', icon: '🎶', label: 'Acceptée !' },
-        refused:   { dot: '#667',    icon: '😉', label: 'Refusée' }
+        dismissed: { dot: '#667',    icon: '😉', label: 'Peut-être plus tard' },
+        accepted:  { dot: '#00c853', icon: '✅', label: 'Acceptée par le DJ !' },
+        refused:   { dot: '#667',    icon: '😉', label: 'Pas pour ce soir' }
       };
       const c = configs[status] || configs.pending;
       const displayMsg = message || `${c.icon} ${c.label}`;
@@ -1441,12 +1441,12 @@ function renderGuestSuggestions() {
     // Configs for status
     const configs = {
       pending:   { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
-      queued:    { dot: '#00b8a9', icon: '🎶', label: 'Coming soon' },
-      next:      { dot: '#ff6b35', icon: '🔥', label: 'Next !' },
-      played:    { dot: '#ffd700', icon: '🎉', label: 'Well done !' },
-      dismissed: { dot: '#667',    icon: '🚫', label: 'Rejected' },
-      accepted:  { dot: '#00b8a9', icon: '🎶', label: 'Accepted' },
-      refused:   { dot: '#667',    icon: '🚫', label: 'Rejected' }
+      queued:    { dot: '#00b8a9', icon: '🎶', label: 'En file d\'attente' },
+      next:      { dot: '#ff6b35', icon: '🔥', label: 'C\'est la prochaine !' },
+      played:    { dot: '#ffd700', icon: '🎉', label: 'Bien joué !' },
+      dismissed: { dot: '#667',    icon: '😉', label: 'Peut-être plus tard' },
+      accepted:  { dot: '#00c853', icon: '✅', label: 'Acceptée par le DJ !' },
+      refused:   { dot: '#667',    icon: '😉', label: 'Pas pour ce soir' }
     };
     const c = configs[sugg.status] || configs.pending;
     const msg = sugg.message || `${c.icon} ${c.label}`;

@@ -1149,17 +1149,21 @@ app.get('/api/party/:code/explore', async (req, res) => {
           isBlocked: { $ne: true }
         }).select('title artist providers coverArtURL duration bpm genre uiCategoryPrimary energy').lean();
         
-        allTracks = mongoTracks.map(t => ({
-          id: t.providers?.deezer?.trackId,
-          title: t.title,
-          artist: { name: typeof t.artist === 'object' ? t.artist.name : t.artist },
-          album: { cover_medium: t.coverArtURL || null },
-          duration: t.duration || 0,
-          bpm: Math.round(t.bpm || 0),
-          genre: t.genre,
-          uiCategoryPrimary: t.uiCategoryPrimary,
-          energy: t.energy || 5
-        }));
+        allTracks = mongoTracks.map(t => {
+          const albumId = t.providers?.deezer?.albumId;
+          const coverUrl = t.coverArtURL || (albumId ? `https://api.deezer.com/album/${albumId}/image` : null);
+          return {
+            id: t.providers?.deezer?.trackId,
+            title: t.title,
+            artist: { name: typeof t.artist === 'object' ? t.artist.name : t.artist },
+            album: { cover_medium: coverUrl },
+            duration: t.duration || 0,
+            bpm: Math.round(t.bpm || 0),
+            genre: t.genre,
+            uiCategoryPrimary: t.uiCategoryPrimary,
+            energy: t.energy || 5
+          };
+        });
       } catch (e) {
         console.log('[Explore] MongoDB fallback to JSON:', e.message);
       }
@@ -1168,17 +1172,21 @@ app.get('/api/party/:code/explore', async (req, res) => {
     // Fallback to curated_base JSON
     if (allTracks.length === 0 && fs.existsSync(CURATED_DB_PATH)) {
       const db = JSON.parse(fs.readFileSync(CURATED_DB_PATH, 'utf-8'));
-      allTracks = (db.tracks || []).map(t => ({
-        id: t.providers?.deezer?.trackId,
-        title: t.title,
-        artist: { name: t.artist },
-        album: { cover_medium: t.coverArtURL || null },
-        duration: t.duration || 0,
-        bpm: Math.round(t.bpm || 0),
-        genre: t.genre,
-        uiCategoryPrimary: t.uiCategoryPrimary,
-        energy: t.energy || 5
-      }));
+      allTracks = (db.tracks || []).map(t => {
+        const albumId = t.providers?.deezer?.albumId;
+        const coverUrl = t.coverArtURL || (albumId ? `https://api.deezer.com/album/${albumId}/image` : null);
+        return {
+          id: t.providers?.deezer?.trackId,
+          title: t.title,
+          artist: { name: t.artist },
+          album: { cover_medium: coverUrl },
+          duration: t.duration || 0,
+          bpm: Math.round(t.bpm || 0),
+          genre: t.genre,
+          uiCategoryPrimary: t.uiCategoryPrimary,
+          energy: t.energy || 5
+        };
+      });
     }
     
     // Exclude played tracks and tracks without deezerID
