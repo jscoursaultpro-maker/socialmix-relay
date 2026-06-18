@@ -2162,7 +2162,7 @@ io.on('connection', (socket) => {
     );
     if (alreadyPlayed) {
       socket.emit('suggestion:status', {
-        title, artist, status: 'pending',
+        title, artist, status: 'already_played',
         message: 'Ce titre a déjà été joué ce soir !'
       });
       if (data.guestId || data.guestName)
@@ -2177,7 +2177,7 @@ io.on('connection', (socket) => {
     );
     if (alreadyQueued) {
       socket.emit('suggestion:status', {
-        title, artist, status: 'pending',
+        title, artist, status: 'duplicate',
         message: "Quelqu'un l'a déjà demandé — ça monte dans la liste !"
       });
       if (data.guestId || data.guestName)
@@ -2219,7 +2219,7 @@ io.on('connection', (socket) => {
 
           if (!isOK) {
             socket.emit('suggestion:status', {
-              title, artist, status: 'pending',
+              title, artist, status: 'phase_wait',
               message: 'Pas le bon moment — on la garde pour plus tard !'
             });
             console.log(`[${party.code}] SUGGEST PHASE MISMATCH: "${title}" (track:${trackPhase} vs party:${currentPhase})`);
@@ -2232,17 +2232,17 @@ io.on('connection', (socket) => {
         const msg = pendingCount <= 3
           ? 'Le DJ a bien reçu ta suggestion !'
           : 'Suggestion notée, le DJ gère la playlist !';
-        socket.emit('suggestion:status', { title, artist, status: 'pending', message: msg });
+        socket.emit('suggestion:status', { title, artist, status: 'received', message: msg });
 
       } catch (_) {
         socket.emit('suggestion:status', {
-          title, artist, status: 'pending',
+          title, artist, status: 'received',
           message: 'Suggestion reçue ! Le DJ va évaluer'
         });
       }
     } else {
       socket.emit('suggestion:status', {
-        title, artist, status: 'pending',
+        title, artist, status: 'received',
         message: 'Suggestion reçue ! Le DJ va évaluer'
       });
     }

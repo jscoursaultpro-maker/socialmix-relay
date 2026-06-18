@@ -93,13 +93,17 @@ function updateSuggestionBadge(title, status, message) {
       if (!badge) continue;
 
       const configs = {
-        pending:   { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
-        queued:    { dot: '#00b8a9', icon: '🎶', label: 'En file d\'attente' },
-        next:      { dot: '#ff6b35', icon: '🔥', label: 'C\'est la prochaine !' },
-        played:    { dot: '#ffd700', icon: '🎉', label: 'Bien joué !' },
-        dismissed: { dot: '#667',    icon: '😉', label: 'Peut-être plus tard' },
-        accepted:  { dot: '#00c853', icon: '✅', label: 'Acceptée par le DJ !' },
-        refused:   { dot: '#667',    icon: '😉', label: 'Pas pour ce soir' }
+        pending:        { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
+        received:       { dot: '#00c853', icon: '✅', label: 'Reçue par le DJ' },
+        already_played: { dot: '#ff9800', icon: '🔄', label: 'Déjà joué ce soir' },
+        duplicate:      { dot: '#ab47bc', icon: '👥', label: 'Déjà demandé' },
+        phase_wait:     { dot: '#ffc107', icon: '⏳', label: 'Gardée pour plus tard' },
+        queued:         { dot: '#00b8a9', icon: '🎶', label: 'En file d\'attente' },
+        next:           { dot: '#ff6b35', icon: '🔥', label: 'C\'est la prochaine !' },
+        played:         { dot: '#ffd700', icon: '🎉', label: 'Bien joué !' },
+        dismissed:      { dot: '#667',    icon: '😉', label: 'Peut-être plus tard' },
+        accepted:       { dot: '#00c853', icon: '✅', label: 'Acceptée par le DJ !' },
+        refused:        { dot: '#667',    icon: '😉', label: 'Pas pour ce soir' }
       };
       const c = configs[status] || configs.pending;
       const displayMsg = message || `${c.icon} ${c.label}`;
@@ -1440,13 +1444,17 @@ function renderGuestSuggestions() {
     
     // Configs for status
     const configs = {
-      pending:   { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
-      queued:    { dot: '#00b8a9', icon: '🎶', label: 'En file d\'attente' },
-      next:      { dot: '#ff6b35', icon: '🔥', label: 'C\'est la prochaine !' },
-      played:    { dot: '#ffd700', icon: '🎉', label: 'Bien joué !' },
-      dismissed: { dot: '#667',    icon: '😉', label: 'Peut-être plus tard' },
-      accepted:  { dot: '#00c853', icon: '✅', label: 'Acceptée par le DJ !' },
-      refused:   { dot: '#667',    icon: '😉', label: 'Pas pour ce soir' }
+      pending:        { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
+      received:       { dot: '#00c853', icon: '✅', label: 'Reçue par le DJ' },
+      already_played: { dot: '#ff9800', icon: '🔄', label: 'Déjà joué ce soir' },
+      duplicate:      { dot: '#ab47bc', icon: '👥', label: 'Déjà demandé' },
+      phase_wait:     { dot: '#ffc107', icon: '⏳', label: 'Gardée pour plus tard' },
+      queued:         { dot: '#00b8a9', icon: '🎶', label: 'En file d\'attente' },
+      next:           { dot: '#ff6b35', icon: '🔥', label: 'C\'est la prochaine !' },
+      played:         { dot: '#ffd700', icon: '🎉', label: 'Bien joué !' },
+      dismissed:      { dot: '#667',    icon: '😉', label: 'Peut-être plus tard' },
+      accepted:       { dot: '#00c853', icon: '✅', label: 'Acceptée par le DJ !' },
+      refused:        { dot: '#667',    icon: '😉', label: 'Pas pour ce soir' }
     };
     const c = configs[sugg.status] || configs.pending;
     const msg = sugg.message || `${c.icon} ${c.label}`;
