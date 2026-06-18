@@ -2163,7 +2163,7 @@ io.on('connection', (socket) => {
     if (alreadyPlayed) {
       socket.emit('suggestion:status', {
         title, artist, status: 'pending',
-        message: 'Ce titre a deja ete joue ce soir !'
+        message: 'Ce titre a déjà été joué ce soir !'
       });
       if (data.guestId || data.guestName)
         addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 2, `suggest (deja joue): ${title}`);
@@ -2178,7 +2178,7 @@ io.on('connection', (socket) => {
     if (alreadyQueued) {
       socket.emit('suggestion:status', {
         title, artist, status: 'pending',
-        message: "Quelqu'un l'a deja demande — ca monte dans la liste !"
+        message: "Quelqu'un l'a déjà demandé — ça monte dans la liste !"
       });
       if (data.guestId || data.guestName)
         addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 2, `suggest (doublon): ${title}`);
@@ -2230,20 +2230,20 @@ io.on('connection', (socket) => {
         // Track OK ou pas en DB => feedback selon taille queue
         const pendingCount = party.suggestions.filter(s => s.status === 'pending').length;
         const msg = pendingCount <= 3
-          ? 'Ta chanson passe tres bientot !'
-          : 'Bonne suggestion, sois patient(e) !';
+          ? 'Le DJ a bien reçu ta suggestion !'
+          : 'Suggestion notée, le DJ gère la playlist !';
         socket.emit('suggestion:status', { title, artist, status: 'pending', message: msg });
 
       } catch (_) {
         socket.emit('suggestion:status', {
           title, artist, status: 'pending',
-          message: 'Suggestion recue ! Le DJ va evaluer'
+          message: 'Suggestion reçue ! Le DJ va évaluer'
         });
       }
     } else {
       socket.emit('suggestion:status', {
         title, artist, status: 'pending',
-        message: 'Suggestion recue ! Le DJ va evaluer'
+        message: 'Suggestion reçue ! Le DJ va évaluer'
       });
     }
 
@@ -2383,7 +2383,7 @@ io.on('connection', (socket) => {
         artist: match.artist || '',
         guestName: data.guestName,
         status: 'played',
-        message: `🎉 Well done! "${match.title || match.query}" a été jouée ! +10 pts bonus`
+        message: `🎉 Bien joué ! "${match.title || match.query}" a été jouée ! +10 pts`
       });
     }
     console.log(`🎵 [${party.code}] SUGGESTION PLAYED: "${data.trackTitle}" suggested by ${data.guestName}`);
@@ -2404,7 +2404,7 @@ io.on('connection', (socket) => {
         artist: match.artist || '',
         guestName: data.guestName,
         status: 'queued',
-        message: `🎶 Coming soon! "${match.title || match.query}" est dans la file`
+        message: `🎶 "${match.title || match.query}" est en file d'attente !`
       });
       console.log(`🎵 [${party.code}] SUGGESTION QUEUED: "${data.trackTitle}" by ${data.guestName}`);
     }
@@ -2426,7 +2426,7 @@ io.on('connection', (socket) => {
         artist: match.artist || '',
         guestName: data.guestName,
         status: 'next',
-        message: `🔥 Next is yours! "${match.title || match.query}" arrive !`
+        message: `🔥 C'est la prochaine ! "${match.title || match.query}" arrive !`
       });
       console.log(`🎵 [${party.code}] SUGGESTION NEXT: "${data.trackTitle}" by ${data.guestName}`);
     }
@@ -2447,7 +2447,7 @@ io.on('connection', (socket) => {
         artist: match.artist || '',
         guestName: data.guestName,
         status: 'dismissed',
-        message: `Maybe next time! On garde ta suggestion en tête 😉`
+        message: `Peut-être plus tard ! Le DJ garde ta suggestion en tête 😉`
       });
       console.log(`🎵 [${party.code}] SUGGESTION DISMISSED: "${data.trackTitle}" by ${data.guestName}`);
     }
