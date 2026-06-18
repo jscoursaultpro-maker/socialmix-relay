@@ -533,6 +533,19 @@ app.post('/api/admin/classify/suggest', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/admin/sync-ios — run sync-ios script from Monitor button
+app.post('/api/admin/sync-ios', adminAuth, async (req, res) => {
+  const { exec } = await import('child_process');
+  exec('node --env-file=.env scripts/sync-ios.mjs', { cwd: __dirname, timeout: 30000 }, (error, stdout, stderr) => {
+    if (error) {
+      console.error('[Sync iOS] ❌', error.message);
+      return res.status(500).json({ error: error.message, stdout, stderr });
+    }
+    console.log('[Sync iOS] ✅', stdout);
+    res.json({ success: true, message: "Sync iOS terminée !", stdout, stderr });
+  });
+});
+
 app.post('/api/admin/export/rebuild', adminAuth, (req, res) => {
   const { exec } = require('child_process');
   exec('node scripts/rebuild-metadata.mjs', { cwd: __dirname }, (error, stdout, stderr) => {
@@ -557,218 +570,470 @@ function saveCuratedDB(db) {
   writeFileSync(CURATED_DB_PATH, JSON.stringify(db, null, 2));
 }
 
+// GET /api/monitor/batch-status
+app.get('/api/monitor/batch-status', adminAuth, (req, res) => {
+  const path = require('path');
+  const fs = require('fs');
+  const dirIn = path.join(__dirname, 'batches_in');
+  const dirOut = path.join(__dirname, 'batches_out');
+  const dirDone = path.join(__dirname, 'batches_done');
+  const dirRej = path.join(__dirname, 'batches_rejected');
+  
+  const countIn = fs.existsSync(dirIn) ? fs.readdirSync(dirIn).filter(f => f.endsWith('.json')).length : 0;
+  const countOut = fs.existsSync(dirOut) ? fs.readdirSync(dirOut).filter(f => f.endsWith('.json')).length : 0;
+  const countDone = fs.existsSync(dirDone) ? fs.readdirSync(dirDone).filter(f => f.endsWith('.json')).length : 0;
+  const countRej = fs.existsSync(dirRej) ? fs.readdirSync(dirRej).filter(f => f.endsWith('.json')).length : 0;
+  
+  res.json({
+    in: countIn,
+    out: countOut,
+    done: countDone,
+    rejected: countRej,
+    total: 40
+  });
+});
+
 // GET /api/monitor/tracks — liste paginée avec filtres
-app.get('/api/monitor/tracks', adminAuth, (req, res) => {
-  const db      = loadCuratedDB();
-  const tracks  = db.tracks || [];
-  const filter  = req.query.filter  || 'needs_review'; // 'needs_review' | 'all'
-  const genre   = req.query.genre   || '';
-  const search  = req.query.search  || '';
-  const phase   = req.query.phase   || '';
-  const sort    = req.query.sort    || 'default';
-  const page    = Math.max(1, parseInt(req.query.page) || 1);
-  const limit   = Math.min(parseInt(req.query.limit) || 50, 200);
+app.get('/api/monitor/tracks', adminAuth, async (req, res) => {
+  try {
+    const filter = req.query.filter || 'needs_review';
+    const genre = req.query.genre || '';
+    const search = req.query.search || '';
+    const phase = req.query.phase || '';
+    const sort = req.query.sort || 'default';
+    const source = req.query.source || 'all';
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
 
-  let filtered = tracks;
-  if (filter === 'needs_review') filtered = filtered.filter(t => t.needs_review);
-  if (filter === 'unlabeled') filtered = filtered.filter(t => !t.is_labeled && !t.gpt_imported);
-  if (filter === 'gpt_imported') filtered = filtered.filter(t => t.gpt_imported);
-  if (filter === 'no_bpm') filtered = filtered.filter(t => !t.bpm || t.bpm === 0);
-  if (filter === 'no_energy') filtered = filtered.filter(t => !t.energy || t.energy === 0);
-  if (filter === 'incomplete') filtered = filtered.filter(t => !t.bpm || t.bpm === 0 || !t.energy || t.energy === 0);
-  if (phase && phase !== 'all') {
-    if (phase === 'unclassified') filtered = filtered.filter(t => !t.phase);
-    else filtered = filtered.filter(t => t.phase === phase);
-  }
-  if (genre && genre !== 'all')  filtered = filtered.filter(t => t.genre === genre);
-  if (search) {
-    const q = search.toLowerCase();
-    filtered = filtered.filter(t =>
-      (t.title  || '').toLowerCase().includes(q) ||
-      (t.artist || '').toLowerCase().includes(q)
-    );
-  }
+    let query = {};
+    if (filter === 'ql_vide') { query.qualityLevel = 'vide'; }
+    if (filter === 'ql_partielle') { query.qualityLevel = 'partielle'; }
+    if (filter === 'ql_complete') { query.qualityLevel = 'complete'; }
+    if (filter === 'ql_platine') { query.qualityLevel = 'platine'; }
 
-  if (sort === 'bpm_asc') {
-    filtered.sort((a, b) => (a.bpm || 0) - (b.bpm || 0));
-  } else if (sort === 'bpm_desc') {
-    filtered.sort((a, b) => (b.bpm || 0) - (a.bpm || 0));
-  } else if (sort === 'energy_asc') {
-    filtered.sort((a, b) => (a.energy || 0) - (b.energy || 0));
-  } else if (sort === 'energy_desc') {
-    filtered.sort((a, b) => (b.energy || 0) - (a.energy || 0));
-  } else if (sort === 'rank_desc') {
-    filtered.sort((a, b) => (b.rank || 0) - (a.rank || 0));
-  }
+    if (filter === 'no_gpt') { query.isLabeled = { $ne: true }; query.gptSuggestion = null; }
+    if (filter === 'no_bpm') query.$or = [{ bpm: null }, { bpm: 0 }];
+    if (filter === 'no_energy') query.$or = [{ energy: null }, { energy: 0 }];
+    if (filter === 'incomplete') query.$or = [{ bpm: null }, { bpm: 0 }, { energy: null }, { energy: 0 }];
 
-  const total = filtered.length;
-  const paged = filtered.slice((page - 1) * limit, page * limit);
-
-  // Stats
-  const needsReviewTotal = tracks.filter(t => t.needs_review).length;
-  const labeledTotal = tracks.filter(t => t.is_labeled).length;
-  const genres = {};
-  const phases = {};
-  tracks.forEach(t => { 
-    genres[t.genre || ''] = (genres[t.genre || ''] || 0) + 1; 
-    phases[t.phase || ''] = (phases[t.phase || ''] || 0) + 1;
-  });
-
-  res.json({ tracks: paged, total, page, pages: Math.ceil(total / limit), needsReviewTotal, labeledTotal, genreStats: genres, phaseStats: phases });
-});
-
-// GET /api/monitor/track/:deezerID — un track par ID
-app.get('/api/monitor/track/:deezerID', adminAuth, (req, res) => {
-  const db  = loadCuratedDB();
-  const id  = parseInt(req.params.deezerID);
-  const t   = db.tracks.find(t => t.deezerID === id);
-  if (!t) return res.status(404).json({ error: 'Track not found' });
-  res.json(t);
-});
-
-// PATCH /api/monitor/track/:deezerID — sauvegarder les modifications
-app.patch('/api/monitor/track/:deezerID', adminAuth, (req, res) => {
-  const db  = loadCuratedDB();
-  const id  = parseInt(req.params.deezerID);
-  const t   = db.tracks.find(t => t.deezerID === id);
-  if (!t) return res.status(404).json({ error: 'Track not found' });
-
-  const { genre, energy, phase, danceability, needs_review, bpm } = req.body;
-  if (genre        !== undefined) t.genre        = genre;
-  if (energy       !== undefined) t.energy       = Math.min(10, Math.max(1, Number(energy)));
-  if (phase        !== undefined) t.phase        = phase;
-  if (danceability !== undefined) t.danceability = Math.min(10, Math.max(1, Number(danceability)));
-  if (needs_review !== undefined) t.needs_review = Boolean(needs_review);
-  
-  if (req.body.is_labeled !== undefined) {
-    t.is_labeled = Boolean(req.body.is_labeled);
-  } else {
-    t.is_labeled = true;
-  }
-  
-  if (t.is_labeled) {
-    t.gpt_imported = false; // remove from the review queue
-  }
-  
-  // BPM uniquement si manquant
-  if (bpm !== undefined && bpm > 0 && (!t.bpm || t.bpm === 0)) t.bpm = Number(bpm);
-
-  saveCuratedDB(db);
-  console.log(`[Monitor] ✅ Track ${id} updated: genre=${t.genre} energy=${t.energy} phase=${t.phase} needs_review=${t.needs_review}`);
-  res.json(t);
-});
-
-// POST /api/admin/import-gpt — bulk import GPT json
-app.post('/api/admin/import-gpt', adminAuth, (req, res) => {
-  const db = loadCuratedDB();
-  const arr = req.body.tracks;
-  if (!Array.isArray(arr)) return res.status(400).json({ error: "Invalid array" });
-
-  let updated = 0;
-  for (const up of arr) {
-    const track = db.tracks.find(t => t.deezerID === Number(up.id));
-    if (track) {
-      track.gpt_suggestion = {
-        genre: up.genre || null,
-        phase: up.phase || null,
-        energy: up.energy ? Math.min(10, Math.max(1, Number(up.energy))) : null,
-        danceability: up.danceability ? Math.min(10, Math.max(1, Number(up.danceability))) : null
-      };
-      track.is_labeled = false; // Ne valide pas automatiquement
-      track.gpt_imported = true; // Flag pour la file d'attente
-      updated++;
+    if (phase && phase !== 'all') {
+      if (phase === 'unclassified') query.phase = null;
+      else query.phase = phase;
     }
-  }
+    
+    if (genre && genre !== 'all') {
+      query.genre = genre;
+    }
 
-  saveCuratedDB(db);
-  res.json({ success: true, updated });
-});
+    if (source && source !== 'all') {
+      query.source = source;
+    }
 
-// GET /api/admin/generate-prompt — auto generate GPT prompt for N tracks
-app.get('/api/admin/generate-prompt', adminAuth, (req, res) => {
-  const db = loadCuratedDB();
-  const count = parseInt(req.query.count) || 50;
-  const wave = req.query.wave || 'V1';
-  
-  // 1. Find unlabeled, not imported, and missing/0 energy
-  let targets = db.tracks.filter(t => !t.is_labeled && !t.gpt_imported && (!t.energy || t.energy === 0));
-  
-  // 2. Wave logic
-  if (wave === 'V1') {
-    const artistRegex = /(Daft Punk|ABBA|Major Lazer|Donna Summer|Boney M|Bee Gees|Stromae|Aya Nakamura|Maître Gims|Goldman|Sardou|Cabrel|Indila|Calogero|Beyoncé|David Guetta|Avicii|Pharrell|Justice|Bob Sinclar|Earth, Wind & Fire|Michael Jackson|Queen|Madonna|Diana Ross|Chic|Kool & The Gang|Sister Sledge|Gloria Gaynor)/i;
-    const titleRegex = /(Dancing Queen|One More Time|Around the World|Get Lucky|Levels|Titanium|Sapés Comme Jamais|Djadja|Encore un Matin|Hot Stuff|YMCA|Don't Stop Believin)/i;
-    targets = targets.filter(t => {
-      const art = typeof t.artist === 'object' ? t.artist.name : t.artist;
-      return artistRegex.test(art) || titleRegex.test(t.title);
+    if (search) {
+      const q = search.toLowerCase();
+      query.$or = [
+        { title: new RegExp(q, 'i') },
+        { artist: new RegExp(q, 'i') }
+      ];
+    }
+
+    let sortObj = {};
+    if (sort === 'bpm_asc') sortObj.bpm = 1;
+    else if (sort === 'bpm_desc') sortObj.bpm = -1;
+    else if (sort === 'energy_asc') sortObj.energy = 1;
+    else if (sort === 'energy_desc') sortObj.energy = -1;
+    else if (sort === 'rank_desc') sortObj.deezerRank = -1;
+    else if (sort === 'rank_asc') sortObj.deezerRank = 1;
+    else sortObj.deezerRank = -1; // Default
+
+    const tracks = await Track.find(query).sort(sortObj).skip((page - 1) * limit).limit(limit).lean();
+    const total = await Track.countDocuments(query);
+
+    res.json({
+      tracks: tracks,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit)
     });
-  } else if (wave === 'V2') {
-    const genresV2 = ["Soul", "Funk", "Lounge", "Jazz", "R&B", "Pop", "COCOVARIET", "Disco"];
-    targets = targets.filter(t => genresV2.includes(t.genre));
-  } else if (wave === 'V3') {
-    const genresV3 = ["Jazz", "Lounge", "Soul", "Funk", "Reggae"];
-    targets = targets.filter(t => genresV3.includes(t.genre));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  // V4 is just targets directly (no extra filter)
-
-  // 3. Sort by popularity (descending rank)
-  targets.sort((a, b) => (b.rank || 0) - (a.rank || 0));
-  
-  // 4. Take the top N
-  targets = targets.slice(0, count);
-  if (targets.length === 0) {
-    return res.json({ prompt: null, message: `Aucun titre à traiter pour la vague ${wave} !` });
-  }
-
-  // 5. Generate the prompt string
-  let prompt = `Tu es un expert musical spécialisé dans le DJing et la curation de soirées. Je vais te donner une liste de ${targets.length} morceaux.\n`;
-  prompt += `ATTENTION CRITIQUE : Beaucoup de ces morceaux sont des reprises (covers) ou des remix. Fie-toi IMPÉRATIVEMENT à l'artiste, au BPM et au Genre actuel que je te fournis entre parenthèses.\n\n`;
-  
-  prompt += `INSTRUCTIONS COMPLÉMENTAIRES POUR CHATGPT\n\n`;
-  prompt += `1. ENERGY : note de 1 à 10 (1 = ballade calme apéro / 10 = peak time explosif)\n`;
-  prompt += `2. PHASE : choisir parmi arrival / ambiance / takeoff / groove / party / closing\n`;
-  prompt += `3. Si la track est un classique connu, OUI ajuste son genre pour le faire matcher avec :\n`;
-  prompt += `   - "House" pour la dance électronique 120-130 BPM\n`;
-  prompt += `   - "Disco" pour les classiques 70s-80s dansants\n`;
-  prompt += `   - "COCOVARIET" pour la chanson française populaire qui se chante\n`;
-  prompt += `   - "Pop" pour le mainstream international\n`;
-  prompt += `4. Tu peux marquer "uncertain" pour la phase si tu ne reconnais pas — JS vérifiera\n\n`;
-  
-  prompt += `EXEMPLES :\n`;
-  prompt += `- "Encore un matin" - Goldman → energy: 4, phase: arrival, genre: COCOVARIET\n`;
-  prompt += `- "Sapés Comme Jamais" - Maître Gims → energy: 9, phase: party, genre: COCOVARIET\n`;
-  prompt += `- "Sunny" - Boney M → energy: 7, phase: party, genre: Disco\n`;
-  prompt += `- "Levels" - Avicii → energy: 9, phase: party ou groove, genre: House\n`;
-  prompt += `- "Stand By Me" Ben E. King → energy: 5, phase: closing ou ambiance, genre: Soul\n\n`;
-
-  prompt += `Voici les ${targets.length} titres à classifier :\n`;
-  targets.forEach((t, i) => {
-    let artistName = typeof t.artist === 'object' ? t.artist.name : t.artist;
-    prompt += `- [ID: ${t.deezerID}] "${t.title}" par ${artistName || 'Inconnu'} (${t.genre || 'Inconnu'}, ${t.bpm || '?'} BPM)\n`;
-  });
-  
-  prompt += `\nRÉPONDS UNIQUEMENT avec un tableau JSON (sans aucun texte avant ou après) de cette forme :\n`;
-  prompt += `[\n  { "id": 123456, "genre": "...", "phase": "...", "energy": X, "danceability": Y }\n]`;
-
-  res.json({ prompt, count: targets.length });
 });
 
-// GET /api/monitor/stats — stats globales de la base
-app.get('/api/monitor/stats', adminAuth, (req, res) => {
-  const db = loadCuratedDB();
-  const tracks = db.tracks || [];
-  const genres = {}, phases = {};
-  let needsReview = 0, withBPM = 0, withEnergy = 0, withPhase = 0;
+// GET /api/monitor/track/:id — un track par ID
+app.get('/api/monitor/track/:id', adminAuth, async (req, res) => {
+  try {
+    const id = req.params.id;
+    let query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { "providers.deezer.trackId": Number(id) };
+    const t = await Track.findOne(query).lean();
+    if (!t) return res.status(404).json({ error: "Track not found" });
+    
+    res.json({
+      ...t,
+      id: t.providers?.deezer?.trackId || t._id.toString(),
+      is_labeled: t.isLabeled,
+      gpt_suggestion: t.gptSuggestion
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
-  tracks.forEach(t => {
-    genres[t.genre || ''] = (genres[t.genre || ''] || 0) + 1;
-    phases[t.phase || ''] = (phases[t.phase || ''] || 0) + 1;
-    if (t.needs_review) needsReview++;
-    if (t.bpm > 0)    withBPM++;
-    if (t.energy > 0) withEnergy++;
-    if (t.phase)      withPhase++;
-  });
+// PATCH /api/monitor/track/:id — sauvegarder les modifications
+app.patch('/api/monitor/track/:id', adminAuth, async (req, res) => {
+  try {
+    const id = req.params.id;
+    let query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { "providers.deezer.trackId": Number(id) };
+    const t = await Track.findOne(query);
+    if (!t) return res.status(404).json({ error: "Track not found" });
 
-  res.json({ total: tracks.length, needsReview, withBPM, withEnergy, withPhase, genres, phases });
+    const body = req.body;
+    if (body.genre !== undefined) t.genreBDD = body.genre;
+    if (body.phase !== undefined) t.phase = body.phase;
+    if (body.energy !== undefined) t.energy = Math.min(10, Math.max(1, Number(body.energy)));
+    if (body.danceability !== undefined) t.danceability = Math.min(1, Math.max(0, Number(body.danceability)));
+    if (body.uiCategoryPrimary !== undefined) t.uiCategoryPrimary = body.uiCategoryPrimary;
+    if (body.uiCategoriesSecondary !== undefined) t.uiCategoriesSecondary = body.uiCategoriesSecondary;
+    if (body.phaseAlternate !== undefined) t.phaseAlternate = body.phaseAlternate;
+    if (body.era !== undefined) t.era = body.era;
+    if (body.mood !== undefined) t.mood = body.mood;
+    if (body.language !== undefined) t.language = body.language;
+    if (body.isBanger !== undefined) t.isBanger = Boolean(body.isBanger);
+    if (body.isSingalong !== undefined) t.isSingalong = Boolean(body.isSingalong);
+    if (body.isEmotional !== undefined) t.isEmotional = Boolean(body.isEmotional);
+    if (body.isCaliente !== undefined) t.isCaliente = Boolean(body.isCaliente);
+    if (body.isHardcore !== undefined) t.isHardcore = Boolean(body.isHardcore);
+    if (body.isFiller !== undefined) t.isFiller = Boolean(body.isFiller);
+    if (body.needs_review !== undefined) t.needs_review = Boolean(body.needs_review);
+    if (body.isVerified !== undefined) t.isVerified = Boolean(body.isVerified);
+    if (body.hasLyrics !== undefined) t.hasLyrics = Boolean(body.hasLyrics);
+    if (body.explicit !== undefined) t.explicit = Boolean(body.explicit);
+    if (body.notes !== undefined) t.notes = body.notes;
+    
+    t.isLabeled = body.is_labeled !== undefined ? Boolean(body.is_labeled) : true;
+    
+    if (t.isLabeled) {
+      t.gptSuggestion = null;
+      t.chatgptQueueId = null;
+    }
+    
+    if (body.bpm !== undefined && body.bpm > 0) t.bpm = Number(body.bpm);
+    
+    t.lastReviewedAt = new Date();
+
+    await t.save();
+    res.json(t);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/admin/import-gpt
+app.post('/api/admin/import-gpt', adminAuth, async (req, res) => {
+  try {
+    const arr = req.body.tracks;
+    if (!Array.isArray(arr)) return res.status(400).json({ error: "Invalid array" });
+
+    // Patch défensif : Anti-Template (Détection stricte ChatGPT mode fichier)
+    if (arr.length >= 20) {
+      const uniqueGenres = new Set(arr.map(t => t.genreBDD));
+      const uniquePhases = new Set(arr.map(t => t.phase));
+      const uniqueEras = new Set(arr.map(t => t.era));
+      const uniqueBpms = new Set(arr.map(t => t.bpm));
+      const uniqueEnergies = new Set(arr.map(t => t.energy));
+
+      const onesCount = [uniqueGenres, uniquePhases, uniqueEras, uniqueBpms, uniqueEnergies]
+        .filter(s => s.size <= 1).length;
+
+      if (onesCount === 5) {
+        return res.status(400).json({
+          error: "Template fabriqué détecté",
+          message: "Les " + arr.length + " tracks ont exactement les mêmes valeurs. C'est un comportement de GPT-4o mode 'fichier'. Utilise Claude Opus 4.8 (claude.ai) et demande une réponse JSON directement dans le chat.",
+          diversity: { genres: uniqueGenres.size, phases: uniquePhases.size, eras: uniqueEras.size }
+        });
+      }
+    }
+
+    let updated = 0;
+    const queueId = 'gpt_' + Date.now();
+    
+    for (const up of arr) {
+      const id = up.id || up.deezerID;
+      if (!id) continue;
+      
+      let query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { "providers.deezer.trackId": Number(id) };
+      const track = await Track.findOne(query);
+      
+      if (track) {
+        track.gptSuggestion = {
+          genreBDD: up.genreBDD || null,
+          uiCategoryPrimary: up.uiCategoryPrimary || null,
+          uiCategoriesSecondary: up.uiCategoriesSecondary || [],
+          phase: up.phase || null,
+          phaseAlternate: up.phaseAlternate || null,
+          energy: up.energy ? Math.min(10, Math.max(1, Number(up.energy))) : null,
+          bpm: up.bpm || null,
+          danceability: up.danceability ? Math.min(10, Math.max(1, Number(up.danceability))) : null,
+          isBanger: up.isBanger || false,
+          isSingalong: up.isSingalong || false,
+          isEmotional: up.isEmotional || false,
+          isCaliente: up.isCaliente || false,
+          isHardcore: up.isHardcore || false,
+          era: up.era || null,
+          mood: up.mood || null,
+          language: up.language || null,
+          hasLyrics: up.hasLyrics || false,
+          explicit: up.explicit || false,
+          notes: up.notes || null,
+          justification: up.justification || null
+        };
+        track.isLabeled = false;
+        track.needs_review = true;
+        track.chatgptQueueId = queueId;
+        await track.save();
+        updated++;
+      }
+    }
+
+    res.json({ success: true, updated });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/admin/generate-prompt
+app.get('/api/admin/generate-prompt', adminAuth, async (req, res) => {
+  try {
+    const count = parseInt(req.query.count) || 50;
+    const wave = req.query.wave || 'V1';
+    
+    const targets = await Track.find({
+      isLabeled: { $ne: true },
+      gptSuggestion: null,
+      $or: [{ energy: null }, { energy: 0 }]
+    }).sort({ deezerRank: -1 }).limit(count).lean();
+
+    if (targets.length === 0) {
+      return res.json({ prompt: null, message: "Aucun titre à traiter !" });
+    }
+
+    let prompt = `[INSTRUCTION POUR CHATGPT : Lis l'intégralité de ce message (qui peut t'apparaître sous forme de fichier texte joint si le texte est long). Classe les ${targets.length} tracks de la liste à la fin du document en suivant strictement les règles ci-dessous. Tu dois me renvoyer DIRECTEMENT et UNIQUEMENT le JSON Array complet des ${targets.length} objets.]
+
+Tu es un DJ professionnel expert qui aide à classer des tracks pour l'app SocialMix, qui pilote des soirées privées en temps réel.
+
+CONTEXTE SOIRÉE TYPE
+- 40-80 invités | 6h à 7h de soirée (20h-2h30 type)
+- Public mixte, souvent 25-65 ans
+- Soirées privées (anniversaires, mariages, fêtes amis)
+- Forte demande de COCOVARIET (chanson française populaire qui se chante : Goldman, Maître Gims, Aya Nakamura, Stromae, Sardou, Cabrel, Souchon, Indila)
+- Arrivals tendres et closings émotionnels sont des moments importants
+
+DESCRIPTION DES 6 PHASES (utilise pour calibrer)
+🌅 ARRIVAL (apéro chic, energy 3.5-5.0, BPM 70-110)
+   Exemples : Sade "Smooth Operator", Norah Jones, Goldman "Encore un matin", Cabrel "Petite Marie", Bossa, Lounge, Soul slow.
+   À éviter : House, Electro hard, Rap hardcore
+
+🥂 AMBIANCE (warm-up, energy 5.0-6.5, BPM 80-115)
+   Exemples : Pop douce (Sheeran), Disco classics mid-tempo (EWF), R&B old (Marvin Gaye), COCOVARIET (Souchon, Goldman dansants).
+   À éviter : House peak, Electro hard
+
+🚀 TAKEOFF (la montée, energy 6.5-7.5, BPM 100-125)
+   Exemples : Disco (Donna Summer), Funk (Kool & The Gang), COCOVARIET dansants, Hip-Hop modéré (Drake).
+
+💃 GROOVE (vraiment lancé, energy 7.5-8.5, BPM 115-130)
+   Exemples : House mainstream (Calvin Harris), Disco upbeat (Sister Sledge), Pop dance (Bruno Mars), Latin (Shakira).
+
+🔥 PARTY (peak time, energy 8.5-10, BPM 120-135)
+   Exemples : House peak (Avicii, Guetta), Electro (Justice), hymnes (Sapés Comme Jamais, Single Ladies, Dancing Queen), bangers Hip-Hop.
+
+🌙 CLOSING (descente émotionnelle, energy 4.5-6.0, BPM 90-115)
+   Exemples : Disco classics fin, Soul slow (Bill Withers), COCOVARIET émotionnels (Goldman "Là-bas", Sardou "Le France").
+
+DISTINCTIONS GENRES BDD
+- Chill : ambient, lo-fi, acoustic doux (Norah Jones)
+- Soul : classics 60s-70s (Marvin Gaye, Aretha)
+- Pop : mainstream international (Lady Gaga, Sheeran)
+- COCOVARIET : chanson FR populaire (Goldman, Maître Gims, Aya, Stromae, Sardou, Cabrel, Indila, Calogero)
+- Rock : classic + indie + pop-rock (Foo Fighters, Oasis)
+- Hip-Hop : Rap US + FR + Trap (Drake, Kendrick, PNL, Booba)
+- R&B : moderne dansant (Beyoncé) ou groove 90s/2000s (TLC)
+- Latin : pop latin, salsa, bachata (Shakira, Bad Bunny)
+- Afro : Afrobeat (Burna Boy), Afro House
+- Disco : Disco 70s pur (Donna Summer, Bee Gees, EWF)
+- Funk : Funk classic + Nu-Funk (Kool & Gang, Bruno Mars)
+- House : Deep, Vocal, Tech, Funky House (Avicii, Guetta)
+- Electro : EDM, Big Room, Synthwave (Daft Punk, Justice)
+
+FORMAT JSON STRICT
+{
+  "id": "<string> (l'ID retourné peut être un entier deezerID ou un string MongoDB ObjectId. Conserve-le tel quel en sortie)",
+  "genreBDD": "<un parmi : Chill / Soul / Pop / COCOVARIET / Rock / Hip-Hop / R&B / Latin / Afro / Disco / Funk / House / Electro>",
+  "uiCategoryPrimary": "<un parmi : Chill / Pop / Rock / Rap / Latin / Old school / Urban Groove / Dance / Électro>",
+  "uiCategoriesSecondary": [<0 à 2 catégories UI additionnelles, ne contenant JAMAIS uiCategoryPrimary>],
+  "phase": "<arrival / ambiance / takeoff / groove / party / closing>",
+  "phaseAlternate": "<phase adjacente ou null>",
+  "energy": <entier 1-10>,
+  "bpm": <entier 60-220, devine si manquant>,
+  "danceability": <float 0.0-1.0>,
+  "isBanger": <true si hymne qui fait monter la salle, false>,
+  "isSingalong": <true si refrain repris en chœur, false>,
+  "isEmotional": <true si émouvant/larme à l'œil, false>,
+  "isCaliente": <true si chaleur latine/salsa/reggaeton hot, false>,
+  "isHardcore": <true si titre très agressif/extrême/hardcore, false>,
+  "era": "<50s / 60s / 70s / 80s / 90s / 2000s / 2010s / 2020s>",
+  "mood": "<fun / emotional / aggressive / chill>",
+  "language": "<FR / EN / ES / PT / autre>",
+  "hasLyrics": <true/false>,
+  "explicit": <true/false>,
+  "notes": "<note DJ courte ou ''>",
+  "justification": "<1 ligne expliquant tes choix>"
+}
+
+RÈGLES DE COHÉRENCE STRICTES (auto-vérifier avant réponse)
+1. uiCategoriesSecondary NE CONTIENT JAMAIS uiCategoryPrimary
+2. phaseAlternate adjacente : arrival↔ambiance, ambiance↔takeoff, takeoff↔groove, groove↔party, party↔closing
+3. Track BPM 80 ne peut PAS être en party (party = 120-135 min)
+4. Track energy <= 4 ne peut PAS être en groove/party
+5. isBanger=true → phase IMPÉRATIVEMENT groove ou party
+6. COCOVARIET tendre (Goldman ballade) → JAMAIS party
+7. Hip-Hop hardcore moderne (Booba, NLE Choppa) → JAMAIS arrival
+8. era cohérent avec artiste (Daft Punk = 90s-2010s pas 70s)
+
+CALIBRATION — 5 EXEMPLES VARIÉS
+
+EXEMPLE 1 - Banger FR dansant
+Track : Sapés Comme Jamais — Maître Gims
+{
+  "genreBDD": "COCOVARIET", "uiCategoryPrimary": "Dance",
+  "uiCategoriesSecondary": ["Rap", "Pop"], "phase": "party",
+  "phaseAlternate": "groove", "energy": 9, "bpm": 115,
+  "danceability": 0.92, "isBanger": true, "isSingalong": true,
+  "isEmotional": false, "isCaliente": false, "isHardcore": false, "era": "2010s",
+  "mood": "fun", "language": "FR", "hasLyrics": true,
+  "explicit": false, "notes": "Banger universel public FR",
+  "justification": "Hit FR moderne, fait chanter et danser"
+}
+
+EXEMPLE 2 - Ballade COCOVARIET tendre
+Track : Encore un matin — Goldman
+{
+  "genreBDD": "COCOVARIET", "uiCategoryPrimary": "Pop",
+  "uiCategoriesSecondary": [], "phase": "arrival",
+  "phaseAlternate": "closing", "energy": 4, "bpm": 88,
+  "danceability": 0.32, "isBanger": false, "isSingalong": true,
+  "isEmotional": true, "isCaliente": false, "isHardcore": false, "era": "90s",
+  "mood": "emotional", "language": "FR", "hasLyrics": true,
+  "explicit": false, "notes": "Apéro ou closing émotionnel",
+  "justification": "Ballade FR universelle"
+}
+
+EXEMPLE 3 - R&B 2000s multi-tag
+Track : Single Ladies — Beyoncé
+{
+  "genreBDD": "R&B", "uiCategoryPrimary": "Old school",
+  "uiCategoriesSecondary": ["Dance", "Urban Groove"],
+  "phase": "party", "phaseAlternate": "groove", "energy": 9,
+  "bpm": 97, "danceability": 0.85, "isBanger": true,
+  "isSingalong": true, "isEmotional": false, "isCaliente": false, "isHardcore": false,
+  "era": "2000s", "mood": "fun", "language": "EN",
+  "hasLyrics": true, "explicit": false,
+  "notes": "Hit transversal", 
+  "justification": "Banger 2000s classique multi-vibe"
+}
+
+EXEMPLE 4 - House banger moderne
+Track : Levels — Avicii
+{
+  "genreBDD": "House", "uiCategoryPrimary": "Dance",
+  "uiCategoriesSecondary": ["Électro"], "phase": "party",
+  "phaseAlternate": "groove", "energy": 9, "bpm": 126,
+  "danceability": 0.95, "isBanger": true, "isSingalong": false,
+  "isEmotional": false, "isCaliente": false, "era": "2010s",
+  "mood": "fun", "language": "EN", "hasLyrics": true,
+  "explicit": false, "notes": "Hymne dancefloor 2010s",
+  "justification": "Banger House mainstream"
+}
+
+EXEMPLE 5 - Soul/Pop lounge pour arrival
+Track : Smooth Operator — Sade
+{
+  "genreBDD": "Soul", "uiCategoryPrimary": "Chill",
+  "uiCategoriesSecondary": [], "phase": "arrival",
+  "phaseAlternate": "ambiance", "energy": 4, "bpm": 86,
+  "danceability": 0.55, "isBanger": false, "isSingalong": false,
+  "isEmotional": false, "isCaliente": false, "isHardcore": false, "era": "80s",
+  "mood": "chill", "language": "EN", "hasLyrics": true,
+  "explicit": false, "notes": "Apéro classy",
+  "justification": "Soul/Pop 80s lounge"
+}
+
+AVANT DE RÉPONDRE - AUTO-CHECK OBLIGATOIRE
+Pour chaque track classifiée, vérifie SILENCIEUSEMENT :
+1. phase cohérente avec energy et BPM
+2. phaseAlternate adjacente à phase
+3. uiCategoriesSecondary n'inclut PAS uiCategoryPrimary
+4. Si isBanger=true, phase ∈ [groove, party]
+5. era cohérent avec l'artiste
+Si tu trouves une incohérence, AJUSTE avant de finaliser.
+
+INSTRUCTIONS FINALES
+- Si tu hésites, propose ton meilleur guess
+- Si tu ne connais pas la track : devine à partir du titre/artiste/BPM/genre historique
+- Réponds STRICTEMENT en JSON Array, sans markdown, sans préambule
+
+LISTE DES ${targets.length} TRACKS À TRAITER
+`;
+    targets.forEach((t, i) => {
+      let artistName = typeof t.artist === 'object' ? t.artist.name : t.artist;
+      const did = (t.providers?.deezer?.trackId && t.providers?.deezer?.trackId > 0) ? t.providers?.deezer?.trackId : t._id.toString();
+      prompt += `${i+1}. ID ${did} | "${t.title}" — ${artistName} | BPM:${t.bpm || '?'} | genreBDD historique: ${t.genreBDD || t.genre || '?'} | phase historique: ${t.phase || t._legacyPhase || '?'} | rank: ${t.deezerRank || '?'}\n`;
+    });
+    
+    prompt += `\nRÉPONSE ATTENDUE :\nArray JSON de ${targets.length} objets, dans l'ordre des tracks.`;
+
+    res.json({ prompt, count: targets.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/monitor/live-stats
+app.get('/api/monitor/live-stats', adminAuth, async (req, res) => {
+  try {
+    const total = await Track.countDocuments({});
+    
+    const byQuality = {
+      complete: await Track.countDocuments({ qualityLevel: 'complete' }),
+      platine: await Track.countDocuments({ qualityLevel: 'platine' }),
+      partielle: await Track.countDocuments({ qualityLevel: 'partielle' }),
+      vide: await Track.countDocuments({ qualityLevel: 'vide' })
+    };
+    
+    const startOfDay = new Date();
+    startOfDay.setHours(0,0,0,0);
+    
+    const todayComplete = await Track.countDocuments({ lastReviewedAt: { $gte: startOfDay }, qualityLevel: 'complete' });
+    const todayPlatine = await Track.countDocuments({ lastReviewedAt: { $gte: startOfDay }, qualityLevel: 'platine' });
+    const sessionClassified = await Track.countDocuments({ lastReviewedAt: { $gte: startOfDay } });
+    
+    let speedPerMin = 0;
+    const firstReviewedToday = await Track.findOne({ lastReviewedAt: { $gte: startOfDay } }).sort({ lastReviewedAt: 1 }).lean();
+    if (firstReviewedToday && sessionClassified > 0) {
+      const minSinceStart = Math.max(1, Math.round((new Date() - firstReviewedToday.lastReviewedAt) / 60000));
+      speedPerMin = Math.round(sessionClassified / minSinceStart);
+    }
+    
+    if (speedPerMin === 0 && (todayComplete + todayPlatine) > 0) speedPerMin = 2;
+    
+    const remaining = (byQuality.vide || 0) + (byQuality.partielle || 0);
+    const etaMinutes = speedPerMin > 0 ? Math.round(remaining / speedPerMin) : 0;
+    
+    const chatgptQueue = await Track.countDocuments({ chatgptQueueId: { $ne: null } });
+    
+    res.json({
+      total,
+      byQuality,
+      today: { complete: todayComplete, platine: todayPlatine },
+      speedPerMin,
+      etaMinutes,
+      chatgptQueue
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // GET /api/monitor/export — télécharge curated_base_v3.json depuis le serveur
@@ -862,48 +1127,116 @@ app.get('/api/deezer/chart', async (req, res) => {
 
 app.get('/api/party/:code/explore', async (req, res) => {
   const code = req.params.code;
-  const limit = parseInt(req.query.limit) || 10;
+  const limit = parseInt(req.query.limit) || 12;
   
   try {
-    const state = parties.get(code);
-    let targetGenre = "House"; // Default
-    if (state && state.currentTrack && state.currentTrack.genre) {
-        targetGenre = state.currentTrack.genre;
-    } else if (state && state.trackHistory && state.trackHistory.length > 0) {
-        targetGenre = state.trackHistory[state.trackHistory.length - 1].genre || "House";
-    }
-
-    if (!fs.existsSync(CURATED_DB_PATH)) {
-        return res.status(404).json({ error: 'DB not found' });
+    const partyState = parties.get(code);
+    
+    // Get played track IDs to exclude
+    const playedIds = new Set();
+    if (partyState) {
+      if (partyState.currentTrack?.deezerID) playedIds.add(partyState.currentTrack.deezerID);
+      (partyState.trackHistory || []).forEach(t => { if (t.deezerID) playedIds.add(t.deezerID); });
     }
     
-    const db = JSON.parse(fs.readFileSync(CURATED_DB_PATH, 'utf-8'));
-    const pool = db.tracks.filter(t => t.genre === targetGenre);
-    
-    // Fisher-Yates Shuffle
-    for (let i = pool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
+    // Try MongoDB first (richer data with covers)
+    let allTracks = [];
+    if (typeof Track !== 'undefined' && Track.find) {
+      try {
+        const mongoTracks = await Track.find({
+          'providers.deezer.trackId': { $gt: 0 },
+          qualityLevel: { $in: ['complete', 'platine'] },
+          isBlocked: { $ne: true }
+        }).select('title artist providers coverArtURL duration bpm genre uiCategoryPrimary energy').lean();
+        
+        allTracks = mongoTracks.map(t => ({
+          id: t.providers?.deezer?.trackId,
+          title: t.title,
+          artist: { name: typeof t.artist === 'object' ? t.artist.name : t.artist },
+          album: { cover_medium: t.coverArtURL || null },
+          duration: t.duration || 0,
+          bpm: Math.round(t.bpm || 0),
+          genre: t.genre,
+          uiCategoryPrimary: t.uiCategoryPrimary,
+          energy: t.energy || 5
+        }));
+      } catch (e) {
+        console.log('[Explore] MongoDB fallback to JSON:', e.message);
+      }
     }
     
-    const selected = pool.slice(0, limit);
-    
-    // Map to Deezer-like format expected by GuestViews.swift
-    const data = selected.map(t => ({
-        id: t.deezerID,
+    // Fallback to curated_base JSON
+    if (allTracks.length === 0 && fs.existsSync(CURATED_DB_PATH)) {
+      const db = JSON.parse(fs.readFileSync(CURATED_DB_PATH, 'utf-8'));
+      allTracks = (db.tracks || []).map(t => ({
+        id: t.providers?.deezer?.trackId,
         title: t.title,
         artist: { name: t.artist },
-        album: { cover_medium: null }, // UI will use fallback
+        album: { cover_medium: t.coverArtURL || null },
         duration: t.duration || 0,
-        bpm: Math.round(t.bpm || 0)
-    }));
+        bpm: Math.round(t.bpm || 0),
+        genre: t.genre,
+        uiCategoryPrimary: t.uiCategoryPrimary,
+        energy: t.energy || 5
+      }));
+    }
     
-    res.json({ data });
+    // Exclude played tracks and tracks without deezerID
+    allTracks = allTracks.filter(t => t.id && !playedIds.has(t.id));
+    
+    if (allTracks.length === 0) {
+      return res.json({ data: [] });
+    }
+    
+    // Pick diverse selection: ~40% from current genre context, ~60% random from all
+    let currentGenre = null;
+    if (partyState?.currentTrack?.genre) {
+      currentGenre = partyState.currentTrack.genre;
+    } else if (partyState?.trackHistory?.length > 0) {
+      currentGenre = partyState.trackHistory[partyState.trackHistory.length - 1].genre;
+    }
+    
+    const contextTracks = currentGenre ? allTracks.filter(t => t.genre === currentGenre) : [];
+    const otherTracks = currentGenre ? allTracks.filter(t => t.genre !== currentGenre) : allTracks;
+    
+    // Fisher-Yates shuffle both pools
+    const shuffle = arr => {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+    
+    shuffle(contextTracks);
+    shuffle(otherTracks);
+    
+    // Mix: take some from context, rest from others
+    const contextCount = Math.min(Math.ceil(limit * 0.4), contextTracks.length);
+    const otherCount = Math.min(limit - contextCount, otherTracks.length);
+    
+    let selected = [
+      ...contextTracks.slice(0, contextCount),
+      ...otherTracks.slice(0, otherCount)
+    ];
+    
+    // If we still need more, add from whichever pool has leftovers
+    if (selected.length < limit) {
+      const remaining = [...contextTracks.slice(contextCount), ...otherTracks.slice(otherCount)];
+      shuffle(remaining);
+      selected = [...selected, ...remaining.slice(0, limit - selected.length)];
+    }
+    
+    // Final shuffle so context tracks aren't always first
+    shuffle(selected);
+    
+    res.json({ data: selected });
   } catch (err) {
     console.error('[Explore] Error:', err.message);
     res.status(500).json({ error: 'Explore failed' });
   }
 });
+
 
 app.get('/api/state', (req, res) => {
   const code = req.query.code;
@@ -1525,6 +1858,13 @@ io.on('connection', (socket) => {
     console.log(`🎛️ [${party.code}] Mode: ${data.mode}`);
   });
 
+  // Phase update from host — fired when DJ changes phase in CockpitView
+  socket.on('host:phaseUpdate', (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    party.currentPhase = data.phase || 'groove';
+    console.log(`[${party.code}] Phase -> ${party.currentPhase}`);
+  });
+
   socket.on('host:genreVote', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     const genre = data.genre;
@@ -1789,32 +2129,118 @@ io.on('connection', (socket) => {
     io.to(`host:${party.code}`).emit('votes:update', { genreVotes: totals });
   });
 
-  socket.on('guest:suggest', (data) => {
+  // Phase adjacency — a track is OK if its phase OR phaseAlternate is in this list
+  const PHASE_ADJACENCY = {
+    arrival:  ['arrival', 'ambiance'],
+    ambiance: ['ambiance', 'arrival', 'groove'],
+    groove:   ['groove', 'ambiance', 'takeoff', 'party'],
+    takeoff:  ['takeoff', 'groove', 'party'],
+    party:    ['party', 'groove', 'takeoff'],
+    closing:  ['closing', 'ambiance', 'arrival']
+  };
+
+  socket.on('guest:suggest', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
+
+    const title    = data.title  || data.query || '';
+    const artist   = data.artist || '';
+    const deezerID = data.deezerID || 0;
+
+    // 1. Deja joue ce soir ?
+    const alreadyPlayed = (party.playedKeys || []).some(k =>
+      k === String(deezerID)
+    ) || party.trackHistory.some(t =>
+      (t.title || '').toLowerCase() === title.toLowerCase()
+    );
+    if (alreadyPlayed) {
+      socket.emit('suggestion:status', {
+        title, artist, status: 'pending',
+        message: 'Ce titre a deja ete joue ce soir !'
+      });
+      if (data.guestId || data.guestName)
+        addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 2, `suggest (deja joue): ${title}`);
+      return;
+    }
+
+    // 2. Deja en queue ?
+    const alreadyQueued = party.suggestions.some(s =>
+      (s.title || '').toLowerCase() === title.toLowerCase() &&
+      ['pending', 'queued', 'next'].includes(s.status)
+    );
+    if (alreadyQueued) {
+      socket.emit('suggestion:status', {
+        title, artist, status: 'pending',
+        message: "Quelqu'un l'a deja demande — ca monte dans la liste !"
+      });
+      if (data.guestId || data.guestName)
+        addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 2, `suggest (doublon): ${title}`);
+      return;
+    }
+
+    // 3. Enregistrer la suggestion
     const suggestion = {
       ...data,
-      status: 'pending',       // pending → queued → next → played / dismissed
+      status: 'pending',
       sentAt: new Date().toISOString(),
-      queuedAt: null,
-      playingAt: null,
-      playedAt: null,
-      dismissedAt: null,
-      socketId: socket.id       // Track originator for status feedback
+      queuedAt: null, playingAt: null, playedAt: null, dismissedAt: null,
+      socketId: socket.id
     };
     party.suggestions.push(suggestion);
     const hostRoom = `host:${party.code}`;
-    const hostSockets = io.sockets.adapter.rooms.get(hostRoom);
-    const hostCount = hostSockets ? hostSockets.size : 0;
     io.to(hostRoom).emit('guest:suggested', suggestion);
-    // Confirm receipt to the guest
-    socket.emit('suggestion:status', {
-      title: data.title || data.query,
-      artist: data.artist || '',
-      status: 'pending',
-      message: '💡 Suggestion envoyée !'
-    });
-    console.log(`🎵 [${party.code}] SUGGEST: "${data.title || '?'}" by ${data.guestName || '?'} → host room has ${hostCount} socket(s)`);
-    if (data.guestId || data.guestName) addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${data.title || data.query}`);
+    if (data.guestId || data.guestName)
+      addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${title}`);
+
+    // 4. Verifier la coherence de phase via MongoDB (async, non-bloquant)
+    const currentPhase = party.currentPhase || 'groove';
+    const compatible   = PHASE_ADJACENCY[currentPhase] || [currentPhase];
+
+    if (deezerID) {
+      try {
+        const track = await Track.findOne(
+          { 'providers.deezer.trackId': deezerID, adminQualified: true },
+          { phase: 1, phaseAlternate: 1 }
+        ).lean();
+
+        if (track) {
+          const trackPhase = track.phase || '';
+          const trackAlt   = track.phaseAlternate || '';
+          const isOK = !trackPhase ||
+            compatible.includes(trackPhase) ||
+            compatible.includes(trackAlt);
+
+          if (!isOK) {
+            socket.emit('suggestion:status', {
+              title, artist, status: 'pending',
+              message: 'Pas le bon moment — on la garde pour plus tard !'
+            });
+            console.log(`[${party.code}] SUGGEST PHASE MISMATCH: "${title}" (track:${trackPhase} vs party:${currentPhase})`);
+            return;
+          }
+        }
+
+        // Track OK ou pas en DB => feedback selon taille queue
+        const pendingCount = party.suggestions.filter(s => s.status === 'pending').length;
+        const msg = pendingCount <= 3
+          ? 'Ta chanson passe tres bientot !'
+          : 'Bonne suggestion, sois patient(e) !';
+        socket.emit('suggestion:status', { title, artist, status: 'pending', message: msg });
+
+      } catch (_) {
+        socket.emit('suggestion:status', {
+          title, artist, status: 'pending',
+          message: 'Suggestion recue ! Le DJ va evaluer'
+        });
+      }
+    } else {
+      socket.emit('suggestion:status', {
+        title, artist, status: 'pending',
+        message: 'Suggestion recue ! Le DJ va evaluer'
+      });
+    }
+
+    const hostSockets = io.sockets.adapter.rooms.get(hostRoom);
+    console.log(`[${party.code}] SUGGEST: "${title}" by ${data.guestName || '?'} -> host has ${hostSockets ? hostSockets.size : 0} socket(s)`);
   });
 
   // Track played event — anti-replay + performance tracking + suggestion boost

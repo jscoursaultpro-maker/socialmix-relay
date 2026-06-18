@@ -1251,21 +1251,40 @@ function searchDeezerSuggestions() {
 
 function loadTrendingSuggestions() {
   const container = $('suggest-results');
-  container.innerHTML = '<div style="text-align:center;padding:10px;font-size:11px;color:rgba(255,255,255,0.4);">🌟 Chargement des tendances...</div>';
+  container.innerHTML = '<div style="text-align:center;padding:10px;font-size:11px;color:rgba(255,255,255,0.4);">🌟 Chargement des suggestions...</div>';
   const hint = $('suggest-hint');
   if (hint) hint.style.display = 'none';
   
-  fetch('/api/deezer/chart?limit=8')
+  // Use party explore endpoint (random picks from curated DB) instead of static Deezer chart
+  const code = state.partyCode || '';
+  fetch(`/api/party/${encodeURIComponent(code)}/explore?limit=12`)
     .then(r => r.json())
     .then(json => {
-      const tracks = (json.data || []);
+      const tracks = (json.data || []).filter(t => t.id); // filter out tracks without deezerID
+      if (tracks.length === 0) {
+        // Fallback to Deezer chart if explore returns nothing
+        fetch('/api/deezer/chart?limit=8')
+          .then(r => r.json())
+          .then(j => renderSuggestResults(j.data || []))
+          .catch(() => {
+            container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:#ff6b6b;">❌ Impossible de charger</div>';
+          });
+        return;
+      }
       renderSuggestResults(tracks);
     })
     .catch(err => {
-      console.error('[Suggest] Trending error:', err);
-      container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:#ff6b6b;">❌ Impossible de charger</div>';
+      console.error('[Suggest] Explore error:', err);
+      // Fallback to Deezer chart
+      fetch('/api/deezer/chart?limit=8')
+        .then(r => r.json())
+        .then(j => renderSuggestResults(j.data || []))
+        .catch(() => {
+          container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:#ff6b6b;">❌ Impossible de charger</div>';
+        });
     });
 }
+
 
 function renderSuggestResults(tracks) {
   const container = $('suggest-results');
