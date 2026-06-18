@@ -1293,32 +1293,71 @@ function renderSuggestResults(tracks) {
     container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:rgba(255,255,255,0.3);">Aucun résultat</div>';
     return;
   }
+
+  // Genre color map for badges
+  const genreColors = {
+    'Pop': '#ff6bca', 'Dance': '#00d2ff', 'Rock': '#ff4444', 'Rap': '#ffa726',
+    'Latin': '#ff5252', 'Old school': '#ce93d8', 'Urban Groove': '#ab47bc',
+    'Électro': '#00e5ff', 'Chill': '#69f0ae', 'Hip-Hop': '#ffa726',
+    'House': '#00bcd4', 'Electro': '#00e5ff', 'Disco': '#e040fb',
+    'R&B': '#ab47bc', 'COCOVARIET': '#ff7043', 'Afro': '#66bb6a',
+    'Rock': '#ef5350', 'Jazz': '#78909c'
+  };
+
+  // Get current trending genre
+  const trendingGenre = $('trending-genre')?.textContent || '';
   
   container.innerHTML = tracks.map(t => {
+    // Cover art: prefer Deezer CDN, then coverArtURL from DB
     const cover = t.album?.cover_medium || t.album?.cover_small || '';
     const artist = t.artist?.name || 'Unknown';
     const dur = t.duration ? `${Math.floor(t.duration/60)}:${String(t.duration%60).padStart(2,'0')}` : '';
     const id = t.id;
     const title = t.title || '';
     
+    // Genre / UI category badge
+    const genre = t.uiCategoryPrimary || t.genre || '';
+    const genreColor = genreColors[genre] || 'rgba(0,210,255,0.6)';
+    
+    // Energy score (1-10) → fire display
+    const energy = t.energy || 0;
+    const energyDisplay = energy > 0 ? (energy >= 8 ? '🔥' : energy >= 6 ? '⚡' : '✨') : '';
+    
+    // BPM
+    const bpm = t.bpm || 0;
+    
+    // Is this track trending (matches current party genre)?
+    const isTrending = genre && (genre === trendingGenre || t.genre === trendingGenre);
+    
     return `
       <div class="suggest-result-item" data-id="${id}" style="
-        display:flex;align-items:center;gap:10px;padding:8px;
-        background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:4px;
-        cursor:pointer;transition:background 0.2s;
-      " onmouseover="this.style.background='rgba(0,210,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-        ${cover ? `<img src="${cover}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">` 
-               : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🎵</div>`}
+        display:flex;align-items:center;gap:10px;padding:8px 10px;
+        background:${isTrending ? 'rgba(0,210,255,0.06)' : 'rgba(255,255,255,0.03)'};
+        border:1px solid ${isTrending ? 'rgba(0,210,255,0.15)' : 'transparent'};
+        border-radius:12px;margin-bottom:5px;
+        cursor:pointer;transition:all 0.2s;
+      " onmouseover="this.style.background='rgba(0,210,255,0.1)';this.style.borderColor='rgba(0,210,255,0.2)'"
+         onmouseout="this.style.background='${isTrending ? 'rgba(0,210,255,0.06)' : 'rgba(255,255,255,0.03)'}';this.style.borderColor='${isTrending ? 'rgba(0,210,255,0.15)' : 'transparent'}'">
+        ${cover 
+          ? `<img src="${cover}" style="width:50px;height:50px;border-radius:10px;object-fit:cover;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.3);" onerror="this.outerHTML='<div style=\\'width:50px;height:50px;border-radius:10px;background:linear-gradient(135deg,rgba(0,210,255,0.15),rgba(138,43,226,0.1));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;\\'>🎵</div>'">`
+          : `<div style="width:50px;height:50px;border-radius:10px;background:linear-gradient(135deg,rgba(0,210,255,0.15),rgba(138,43,226,0.1));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🎵</div>`}
         <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:700;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(title)}</div>
-          <div style="display:flex;align-items:center;gap:4px;">
-            <span style="font-size:10px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(artist)}</span>
-            ${dur ? `<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.25);">· ${dur}</span>` : ''}
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="font-size:13px;font-weight:700;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escapeHtml(title)}</span>
+            ${isTrending ? '<span style="font-size:8px;background:rgba(0,210,255,0.2);color:#00d2ff;padding:1px 5px;border-radius:6px;font-weight:800;flex-shrink:0;">TREND</span>' : ''}
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.45);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;">${escapeHtml(artist)}</div>
+          <div style="display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap;">
+            ${genre ? `<span style="font-size:8px;font-weight:800;color:${genreColor};background:${genreColor}15;padding:1px 6px;border-radius:6px;letter-spacing:0.3px;">${escapeHtml(genre)}</span>` : ''}
+            ${bpm > 0 ? `<span style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.3);">${bpm} BPM</span>` : ''}
+            ${dur ? `<span style="font-size:8px;color:rgba(255,255,255,0.2);">· ${dur}</span>` : ''}
+            ${energyDisplay ? `<span style="font-size:9px;" title="Énergie ${energy}/10">${energyDisplay}${energy}</span>` : ''}
           </div>
         </div>
         <button onclick="event.stopPropagation();sendSuggestion(${id}, '${escapeAttr(title)}', '${escapeAttr(artist)}', '${escapeAttr(cover)}', ${t.duration || 0})" style="
-          display:flex;align-items:center;gap:3px;padding:6px 12px;
-          background:rgba(0,210,255,0.12);border:1px solid rgba(0,210,255,0.25);
+          display:flex;align-items:center;gap:3px;padding:7px 12px;
+          background:linear-gradient(135deg,rgba(0,210,255,0.15),rgba(138,43,226,0.1));
+          border:1px solid rgba(0,210,255,0.25);
           border-radius:20px;cursor:pointer;font-size:8px;font-weight:800;
           color:#00d2ff;letter-spacing:0.3px;flex-shrink:0;transition:all 0.2s;
         " id="suggest-send-${id}">
