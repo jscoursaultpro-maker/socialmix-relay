@@ -23,6 +23,10 @@ const PartySchema = new mongoose.Schema({
   guestGenreVotes:  { type: mongoose.Schema.Types.Mixed, default: {} },
   sessionTokens:    { type: mongoose.Schema.Types.Mixed, default: {} },
   playedKeys:       { type: [String], default: [] },   // ★ Phase 3: ISRC + fallbackHash of played tracks (anti-replay)
+  scheduledFor:     { type: Date, default: null },     // ★ MVP Pre-Party
+  welcomeText:      { type: String, default: '' },     // ★ MVP Pre-Party
+  coverPhoto:       { type: String, default: null },   // ★ MVP Pre-Party (Base64)
+  isPreParty:       { type: Boolean, default: false }, // ★ MVP Pre-Party
   createdAt:        { type: Date, default: Date.now },
   endedAt:          { type: Date, default: null }
 }, {

@@ -40,6 +40,10 @@ export function createPartyState(code) {
     hostSecret: '',            // Token for host reconnection
     partyType: 'hosted',       // 'hosted' | 'guested' | 'clubbed'
     endedAt: null,
+    scheduledFor: null,        // ★ MVP Pre-Party
+    welcomeText: '',           // ★ MVP Pre-Party
+    coverPhoto: null,          // ★ MVP Pre-Party
+    isPreParty: false,         // ★ MVP Pre-Party
     isDirty: true,             // Needs flush to MongoDB
     lastFlushed: 0             // Timestamp of last DB write
   };
