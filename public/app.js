@@ -312,7 +312,7 @@ async function setupLanding() {
           }, 15000); // Check every 15s
           
           showScreen('pre-party');
-          return;
+          return true;
         }
       }
     } catch (e) {
@@ -351,6 +351,8 @@ async function setupLanding() {
       showScreen('consent');
     }
   });
+  
+  return false;
 }
 
 // ═══════════════════════════════════════════
@@ -2923,7 +2925,7 @@ function downloadSelectedEndPhotos() {
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
-function init() {
+async function init() {
   const hasProfile = loadProfile();
   const hasSession = loadSession();
   const params = getURLParams();
@@ -2934,39 +2936,10 @@ function init() {
   if (params.code) state.partyCode = params.code.toUpperCase();
   
   // Setup all screens
-  setupLanding();
+  const isPreParty = await setupLanding();
+  if (isPreParty) return; // Halt normal sequence, pre-party screen handles it
+  
   setupConsent();
-  loadSession();
-});
-
-function startCountdown(dateString) {
-  const target = new Date(dateString).getTime();
-  const el = document.getElementById('pre-party-countdown');
-  
-  if (!el || isNaN(target)) return;
-  
-  function update() {
-    const now = Date.now();
-    const diff = target - now;
-    
-    if (diff <= 0) {
-      el.textContent = "00:00:00";
-      return;
-    }
-    
-    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const s = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    el.textContent = 
-      String(h).padStart(2, '0') + ':' + 
-      String(m).padStart(2, '0') + ':' + 
-      String(s).padStart(2, '0');
-  }
-  
-  update();
-  setInterval(update, 1000);
-}
   setupProfile();
   setupCodeScreen();
   setupSocialHub();
@@ -2999,6 +2972,36 @@ function startCountdown(dateString) {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+function startCountdown(dateString) {
+  const target = new Date(dateString).getTime();
+  const el = document.getElementById('pre-party-countdown');
+  
+  if (!el || isNaN(target)) return;
+  
+  function update() {
+    const now = Date.now();
+    const diff = target - now;
+    
+    if (diff <= 0) {
+      el.textContent = "00:00:00";
+      return;
+    }
+    
+    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const s = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    el.textContent = 
+      String(h).padStart(2, '0') + ':' + 
+      String(m).padStart(2, '0') + ':' + 
+      String(s).padStart(2, '0');
+  }
+  
+  update();
+  setInterval(update, 1000);
+}
+
 
 // ═══════════════════════════════════════════
 // END OF PARTY HELPERS
