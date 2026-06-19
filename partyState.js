@@ -20,6 +20,7 @@ export function createPartyState(code) {
     disconnectTimers: {},      // {participantName: timeoutId} — 4h cleanup
     guestVotes: {},            // {guestId: {trackId: voteType}}
     suggestions: [],           // [{query, guestName, sentAt}]
+    currentPhase: 'groove',    // Phase en cours: arrival|ambiance|groove|takeoff|party|closing
     hostProfile: null,         // {name, emoji}
     photos: [],                // [{dataURL, guestName, sentAt}]
     photoHashes: new Set(),

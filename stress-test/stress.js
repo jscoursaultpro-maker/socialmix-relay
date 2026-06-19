@@ -35,7 +35,7 @@ const DURATION_SEC     = parseInt(process.env.DURATION_SEC     || '60');
 const RAMP_SEC         = parseInt(process.env.RAMP_SEC         || '30');
 
 // ─── Realistic test data (user catalog + generic) ────────────────────
-const GENRES   = ['House', 'Electro', 'Pop', 'Hip-Hop', 'Disco', 'R&B', 'Latin', 'Afro'];
+const GENRES   = ['Chill', 'Pop', 'Rock', 'Rap', 'Latin', 'Old school', 'Urban Groove', 'Dance', 'Électro'];
 // TITLES/ARTISTS now served from user-catalog.js — fallbacks for non-suggestion uses
 const TITLES   = USER_CATALOG.map(t => t.title);
 const ARTISTS  = USER_CATALOG.map(t => t.artist);

@@ -59,7 +59,10 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'socialmix-admin-2026';
 const ADMIN_TOKENS   = new Set(); // In-memory tokens (restart invalidates — acceptable)
 
 function adminAuth(req, res, next) {
-  const token = req.headers['x-admin-token'] || req.query.token;
+  let token = req.headers['x-admin-token'] || req.query.token;
+  if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
   if (!token || !ADMIN_TOKENS.has(token))
     return res.status(401).json({ error: 'Unauthorized — invalid or missing admin token' });
   next();
@@ -185,6 +188,8 @@ app.use(express.static(join(__dirname, 'public')));
 // Servi depuis /relay-server/admin/ — auth gérée par le SPA via token
 app.use('/admin', express.static(join(__dirname, 'admin')));
 app.get('/admin/classify-prelive', (req, res) => res.sendFile(join(__dirname, 'admin', 'classify.html')));
+app.get('/admin/setup', (req, res) => res.sendFile(join(__dirname, 'admin', 'setup.html')));
+app.get('/admin/hub', (req, res) => res.sendFile(join(__dirname, 'admin', 'hub.html')));
 app.get('/admin', (req, res) => res.sendFile(join(__dirname, 'admin', 'index.html')));
 app.get('/admin/*', (req, res) => res.sendFile(join(__dirname, 'admin', 'index.html')));
 
@@ -315,7 +320,7 @@ app.patch('/api/admin/tracks/:id', adminAuth, async (req, res) => {
 // GET /api/admin/stats — dashboard stats
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   try {
-    const [total, qualified, noEnergy, noBpm, byGenre, topFeu, recentParties] = await Promise.all([
+    const [total, qualified, noEnergy, noBpm, byGenre, topFeu, recentParties, novelties] = await Promise.all([
       Track.countDocuments(),
       Track.countDocuments({ adminQualified: true }),
       Track.countDocuments({ energy: 0 }),
@@ -333,9 +338,21 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(5)
         .select('code createdAt endedAt trackHistory participants')
-        .lean()
+        .lean(),
+      Track.find({
+        $or: [
+          { suggestCount: { $gt: 0 } },
+          { source: { $in: ['guest_suggestion', 'host_suggestion', 'exploration'] } },
+          { importedAt: { $exists: true } }
+        ]
+      })
+      .sort({ createdAt: -1 })
+      .limit(15)
+      .select('title artist genre bpm phase energy performance source suggestCount')
+      .lean()
     ]);
-    res.json({ total, qualified, noEnergy, noBpm, byGenre, topFeu, recentParties });
+
+    res.json({ total, qualified, noEnergy, noBpm, byGenre, topFeu, recentParties, novelties });
   } catch (err) {
     console.error('[Admin] ❌ stats error:', err.message);
     res.status(500).json({ error: err.message });
@@ -450,6 +467,164 @@ app.get('/api/admin/itunes/preview', adminAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ─── Setup API (Curation Complete/Platine) ──────────────────────────────
+
+app.get('/api/admin/setup/stats', adminAuth, async (req, res) => {
+  try {
+    const stats = await Track.aggregate([
+      { $match: { qualityLevel: { $in: ['platine', 'complete'] } } },
+      { $group: {
+          _id: "$phase",
+          total: { $sum: 1 },
+          in: { $sum: { $cond: ["$isBanger", 1, 0] } },
+          filler: { $sum: { $cond: ["$isFiller", 1, 0] } },
+          backlog: { $sum: { $cond: [ { $and: [ { $ne: ["$isBanger", true] }, { $ne: ["$isFiller", true] } ] }, 1, 0 ] } }
+      }}
+    ]);
+    res.json({ stats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/setup/tracks', adminAuth, async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+    const skip = (page - 1) * limit;
+    
+    let filter = { qualityLevel: { $in: ['platine', 'complete'] } };
+    
+    if (req.query.phase && req.query.phase !== 'all') {
+      filter.phase = req.query.phase === 'none' ? null : req.query.phase;
+    }
+    if (req.query.prio && req.query.prio !== 'all') {
+      if (req.query.prio === 'in') filter.isBanger = true;
+      if (req.query.prio === 'filler') filter.isFiller = true;
+      if (req.query.prio === 'backlog') {
+        filter.isBanger = { $ne: true };
+        filter.isFiller = { $ne: true };
+      }
+    }
+    
+    if (req.query.search) {
+      filter.$or = [
+        { title: { $regex: req.query.search, $options: 'i' } },
+        { artist: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
+    
+    let sortObj = { phase: 1, energy: -1 };
+    if (req.query.sort === 'bpm_asc') sortObj = { bpm: 1 };
+    if (req.query.sort === 'bpm_desc') sortObj = { bpm: -1 };
+    if (req.query.sort === 'title') sortObj = { title: 1 };
+    if (req.query.sort === 'artist') sortObj = { artist: 1 };
+    
+    const total = await Track.countDocuments(filter);
+    const tracks = await Track.find(filter)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+      
+    res.json({
+      tracks,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/admin/setup/tracks/:id', adminAuth, async (req, res) => {
+  try {
+    const { phase, phaseAlt, isBanger, isFiller, bpm } = req.body;
+    let updateFields = {};
+    if (phase !== undefined && phase !== null) updateFields.phase = phase;
+    else if (phase === null) updateFields.phase = null;
+    
+    if (phaseAlt !== undefined && phaseAlt !== null) updateFields.phaseAlternate = phaseAlt;
+    else if (phaseAlt === null) updateFields.phaseAlternate = null;
+    
+    if (isBanger !== undefined) updateFields.isBanger = isBanger;
+    if (isFiller !== undefined) updateFields.isFiller = isFiller;
+    if (bpm !== undefined && bpm !== null && !isNaN(bpm)) updateFields.bpm = Number(bpm);
+    
+    const track = await Track.findByIdAndUpdate(req.params.id, { $set: updateFields }, { new: true }).lean();
+    if (!track) return res.status(404).json({ error: 'Track not found' });
+    res.json(track);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Deduplication API ────────────────────────────────────────────────────
+
+const QUALITY_ORDER = { platine: 4, complete: 3, partielle: 2, vide: 1 };
+
+app.get('/api/admin/dedup/stats', adminAuth, async (req, res) => {
+  try {
+    const total = await Track.countDocuments();
+    const dupes = await Track.aggregate([
+      { $group: { _id: "$fallbackHash", count: { $sum: 1 } } },
+      { $match: { count: { $gt: 1 }, _id: { $ne: null } } }
+    ]);
+    const dupeGroups = dupes.length;
+    const extraTracks = dupes.reduce((acc, d) => acc + d.count - 1, 0);
+    res.json({ total, dupeGroups, extraTracks });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/admin/dedup/list', adminAuth, async (req, res) => {
+  try {
+    const dupeGroups = await Track.aggregate([
+      { $group: { _id: "$fallbackHash", count: { $sum: 1 }, ids: { $push: "$_id" } } },
+      { $match: { count: { $gt: 1 }, _id: { $ne: null } } }
+    ]);
+    
+    const groups = [];
+    for (const g of dupeGroups) {
+      const tracks = await Track.find({ _id: { $in: g.ids } }).lean();
+      // Sort best quality first
+      tracks.sort((a, b) => (QUALITY_ORDER[b.qualityLevel] || 0) - (QUALITY_ORDER[a.qualityLevel] || 0));
+      groups.push({ tracks });
+    }
+    res.json({ groups });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/dedup/resolve', adminAuth, async (req, res) => {
+  try {
+    const { keepId, deleteIds } = req.body;
+    if (!keepId || !deleteIds || !deleteIds.length) return res.status(400).json({ error: 'Missing keepId or deleteIds' });
+    
+    // Merge relevant fields from dupes into keeper before deleting
+    const keeper = await Track.findById(keepId).lean();
+    const dupes = await Track.find({ _id: { $in: deleteIds } }).lean();
+    
+    // Merge: if keeper is missing phase/priority/bpm, inherit from dupe
+    const mergedFields = {};
+    for (const d of dupes) {
+      if (!keeper.phase && d.phase) mergedFields.phase = d.phase;
+      if (!keeper.isBanger && d.isBanger) mergedFields.isBanger = true;
+      if (!keeper.isFiller && d.isFiller) mergedFields.isFiller = true;
+      if (!keeper.bpm && d.bpm) mergedFields.bpm = d.bpm;
+    }
+    if (Object.keys(mergedFields).length) {
+      await Track.findByIdAndUpdate(keepId, { $set: mergedFields });
+    }
+    
+    await Track.deleteMany({ _id: { $in: deleteIds } });
+    res.json({ success: true, deleted: deleteIds.length, merged: mergedFields });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/admin/dedup', (req, res) => {
+  res.sendFile(join(__dirname, 'admin', 'dedup.html'));
 });
 
 // ─── Classification Pre-Live API ──────────────────────────────────────────
@@ -605,11 +780,47 @@ app.get('/api/monitor/tracks', adminAuth, async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(parseInt(req.query.limit) || 50, 200);
 
+    // ★ Special filter: duplicates — uses aggregation pipeline
+    if (filter === 'duplicates') {
+      const dupeGroups = await Track.aggregate([
+        { $group: { 
+          _id: { $toLower: '$title' }, 
+          count: { $sum: 1 }, 
+          ids: { $push: '$_id' } 
+        }},
+        { $match: { count: { $gt: 1 } } },
+        { $sort: { count: -1 } }
+      ]);
+      
+      // Flatten all duplicate IDs
+      const allDupeIds = dupeGroups.flatMap(g => g.ids);
+      const dupeTracks = await Track.find({ _id: { $in: allDupeIds } })
+        .sort({ title: 1, deezerRank: -1 })
+        .lean();
+      
+      return res.json({
+        tracks: dupeTracks,
+        total: dupeTracks.length,
+        page: 1,
+        limit: dupeTracks.length,
+        pages: 1,
+        _dupeGroups: dupeGroups.length
+      });
+    }
+
     let query = {};
     if (filter === 'ql_vide') { query.qualityLevel = 'vide'; }
     if (filter === 'ql_partielle') { query.qualityLevel = 'partielle'; }
     if (filter === 'ql_complete') { query.qualityLevel = 'complete'; }
     if (filter === 'ql_platine') { query.qualityLevel = 'platine'; }
+    // ★ Complètes sans phase — tracks qualifiées avec genre/BPM/energy mais pas de phase
+    if (filter === 'complete_no_phase') {
+      query.adminQualified = true;
+      query.genre = { $nin: ['', null] };
+      query.bpm = { $gt: 0 };
+      query.energy = { $gt: 0 };
+      query.$or = [{ phase: null }, { phase: '' }, { phase: { $exists: false } }];
+    }
 
     if (filter === 'no_gpt') { query.isLabeled = { $ne: true }; query.gptSuggestion = null; }
     if (filter === 'no_bpm') query.$or = [{ bpm: null }, { bpm: 0 }];
@@ -1675,7 +1886,8 @@ function buildLightState(party) {
       return cleanPhoto;
     }),
     photosCount: (party.photos || []).length,
-    playedKeys: party.playedKeys || []   // ★ Phase 3: anti-replay keys
+    playedKeys: party.playedKeys || [],  // ★ Phase 3: anti-replay keys
+    createdAt: party.createdAt           // ★ Phase 4: restore DJBrain session start date
   };
 
   const sizeKB = Math.round(JSON.stringify(light).length / 1024);
@@ -1839,10 +2051,19 @@ io.on('connection', (socket) => {
         }
       }
 
+      let historySource = track.source || 'dj_brain_auto';
+      if (requestedBy.source === 'suggestion') {
+          historySource = 'guest_suggestion_fulfilled';
+      } else if (party.mode === 'jukebox' && !track.fromSuggestion) { // Rough check for manual Jukebox vs Brain
+          // If it was host choosing, maybe we want 'host_jukebox_manual'
+          // We will use dj_brain_auto as default fallback
+      }
+
       party.trackHistory.unshift({
         ...track,
         playedAt: new Date().toISOString(),
         requestedBy,
+        source: historySource
       });
       addPoints(party, 'host', 'DJ', 15, 'nouveau titre : ' + track.title);
 
@@ -1856,6 +2077,85 @@ io.on('connection', (socket) => {
     // ★ R5 fix: requestedBy inclus dans le payload — les guests voient l'attribution en temps réel
     io.to(`guest:${party.code}`).emit('track:update', { ...stripSecret(track), requestedBy });
     console.log(`🎵 [${party.code}] Track: ${track?.title} — ${track?.artist} (by: ${requestedBy.guestName || 'DJ Brain'})`);
+  });
+
+  socket.on('host:liveTrackDetected', (payload) => {
+    const party = getMutableParty(socket); if (!party) return;
+    
+    const liveTrack = {
+      title: payload.title,
+      artist: payload.artist,
+      isrc: payload.isrc,
+      appleMusicID: payload.appleMusicID,
+      artworkURL: payload.artworkURL,
+      startedAt: payload.detectedAt || new Date().toISOString(),
+      source: 'live_dj_shazam',
+      votes: { bof: 0, cool: 0, feu: 0 }
+    };
+    
+    // Normalize title to prevent adding identical tracks repeatedly
+    const normTitle = (t) => (t || '').toLowerCase().replace(/^[^-]+ - /, '').trim();
+    const isNewTrack = !party.trackHistory.length ||
+      normTitle(party.trackHistory[0]?.title) !== normTitle(liveTrack.title);
+      
+    if (isNewTrack) {
+      // 1. Chercher dans les suggestions récentes (match Levenshtein > 0.85 ou simple sub-match)
+      let requestedBy = { source: 'live_dj', guestName: null };
+      const identifiedTitle = (liveTrack.title || '').toLowerCase();
+      const identifiedArtist = (liveTrack.artist || '').toLowerCase();
+      
+      const matchIdx = party.suggestions.findIndex(s => {
+          const sTitle = (s.title || '').toLowerCase();
+          const sArtist = (s.artist || '').toLowerCase();
+          return s.status !== 'played' && 
+                 (sTitle.includes(identifiedTitle) || identifiedTitle.includes(sTitle)) &&
+                 (sArtist.includes(identifiedArtist) || identifiedArtist.includes(sArtist));
+      });
+      
+      if (matchIdx !== -1) {
+          const match = party.suggestions[matchIdx];
+          requestedBy = { source: 'suggestion', guestName: match.guestName, guestId: match.guestId };
+          party.suggestions[matchIdx].status = 'played';
+          party.suggestions[matchIdx].playedAt = new Date().toISOString();
+          liveTrack.source = 'guest_suggestion_fulfilled';
+          
+          if (match.guestId) {
+             addPoints(party, match.guestId, match.guestName, 50, `suggestion Shazam jouée: ${liveTrack.title}`);
+          }
+      }
+      
+      liveTrack.requestedBy = requestedBy;
+      
+      // Append to trackHistory (at index 0)
+      party.trackHistory.unshift(liveTrack);
+      addPoints(party, 'host', 'DJ', 20, 'Mix Live Track: ' + liveTrack.title);
+    }
+    
+    party.currentTrack = liveTrack;
+    
+    // Broadcast
+    io.to(`guest:${party.code}`).emit('track:update', liveTrack);
+    
+    // Emit the enriched history to guests (including votes)
+    const trackVotes = {};
+    for (const gId in party.guestVotes) {
+      const votes = party.guestVotes[gId];
+      for (const tId in votes) {
+        if (!trackVotes[tId]) trackVotes[tId] = { fire: 0, like: 0, meh: 0 };
+        const t = votes[tId];
+        if (t === 'fire') trackVotes[tId].fire++;
+        else if (t === 'like') trackVotes[tId].like++;
+        else if (t === 'meh') trackVotes[tId].meh++;
+      }
+    }
+    const enrichedHistory = party.trackHistory.map(t => ({
+      ...t,
+      fireCount: trackVotes[t.title]?.fire || 0,
+      likeCount: trackVotes[t.title]?.like || 0,
+      mehCount: trackVotes[t.title]?.meh || 0
+    }));
+    io.to(`guest:${party.code}`).emit('history:update', enrichedHistory);
+    console.log(`🎧 [${party.code}] Shazam Live: ${liveTrack.title} — ${liveTrack.artist} (source: ${liveTrack.source})`);
   });
 
 
@@ -2762,7 +3062,8 @@ async function boot() {
   await restoreParties(parties);
 
   // 3. Seed editorial catalog (no-op if already seeded)
-  await seedEditorialCatalog();
+  // Run seeding asynchronously so server starts instantly
+  seedEditorialCatalog().catch(console.error);
 
   // 4. Start flush loop
   startFlushLoop(parties);

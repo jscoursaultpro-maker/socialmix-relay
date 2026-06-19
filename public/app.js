@@ -984,11 +984,21 @@ function updateNowPlaying(track) {
   const suggesterText = $('np-suggester-text');
   
   if (suggesterEl && suggesterName && suggesterIcon && suggesterText) {
-    if (track.suggestedBy) {
+    if (track.source === 'live_dj_shazam') {
       suggesterEl.style.display = 'inline-flex';
-      suggesterName.textContent = track.suggestedBy;
-      suggesterIcon.textContent = '🔥';
-      suggesterText.textContent = 'Titre choisi par';
+      suggesterName.textContent = 'DJ Live';
+      suggesterIcon.textContent = '🎧';
+      suggesterText.textContent = 'Choisi par le';
+    } else if (track.source === 'guest_suggestion_fulfilled' || track.suggestedBy) {
+      suggesterEl.style.display = 'inline-flex';
+      suggesterName.textContent = track.suggestedBy || track.requestedBy?.guestName || 'Guest';
+      suggesterIcon.textContent = '✨';
+      suggesterText.textContent = 'Suggéré par';
+    } else if (track.source === 'host_jukebox_manual') {
+      suggesterEl.style.display = 'inline-flex';
+      suggesterName.textContent = 'Jukebox';
+      suggesterIcon.textContent = '🎚️';
+      suggesterText.textContent = 'Choix';
     } else if (state.mode === 'appMix') { // appMix = Jukebox mode
       suggesterEl.style.display = 'inline-flex';
       suggesterName.textContent = 'DJ Brain';
@@ -1533,15 +1543,18 @@ function updateHistory() {
         <div class="history-title">${track.title}${genreBadge}</div>
         <div class="history-artist">${track.artist}</div>
         ${(() => {
-          // Nouvelle structure requestedBy (P0-3)
           const rb = track.requestedBy;
-          const byGuest = rb?.source === 'suggestion' && rb?.guestName
-            ? rb.guestName
-            : (track.suggestedBy || null);  // Fallback legacy
-          if (byGuest) {
-            return `<div style="margin-top:2px;font-size:10px;color:#00d2ff;font-weight:700;">✨ Demandé par ${escapeHtml(byGuest)}</div>`;
+          const byGuest = rb?.source === 'suggestion' && rb?.guestName ? rb.guestName : (track.suggestedBy || null);
+          
+          if (track.source === 'live_dj_shazam') {
+             return `<div style="margin-top:2px;font-size:10px;color:#00e0c4;font-weight:700;">🎧 Choisi par le DJ</div>`;
+          } else if (track.source === 'guest_suggestion_fulfilled' || byGuest) {
+             return `<div style="margin-top:2px;font-size:10px;color:#00d2ff;font-weight:700;">✨ Suggéré par ${escapeHtml(byGuest || 'Guest')}</div>`;
+          } else if (track.source === 'host_jukebox_manual') {
+             return `<div style="margin-top:2px;font-size:10px;color:#ffb300;font-weight:700;">🎚️ Choix Jukebox</div>`;
+          } else {
+             return `<div style="margin-top:2px;font-size:10px;color:rgba(187,134,252,0.8);font-weight:600;">🤖 DJ Brain</div>`;
           }
-          return `<div style="margin-top:2px;font-size:10px;color:rgba(187,134,252,0.8);font-weight:600;">🤖 DJ Brain</div>`;
         })()}
         ${voteBadges ? `<div style="margin-top:2px;">${voteBadges}</div>` : ''}
         <div class="history-links">

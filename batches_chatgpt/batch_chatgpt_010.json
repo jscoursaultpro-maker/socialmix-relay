@@ -1,0 +1,271 @@
+{
+  "_instruction": "INSTRUCTION : Tu es un DJ professionnel expert. Classe les 20 tracks listées ci-dessous selon les règles décrites. Génère ta réponse sous forme d'un FICHIER TÉLÉCHARGEABLE nommé \"batch_chatgpt_010_done.json\". Le fichier doit contenir exactement : { \"classifications\": [ ...tes 20 objets JSON... ] }. Ne mets RIEN dans la conversation, génère UNIQUEMENT le fichier.",
+  "_contexte_soiree": "40-80 invités | 6-7h de soirée (20h-2h30) | Public mixte 25-65 ans | Soirées privées (anniversaires, mariages, fêtes amis)",
+  "_phases": {
+    "arrival": "🌅 Apéro chic — energy 3.5-5.0, BPM 70-110 — Ex: Sade, Norah Jones, Goldman, Cabrel",
+    "ambiance": "🥂 Warm-up — energy 5.0-6.5, BPM 80-115 — Ex: Sheeran, EWF mid-tempo, Marvin Gaye",
+    "takeoff": "🚀 La montée — energy 6.5-7.5, BPM 100-125 — Ex: Donna Summer, Kool & The Gang, Drake",
+    "groove": "💃 Vraiment lancé — energy 7.5-8.5, BPM 115-130 — Ex: Calvin Harris, Sister Sledge, Bruno Mars",
+    "party": "🔥 Peak time — energy 8.5-10, BPM 120-135 — Ex: Avicii, Guetta, Justice, Sapés Comme Jamais",
+    "closing": "🌙 Descente émotionnelle — energy 4.5-6.0, BPM 90-115 — Ex: Bill Withers, Soul slow"
+  },
+  "_genres_bdd": [
+    "Chill",
+    "Pop",
+    "COCOVARIET",
+    "Rock",
+    "Hip-Hop",
+    "R&B",
+    "Latin",
+    "Afro",
+    "Disco",
+    "House",
+    "Electro"
+  ],
+  "_ui_categories": [
+    "Chill",
+    "Pop",
+    "Rock",
+    "Rap",
+    "Latin",
+    "Old school",
+    "Urban Groove",
+    "Dance",
+    "Électro"
+  ],
+  "_format_reponse": {
+    "id": "<conserver tel quel depuis tracks_a_classer>",
+    "genreBDD": "<genre parmi _genres_bdd>",
+    "uiCategoryPrimary": "<catégorie parmi _ui_categories>",
+    "uiCategoriesSecondary": [
+      "<0-2 catégories, JAMAIS = primary>"
+    ],
+    "phase": "<arrival/ambiance/takeoff/groove/party/closing>",
+    "phaseAlternate": "<phase adjacente à phase>",
+    "energy": "<1-10>",
+    "bpm": "<60-220>",
+    "danceability": "<0.0-1.0>",
+    "isBanger": "<true/false — true uniquement si groove ou party>",
+    "isSingalong": "<true/false>",
+    "isEmotional": "<true/false>",
+    "isCaliente": "<true/false>",
+    "isHardcore": "<true/false>",
+    "era": "<50s/60s/70s/80s/90s/2000s/2010s/2020s>",
+    "mood": "<fun/emotional/aggressive/chill>",
+    "language": "<FR/EN/ES/PT/instrumental/autre>",
+    "hasLyrics": "<true/false>",
+    "explicit": "<true/false>",
+    "notes": "<note DJ courte>",
+    "justification": "<1 ligne>"
+  },
+  "_regles_coherence": [
+    "phaseAlternate DOIT être adjacente à phase",
+    "uiCategoriesSecondary NE CONTIENT JAMAIS uiCategoryPrimary",
+    "BPM < 100 → PAS en party",
+    "energy <= 4 → PAS en groove/party",
+    "isBanger=true → phase groove ou party uniquement",
+    "era cohérent avec artiste"
+  ],
+  "tracks_a_classer": [
+    {
+      "index": 1,
+      "id": 1151063132,
+      "title": "Trois nuits par semaine",
+      "artist": "Indochine",
+      "genre": "COCOVARIET",
+      "bpm": 138,
+      "energy": 9,
+      "deezerRank": 459822
+    },
+    {
+      "index": 2,
+      "id": 2847461482,
+      "title": "Dans les yeux d'Émilie",
+      "artist": "Romain Ughetto",
+      "genre": "COCOVARIET",
+      "bpm": 150,
+      "energy": 9,
+      "deezerRank": 459570
+    },
+    {
+      "index": 3,
+      "id": 2720190122,
+      "title": "Baddy On The Floor",
+      "artist": "Jamie xx",
+      "genre": "House",
+      "bpm": 124,
+      "energy": 8,
+      "deezerRank": 459142
+    },
+    {
+      "index": 4,
+      "id": 5747924,
+      "title": "Your World",
+      "artist": "Benedetto",
+      "genre": "House",
+      "bpm": 129,
+      "energy": 9,
+      "deezerRank": 448239
+    },
+    {
+      "index": 5,
+      "id": 1738774067,
+      "title": "Sing It Back",
+      "artist": "Dj Hermes",
+      "genre": "House",
+      "bpm": 124,
+      "energy": 8,
+      "deezerRank": 444711
+    },
+    {
+      "index": 6,
+      "id": 1594457231,
+      "title": "Reborn",
+      "artist": "arodes",
+      "genre": "House",
+      "bpm": 121,
+      "energy": 8,
+      "deezerRank": 444323
+    },
+    {
+      "index": 7,
+      "id": 1512797952,
+      "title": "Before",
+      "artist": "Pablo Fierro",
+      "genre": "House",
+      "bpm": 120,
+      "energy": 8,
+      "deezerRank": 428112
+    },
+    {
+      "index": 8,
+      "id": 1613981692,
+      "title": "Can't Get You Out Of My Head",
+      "artist": "Desire",
+      "genre": "House",
+      "bpm": 114,
+      "energy": 7,
+      "deezerRank": 418498
+    },
+    {
+      "index": 9,
+      "id": 2274284527,
+      "title": "Another Song To Myself",
+      "artist": "Picture This",
+      "genre": "Pop",
+      "bpm": 122,
+      "energy": 8,
+      "deezerRank": 412451
+    },
+    {
+      "index": 10,
+      "id": 3811654872,
+      "title": "Cambodia",
+      "artist": "Agoria",
+      "genre": "Electro",
+      "bpm": 126,
+      "energy": 9,
+      "deezerRank": 408971
+    },
+    {
+      "index": 11,
+      "id": 1977567857,
+      "title": "My City's On Fire (Notre Dame Remix)",
+      "artist": "Jimi Jules",
+      "genre": "House",
+      "bpm": 119,
+      "energy": 7,
+      "deezerRank": 405568
+    },
+    {
+      "index": 12,
+      "id": 1286520172,
+      "title": "I Wanna Dance with Somebody",
+      "artist": "Hard Lights",
+      "genre": "Electro",
+      "bpm": 135,
+      "energy": 9,
+      "deezerRank": 402165
+    },
+    {
+      "index": 13,
+      "id": 920549062,
+      "title": "Proper Education",
+      "artist": "Eric Prydz",
+      "genre": "House",
+      "bpm": 125,
+      "energy": 9,
+      "deezerRank": 401636
+    },
+    {
+      "index": 14,
+      "id": 795642332,
+      "title": "Glue",
+      "artist": "Bicep",
+      "genre": "House",
+      "bpm": 130,
+      "energy": 9,
+      "deezerRank": 394361
+    },
+    {
+      "index": 15,
+      "id": 1923908287,
+      "title": "Seventh Street",
+      "artist": "Zac",
+      "genre": "House",
+      "bpm": 122,
+      "energy": 8,
+      "deezerRank": 393161
+    },
+    {
+      "index": 16,
+      "id": 3045968591,
+      "title": "Wizard of Love",
+      "artist": "Blond:ish",
+      "genre": "House",
+      "bpm": 120,
+      "energy": 8,
+      "deezerRank": 389701
+    },
+    {
+      "index": 17,
+      "id": 473274412,
+      "title": "Shout!",
+      "artist": "The Isley Brothers",
+      "genre": "Hip-Hop",
+      "bpm": 70,
+      "energy": 3,
+      "deezerRank": 377739
+    },
+    {
+      "index": 18,
+      "id": 3603058412,
+      "title": "No Sleep",
+      "artist": "Meduza",
+      "genre": "House",
+      "bpm": 128,
+      "energy": 9,
+      "deezerRank": 370076
+    },
+    {
+      "index": 19,
+      "id": 2428475985,
+      "title": "Favourite Game",
+      "artist": "Rae & Christian",
+      "genre": "Disco",
+      "bpm": 123,
+      "energy": 8,
+      "deezerRank": 369928
+    },
+    {
+      "index": 20,
+      "id": 129139886,
+      "title": "The Edge",
+      "artist": "Robosonic",
+      "genre": "House",
+      "bpm": 120,
+      "energy": 8,
+      "deezerRank": 365338
+    }
+  ]
+}

@@ -27,18 +27,71 @@ const TrackSchema = new mongoose.Schema({
   duration:     { type: Number, default: 0 },                      // Durée en secondes
   deezerRank:   { type: Number, default: 0 },                      // Popularité globale Deezer (0-1000000)
 
+  // Niveau 2 — Identité enrichie
+  language: { type: String, default: null },  // FR/EN/ES/etc.
+  spotifyID: { type: String, default: null },
+  appleMusicID: { type: String, default: null },
+
+  // Niveau 3 — Classification UI
+  phase: { type: String, default: null },
+  uiCategoryPrimary: { 
+    type: String, 
+    enum: ["Chill", "Pop", "Rock", "Rap", "Latin", "Old school", "Urban Groove", "Dance", "Électro", null],
+    default: null
+  },
+  uiCategoriesSecondary: { 
+    type: [String], 
+    default: [],
+    validate: { validator: (arr) => arr.length <= 2, message: "Max 2 catégories secondaires" }
+  },
+  phaseAlternate: { type: String, default: null },
+
+  // Niveau 4 — Caractéristiques
+  danceability: { type: Number, min: 0, max: 1, default: null },
+
+  // Niveau 5 — Tags orthogonaux
+  isBanger: { type: Boolean, default: false },
+  isSingalong: { type: Boolean, default: false },
+  isEmotional: { type: Boolean, default: false },
+  isCaliente: { type: Boolean, default: false },
+  isHardcore: { type: Boolean, default: false },
+  isFiller: { type: Boolean, default: false },
+  era: { 
+    type: String, enum: ["50s", "60s", "70s", "80s", "90s", "2000s", "2010s", "2020s", null], default: null 
+  },
+  mood: { 
+    type: String, enum: ["fun", "emotional", "aggressive", "chill", null], default: null 
+  },
+  hasLyrics: { type: Boolean, default: true },
+  explicit: { type: Boolean, default: false },
+
+  // Gamification & Quality
+  qualityLevel: { type: String, enum: ["vide", "partielle", "complete", "platine"], default: "vide" },
+
+  // Niveau 6 — Modération
+  isLabeled: { type: Boolean, default: false },
+  isVerified: { type: Boolean, default: false },
+  rollbackReason: { type: String, default: null },
+  isBlocked: { type: Boolean, default: false },
+  blockedReason: { type: String, default: null },
+  skipCount: { type: Number, default: 0 },
+  gptSuggestion: { type: mongoose.Schema.Types.Mixed, default: null },
+  chatgptQueueId: { type: String, default: null },
+  source: { 
+    type: String, 
+    enum: ["monitor_manual", "gpt_imported", "editorial_seed_v1", "deezer_search", "host_suggestion", "guest_suggestion", "exploration", "editorial", "suggestion", "shazam", "fantome_recovered", "batch_workflow"],
+    default: "gpt_imported"
+  },
+  classifiedBy: { type: String, default: null },
+  notes: { type: String, default: "" },
+  lastReviewedAt: { type: Date, default: null },
+  importedAt: { type: Date, default: null },
+
   // ─── Cross-Provider IDs (résolution ISRC → plateforme) ───────────
   providers: {
     deezer:     { trackId: Number, albumId: Number },
     spotify:    { trackId: String },
     appleMusic: { trackId: String }
-  },
-
-  // ─── Source & Curation ────────────────────────────────────────────
-  source: {
-    type: String,
-    enum: ['editorial', 'suggestion', 'shazam', 'exploration'],
-    default: 'exploration'
   },
 
   // Qualification manuelle par un admin via le back-office
@@ -49,6 +102,20 @@ const TrackSchema = new mongoose.Schema({
 
   // Suggestion count cross-soirées (signal fort d'intérêt foule)
   suggestCount:    { type: Number, default: 0 },
+
+  // Niveau 7 — KPI étendus
+  cooldownDays: { type: Number, default: 14 },
+  performanceByPhase: {
+    arrival:  { plays: { type: Number, default: 0 }, feuRatio: { type: Number, default: 0 } },
+    ambiance: { plays: { type: Number, default: 0 }, feuRatio: { type: Number, default: 0 } },
+    takeoff:  { plays: { type: Number, default: 0 }, feuRatio: { type: Number, default: 0 } },
+    groove:   { plays: { type: Number, default: 0 }, feuRatio: { type: Number, default: 0 } },
+    party:    { plays: { type: Number, default: 0 }, feuRatio: { type: Number, default: 0 } },
+    closing:  { plays: { type: Number, default: 0 }, feuRatio: { type: Number, default: 0 } }
+  },
+
+  // Niveau 8 — Metadata
+  schemaVersion: { type: String, default: "2.0" },
 
   // ─── Performance (le data moat — apprend dans le temps) ───────────
   performance: {
@@ -91,5 +158,27 @@ TrackSchema.index({ 'performance.totalPlays': -1 });
 TrackSchema.index({ source: 1 });
 TrackSchema.index({ adminQualified: 1, energy: -1 });
 TrackSchema.index({ suggestCount: -1 });
+
+TrackSchema.pre('save', function(next) {
+  let q = "vide";
+  
+  const hasBase = !!(this.genre && this.uiCategoryPrimary && this.phase);
+  const hasStats = !!(this.bpm > 0 && this.energy > 0);
+  
+  if (hasBase || hasStats) {
+    q = "partielle";
+  }
+  
+  if (this.gptSuggestion != null || this.needs_review) {
+    q = "complete";
+  }
+  
+  if (this.isVerified) {
+    q = "platine";
+  }
+  
+  this.qualityLevel = q;
+  if (typeof next === 'function') next();
+});
 
 export default mongoose.model('Track', TrackSchema);

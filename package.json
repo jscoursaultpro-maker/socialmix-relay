@@ -5,8 +5,9 @@
   "description": "Socket.IO relay server for Social Mix — bridges Host iOS app to Guest Web Apps",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node --env-file=.env server.js",
+    "dev": "node --env-file=.env server.js",
+    "sync-ios": "node --env-file=.env scripts/sync-ios.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",

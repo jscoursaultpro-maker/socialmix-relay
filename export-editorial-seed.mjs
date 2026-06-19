@@ -27,8 +27,9 @@ function ns(s) {
 }
 function fallbackHash(title, artist) { return `${ns(title)}_${ns(artist)}`; }
 
-// On exporte TOUS les titres (adminQualified OU avec BPM)
+// On exporte TOUS les titres qualifiés, SAUF les doublons flaggés
 const tracks = await col.find({
+  isDuplicate: { $ne: true },
   $or: [
     { adminQualified: true },
     { bpm: { $gt: 0 } },
@@ -75,6 +76,22 @@ const seedTracks = tracks.map(t => {
     bpm: Math.round(t.bpm || 0),
     energy: t.energy || 0,
     releaseYear: t.releaseYear || null,
+    phase: t.phase || null,
+    phaseAlternate: t.phaseAlternate || null,
+    uiCategoryPrimary: t.uiCategoryPrimary || null,
+    uiCategoriesSecondary: t.uiCategoriesSecondary || [],
+    danceability: t.danceability || null,
+    deezerRank: t.deezerRank || null,
+    duration: t.duration || null,
+    era: t.era || null,
+    mood: t.mood || null,
+    language: t.language || null,
+    isBanger: t.isBanger || false,
+    isSingalong: t.isSingalong || false,
+    isEmotional: t.isEmotional || false,
+    isCaliente: t.isCaliente || false,
+    isHardcore: t.isHardcore || false,
+    isFiller: t.isFiller || false,
     providers: deezerTrackId ? {
       deezer: { trackId: deezerTrackId, albumId: null }
     } : null,

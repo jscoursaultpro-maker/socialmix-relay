@@ -1,6 +1,6 @@
 {
   "version": "v3-csv-only",
-  "generatedAt": "2026-06-16T00:41:49.843Z",
+  "generatedAt": "2026-06-16T07:32:28.455Z",
   "stats": {
     "total": 1743,
     "withDeezerID": 1451,
@@ -27500,13 +27500,13 @@
     },
     {
       "deezerID": 3982257821,
-      "genre": "House",
+      "genre": "Ambient",
       "title": "Don't Wake Up",
       "artist": "Nora En Pure",
       "bpm": 122,
       "duration": 200,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "ambiance",
       "rank": 490739,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/a/b/9/0/ab9b131c86d2f76cc5b2ee42c75091c9.mp3?hdnea=exp=1781571398~acl=/api/1/1/a/b/9/0/ab9b131c86d2f76cc5b2ee42c75091c9.mp3*~data=user_id=0,application_id=42~hmac=a78dac9cd15119e1c17ac2d971de2ae121b4eaf58aa218a70f7f5a8304faf150",
       "isrc": "CH3132420742",
@@ -27518,8 +27518,10 @@
         "energy": 6,
         "danceability": 8
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 5,
+      "danceability": 2
     },
     {
       "deezerID": 3984147451,
@@ -27579,7 +27581,7 @@
       "bpm": 132,
       "duration": 207,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "takeoff",
       "rank": 571236,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/3/9/0/139d750860a919d41f791b9fc9ea8918.mp3?hdnea=exp=1781571398~acl=/api/1/1/1/3/9/0/139d750860a919d41f791b9fc9ea8918.mp3*~data=user_id=0,application_id=42~hmac=7809849cdf3c078a29beb206255643e40061d65bc0fb1d474a212fd793a0407f",
       "isrc": "USQX92602372",
@@ -27591,18 +27593,20 @@
         "energy": 8,
         "danceability": 8
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 8,
+      "danceability": 3
     },
     {
       "deezerID": 3990800041,
-      "genre": "Rock",
+      "genre": "Electro",
       "title": "Into My Fire",
       "artist": "House Arrest",
       "bpm": 122,
       "duration": 149,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "groove",
       "rank": 571681,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/7/d/4/0/7d47bdeec3266f7e49af03ff6bcb9fa2.mp3?hdnea=exp=1781571399~acl=/api/1/1/7/d/4/0/7d47bdeec3266f7e49af03ff6bcb9fa2.mp3*~data=user_id=0,application_id=42~hmac=934e7c955026e985662deca3d14a51691454d0f8e86fe67013fed48f0dac8a2c",
       "isrc": "NLYK92600443",
@@ -27614,8 +27618,10 @@
         "energy": 6,
         "danceability": 5
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 7,
+      "danceability": 4
     },
     {
       "deezerID": 3990965871,
@@ -27699,13 +27705,13 @@
     },
     {
       "deezerID": 3992357861,
-      "genre": "Rock",
+      "genre": "Electro",
       "title": "Hold On Me",
       "artist": "Afterglow",
       "bpm": 120,
       "duration": 138,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "groove",
       "rank": 419653,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/7/6/0/0/7602e500dcf202fc14b3c345589e5b0e.mp3?hdnea=exp=1781571400~acl=/api/1/1/7/6/0/0/7602e500dcf202fc14b3c345589e5b0e.mp3*~data=user_id=0,application_id=42~hmac=1623489b14cb822916f397929d46e96c93b7f1778cb196be9cb7ccd3c277fae0",
       "isrc": "NLYK92600460",
@@ -27717,18 +27723,20 @@
         "energy": 6,
         "danceability": 5
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 7,
+      "danceability": 5
     },
     {
       "deezerID": 3992364941,
-      "genre": "Rock",
+      "genre": "Electro",
       "title": "Too Close",
       "artist": "Justin Case",
       "bpm": 120,
       "duration": 134,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "groove",
       "rank": 534285,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/9/7/0/19709a32afdb1f0f41097f54e0e0cbab.mp3?hdnea=exp=1781571400~acl=/api/1/1/1/9/7/0/19709a32afdb1f0f41097f54e0e0cbab.mp3*~data=user_id=0,application_id=42~hmac=aa5e70955eed1c444250d0223ee052c91b07d1be471c5b9e301b785bf4b40063",
       "isrc": "NLYK92600449",
@@ -27740,8 +27748,10 @@
         "energy": 6,
         "danceability": 5
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 7,
+      "danceability": 3
     },
     {
       "deezerID": 3992365061,
@@ -27761,13 +27771,13 @@
     },
     {
       "deezerID": 3993449551,
-      "genre": "Hip-Hop",
+      "genre": "Reggaeton",
       "title": "Smoke",
       "artist": "Skrillex",
       "bpm": 145,
       "duration": 150,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "groove",
       "rank": 458094,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/a/7/d/0/a7d2a1b0f843b907af21197b60a56782.mp3?hdnea=exp=1781571401~acl=/api/1/1/a/7/d/0/a7d2a1b0f843b907af21197b60a56782.mp3*~data=user_id=0,application_id=42~hmac=f7d4391e61dd9dfd9c0dd2116368acc344a73ade1b1d720bf2dda1fbaf61a182",
       "isrc": "USAT22602481",
@@ -27779,8 +27789,10 @@
         "energy": 8,
         "danceability": 8
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 9,
+      "danceability": 5
     },
     {
       "deezerID": 3995968761,
@@ -27815,7 +27827,7 @@
       "bpm": 129,
       "duration": 314,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "takeoff",
       "rank": 458642,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/a/0/7/0/a07b8eff9faf7766582685e17637190a.mp3?hdnea=exp=1781571401~acl=/api/1/1/a/0/7/0/a07b8eff9faf7766582685e17637190a.mp3*~data=user_id=0,application_id=42~hmac=3eb2c5af08e29e1d7ecd19823f7d6109a9eece5eb255cd1aadd33d4e087366ad",
       "isrc": "GBUM72602679",
@@ -27827,8 +27839,10 @@
         "energy": 8,
         "danceability": 8
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 8,
+      "danceability": 5
     },
     {
       "deezerID": 4000554601,
@@ -27882,13 +27896,13 @@
     },
     {
       "deezerID": 4003592211,
-      "genre": "Electro",
+      "genre": "House",
       "title": "Comes and Goes",
       "artist": "Kettama",
       "bpm": 134,
       "duration": 262,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "takeoff",
       "rank": 634661,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/4/f/c/0/4fc10a3d750f5eae09f37528c41f46d1.mp3?hdnea=exp=1781571402~acl=/api/1/1/4/f/c/0/4fc10a3d750f5eae09f37528c41f46d1.mp3*~data=user_id=0,application_id=42~hmac=709c78961ab654c4e3041eb0ffe66e7d9a85f33c397cc859f2105539c997e5dc",
       "isrc": "CBEFB2602785",
@@ -27900,8 +27914,10 @@
         "energy": 8,
         "danceability": 8
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 8,
+      "danceability": 5
     },
     {
       "deezerID": 4005923101,
@@ -27921,13 +27937,13 @@
     },
     {
       "deezerID": 4007282271,
-      "genre": "Rock",
+      "genre": "Electro",
       "title": "Take It Slow",
       "artist": "Justin Case",
       "bpm": 120,
       "duration": 130,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "groove",
       "rank": 487994,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/2/a/d/0/2ad0133518b39b84ed723416d2db8b79.mp3?hdnea=exp=1781571403~acl=/api/1/1/2/a/d/0/2ad0133518b39b84ed723416d2db8b79.mp3*~data=user_id=0,application_id=42~hmac=da0ee05820bd26645d3c8b87c9353a6590b093030d931977a254748086e13efd",
       "isrc": "NLYK92600468",
@@ -27939,8 +27955,10 @@
         "energy": 5,
         "danceability": 5
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 7,
+      "danceability": 3
     },
     {
       "deezerID": 4013862131,
@@ -27966,7 +27984,7 @@
       "bpm": 133,
       "duration": 198,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "takeoff",
       "rank": 469329,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/e/6/3/0/e6374098a3b043f5546749af0c3247e1.mp3?hdnea=exp=1781571403~acl=/api/1/1/e/6/3/0/e6374098a3b043f5546749af0c3247e1.mp3*~data=user_id=0,application_id=42~hmac=59b6dcf103a7d8afd43d3d626a85ef2c348e8cb9d5ef2929d2a3fee3c08fe7df",
       "isrc": "USA2P2630264",
@@ -27978,8 +27996,10 @@
         "energy": 8,
         "danceability": 9
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 9,
+      "danceability": 5
     },
     {
       "deezerID": 4017254841,
@@ -27999,13 +28019,13 @@
     },
     {
       "deezerID": 4019657111,
-      "genre": "Electro",
+      "genre": "House",
       "title": "our frequency",
       "artist": "Amelie Lens",
       "bpm": 143,
       "duration": 264,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "takeoff",
       "rank": 472886,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/2/8/c/0/28c81256adbcf3615abb8eb7ddfa2ba1.mp3?hdnea=exp=1781571404~acl=/api/1/1/2/8/c/0/28c81256adbcf3615abb8eb7ddfa2ba1.mp3*~data=user_id=0,application_id=42~hmac=3bd6054ca6bf762afea1b759ddce2e5b2bf0267d384adf9c60e54924b185a28a",
       "isrc": "QM7282607956",
@@ -28017,8 +28037,10 @@
         "energy": 9,
         "danceability": 8
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 9,
+      "danceability": 5
     },
     {
       "deezerID": 4022403311,
@@ -28060,7 +28082,7 @@
       "bpm": 130,
       "duration": 185,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "takeoff",
       "rank": 503329,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/0/2/f/0/02ff691320f04e8d0192b01e416b8f72.mp3?hdnea=exp=1781571404~acl=/api/1/1/0/2/f/0/02ff691320f04e8d0192b01e416b8f72.mp3*~data=user_id=0,application_id=42~hmac=ffd83c3141f873c70ef1a1b5bcb05b24f4366843aa63f58c1af6aa7c292f9035",
       "isrc": "QM7282613614",
@@ -28072,8 +28094,10 @@
         "energy": 8,
         "danceability": 9
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 8,
+      "danceability": 5
     },
     {
       "deezerID": 4023839401,
@@ -28083,7 +28107,7 @@
       "bpm": 0,
       "duration": 205,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "takeoff",
       "rank": 533320,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/0/d/4/0/0d4ad5b4ea6d0dc3a3c27060d1b81436.mp3?hdnea=exp=1781571405~acl=/api/1/1/0/d/4/0/0d4ad5b4ea6d0dc3a3c27060d1b81436.mp3*~data=user_id=0,application_id=42~hmac=8d3e67503a1200c6a1e46dadc60119424ce30c55cce6ad3d72097cb55d04e1eb",
       "isrc": "GXFCP2600168",
@@ -28095,8 +28119,10 @@
         "energy": 10,
         "danceability": 8
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 5,
+      "danceability": 3
     },
     {
       "deezerID": 4024395401,
@@ -28122,7 +28148,7 @@
       "bpm": 122,
       "duration": 147,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "groove",
       "rank": 475741,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/b/2/b/0/b2bafb96bb8d66c1c8cbce0692d3b65f.mp3?hdnea=exp=1781571405~acl=/api/1/1/b/2/b/0/b2bafb96bb8d66c1c8cbce0692d3b65f.mp3*~data=user_id=0,application_id=42~hmac=f75007ee59695d9f53ca1ec02454b56af93c6645df3912b9f35a981efba75fae",
       "isrc": "NLYK92600525",
@@ -28134,8 +28160,10 @@
         "energy": 6,
         "danceability": 8
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 6,
+      "danceability": 8
     },
     {
       "deezerID": 4029071081,
@@ -28155,13 +28183,13 @@
     },
     {
       "deezerID": 4029510961,
-      "genre": "Rock",
+      "genre": "Electro",
       "title": "Love Tonight",
       "artist": "BUNT.",
       "bpm": 132,
       "duration": 210,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "takeoff",
       "rank": 540803,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/f/2/f/0/f2f0e7ff86df4f7b5ebec643ba785933.mp3?hdnea=exp=1781571406~acl=/api/1/1/f/2/f/0/f2f0e7ff86df4f7b5ebec643ba785933.mp3*~data=user_id=0,application_id=42~hmac=c672bc712910d777b11c938a74913abbdab1ea9e70c879d3d9fe89dc5788517b",
       "isrc": "USAR12600138",
@@ -28173,8 +28201,10 @@
         "energy": 6,
         "danceability": 6
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 8,
+      "danceability": 2
     },
     {
       "deezerID": 4029673251,
@@ -28305,13 +28335,13 @@
     },
     {
       "deezerID": 4033279971,
-      "genre": "Rock",
+      "genre": "R&B",
       "title": "Red Jacket",
       "artist": "Madeon",
       "bpm": 105,
       "duration": 177,
       "source": "csv_v1",
-      "phase": "",
+      "phase": "groove",
       "rank": 572586,
       "preview": "https://cdnt-preview.dzcdn.net/api/1/1/7/0/c/0/70ceee7d25daa05dd0f00b9286b59d74.mp3?hdnea=exp=1781571408~acl=/api/1/1/7/0/c/0/70ceee7d25daa05dd0f00b9286b59d74.mp3*~data=user_id=0,application_id=42~hmac=890014e756ca02693ffd4a3aed61365d2b438729d007358baf26f20f7d990efa",
       "isrc": "USQE92600066",
@@ -28323,8 +28353,10 @@
         "energy": 5,
         "danceability": 4
       },
-      "is_labeled": false,
-      "gpt_imported": true
+      "is_labeled": true,
+      "gpt_imported": false,
+      "energy": 5,
+      "danceability": 5
     },
     {
       "deezerID": 4038764841,
