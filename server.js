@@ -1125,6 +1125,34 @@ app.get('/api/deezer/chart', async (req, res) => {
   catch (err) { console.error('[Deezer] Chart error:', err.message); res.status(500).json({ error: 'Deezer chart failed' }); }
 });
 
+app.get('/api/party/:code/meta', async (req, res) => {
+  const code = (req.params.code || '').toUpperCase();
+  let party = parties.get(code);
+  
+  if (!party) {
+    // Check DB
+    try {
+      const dbParty = await Party.findOne({ code });
+      if (!dbParty) {
+        return res.status(404).json({ error: 'Party not found' });
+      }
+      party = dbParty;
+    } catch (e) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+  }
+
+  // MVP Pre-Party meta fields
+  res.json({
+    coverPhoto: party.coverPhoto,
+    welcomeText: party.welcomeText,
+    scheduledFor: party.scheduledFor,
+    isPreParty: party.isPreParty,
+    guestsWaitingCount: party.participants ? party.participants.length : 0,
+    hostName: party.hostProfile ? party.hostProfile.name : 'DJ'
+  });
+});
+
 app.get('/api/party/:code/explore', async (req, res) => {
   const code = req.params.code;
   const limit = parseInt(req.query.limit) || 12;
@@ -1675,7 +1703,12 @@ function buildLightState(party) {
       return cleanPhoto;
     }),
     photosCount: (party.photos || []).length,
-    playedKeys: party.playedKeys || []   // ★ Phase 3: anti-replay keys
+    playedKeys: party.playedKeys || [],  // ★ Phase 3: anti-replay keys
+    createdAt: party.createdAt,          // ★ Phase 4: restore DJBrain session start date
+    scheduledFor: party.scheduledFor,    // ★ MVP Pre-Party
+    welcomeText: party.welcomeText,      // ★ MVP Pre-Party
+    coverPhoto: party.coverPhoto,        // ★ MVP Pre-Party
+    isPreParty: party.isPreParty         // ★ MVP Pre-Party
   };
 
   const sizeKB = Math.round(JSON.stringify(light).length / 1024);
@@ -1705,8 +1738,8 @@ io.on('connection', (socket) => {
     if (event.startsWith('host:')) {
       return origOn(event, (...args) => {
         ensureHostRoom();
-        // host:startParty sets the secret — skip validation
-        if (event === 'host:startParty') {
+        // host:startParty and host:scheduleParty set the secret — skip validation
+        if (event === 'host:startParty' || event === 'host:scheduleParty') {
           handler(...args);
           return;
         }
@@ -1723,6 +1756,55 @@ io.on('connection', (socket) => {
   // HOST EVENTS
   // ═══════════════════════════════════════════════════════════════════
 
+  socket.on('host:scheduleParty', async (data) => {
+    const code = (data.code || '').toUpperCase();
+    if (!code) return;
+    
+    socket.partyCode = code;
+    socket.join(`host:${code}`);
+    cancelCleanup(code);
+
+    const newParty = {
+      code,
+      hostSecret: data.hostSecret,
+      partyType: 'hosted',
+      scheduledFor: data.scheduledFor,
+      welcomeText: data.welcomeText || '',
+      coverPhoto: data.coverPhoto || null,
+      isPreParty: true,
+      createdAt: new Date(),
+      isDirty: true
+    };
+    
+    let partyState = parties.get(code);
+    if (!partyState) {
+      partyState = createPartyState(code);
+      parties.set(code, partyState);
+    }
+    
+    Object.assign(partyState, newParty);
+    partyState.hostSocketId = socket.id;
+    partyState.hostProfile = data.profile || null;
+    
+    // Initial host participant
+    partyState.participants = [{
+      id: socket.id,
+      userId: 'host',
+      name: data.profile?.name || 'Hôte',
+      emoji: data.profile?.emoji || '🎧',
+      connected: true,
+      isHost: true
+    }];
+
+    try {
+      await Party.findOneAndUpdate({ code }, newParty, { upsert: true, new: true });
+    } catch (e) {
+      console.error('[MongoDB] Error saving scheduled party:', e);
+    }
+    
+    socket.emit('party:scheduled', { code, success: true });
+  });
+
   socket.on('host:startParty', (data) => {
     const code = (data.code || 'TEUF2025').toUpperCase();
     socket.partyCode = code;
@@ -1738,6 +1820,7 @@ io.on('connection', (socket) => {
       existing.hostSocketId = socket.id;
       existing.hostProfile = data.profile || existing.hostProfile;
       existing.isDirty = true;
+      existing.isPreParty = false;
 
       // Update host participant entry with new socket id
       const hostIdx = existing.participants.findIndex(p => p.isHost);
@@ -1770,6 +1853,7 @@ io.on('connection', (socket) => {
     const party = createPartyState(code);
     party.hostSocketId = socket.id;
     party.hostProfile = data.profile || null;
+    party.isPreParty = false;
     parties.set(code, party);
 
     // Store host secret (never broadcast to guests)
@@ -1957,12 +2041,32 @@ io.on('connection', (socket) => {
   // GUEST EVENTS
   // ═══════════════════════════════════════════════════════════════════
 
-  socket.on('guest:join', (data) => {
+  socket.on('guest:join', async (data) => {
     const code = (data.partyCode || '').toUpperCase();
-    const party = parties.get(code);
+    let party = parties.get(code);
+    
     if (!party) {
-      socket.emit('party:wrongCode', { message: 'Aucune soirée active. Le DJ doit lancer la soirée depuis l\'app.' });
-      return;
+      // MVP Pre-Party: Try loading from MongoDB
+      try {
+        const dbParty = await Party.findOne({ code, isPreParty: true });
+        if (dbParty) {
+          party = createPartyState(code);
+          party.hostSecret = dbParty.hostSecret;
+          party.scheduledFor = dbParty.scheduledFor;
+          party.welcomeText = dbParty.welcomeText;
+          party.coverPhoto = dbParty.coverPhoto;
+          party.isPreParty = true;
+          party.createdAt = dbParty.createdAt;
+          party.participants = dbParty.participants || [];
+          parties.set(code, party);
+        } else {
+          socket.emit('party:wrongCode', { message: 'Aucune soirée active. Le DJ doit lancer la soirée depuis l\'app.' });
+          return;
+        }
+      } catch (e) {
+        socket.emit('party:wrongCode', { message: 'Erreur serveur.' });
+        return;
+      }
     }
     socket.partyCode = code;
     socket.join(`guest:${code}`);

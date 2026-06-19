@@ -262,17 +262,69 @@ function showScreen(name) {
 // ═══════════════════════════════════════════
 // SCREEN 1: LANDING
 // ═══════════════════════════════════════════
-function setupLanding() {
+async function setupLanding() {
   const params = getURLParams();
   
-  // Show party name if code in URL
   if (params.code) {
-    $('landing-party-name').textContent = `SOIRÉE ${params.code}`;
+    const code = params.code.toUpperCase();
+    state.partyCode = code;
     
-    // On iOS: show a discreet banner to open in the native app (opt-in, not auto-redirect)
+    try {
+      const res = await fetch(`/api/party/${code}/meta`);
+      if (res.ok) {
+        const meta = await res.json();
+        
+        if (meta.isPreParty) {
+          state.isPreParty = true;
+          
+          $('pre-party-host').textContent = `AVEC ${meta.hostName || 'DJ'}`;
+          if (meta.welcomeText) {
+            $('pre-party-text').textContent = `"${meta.welcomeText}"`;
+          }
+          if (meta.coverPhoto) {
+            $('pre-party-cover').src = meta.coverPhoto;
+            $('pre-party-cover-container').style.display = 'block';
+          }
+          
+          if (meta.scheduledFor) {
+            startCountdown(meta.scheduledFor);
+          }
+          
+          $('pre-party-prepare-btn').addEventListener('click', () => {
+            if (hasConsent()) showScreen('profile');
+            else showScreen('consent');
+          });
+          
+          // Check auto-refresh to transition to live party
+          setInterval(async () => {
+             const r = await fetch(`/api/party/${code}/meta`);
+             if (r.ok) {
+               const m = await r.json();
+               if (!m.isPreParty && state.isPreParty) {
+                 // The party just started!
+                 state.isPreParty = false;
+                 // If user is already on pre-party screen or profile, they can just proceed
+                 if (currentScreen === 'pre-party') {
+                   enterCockpit();
+                 }
+               }
+             }
+          }, 15000); // Check every 15s
+          
+          showScreen('pre-party');
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch meta:", e);
+    }
+    
+    // Normal Landing
+    $('landing-party-name').textContent = `SOIRÉE ${code}`;
+    
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     if (isIOS) {
-      const appURL = `socialmix://join?code=${params.code}`;
+      const appURL = `socialmix://join?code=${code}`;
       const banner = document.createElement('div');
       banner.className = 'app-banner';
       banner.innerHTML = `
@@ -2871,6 +2923,37 @@ function init() {
   // Setup all screens
   setupLanding();
   setupConsent();
+  loadSession();
+});
+
+function startCountdown(dateString) {
+  const target = new Date(dateString).getTime();
+  const el = document.getElementById('pre-party-countdown');
+  
+  if (!el || isNaN(target)) return;
+  
+  function update() {
+    const now = Date.now();
+    const diff = target - now;
+    
+    if (diff <= 0) {
+      el.textContent = "00:00:00";
+      return;
+    }
+    
+    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const s = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    el.textContent = 
+      String(h).padStart(2, '0') + ':' + 
+      String(m).padStart(2, '0') + ':' + 
+      String(s).padStart(2, '0');
+  }
+  
+  update();
+  setInterval(update, 1000);
+}
   setupProfile();
   setupCodeScreen();
   setupSocialHub();
