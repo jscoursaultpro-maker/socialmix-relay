@@ -1336,6 +1336,29 @@ app.get('/api/deezer/chart', async (req, res) => {
   catch (err) { console.error('[Deezer] Chart error:', err.message); res.status(500).json({ error: 'Deezer chart failed' }); }
 });
 
+app.post('/api/party/schedule', express.json({limit: '5mb'}), async (req, res) => {
+  const { code, hostSecret, scheduledFor, welcomeText, coverPhoto, profile } = req.body;
+  if (!code || !hostSecret) return res.status(400).json({ error: 'Missing code or hostSecret' });
+  
+  try {
+    const newParty = {
+      code: code.toUpperCase(),
+      hostSecret,
+      scheduledFor,
+      welcomeText,
+      coverPhoto,
+      isPreParty: true,
+      hostProfile: profile
+    };
+    const savedParty = await Party.findOneAndUpdate({ code: newParty.code }, newParty, { upsert: true, new: true });
+    console.log(`[HTTP] 📅 Scheduled Pre-Party ${savedParty.code}`);
+    res.json({ success: true, party: { code: savedParty.code } });
+  } catch (e) {
+    console.error('[HTTP] ❌ Schedule error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.get('/api/party/:code/meta', async (req, res) => {
   const code = (req.params.code || '').toUpperCase();
   let party = parties.get(code);
