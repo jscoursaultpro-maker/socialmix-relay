@@ -318,12 +318,11 @@ function updatePrePartyTrombinoscope(guests, hostProfile) {
 // ═══════════════════════════════════════════
 // SCREEN 1: LANDING
 // ═══════════════════════════════════════════
-async function setupLanding() {
+async function setupLanding(activeCode) {
   const params = getURLParams();
-  let code = '';
+  let code = activeCode || (params.code ? params.code.toUpperCase() : '');
   
-  if (params.code) {
-    code = params.code.toUpperCase();
+  if (code) {
     state.partyCode = code;
     
     try {
@@ -520,8 +519,8 @@ function setupProfile() {
     const em = $('profile-email').value.trim();
     const insta = $('profile-instagram').value.trim();
 
-    if (!fn || !ln || !ph || !em) {
-      alert("Veuillez remplir vos Nom, Prénom, Email et Téléphone pour valider votre profil.");
+    if (!fn || !ln) {
+      alert("Veuillez remplir au moins votre Prénom et Nom pour valider votre profil.");
       return;
     }
 
@@ -3108,11 +3107,12 @@ async function init() {
   setupSocialHub();
   setupExitModal();
 
-  const isPreParty = await setupLanding();
-  if (isPreParty) return; // Halt normal sequence, pre-party screen handles it
-  
   // Auto-rejoin if session + profile exist
   const resumeSession = loadResumeSession();
+  const activeCode = state.partyCode || (resumeSession ? resumeSession.partyCode : null);
+
+  const isPreParty = await setupLanding(activeCode);
+  if (isPreParty) return; // Halt normal sequence, pre-party screen handles it
   
   // If scanning a different QR code, clear the old session
   if (params.code && resumeSession && resumeSession.partyCode !== params.code.toUpperCase()) {

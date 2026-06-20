@@ -12,7 +12,7 @@
     <link rel="apple-touch-icon" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260620v03">
+    <link rel="stylesheet" href="style.css?v=20260620v04">
 </head>
 <body>
 
@@ -170,12 +170,12 @@
                 </div>
                 <p class="form-hint">Partage tes infos pour rester en contact après la soirée</p>
                 <div class="form-field">
-                    <label>TÉLÉPHONE <span style="color:#00e0c4">*</span></label>
-                    <input type="tel" id="profile-phone" placeholder="06 12 34 56 78" autocomplete="tel" required>
+                    <label>TÉLÉPHONE</label>
+                    <input type="tel" id="profile-phone" placeholder="06 12 34 56 78" autocomplete="tel">
                 </div>
                 <div class="form-field" style="margin-top: 10px">
-                    <label>EMAIL <span style="color:#00e0c4">*</span></label>
-                    <input type="email" id="profile-email" placeholder="marie@example.com" autocomplete="email" required>
+                    <label>EMAIL</label>
+                    <input type="email" id="profile-email" placeholder="marie@example.com" autocomplete="email">
                 </div>
                 <div class="form-field" style="margin-top: 10px">
                     <label>INSTAGRAM</label>
@@ -270,11 +270,6 @@
             </div>
         </button>
 
-        <!-- Cockpit Mini Trombinoscope -->
-        <div style="font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.5); margin-bottom: 8px; margin-top: 10px; letter-spacing: 1px; padding-left: 4px;">DÉJÀ LÀ :</div>
-        <div id="cockpit-trombi" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; scrollbar-width: none; -ms-overflow-style: none; webkit-overflow-scrolling: touch;">
-            <!-- Avatars injected by JS -->
-        </div>
 
         <!-- DJ Live Banner (hidden by default) -->
         <div id="dj-live-banner" class="dj-live-banner hidden">
@@ -643,6 +638,6 @@
 
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="app.js?v=20260620v03"></script>
+    <script src="app.js?v=20260620v04"></script>
 </body>
 </html>
