@@ -67,7 +67,7 @@
 
             <!-- Trombinoscope -->
             <div style="font-size: 12px; font-weight: 800; color: #fff; margin-bottom: 12px; letter-spacing: 1px; text-align: center;">DÉJÀ LÀ :</div>
-            <div id="pre-party-trombi" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 20px; max-width: 340px;">
+            <div id="pre-party-trombi" style="display: flex; flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px; gap: 12px; margin-bottom: 20px; max-width: 100%; -webkit-overflow-scrolling: touch;">
                 <!-- Avatars injected by JS -->
             </div>
 
@@ -140,16 +140,16 @@
                 <div class="form-row">
                     <div class="form-field">
                         <label>PRÉNOM <span style="color:#00e0c4">*</span></label>
-                        <input type="text" id="profile-firstname" placeholder="Ex: Marie" autocomplete="given-name" required>
+                        <input type="text" id="profile-firstname" name="given-name" placeholder="Ex: Marie" autocomplete="given-name" required>
                     </div>
                     <div class="form-field">
                         <label>NOM <span style="color:#00e0c4">*</span></label>
-                        <input type="text" id="profile-lastname" placeholder="Ex: Dupont" autocomplete="family-name" required>
+                        <input type="text" id="profile-lastname" name="family-name" placeholder="Ex: Dupont" autocomplete="family-name" required>
                     </div>
                 </div>
                 <div class="form-field" style="margin-top: 10px">
                     <label>ALIAS (Optionnel)</label>
-                    <input type="text" id="profile-alias" placeholder="Surnom pour le jeu" autocomplete="nickname">
+                    <input type="text" id="profile-alias" name="nickname" placeholder="Surnom pour le jeu" autocomplete="nickname">
                 </div>
             </div>
 
@@ -171,15 +171,15 @@
                 <p class="form-hint">Partage tes infos pour rester en contact après la soirée</p>
                 <div class="form-field">
                     <label>TÉLÉPHONE</label>
-                    <input type="tel" id="profile-phone" placeholder="06 12 34 56 78" autocomplete="tel">
+                    <input type="tel" id="profile-phone" name="tel" placeholder="06 12 34 56 78" autocomplete="tel">
                 </div>
                 <div class="form-field" style="margin-top: 10px">
                     <label>EMAIL</label>
-                    <input type="email" id="profile-email" placeholder="marie@example.com" autocomplete="email">
+                    <input type="email" id="profile-email" name="email" placeholder="marie@example.com" autocomplete="email">
                 </div>
                 <div class="form-field" style="margin-top: 10px">
                     <label>INSTAGRAM</label>
-                    <input type="text" id="profile-instagram" placeholder="@marie_party" autocomplete="username">
+                    <input type="text" id="profile-instagram" name="username" placeholder="@marie_party" autocomplete="username">
                 </div>
             </div>
 
@@ -638,6 +638,6 @@
 
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="app.js?v=20260620v04"></script>
+    <script src="app.js?v=20260620v05"></script>
 </body>
 </html>
