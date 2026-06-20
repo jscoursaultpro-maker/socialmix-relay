@@ -2083,7 +2083,9 @@ function populateKaraoke() {
   // Start empty — populated when guests add songs
   const queue = [];
   const container = $('karaoke-queue');
-  container.innerHTML = '<div class="ranked-item" style="opacity: 0.5; justify-content: center;">Aucune chanson en attente</div>';
+  if (container) {
+    container.innerHTML = '<div class="ranked-item" style="opacity: 0.5; justify-content: center;">Aucune chanson en attente</div>';
+  }
 }
 
 function populateCostumes() {
