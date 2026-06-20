@@ -302,9 +302,10 @@ function updatePrePartyTrombinoscope(guests, hostProfile) {
 // ═══════════════════════════════════════════
 async function setupLanding() {
   const params = getURLParams();
+  let code = '';
   
   if (params.code) {
-    const code = params.code.toUpperCase();
+    code = params.code.toUpperCase();
     state.partyCode = code;
     
     try {
@@ -364,22 +365,26 @@ async function setupLanding() {
     }
     
     // Normal Landing
-    $('landing-party-name').textContent = `SOIRÉE ${code}`;
-    
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-    if (isIOS) {
-      const appURL = `socialmix://join?code=${code}`;
-      const banner = document.createElement('div');
-      banner.className = 'app-banner';
-      banner.innerHTML = `
-        <div class="app-banner-content">
-          <span class="app-banner-icon">📱</span>
-          <span class="app-banner-text">Tu as l'app Social Mix ?</span>
-          <a href="${appURL}" class="app-banner-open">OUVRIR</a>
-          <button class="app-banner-close" onclick="this.parentElement.parentElement.remove()">✕</button>
-        </div>
-      `;
-      document.body.prepend(banner);
+    if (code) {
+      $('landing-party-name').textContent = `SOIRÉE ${code}`;
+      
+      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        const appURL = `socialmix://join?code=${code}`;
+        const banner = document.createElement('div');
+        banner.className = 'app-banner';
+        banner.innerHTML = `
+          <div class="app-banner-content">
+            <span class="app-banner-icon">📱</span>
+            <span class="app-banner-text">Tu as l'app Social Mix ?</span>
+            <a href="${appURL}" class="app-banner-open">OUVRIR</a>
+            <button class="app-banner-close" onclick="this.parentElement.parentElement.remove()">✕</button>
+          </div>
+        `;
+        document.body.prepend(banner);
+      }
+    } else {
+      $('landing-party-name').textContent = `L'EXPÉRIENCE SOCIALE DE TA SOIRÉE`;
     }
   }
   
