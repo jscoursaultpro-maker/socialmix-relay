@@ -12,7 +12,7 @@
     <link rel="apple-touch-icon" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260620v01">
+    <link rel="stylesheet" href="style.css?v=20260620v02">
 </head>
 <body>
 
@@ -58,15 +58,16 @@
             </div>
 
             <!-- Countdown -->
-            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 16px 24px; margin-bottom: 30px;">
-                <div style="font-size: 10px; font-weight: 800; color: var(--turquoise); letter-spacing: 2px; text-align: center; margin-bottom: 8px;">DÉBUT DANS</div>
-                <div id="pre-party-countdown" style="font-size: 32px; font-weight: 900; color: white; text-align: center; font-variant-numeric: tabular-nums;">
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 12px 20px; margin-bottom: 20px;">
+                <div style="font-size: 10px; font-weight: 800; color: var(--turquoise); letter-spacing: 2px; text-align: center; margin-bottom: 6px;">DÉBUT DANS</div>
+                <div id="pre-party-countdown" style="font-size: 26px; font-weight: 900; color: white; text-align: center; font-variant-numeric: tabular-nums;">
                     00:00:00
                 </div>
             </div>
 
             <!-- Trombinoscope -->
-            <div id="pre-party-trombinoscope" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 30px; max-width: 340px;">
+            <div style="font-size: 12px; font-weight: 800; color: #fff; margin-bottom: 12px; letter-spacing: 1px; text-align: center;">DÉJÀ LÀ :</div>
+            <div id="pre-party-trombi" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 20px; max-width: 340px;">
                 <!-- Avatars injected by JS -->
             </div>
 
@@ -263,8 +264,13 @@
                 <div style="font-size:11px;font-weight:900;color:#fff;letter-spacing:1px;">SOCIAL HUB</div>
                 <div style="font-size:8px;color:rgba(255,255,255,0.4);font-weight:500;">Photos · Contacts · Missions</div>
             </div>
-            <div style="font-size:16px;color:rgba(0,210,255,0.6);font-weight:300;">›</div>
         </button>
+
+        <!-- Cockpit Mini Trombinoscope -->
+        <div style="font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.5); margin-bottom: 8px; margin-top: 10px; letter-spacing: 1px; padding-left: 4px;">DÉJÀ LÀ :</div>
+        <div id="cockpit-trombi" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; scrollbar-width: none; -ms-overflow-style: none; webkit-overflow-scrolling: touch;">
+            <!-- Avatars injected by JS -->
+        </div>
 
         <!-- DJ Live Banner (hidden by default) -->
         <div id="dj-live-banner" class="dj-live-banner hidden">
@@ -633,6 +639,6 @@
 
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="app.js?v=20260620v01"></script>
+    <script src="app.js?v=20260620v02"></script>
 </body>
 </html>

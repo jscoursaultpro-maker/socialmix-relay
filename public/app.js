@@ -266,15 +266,25 @@ function updatePrePartyTrombinoscope(guests, hostProfile) {
   if (!container) return;
   container.innerHTML = '';
   
+  window._trombiAllUsers = [];
+  let userIndex = 0;
+  
   // Host
   if (hostProfile) {
+    const hostUser = { name: hostProfile.name || 'HÔTE', emoji: hostProfile.emoji || '🎧', isHost: true, photo: hostProfile.photo || null };
+    window._trombiAllUsers.push(hostUser);
+    
     const d = document.createElement('div');
-    d.style.cssText = "width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(0, 224, 196, 0.2); border: 2px solid #00e0c4; position: relative;";
-    d.textContent = hostProfile.emoji || '🎧';
+    d.style.cssText = "width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(0, 224, 196, 0.2); border: 2px solid #00e0c4; position: relative; cursor: pointer;";
+    d.textContent = hostUser.emoji;
     const badge = document.createElement('div');
     badge.style.cssText = "position: absolute; bottom: -5px; background: #00e0c4; color: #000; font-size: 8px; font-weight: 900; padding: 2px 4px; border-radius: 4px; letter-spacing: 1px;";
     badge.textContent = "HÔTE";
     d.appendChild(badge);
+    
+    let currentIndex = userIndex++;
+    d.addEventListener('click', () => showTrombiContact(currentIndex));
+    
     container.appendChild(d);
   }
   
@@ -282,16 +292,24 @@ function updatePrePartyTrombinoscope(guests, hostProfile) {
   if (guests && guests.length > 0) {
     guests.forEach(g => {
       if (g.isHost) return; // Skip host as they're already added
+      
+      const guestUser = { name: g.name, emoji: g.emoji || '😎', photo: g.photo || null, phone: g.phone, email: g.email, instagram: g.instagram, userId: g.userId };
+      window._trombiAllUsers.push(guestUser);
+      
       const d = document.createElement('div');
-      d.style.cssText = "width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); overflow: hidden;";
+      d.style.cssText = "width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); overflow: hidden; cursor: pointer;";
       if (g.photo) {
         const img = document.createElement('img');
         img.src = g.photo;
         img.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
         d.appendChild(img);
       } else {
-        d.textContent = g.emoji || '😎';
+        d.textContent = guestUser.emoji;
       }
+      
+      let currentIndex = userIndex++;
+      d.addEventListener('click', () => showTrombiContact(currentIndex));
+      
       container.appendChild(d);
     });
   }
@@ -1813,6 +1831,7 @@ function populateTrombinoscope() {
     { name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto }
   ];
   renderTrombi(grid, users);
+  renderCockpitTrombi(users);
 }
 
 function updateTrombinoscope(participants) {
@@ -1832,6 +1851,7 @@ function updateTrombinoscope(participants) {
     }
   });
   renderTrombi(grid, users);
+  renderCockpitTrombi(users);
 }
 
 function renderTrombi(grid, users) {
@@ -1873,6 +1893,39 @@ function renderTrombi(grid, users) {
     more.addEventListener('click', () => showAllContacts());
     grid.appendChild(more);
   }
+}
+
+function renderCockpitTrombi(users) {
+  const container = $('cockpit-trombi');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  users.forEach((u, idx) => {
+    const d = document.createElement('div');
+    d.style.cssText = "width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); overflow: hidden; flex-shrink: 0; cursor: pointer; position: relative;";
+    
+    if (u.photo) {
+      const img = document.createElement('img');
+      img.src = u.photo;
+      img.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
+      d.appendChild(img);
+    } else {
+      const span = document.createElement('span');
+      span.textContent = u.emoji || '😎';
+      d.appendChild(span);
+    }
+    
+    if (u.isHost) {
+      d.style.border = "2px solid #00e0c4";
+      const badge = document.createElement('div');
+      badge.style.cssText = "position: absolute; bottom: -2px; background: #00e0c4; color: #000; font-size: 7px; font-weight: 900; padding: 1px 3px; border-radius: 4px; letter-spacing: 0.5px;";
+      badge.textContent = "HÔTE";
+      d.appendChild(badge);
+    }
+    
+    d.addEventListener('click', () => showTrombiContact(idx));
+    container.appendChild(d);
+  });
 }
 
 // Show contact lightbox for a single participant
