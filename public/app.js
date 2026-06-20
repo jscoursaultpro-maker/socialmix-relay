@@ -262,7 +262,7 @@ function showScreen(name) {
 }
 
 function updatePrePartyTrombinoscope(guests, hostProfile) {
-  const container = $('pre-party-trombinoscope');
+  const container = $('pre-party-trombi');
   if (!container) return;
   container.innerHTML = '';
   
@@ -614,8 +614,40 @@ function setupCodeScreen() {
     showScreen('profile');
   });
   
-  $('code-join-btn').addEventListener('click', () => {
-    state.partyCode = $('party-code').value.trim().toUpperCase() || 'TEUF2025';
+  $('code-join-btn').addEventListener('click', async () => {
+    const code = $('party-code').value.trim().toUpperCase() || 'TEUF2025';
+    state.partyCode = code;
+    
+    // Check if the party is in pre-party mode before jumping to cockpit
+    try {
+      const res = await fetch(`/api/party/${code}/meta`);
+      if (res.ok) {
+        const meta = await res.json();
+        if (meta.isPreParty) {
+          state.isPreParty = true;
+          $('pre-party-host').textContent = `AVEC ${meta.hostName || 'DJ'}`;
+          if (meta.welcomeText) $('pre-party-text').textContent = `"${meta.welcomeText}"`;
+          if (meta.coverPhoto) {
+            $('pre-party-cover').src = meta.coverPhoto;
+            $('pre-party-cover-container').style.display = 'block';
+          }
+          if (meta.scheduledFor) startCountdown(meta.scheduledFor);
+          if (meta.guests) updatePrePartyTrombinoscope(meta.guests, meta.hostProfile);
+          
+          showScreen('pre-party');
+          if (!socket || !socket.connected) {
+            connectToRelay();
+          } else {
+            socket.emit('guest:join', { name: state.guestName, lastName: state.guestLastName, alias: state.guestAlias, emoji: state.guestEmoji, photo: state.guestPhoto, partyCode: state.partyCode });
+          }
+          return; // Stop here, wait for host
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch meta for code join:", e);
+    }
+    
+    // If not pre-party (or fetch failed), enter cockpit normally
     enterCockpit();
   });
 }
