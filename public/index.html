@@ -12,7 +12,7 @@
     <link rel="apple-touch-icon" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260409v27">
+    <link rel="stylesheet" href="style.css?v=20260620v01">
 </head>
 <body>
 
@@ -141,8 +141,8 @@
                         <input type="text" id="profile-firstname" placeholder="Ex: Marie" autocomplete="given-name" required>
                     </div>
                     <div class="form-field">
-                        <label>NOM</label>
-                        <input type="text" id="profile-lastname" placeholder="Ex: Dupont" autocomplete="family-name">
+                        <label>NOM <span style="color:#00e0c4">*</span></label>
+                        <input type="text" id="profile-lastname" placeholder="Ex: Dupont" autocomplete="family-name" required>
                     </div>
                 </div>
                 <div class="form-field" style="margin-top: 10px">
@@ -168,12 +168,12 @@
                 </div>
                 <p class="form-hint">Partage tes infos pour rester en contact après la soirée</p>
                 <div class="form-field">
-                    <label>TÉLÉPHONE</label>
-                    <input type="tel" id="profile-phone" placeholder="06 12 34 56 78" autocomplete="tel">
+                    <label>TÉLÉPHONE <span style="color:#00e0c4">*</span></label>
+                    <input type="tel" id="profile-phone" placeholder="06 12 34 56 78" autocomplete="tel" required>
                 </div>
                 <div class="form-field" style="margin-top: 10px">
-                    <label>EMAIL</label>
-                    <input type="email" id="profile-email" placeholder="marie@example.com" autocomplete="email">
+                    <label>EMAIL <span style="color:#00e0c4">*</span></label>
+                    <input type="email" id="profile-email" placeholder="marie@example.com" autocomplete="email" required>
                 </div>
                 <div class="form-field" style="margin-top: 10px">
                     <label>INSTAGRAM</label>
@@ -633,6 +633,6 @@
 
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="app.js?v=20260619v1"></script>
+    <script src="app.js?v=20260620v01"></script>
 </body>
 </html>

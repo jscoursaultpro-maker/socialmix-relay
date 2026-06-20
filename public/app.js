@@ -502,8 +502,8 @@ function setupProfile() {
     const em = $('profile-email').value.trim();
     const insta = $('profile-instagram').value.trim();
 
-    if (!fn) {
-      alert("Veuillez remplir votre Prénom pour valider votre profil.");
+    if (!fn || !ln || !ph || !em) {
+      alert("Veuillez remplir vos Nom, Prénom, Email et Téléphone pour valider votre profil.");
       return;
     }
 
