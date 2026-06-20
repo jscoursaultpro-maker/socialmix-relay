@@ -1793,14 +1793,14 @@ function setupSocialHub() {
   // Gallery photo: same binding pattern as costume (which works!)
   const galleryInput = $('gallery-photo-input');
   if (galleryInput) {
-    galleryInput.onchange = handleGalleryPhoto;
-    console.log('[SocialHub] Gallery photo input bound to handleGalleryPhoto');
+    galleryInput.onchange = handleDiapoPhoto;
+    console.log('[SocialHub] Gallery photo input bound to handleDiapoPhoto');
   }
   
   // Camera photo input (direct camera capture)
   const cameraInput = $('camera-photo-input');
   if (cameraInput) {
-    cameraInput.onchange = handleGalleryPhoto;
+    cameraInput.onchange = handleDiapoPhoto;
     console.log('[SocialHub] Camera photo input bound');
   }
   
