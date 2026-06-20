@@ -12,7 +12,7 @@
     <link rel="apple-touch-icon" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260620v02">
+    <link rel="stylesheet" href="style.css?v=20260620v03">
 </head>
 <body>
 
@@ -132,6 +132,7 @@
             </div>
 
             <!-- Identity -->
+            <form id="profile-form" onsubmit="event.preventDefault();">
             <div class="form-card">
                 <div class="form-card-header">
                     <span>👤</span> IDENTITÉ
@@ -182,9 +183,10 @@
                 </div>
             </div>
 
-            <button id="profile-save" class="cta-btn">
-                <span>✅</span> C'EST MOI !
+            <button id="profile-save" class="cta-btn" type="button">
+                <span>✅</span> ENREGISTRER
             </button>
+            </form>
             <div style="height: 30px"></div>
         </div>
         <!-- Scroll indicator -->
@@ -218,13 +220,13 @@
     <!-- ═══ SCREEN 4: COCKPIT ═══ -->
     <div id="cockpit-screen" class="screen">
         <!-- Header -->
-        <div class="header">
-            <div class="header-left">
-                <div style="display:flex; flex-direction:column; gap:2px;">
-                    <div class="header-title">🎧 SOCIAL MIX</div>
-                    <div class="header-greeting" id="greeting">Hey ! 🎉</div>
+        <div class="header" style="flex-direction: column; align-items: stretch; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div class="header-left">
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <div class="header-title">🎧 SOCIAL MIX</div>
+                    </div>
                 </div>
-            </div>
             <div class="header-right" style="display:flex; align-items:center; gap:8px;">
                 <div class="trending-badge" id="trending-badge">
                     <span class="crown">👑</span>
@@ -250,6 +252,8 @@
                     <div id="header-avatar-fallback" style="width:100%; height:100%; background:rgba(255,255,255,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px;">👤</div>
                 </button>
             </div>
+            </div>
+            <div class="header-greeting" id="greeting" style="text-align: center; font-size: 16px; margin-top: 4px; padding-bottom: 4px;">Hey ! 🎉</div>
         </div>
 
         <!-- Social Hub Quick Access -->
@@ -639,6 +643,6 @@
 
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="app.js?v=20260620v02"></script>
+    <script src="app.js?v=20260620v03"></script>
 </body>
 </html>
