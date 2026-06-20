@@ -65,6 +65,11 @@
                 </div>
             </div>
 
+            <!-- Trombinoscope -->
+            <div id="pre-party-trombinoscope" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 30px; max-width: 340px;">
+                <!-- Avatars injected by JS -->
+            </div>
+
             <button id="pre-party-prepare-btn" class="cta-btn" style="background: linear-gradient(135deg, #00c853, #00bfa5); color: #0a0e1a;">
                 <span>✨</span> PRÉPARER MON PROFIL
             </button>
@@ -132,13 +137,17 @@
                 </div>
                 <div class="form-row">
                     <div class="form-field">
-                        <label>PRÉNOM</label>
-                        <input type="text" id="profile-firstname" placeholder="Ex: Marie" autocomplete="given-name">
+                        <label>PRÉNOM <span style="color:#00e0c4">*</span></label>
+                        <input type="text" id="profile-firstname" placeholder="Ex: Marie" autocomplete="given-name" required>
                     </div>
                     <div class="form-field">
                         <label>NOM</label>
                         <input type="text" id="profile-lastname" placeholder="Ex: Dupont" autocomplete="family-name">
                     </div>
+                </div>
+                <div class="form-field" style="margin-top: 10px">
+                    <label>ALIAS (Optionnel)</label>
+                    <input type="text" id="profile-alias" placeholder="Surnom pour le jeu" autocomplete="nickname">
                 </div>
             </div>
 

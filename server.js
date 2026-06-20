@@ -1383,6 +1383,8 @@ app.get('/api/party/:code/meta', async (req, res) => {
     scheduledFor: party.scheduledFor,
     isPreParty: party.isPreParty,
     guestsWaitingCount: party.participants ? party.participants.length : 0,
+    guests: party.participants || [],
+    hostProfile: party.hostProfile || null,
     hostName: party.hostProfile ? party.hostProfile.name : 'DJ'
   });
 });

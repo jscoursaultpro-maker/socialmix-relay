@@ -137,6 +137,7 @@ function saveProfile() {
   localStorage.setItem(PROFILE_KEY, JSON.stringify({
     firstName: state.guestName,
     lastName: state.guestLastName,
+    alias: state.guestAlias,
     emoji: state.guestEmoji,
     photo: state.guestPhoto,
     phone: state.guestPhone,
@@ -151,6 +152,7 @@ function loadProfile() {
     if (saved) {
       state.guestName = saved.firstName || '';
       state.guestLastName = saved.lastName || '';
+      state.guestAlias = saved.alias || '';
       state.guestEmoji = saved.emoji || '🎉';
       state.guestPhoto = saved.photo || null;
       state.guestPhone = saved.phone || '';
@@ -259,6 +261,42 @@ function showScreen(name) {
   }
 }
 
+function updatePrePartyTrombinoscope(guests, hostProfile) {
+  const container = $('pre-party-trombinoscope');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  // Host
+  if (hostProfile) {
+    const d = document.createElement('div');
+    d.style.cssText = "width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(0, 224, 196, 0.2); border: 2px solid #00e0c4; position: relative;";
+    d.textContent = hostProfile.emoji || '🎧';
+    const badge = document.createElement('div');
+    badge.style.cssText = "position: absolute; bottom: -5px; background: #00e0c4; color: #000; font-size: 8px; font-weight: 900; padding: 2px 4px; border-radius: 4px; letter-spacing: 1px;";
+    badge.textContent = "HÔTE";
+    d.appendChild(badge);
+    container.appendChild(d);
+  }
+  
+  // Guests
+  if (guests && guests.length > 0) {
+    guests.forEach(g => {
+      if (g.isHost) return; // Skip host as they're already added
+      const d = document.createElement('div');
+      d.style.cssText = "width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); overflow: hidden;";
+      if (g.photo) {
+        const img = document.createElement('img');
+        img.src = g.photo;
+        img.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
+        d.appendChild(img);
+      } else {
+        d.textContent = g.emoji || '😎';
+      }
+      container.appendChild(d);
+    });
+  }
+}
+
 // ═══════════════════════════════════════════
 // SCREEN 1: LANDING
 // ═══════════════════════════════════════════
@@ -289,6 +327,10 @@ async function setupLanding() {
           if (meta.scheduledFor) {
             startCountdown(meta.scheduledFor);
           }
+
+          if (meta.guests) {
+            updatePrePartyTrombinoscope(meta.guests, meta.hostProfile);
+          }
           
           $('pre-party-prepare-btn').addEventListener('click', () => {
             if (hasConsent()) showScreen('profile');
@@ -307,6 +349,8 @@ async function setupLanding() {
                  if (currentScreen === 'pre-party') {
                    enterCockpit();
                  }
+               } else if (m.isPreParty) {
+                 updatePrePartyTrombinoscope(m.guests, m.hostProfile);
                }
              }
           }, 15000); // Check every 15s
@@ -399,6 +443,7 @@ function setupProfile() {
   // Pre-fill if profile exists
   if (state.guestName) $('profile-firstname').value = state.guestName;
   if (state.guestLastName) $('profile-lastname').value = state.guestLastName;
+  if (state.guestAlias && $('profile-alias')) $('profile-alias').value = state.guestAlias;
   if (state.guestPhone) $('profile-phone').value = state.guestPhone;
   if (state.guestEmail) $('profile-email').value = state.guestEmail;
   if (state.guestInsta) $('profile-instagram').value = state.guestInsta;
@@ -445,11 +490,24 @@ function setupProfile() {
   
   // Save
   $('profile-save').addEventListener('click', () => {
-    state.guestName = $('profile-firstname').value.trim() || 'Guest';
-    state.guestLastName = $('profile-lastname').value.trim();
-    state.guestPhone = $('profile-phone').value.trim();
-    state.guestEmail = $('profile-email').value.trim();
-    state.guestInsta = $('profile-instagram').value.trim();
+    const fn = $('profile-firstname').value.trim();
+    const ln = $('profile-lastname').value.trim();
+    const alias = $('profile-alias') ? $('profile-alias').value.trim() : '';
+    const ph = $('profile-phone').value.trim();
+    const em = $('profile-email').value.trim();
+    const insta = $('profile-instagram').value.trim();
+
+    if (!fn) {
+      alert("Veuillez remplir votre Prénom pour valider votre profil.");
+      return;
+    }
+
+    state.guestName = fn;
+    state.guestLastName = ln;
+    state.guestAlias = alias;
+    state.guestPhone = ph;
+    state.guestEmail = em;
+    state.guestInsta = insta;
     saveProfile();
     
     if (state.editingFromCockpit) {
@@ -461,6 +519,8 @@ function setupProfile() {
       if (socket && socket.connected) {
         socket.emit('guest:join', {
           name: state.guestName,
+          lastName: state.guestLastName,
+          alias: state.guestAlias,
           emoji: state.guestEmoji,
           photo: state.guestPhoto,
           partyCode: state.partyCode
@@ -470,7 +530,20 @@ function setupProfile() {
       const params = getURLParams();
       if (params.code) {
         state.partyCode = params.code.toUpperCase();
-        enterCockpit();
+        if (state.isPreParty) {
+          showScreen('pre-party');
+          if (!socket || !socket.connected) {
+            connectToRelay();
+          } else {
+            socket.emit('guest:join', { name: state.guestName, lastName: state.guestLastName, alias: state.guestAlias, emoji: state.guestEmoji, photo: state.guestPhoto, partyCode: state.partyCode });
+          }
+          // Also fetch meta once to update trombinoscope immediately
+          fetch(`/api/party/${state.partyCode}/meta`).then(r => r.json()).then(m => {
+            if (typeof updatePrePartyTrombinoscope === 'function') updatePrePartyTrombinoscope(m.guests, m.hostProfile);
+          }).catch(()=>{});
+        } else {
+          enterCockpit();
+        }
       } else {
         showScreen('code');
       }
@@ -646,6 +719,7 @@ function connectToRelay() {
       userId: state.userId || null,
       name: state.guestName,
       lastName: state.guestLastName,
+      alias: state.guestAlias,
       emoji: state.guestEmoji,
       photo: state.guestPhoto,
       phone: state.guestPhone,
@@ -2935,15 +3009,15 @@ async function init() {
   if (params.emoji) state.guestEmoji = params.emoji;
   if (params.code) state.partyCode = params.code.toUpperCase();
   
-  // Setup all screens
-  const isPreParty = await setupLanding();
-  if (isPreParty) return; // Halt normal sequence, pre-party screen handles it
-  
+  // Setup all screens (must run before pre-party early return so listeners are attached)
   setupConsent();
   setupProfile();
   setupCodeScreen();
   setupSocialHub();
   setupExitModal();
+
+  const isPreParty = await setupLanding();
+  if (isPreParty) return; // Halt normal sequence, pre-party screen handles it
   
   // Auto-rejoin if session + profile exist
   const resumeSession = loadResumeSession();
