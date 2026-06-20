@@ -274,18 +274,37 @@ function updatePrePartyTrombinoscope(guests, hostProfile) {
     const hostUser = { name: hostProfile.name || 'HÔTE', emoji: hostProfile.emoji || '🎧', isHost: true, photo: hostProfile.photo || null };
     window._trombiAllUsers.push(hostUser);
     
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; cursor: pointer; width: 60px;";
+    
     const d = document.createElement('div');
-    d.style.cssText = "width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(0, 224, 196, 0.2); border: 2px solid #00e0c4; position: relative; cursor: pointer;";
-    d.textContent = hostUser.emoji;
+    d.style.cssText = "width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(0, 224, 196, 0.2); border: 2px solid #00e0c4; position: relative;";
+    
+    if (hostUser.photo) {
+      const img = document.createElement('img');
+      img.src = hostUser.photo;
+      img.style.cssText = "width: 100%; height: 100%; object-fit: cover; border-radius: 50%;";
+      d.appendChild(img);
+    } else {
+      d.textContent = hostUser.emoji;
+    }
+    
     const badge = document.createElement('div');
     badge.style.cssText = "position: absolute; bottom: -5px; background: #00e0c4; color: #000; font-size: 8px; font-weight: 900; padding: 2px 4px; border-radius: 4px; letter-spacing: 1px;";
     badge.textContent = "HÔTE";
     d.appendChild(badge);
     
-    let currentIndex = userIndex++;
-    d.addEventListener('click', () => showTrombiContact(currentIndex));
+    const nameLabel = document.createElement('div');
+    nameLabel.style.cssText = "font-size: 10px; color: #fff; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;";
+    nameLabel.textContent = (hostUser.name || '').substring(0, 7);
     
-    container.appendChild(d);
+    wrapper.appendChild(d);
+    wrapper.appendChild(nameLabel);
+    
+    let currentIndex = userIndex++;
+    wrapper.addEventListener('click', () => showTrombiContact(currentIndex));
+    
+    container.appendChild(wrapper);
   }
   
   // Guests
@@ -296,8 +315,11 @@ function updatePrePartyTrombinoscope(guests, hostProfile) {
       const guestUser = { name: g.name, emoji: g.emoji || '😎', photo: g.photo || null, phone: g.phone, email: g.email, instagram: g.instagram, userId: g.userId };
       window._trombiAllUsers.push(guestUser);
       
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; cursor: pointer; width: 60px;";
+      
       const d = document.createElement('div');
-      d.style.cssText = "width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); overflow: hidden; cursor: pointer;";
+      d.style.cssText = "width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); overflow: hidden;";
       if (g.photo) {
         const img = document.createElement('img');
         img.src = g.photo;
@@ -307,10 +329,17 @@ function updatePrePartyTrombinoscope(guests, hostProfile) {
         d.textContent = guestUser.emoji;
       }
       
-      let currentIndex = userIndex++;
-      d.addEventListener('click', () => showTrombiContact(currentIndex));
+      const nameLabel = document.createElement('div');
+      nameLabel.style.cssText = "font-size: 10px; color: #fff; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;";
+      nameLabel.textContent = (guestUser.name || '').substring(0, 7);
       
-      container.appendChild(d);
+      wrapper.appendChild(d);
+      wrapper.appendChild(nameLabel);
+      
+      let currentIndex = userIndex++;
+      wrapper.addEventListener('click', () => showTrombiContact(currentIndex));
+      
+      container.appendChild(wrapper);
     });
   }
 }
@@ -1083,6 +1112,14 @@ function connectToRelay() {
   // Photo shared by another guest (for diapo)
   socket.on('photo:shared', (photo) => {
     addDiapoPhoto(photo.dataURL, photo.guestName);
+  });
+
+  socket.on('photos:update', (photos) => {
+    if ($('end-screen') && !$('end-screen').classList.contains('hidden')) {
+      refreshAllPhotos();
+    } else if ($('socialhub-screen') && !$('socialhub-screen').classList.contains('hidden')) {
+      refreshAllPhotos();
+    }
   });
 
   // Photo error from server (cap exceeded, payload too large, etc.)
@@ -2288,7 +2325,7 @@ function handleCostumePhoto(e) {
 }
 
 // Gallery photo handler — clone of handleCostumePhoto WITHOUT costume entry update
-const GUEST_PHOTO_CAP = 5;
+const GUEST_PHOTO_CAP = 6;
 
 // handleGalleryPhoto has been merged into handleDiapoPhoto and is no longer used
 
@@ -2840,6 +2877,14 @@ function refreshAllPhotos() {
   socket.emit('guest:requestState');
 }
 
+window.deleteGalleryPhoto = function(dataURL, guestName) {
+  if (!confirm("Es-tu sûr(e) de vouloir supprimer cette photo ?")) return;
+  socket.emit('guest:deletePhoto', { dataURL, guestName });
+  if (state.myPhotos) {
+    state.myPhotos = state.myPhotos.filter(p => p !== dataURL);
+  }
+}
+
 // ═══════════════════════════════════════════
 // EXIT MODAL
 // ═══════════════════════════════════════════
@@ -2881,7 +2926,7 @@ function quitParty() {
   let trombiHTML = '';
   if (participants.length) {
     trombiHTML = participants.map((p, pidx) => {
-      const shortName = (p.name || 'Guest').length > 6 ? (p.name || 'Guest').substring(0, 6) + '…' : (p.name || 'Guest');
+      const shortName = (p.name || 'Guest').length > 7 ? (p.name || 'Guest').substring(0, 7) + '…' : (p.name || 'Guest');
       const avatarContent = p.photo
         ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">`
         : `<span style="font-size:28px;">${p.emoji || '🎉'}</span>`;
@@ -2896,11 +2941,16 @@ function quitParty() {
   // Build photo gallery
   let galleryHTML = '';
   if (photos.length) {
-    galleryHTML = photos.map((p, i) => `
+    galleryHTML = photos.map((p, i) => {
+      const isMine = p.guestName === state.guestName;
+      const deleteBtn = isMine ? `<div style="position:absolute;top:4px;right:4px;width:24px;height:24px;background:rgba(0,0,0,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;cursor:pointer;z-index:2;" onclick="event.stopPropagation(); deleteGalleryPhoto('${p.dataURL}', '${p.guestName.replace(/'/g, "\\'")}')">❌</div>` : '';
+      return `
       <div style="position:relative;" data-photo-idx="${i}">
+        ${deleteBtn}
         <img src="${p.dataURL}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:2px solid rgba(255,255,255,0.1);cursor:pointer" onclick="showEndPhotoLightbox('${i}')">
-        <div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.5);text-align:center;margin-top:2px;">${(p.guestName || 'Guest').substring(0, 8)}</div>
-      </div>`).join('');
+        <div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.5);text-align:center;margin-top:2px;">${(p.guestName || 'Guest').substring(0, 7)}</div>
+      </div>`;
+    }).join('');
   }
   
   // Build favorite tracks

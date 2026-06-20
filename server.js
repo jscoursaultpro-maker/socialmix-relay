@@ -2921,7 +2921,7 @@ io.on('connection', (socket) => {
     }
     
     // Per-guest photo cap (costume photos excluded)
-    const GUEST_PHOTO_CAP = 15;
+    const GUEST_PHOTO_CAP = 6;
     const guestPhotoCount = party.photos.filter(p => p.guestName === data.guestName && !p.isCostume).length;
     if (guestPhotoCount >= GUEST_PHOTO_CAP) {
       console.warn(`📸 [${party.code}] Photo cap reached for ${data.guestName} (${guestPhotoCount}/${GUEST_PHOTO_CAP})`);
@@ -2937,6 +2937,21 @@ io.on('connection', (socket) => {
     io.to(hostRoom).emit('guest:photo', photo);
     addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 20, 'photo');
     console.log(`📸 [${party.code}] Photo ACCEPTED: ${data.guestName} (${guestPhotoCount + 1}/${GUEST_PHOTO_CAP}, ${Math.round(payloadSize/1024)} KB, host sockets: ${hostSockets ? hostSockets.size : 0})`);
+  });
+
+  socket.on('guest:deletePhoto', (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    const { dataURL, guestName } = data || {};
+    if (!dataURL) return;
+    
+    // We match both dataURL and guestName to ensure they only delete their own
+    const idx = party.photos.findIndex(p => p.dataURL === dataURL && p.guestName === guestName);
+    if (idx !== -1) {
+      party.photos.splice(idx, 1);
+      io.to(`host:${party.code}`).emit('photos:update', party.photos);
+      io.to(`guest:${party.code}`).emit('photos:update', party.photos);
+      console.log(`📸 [${party.code}] Photo DELETED by guest: ${guestName}`);
+    }
   });
 
   socket.on('guest:message', (data) => {
@@ -3111,6 +3126,16 @@ io.on('connection', (socket) => {
       party.photos.splice(idx, 1);
       io.to(`host:${party.code}`).emit('photos:update', party.photos);
       io.to(`guest:${party.code}`).emit('photos:update', party.photos);
+    }
+  });
+
+  socket.on('host:deleteMessage', (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    const msgId = data && data.id;
+    if (msgId && party.messages) {
+      party.messages = party.messages.filter(m => m.id !== msgId);
+      io.to(`host:${party.code}`).emit('messages:update', party.messages);
+      io.to(`guest:${party.code}`).emit('messages:update', party.messages);
     }
   });
 
