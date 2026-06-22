@@ -28,7 +28,18 @@ const PartySchema = new mongoose.Schema({
   coverPhoto:       { type: String, default: null },   // ★ MVP Pre-Party (Base64)
   isPreParty:       { type: Boolean, default: false }, // ★ MVP Pre-Party
   createdAt:        { type: Date, default: Date.now },
-  endedAt:          { type: Date, default: null }
+  endedAt:          { type: Date, default: null },
+  lifecycle: {
+    status: { 
+      type: String, 
+      enum: ['draft', 'scheduled', 'live', 'paused', 'ended', 'archived'],
+      default: 'live'
+    },
+    startedAt: { type: Date, default: Date.now },
+    archivedAt: Date,
+    endedBy: { type: String, enum: ['host', 'auto_timeout', 'admin'] },
+    lastActivityAt: { type: Date, default: Date.now }
+  }
 }, {
   timestamps: false,
   minimize: false  // preserve empty objects {}

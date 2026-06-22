@@ -14,6 +14,8 @@ import Friendship from './models/Friendship.js';
 import Track from './models/Track.js';
 import HostPreference from './models/HostPreference.js';
 import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRESS_METRICS=1
+import { uploadPhoto } from './services/cloudinaryService.js';
+import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1375,9 +1377,13 @@ app.get('/api/party/:code/meta', async (req, res) => {
       return res.status(500).json({ error: 'Database error' });
     }
   }
+  if (party.lifecycle && party.lifecycle.status === 'archived') {
+    return res.status(403).json({ error: 'Party archived' });
+  }
 
   // MVP Pre-Party meta fields
   res.json({
+    status: party.lifecycle ? party.lifecycle.status : 'live',
     coverPhoto: party.coverPhoto,
     welcomeText: party.welcomeText,
     scheduledFor: party.scheduledFor,
@@ -1395,6 +1401,9 @@ app.get('/api/party/:code/explore', async (req, res) => {
   
   try {
     const partyState = parties.get(code);
+    if (partyState && partyState.lifecycle && partyState.lifecycle.status === 'archived') {
+      return res.status(403).json({ error: 'Party archived' });
+    }
     
     // Get played track IDs to exclude
     const playedIds = new Set();
@@ -1727,8 +1736,14 @@ function addPhotoToParty(party, photo) {
   const hash = url.length + ':' + url.substring(mid, mid + 80);
   if (party.photoHashes.has(hash)) return false;
   party.photoHashes.add(hash);
-  party.photos.push(photo);
+  party.photos = cappedPush(party.photos, photo, 200);
   return true;
+}
+
+function updateActivity(party) {
+  if (party && party.lifecycle) {
+    party.lifecycle.lastActivityAt = new Date().toISOString();
+  }
 }
 
 function addPoints(party, participantId, name, points, reason) {
@@ -2056,6 +2071,8 @@ io.on('connection', (socket) => {
       existing.hostSocketId = socket.id;
       existing.hostProfile = data.profile || existing.hostProfile;
       existing.isDirty = true;
+      existing.lifecycle.status = 'live';
+      existing.lifecycle.lastActivityAt = new Date().toISOString();
       existing.isPreParty = false;
 
       // Update host participant entry with new socket id
@@ -2185,12 +2202,12 @@ io.on('connection', (socket) => {
           // We will use dj_brain_auto as default fallback
       }
 
-      party.trackHistory.unshift({
+      party.trackHistory = cappedUnshift(party.trackHistory, {
         ...track,
         playedAt: new Date().toISOString(),
         requestedBy,
         source: historySource
-      });
+      }, 500);
       addPoints(party, 'host', 'DJ', 15, 'nouveau titre : ' + track.title);
 
       // Si c'est une suggestion acceptée, bonus de points au guest
@@ -2253,7 +2270,7 @@ io.on('connection', (socket) => {
       liveTrack.requestedBy = requestedBy;
       
       // Append to trackHistory (at index 0)
-      party.trackHistory.unshift(liveTrack);
+      party.trackHistory = cappedUnshift(party.trackHistory, liveTrack, 500);
       addPoints(party, 'host', 'DJ', 20, 'Mix Live Track: ' + liveTrack.title);
     }
     
@@ -2536,6 +2553,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:vote', (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    updateActivity(party);
     if (!party.guestVotes[data.guestId]) party.guestVotes[data.guestId] = {};
     party.guestVotes[data.guestId][data.trackId || 'current'] = data.type;
     io.to(`host:${party.code}`).emit('guest:voted', data);
@@ -2559,6 +2577,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:genreVote', (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    updateActivity(party);
     const voterKey = data.guestName || data.guestId || socket.id;
     const genre = data.genre;
     if (!party.guestGenreVoteExpiry) party.guestGenreVoteExpiry = {};
@@ -2595,6 +2614,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:suggest', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    updateActivity(party);
 
     const title    = data.title  || data.query || '';
     const artist   = data.artist || '';
@@ -2639,7 +2659,7 @@ io.on('connection', (socket) => {
       queuedAt: null, playingAt: null, playedAt: null, dismissedAt: null,
       socketId: socket.id
     };
-    party.suggestions.push(suggestion);
+    party.suggestions = cappedPush(party.suggestions, suggestion, 200);
     const hostRoom = `host:${party.code}`;
     io.to(hostRoom).emit('guest:suggested', suggestion);
     if (data.guestId || data.guestName)
@@ -2927,8 +2947,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('guest:photo', (data) => {
+  socket.on('guest:photo', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    updateActivity(party);
     
     // Payload size guard — reject > 500KB base64 (~375KB raw)
     const payloadSize = (data.dataURL || '').length;
@@ -2947,14 +2968,34 @@ io.on('connection', (socket) => {
       return;
     }
     
-    const photo = { dataURL: data.dataURL, guestName: data.guestName || 'Guest', caption: data.caption || null, sentAt: new Date().toISOString() };
-    if (!addPhotoToParty(party, photo)) return;
-    const hostRoom = `host:${party.code}`;
-    const hostSockets = io.sockets.adapter.rooms.get(hostRoom);
-    socket.broadcast.to(`guest:${party.code}`).emit('photo:shared', photo);
-    io.to(hostRoom).emit('guest:photo', photo);
-    addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 20, 'photo');
-    console.log(`📸 [${party.code}] Photo ACCEPTED: ${data.guestName} (${guestPhotoCount + 1}/${GUEST_PHOTO_CAP}, ${Math.round(payloadSize/1024)} KB, host sockets: ${hostSockets ? hostSockets.size : 0})`);
+    try {
+      // 1. Upload Cloudinary
+      const uploaded = await uploadPhoto(data.dataURL, party.code);
+      
+      const photo = { 
+        url: uploaded.url,
+        publicId: uploaded.publicId,
+        width: uploaded.width,
+        height: uploaded.height,
+        guestName: data.guestName || 'Guest', 
+        guestId: data.guestId || socket.id,
+        caption: data.caption || null, 
+        sentAt: new Date().toISOString() 
+      };
+      
+      // 2. Add to party (using cappedPush)
+      party.photos = cappedPush(party.photos, photo, 200);
+      
+      const hostRoom = `host:${party.code}`;
+      const hostSockets = io.sockets.adapter.rooms.get(hostRoom);
+      socket.broadcast.to(`guest:${party.code}`).emit('photo:shared', photo);
+      io.to(hostRoom).emit('guest:photo', photo);
+      addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 20, 'photo');
+      console.log(`📸 [${party.code}] Photo ACCEPTED & UPLOADED: ${data.guestName} (${guestPhotoCount + 1}/${GUEST_PHOTO_CAP}, host sockets: ${hostSockets ? hostSockets.size : 0})`);
+    } catch (err) {
+      console.error(`📸 [${party.code}] Photo UPLOAD FAILED`, err);
+      socket.emit('photo:error', { error: 'UPLOAD_FAILED', message: '📸 Échec du téléchargement de la photo.' });
+    }
   });
 
   socket.on('guest:deletePhoto', (data) => {
@@ -2974,6 +3015,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:message', (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    updateActivity(party);
     const msg = { id: Date.now().toString(), guestName: data.guestName || 'Guest', message: data.message || '', guestPhoto: data.guestPhoto || null, guestEmoji: data.guestEmoji || '🎉', sentAt: new Date().toISOString() };
     // Store in party state for resync
     if (!party.messages) party.messages = [];
@@ -3126,6 +3168,11 @@ io.on('connection', (socket) => {
       console.warn(`⚠️ [${party.code}] Unauthorized endParty attempt from ${socket.id}`);
       return;
     }
+    party.lifecycle.status = 'ended';
+    party.lifecycle.endedBy = 'host';
+    party.lifecycle.lastActivityAt = new Date().toISOString();
+    party.endedAt = new Date().toISOString();
+
     io.to(`guest:${party.code}`).emit('party:ended', {
       reason: 'La soirée est terminée ! Merci d\'avoir participé 🎉',
       scores: party.participantScores, trackHistory: party.trackHistory,
@@ -3357,3 +3404,23 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000); // Toutes les 5 minutes
+
+// Auto-end after 12h of inactivity
+setInterval(() => {
+  const now = Date.now();
+  for (const party of parties.values()) {
+    if (party.lifecycle && party.lifecycle.status === 'live') {
+      const lastActivity = new Date(party.lifecycle.lastActivityAt || party.createdAt).getTime();
+      if (now - lastActivity > 12 * 60 * 60 * 1000) {
+        party.lifecycle.status = 'ended';
+        party.lifecycle.endedBy = 'auto_timeout';
+        party.endedAt = new Date().toISOString();
+        console.log(`⏱️ [${party.code}] Auto-ended after 12h of inactivity`);
+        io.to(`host:${party.code}`).emit('party:auto_ended');
+        io.to(`guest:${party.code}`).emit('party:ended');
+        flushEndedParty(party.code);
+        parties.delete(party.code);
+      }
+    }
+  }
+}, 30 * 60 * 1000); // Check every 30 minutes

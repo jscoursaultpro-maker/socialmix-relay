@@ -44,6 +44,13 @@ export function createPartyState(code) {
     welcomeText: '',           // ★ MVP Pre-Party
     coverPhoto: null,          // ★ MVP Pre-Party
     isPreParty: false,         // ★ MVP Pre-Party
+    lifecycle: {
+      status: 'live',
+      startedAt: new Date().toISOString(),
+      archivedAt: null,
+      endedBy: null,
+      lastActivityAt: new Date().toISOString()
+    },
     isDirty: true,             // Needs flush to MongoDB
     lastFlushed: 0             // Timestamp of last DB write
   };
