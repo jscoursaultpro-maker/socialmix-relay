@@ -224,3 +224,4 @@ export async function restoreParties(parties) {
 }
 
 export { flushParty };
+export { Party };
