@@ -1,0 +1,271 @@
+{
+  "_instruction": "INSTRUCTION : Tu es un DJ professionnel expert. Classe les 20 tracks listées ci-dessous selon les règles décrites. Génère ta réponse sous forme d'un FICHIER TÉLÉCHARGEABLE nommé \"batch_chatgpt_005_done.json\". Le fichier doit contenir exactement : { \"classifications\": [ ...tes 20 objets JSON... ] }. Ne mets RIEN dans la conversation, génère UNIQUEMENT le fichier.",
+  "_contexte_soiree": "40-80 invités | 6-7h de soirée (20h-2h30) | Public mixte 25-65 ans | Soirées privées (anniversaires, mariages, fêtes amis)",
+  "_phases": {
+    "arrival": "🌅 Apéro chic — energy 3.5-5.0, BPM 70-110 — Ex: Sade, Norah Jones, Goldman, Cabrel",
+    "ambiance": "🥂 Warm-up — energy 5.0-6.5, BPM 80-115 — Ex: Sheeran, EWF mid-tempo, Marvin Gaye",
+    "takeoff": "🚀 La montée — energy 6.5-7.5, BPM 100-125 — Ex: Donna Summer, Kool & The Gang, Drake",
+    "groove": "💃 Vraiment lancé — energy 7.5-8.5, BPM 115-130 — Ex: Calvin Harris, Sister Sledge, Bruno Mars",
+    "party": "🔥 Peak time — energy 8.5-10, BPM 120-135 — Ex: Avicii, Guetta, Justice, Sapés Comme Jamais",
+    "closing": "🌙 Descente émotionnelle — energy 4.5-6.0, BPM 90-115 — Ex: Bill Withers, Soul slow"
+  },
+  "_genres_bdd": [
+    "Chill",
+    "Pop",
+    "COCOVARIET",
+    "Rock",
+    "Hip-Hop",
+    "R&B",
+    "Latin",
+    "Afro",
+    "Disco",
+    "House",
+    "Electro"
+  ],
+  "_ui_categories": [
+    "Chill",
+    "Pop",
+    "Rock",
+    "Rap",
+    "Latin",
+    "Old school",
+    "Urban Groove",
+    "Dance",
+    "Électro"
+  ],
+  "_format_reponse": {
+    "id": "<conserver tel quel depuis tracks_a_classer>",
+    "genreBDD": "<genre parmi _genres_bdd>",
+    "uiCategoryPrimary": "<catégorie parmi _ui_categories>",
+    "uiCategoriesSecondary": [
+      "<0-2 catégories, JAMAIS = primary>"
+    ],
+    "phase": "<arrival/ambiance/takeoff/groove/party/closing>",
+    "phaseAlternate": "<phase adjacente à phase>",
+    "energy": "<1-10>",
+    "bpm": "<60-220>",
+    "danceability": "<0.0-1.0>",
+    "isBanger": "<true/false — true uniquement si groove ou party>",
+    "isSingalong": "<true/false>",
+    "isEmotional": "<true/false>",
+    "isCaliente": "<true/false>",
+    "isHardcore": "<true/false>",
+    "era": "<50s/60s/70s/80s/90s/2000s/2010s/2020s>",
+    "mood": "<fun/emotional/aggressive/chill>",
+    "language": "<FR/EN/ES/PT/instrumental/autre>",
+    "hasLyrics": "<true/false>",
+    "explicit": "<true/false>",
+    "notes": "<note DJ courte>",
+    "justification": "<1 ligne>"
+  },
+  "_regles_coherence": [
+    "phaseAlternate DOIT être adjacente à phase",
+    "uiCategoriesSecondary NE CONTIENT JAMAIS uiCategoryPrimary",
+    "BPM < 100 → PAS en party",
+    "energy <= 4 → PAS en groove/party",
+    "isBanger=true → phase groove ou party uniquement",
+    "era cohérent avec artiste"
+  ],
+  "tracks_a_classer": [
+    {
+      "index": 1,
+      "id": 2266742737,
+      "title": "Ai se eu te pego (nossa nossa)",
+      "artist": "MICHEL TELO",
+      "genre": "Latin",
+      "bpm": 96,
+      "energy": 6,
+      "deezerRank": 794764
+    },
+    {
+      "index": 2,
+      "id": 923495502,
+      "title": "MAMACITA",
+      "artist": "Black Eyed Peas",
+      "genre": "Hip-Hop",
+      "bpm": 105,
+      "energy": 6,
+      "deezerRank": 794266
+    },
+    {
+      "index": 3,
+      "id": 650147122,
+      "title": "No Stress",
+      "artist": "Laurent Wolf",
+      "genre": "House",
+      "bpm": 130,
+      "energy": 9,
+      "deezerRank": 780012
+    },
+    {
+      "index": 4,
+      "id": 94556154,
+      "title": "Get Down On It",
+      "artist": "Kool & The Gang",
+      "genre": "Disco",
+      "bpm": 112,
+      "energy": 7,
+      "deezerRank": 778080
+    },
+    {
+      "index": 5,
+      "id": 54519711,
+      "title": "Down The Road",
+      "artist": "C2C",
+      "genre": "Electro",
+      "bpm": 111,
+      "energy": 7,
+      "deezerRank": 777911
+    },
+    {
+      "index": 6,
+      "id": 716383932,
+      "title": "Magenta Riddim",
+      "artist": "DJ Snake",
+      "genre": "Electro",
+      "bpm": 102,
+      "energy": 6,
+      "deezerRank": 655538
+    },
+    {
+      "index": 7,
+      "id": 3107326,
+      "title": "Love Is Gone",
+      "artist": "David Guetta",
+      "genre": "House",
+      "bpm": 128,
+      "energy": 9,
+      "deezerRank": 653776
+    },
+    {
+      "index": 8,
+      "id": 2621151252,
+      "title": "POWER",
+      "artist": "Marnik",
+      "genre": "House",
+      "bpm": 150,
+      "energy": 9,
+      "deezerRank": 652724
+    },
+    {
+      "index": 9,
+      "id": 3026960801,
+      "title": "Not Alone",
+      "artist": "Gabry Ponte",
+      "genre": "Electro",
+      "bpm": 140,
+      "energy": 9,
+      "deezerRank": 650763
+    },
+    {
+      "index": 10,
+      "id": 10284909,
+      "title": "D.A.N.C.E",
+      "artist": "Justice",
+      "genre": "House",
+      "bpm": 113,
+      "energy": 7,
+      "deezerRank": 648361
+    },
+    {
+      "index": 11,
+      "id": 1451459162,
+      "title": "Booyah",
+      "artist": "Showtek",
+      "genre": "Electro",
+      "bpm": 128,
+      "energy": 9,
+      "deezerRank": 647987
+    },
+    {
+      "index": 12,
+      "id": 2151341427,
+      "title": "Night Heights",
+      "artist": "Jain",
+      "genre": "Pop",
+      "bpm": 100,
+      "energy": 6,
+      "deezerRank": 647115
+    },
+    {
+      "index": 13,
+      "id": 3001468701,
+      "title": "soso (JOSEPH Remix)",
+      "artist": "Omah lay",
+      "genre": "Afro",
+      "bpm": 120,
+      "energy": 8,
+      "deezerRank": 646557
+    },
+    {
+      "index": 14,
+      "id": 870821062,
+      "title": "La Haine",
+      "artist": "Cut Killer",
+      "genre": "Hip-Hop",
+      "bpm": 100,
+      "energy": 6,
+      "deezerRank": 645376
+    },
+    {
+      "index": 15,
+      "id": 2660815532,
+      "title": "Lovers In A Past Life",
+      "artist": "Calvin Harris",
+      "genre": "Electro",
+      "bpm": 130,
+      "energy": 9,
+      "deezerRank": 643476
+    },
+    {
+      "index": 16,
+      "id": 3054938751,
+      "title": "Les démons de minuit",
+      "artist": "Julien Doré",
+      "genre": "Pop",
+      "bpm": 115,
+      "energy": 7,
+      "deezerRank": 640599
+    },
+    {
+      "index": 17,
+      "id": 2326105095,
+      "title": "Copa Vacía",
+      "artist": "Shakira",
+      "genre": "Latin",
+      "bpm": 90,
+      "energy": 5,
+      "deezerRank": 639610
+    },
+    {
+      "index": 18,
+      "id": 3230816611,
+      "title": "Your Body",
+      "artist": "Marten Lou",
+      "genre": "Electro",
+      "bpm": 121,
+      "energy": 8,
+      "deezerRank": 637413
+    },
+    {
+      "index": 19,
+      "id": 2216851977,
+      "title": "Esta Vida",
+      "artist": "Marshmello",
+      "genre": "House",
+      "bpm": 124,
+      "energy": 8,
+      "deezerRank": 635595
+    },
+    {
+      "index": 20,
+      "id": 1775253117,
+      "title": "Numb",
+      "artist": "Marshmello",
+      "genre": "Electro",
+      "bpm": 120,
+      "energy": 8,
+      "deezerRank": 633812
+    }
+  ]
+}

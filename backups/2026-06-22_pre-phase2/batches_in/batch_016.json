@@ -1,0 +1,237 @@
+{
+  "batch_id": "batch_016",
+  "generated_at": "2026-06-17T09:58:59.082Z",
+  "tracks_count": 25,
+  "instructions_for_claude": "Tu es un DJ professionnel expert qui classe des tracks pour SocialMix, app de DJ virtuel autonome.\n\nCONTEXTE SOIRÉE TYPE\nSoirée privée (anniversaire 50 ans, mariage). 60 invités. Public mixte 25-65 ans. Forte demande de COCOVARIET (chanson française populaire qui se chante : Goldman, Maître Gims, Aya Nakamura, Stromae, Sardou, Cabrel, Indila).\n\nLES 6 PHASES (chronologiques)\n🌅 ARRIVAL (apéro chic, energy 3.5-5.0, BPM 70-110)\n   Ex: Sade \"Smooth Operator\", Norah Jones, Goldman ballades, Cabrel \"Petite Marie\", Bossa, Lounge, Soul slow.\n   À éviter: House, Electro hard, Rap hardcore.\n\n🥂 AMBIANCE (warm-up, energy 5.0-6.5, BPM 80-115)\n   Ex: Pop douce (Ed Sheeran), Disco classics mid-tempo, R&B old (Marvin Gaye), COCOVARIET (Souchon, Goldman dansants).\n   À éviter: House peak, Electro hard.\n\n🚀 TAKEOFF (la montée, energy 6.5-7.5, BPM 100-125)\n   Ex: Disco (Donna Summer), Funk (Kool & The Gang), COCOVARIET dansants, Hip-Hop modéré.\n\n💃 GROOVE (vraiment lancé, energy 7.5-8.5, BPM 115-130)\n   Ex: House mainstream (Calvin Harris), Disco upbeat (Sister Sledge), Pop dance (Bruno Mars), Latin (Shakira), Michael Jackson.\n\n🔥 PARTY (peak time, energy 8.5-10, BPM 120-135)\n   Ex: House peak (Avicii, Guetta), Electro (Justice), hymnes (Sapés Comme Jamais, Single Ladies, Dancing Queen), bangers Hip-Hop.\n\n🌙 CLOSING (descente émotionnelle, energy 4.5-6.0, BPM 90-115)\n   Ex: Disco classics fin (Stayin Alive), Soul slow (Bill Withers \"Lovely Day\"), COCOVARIET émotionnels (Goldman \"Là-bas\", Sardou \"Le France\").\n\nLES 13 GENRES BDD (genreBDD - choisis EXACTEMENT un)\nChill, Soul, Pop, COCOVARIET, Rock, Hip-Hop, R&B, Latin, Afro, Disco, Funk, House, Electro\n\nDISTINCTIONS GENRES BDD\n- Chill : ambient, lo-fi, acoustic doux (Norah Jones)\n- Soul : classics 60s-70s (Marvin Gaye, Aretha)\n- Pop : mainstream international (Lady Gaga, Sheeran)\n- COCOVARIET : chanson FR populaire (Goldman, Maître Gims, Aya, Stromae, Sardou, Cabrel, Indila)\n- Rock : classic + indie + pop-rock (Foo Fighters, Oasis)\n- Hip-Hop : Rap US + FR + Trap (Drake, Kendrick, PNL, Booba)\n- R&B : moderne dansant (Beyoncé) ou groove 90s/2000s (TLC)\n- Latin : pop latin, salsa, bachata (Shakira, Bad Bunny)\n- Afro : Afrobeat (Burna Boy), Afro House\n- Disco : Disco 70s pur (Donna Summer, Bee Gees, EWF)\n- Funk : Funk classic + Nu-Funk (Kool & Gang, Bruno Mars)\n- House : Deep, Vocal, Tech, Funky House (Avicii, Guetta)\n- Electro : EDM, Big Room, Synthwave (Daft Punk, Justice)\n\nLES 9 UI CATEGORIES (uiCategoryPrimary - choisis EXACTEMENT une)\nChill, Pop, Rock, Rap, Latin, Old school, Urban Groove, Dance, Électro\n\n(uiCategoriesSecondary : array 0 à 2 catégories UI additionnelles, NE PEUT PAS contenir uiCategoryPrimary)\n\nMAPPING UI CATEGORIES -> genres BDD typiques\n- Chill : Chill, Soul slow, Jazz\n- Pop : Pop, COCOVARIET tendre\n- Rock : Rock\n- Rap : Hip-Hop, R&B moderne\n- Latin : Latin, Afro\n- Old school : Disco, Funk, classics 70s-80s\n- Urban Groove : R&B 90s-2000s, Hip-Hop groovy 90s (TLC, Blackstreet, Notorious BIG)\n- Dance : House mainstream, COCOVARIET dansants (Sapés Comme Jamais), Pop dance moderne\n- Électro : Electro, EDM, Synthwave, Daft Punk style\n\nTAG isHardcore (CRUCIAL pour soirée privée)\nisHardcore=true = track agressive/extrême INADAPTÉE pour mariage/anniversaire.\nExemples: techno violente, hard rock, trap drill, hardcore punk, DnB Jungle, hyperpop chaotique, Hardstyle.\n\nRÈGLES DE COHÉRENCE STRICTES (auto-vérifier avant réponse)\n1. uiCategoriesSecondary NE CONTIENT JAMAIS uiCategoryPrimary\n2. phaseAlternate doit être adjacente : arrival<->ambiance, ambiance<->takeoff, takeoff<->groove, groove<->party, party<->closing\n3. Track BPM < 100 -> JAMAIS party\n4. Track energy <= 4 -> JAMAIS groove ou party\n5. isBanger=true -> phase IMPÉRATIVEMENT groove ou party\n6. COCOVARIET tendre (Goldman ballade) -> JAMAIS party\n7. Hip-Hop hardcore moderne (Booba, NLE Choppa) -> JAMAIS arrival\n8. isHardcore=true -> JAMAIS arrival ni closing + notes OBLIGATOIRE (explique pourquoi)\n\nCALIBRATION — 6 EXEMPLES VARIÉS\n\nEXEMPLE 1 - Banger FR dansant\nTrack: Sapés Comme Jamais — Maître Gims\n{\n  \"genreBDD\": \"COCOVARIET\", \"uiCategoryPrimary\": \"Dance\",\n  \"uiCategoriesSecondary\": [\"Rap\", \"Pop\"],\n  \"phase\": \"party\", \"phaseAlternate\": \"groove\",\n  \"energy\": 9, \"bpm\": 115, \"danceability\": 0.92,\n  \"isBanger\": true, \"isSingalong\": true, \"isEmotional\": false,\n  \"isCaliente\": false, \"isHardcore\": false,\n  \"era\": \"2010s\", \"mood\": \"fun\", \"language\": \"FR\",\n  \"hasLyrics\": true, \"explicit\": false,\n  \"notes\": \"Banger FR universel\",\n  \"justification\": \"Hit FR moderne, fait chanter et danser\"\n}\n\nEXEMPLE 2 - Ballade COCOVARIET tendre\nTrack: Encore un matin — Goldman\n{\n  \"genreBDD\": \"COCOVARIET\", \"uiCategoryPrimary\": \"Pop\",\n  \"uiCategoriesSecondary\": [],\n  \"phase\": \"arrival\", \"phaseAlternate\": \"closing\",\n  \"energy\": 4, \"bpm\": 88, \"danceability\": 0.32,\n  \"isBanger\": false, \"isSingalong\": true, \"isEmotional\": true,\n  \"isCaliente\": false, \"isHardcore\": false,\n  \"era\": \"90s\", \"mood\": \"emotional\", \"language\": \"FR\",\n  \"hasLyrics\": true, \"explicit\": false,\n  \"notes\": \"Apéro ou closing émotionnel\",\n  \"justification\": \"Ballade FR universelle\"\n}\n\nEXEMPLE 3 - R&B 2000s multi-tag\nTrack: Single Ladies — Beyoncé\n{\n  \"genreBDD\": \"R&B\", \"uiCategoryPrimary\": \"Old school\",\n  \"uiCategoriesSecondary\": [\"Dance\", \"Urban Groove\"],\n  \"phase\": \"party\", \"phaseAlternate\": \"groove\",\n  \"energy\": 9, \"bpm\": 97, \"danceability\": 0.85,\n  \"isBanger\": true, \"isSingalong\": true, \"isEmotional\": false,\n  \"isCaliente\": false, \"isHardcore\": false,\n  \"era\": \"2000s\", \"mood\": \"fun\", \"language\": \"EN\",\n  \"hasLyrics\": true, \"explicit\": false,\n  \"notes\": \"Hit transversal\",\n  \"justification\": \"Banger 2000s multi-vibe\"\n}\n\nEXEMPLE 4 - House banger moderne\nTrack: Levels — Avicii\n{\n  \"genreBDD\": \"House\", \"uiCategoryPrimary\": \"Dance\",\n  \"uiCategoriesSecondary\": [\"Électro\"],\n  \"phase\": \"party\", \"phaseAlternate\": \"groove\",\n  \"energy\": 9, \"bpm\": 126, \"danceability\": 0.95,\n  \"isBanger\": true, \"isSingalong\": false, \"isEmotional\": false,\n  \"isCaliente\": false, \"isHardcore\": false,\n  \"era\": \"2010s\", \"mood\": \"fun\", \"language\": \"EN\",\n  \"hasLyrics\": true, \"explicit\": false,\n  \"notes\": \"Hymne dancefloor 2010s\",\n  \"justification\": \"Banger House mainstream\"\n}\n\nEXEMPLE 5 - Soul/Pop lounge pour arrival\nTrack: Smooth Operator — Sade\n{\n  \"genreBDD\": \"Soul\", \"uiCategoryPrimary\": \"Chill\",\n  \"uiCategoriesSecondary\": [],\n  \"phase\": \"arrival\", \"phaseAlternate\": \"ambiance\",\n  \"energy\": 4, \"bpm\": 86, \"danceability\": 0.55,\n  \"isBanger\": false, \"isSingalong\": false, \"isEmotional\": false,\n  \"isCaliente\": false, \"isHardcore\": false,\n  \"era\": \"80s\", \"mood\": \"chill\", \"language\": \"EN\",\n  \"hasLyrics\": true, \"explicit\": false,\n  \"notes\": \"Apéro classy\",\n  \"justification\": \"Soul/Pop 80s lounge\"\n}\n\nEXEMPLE 6 - Cas isHardcore (à blacklister soirée privée)\nTrack: Dragonborn — Headhunterz\n{\n  \"genreBDD\": \"Electro\", \"uiCategoryPrimary\": \"Électro\",\n  \"uiCategoriesSecondary\": [],\n  \"phase\": \"party\", \"phaseAlternate\": null,\n  \"energy\": 10, \"bpm\": 150, \"danceability\": 0.4,\n  \"isBanger\": false, \"isSingalong\": false, \"isEmotional\": false,\n  \"isCaliente\": false, \"isHardcore\": true,\n  \"era\": \"2010s\", \"mood\": \"aggressive\", \"language\": \"EN\",\n  \"hasLyrics\": true, \"explicit\": false,\n  \"notes\": \"Hardstyle agressif — inadapté soirée privée familiale, public 25-65 ans\",\n  \"justification\": \"Hardstyle club underground\"\n}\n\nAVANT DE RÉPONDRE - AUTO-CHECK OBLIGATOIRE\nPour chaque track classifiée, vérifie SILENCIEUSEMENT :\n1. phase cohérente avec energy et BPM\n2. phaseAlternate adjacente à phase\n3. uiCategoriesSecondary n'inclut PAS uiCategoryPrimary\n4. uiCategoriesSecondary contient max 2 éléments\n5. uiCategoryPrimary et uiCategoriesSecondary ne sont QUE parmi les 9 valeurs autorisées\n6. Si isBanger=true, phase ∈ [groove, party]\n7. Si isHardcore=true, phase ∉ [arrival, closing] et notes explique pourquoi\n8. era cohérent avec l'artiste\n\nSi tu trouves une incohérence, AJUSTE avant de finaliser.\n\nINSTRUCTIONS FINALES\n- Si tu hésites, propose ton meilleur guess\n- Si track inconnue : devine à partir du titre/artiste/BPM/genre historique\n- Réponds STRICTEMENT en JSON, SANS markdown, SANS préambule, SANS commentaire en dehors du JSON\n\nFORMAT DE SORTIE STRICT\nTu DOIS retourner un objet JSON avec une seule clé \"classifications\" contenant un array des 25 objets dans l'ordre des tracks fournies. Chaque objet DOIT avoir TOUS les champs listés (id de la track + 20 champs de classification).",
+  "tracks_to_classify": [
+    {
+      "id": 128743595,
+      "title": "The Next Episode",
+      "artist": "Dr. Dre",
+      "bpm": 95,
+      "deezerRank": 869718,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 2047662477,
+      "title": "Creepin'",
+      "artist": "Metro Boomin",
+      "bpm": 95,
+      "deezerRank": 869114,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 1855507607,
+      "title": "American Boy",
+      "artist": "Estelle",
+      "bpm": 118,
+      "deezerRank": 867920,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 7818900,
+      "title": "Paint It, Black",
+      "artist": "The Rolling Stones",
+      "bpm": 158,
+      "deezerRank": 867338,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 24246391,
+      "title": "Don't Speak",
+      "artist": "No Doubt",
+      "bpm": 152,
+      "deezerRank": 867109,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 135373112,
+      "title": "This Girl (Kungs Vs. Cookin' On 3 Burners) (Kungs Vs. Cookin' On 3 Burners)",
+      "artist": "Kungs",
+      "bpm": 122,
+      "deezerRank": 866577,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 414838122,
+      "title": "Basique",
+      "artist": "Orelsan",
+      "bpm": 132,
+      "deezerRank": 866476,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 904732,
+      "title": "Respect",
+      "artist": "Aretha Franklin",
+      "bpm": 120,
+      "deezerRank": 866155,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 505204262,
+      "title": "In My Mind",
+      "artist": "Dynoro",
+      "bpm": 126,
+      "deezerRank": 865646,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 15586242,
+      "title": "Doo Wop",
+      "artist": "Ms. Lauryn Hill",
+      "bpm": 100,
+      "deezerRank": 865597,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 2485118,
+      "title": "Single Ladies (Put a Ring on It)",
+      "artist": "Beyoncé",
+      "bpm": 97,
+      "deezerRank": 865391,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 3791401032,
+      "title": "Aperture",
+      "artist": "Harry Styles",
+      "bpm": 128,
+      "deezerRank": 864578,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 3750650202,
+      "title": "Chan Chan",
+      "artist": "Buena Vista Social Club",
+      "bpm": 83,
+      "deezerRank": 863509,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 773367,
+      "title": "American Idiot",
+      "artist": "Green Day",
+      "bpm": 93,
+      "deezerRank": 863438,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 1420768152,
+      "title": "Wrecked",
+      "artist": "Imagine Dragons",
+      "bpm": 94,
+      "deezerRank": 863385,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 364951,
+      "title": "Daddy Cool",
+      "artist": "Boney M.",
+      "bpm": 124,
+      "deezerRank": 863356,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 95813354,
+      "title": "See You Again",
+      "artist": "Wiz Khalifa",
+      "bpm": 80,
+      "deezerRank": 862606,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 1579265,
+      "title": "Sunday Bloody Sunday",
+      "artist": "U2",
+      "bpm": 101,
+      "deezerRank": 862402,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 113475002,
+      "title": "Innerbloom",
+      "artist": "RÜFÜS DU SOL",
+      "bpm": 122,
+      "deezerRank": 861612,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 3905150931,
+      "title": "One Night",
+      "artist": "HUGEL",
+      "bpm": 0,
+      "deezerRank": 861104,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 79589178,
+      "title": "Loca",
+      "artist": "Shakira",
+      "bpm": 112,
+      "deezerRank": 860660,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 1077700822,
+      "title": "Mr. Saxobeat",
+      "artist": "Alexandra Stan",
+      "bpm": 127,
+      "deezerRank": 860432,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 62874022,
+      "title": "Impossible",
+      "artist": "James Arthur",
+      "bpm": 85,
+      "deezerRank": 860432,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 373219601,
+      "title": "All Stars",
+      "artist": "Martin Solveig",
+      "bpm": 124,
+      "deezerRank": 859793,
+      "genre_historique": "unknown"
+    },
+    {
+      "id": 3026091641,
+      "title": "Say What",
+      "artist": "Rampa",
+      "bpm": 120,
+      "deezerRank": 859577,
+      "genre_historique": "unknown"
+    }
+  ],
+  "expected_output_format": {
+    "classifications": [
+      {
+        "id": "12345",
+        "genreBDD": "COCOVARIET",
+        "uiCategoryPrimary": "Pop",
+        "uiCategoriesSecondary": [
+          "Dance"
+        ],
+        "phase": "ambiance",
+        "phaseAlternate": "takeoff",
+        "energy": 6,
+        "bpm": 120,
+        "era": "2010s",
+        "mood": "fun",
+        "language": "FR",
+        "danceability": 0.7,
+        "isBanger": false,
+        "isSingalong": true,
+        "isEmotional": false,
+        "isCaliente": false,
+        "isHardcore": false,
+        "hasLyrics": true,
+        "explicit": false,
+        "notes": "Variété FR moderne dansante",
+        "justification": "COCOVARIET grand public, parfait apéro"
+      }
+    ]
+  }
+}

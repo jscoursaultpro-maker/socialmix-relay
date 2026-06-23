@@ -1,0 +1,271 @@
+{
+  "_instruction": "INSTRUCTION : Tu es un DJ professionnel expert. Classe les 20 tracks listées ci-dessous selon les règles décrites. Génère ta réponse sous forme d'un FICHIER TÉLÉCHARGEABLE nommé \"batch_chatgpt_001_done.json\". Le fichier doit contenir exactement : { \"classifications\": [ ...tes 20 objets JSON... ] }. Ne mets RIEN dans la conversation, génère UNIQUEMENT le fichier.",
+  "_contexte_soiree": "40-80 invités | 6-7h de soirée (20h-2h30) | Public mixte 25-65 ans | Soirées privées (anniversaires, mariages, fêtes amis)",
+  "_phases": {
+    "arrival": "🌅 Apéro chic — energy 3.5-5.0, BPM 70-110 — Ex: Sade, Norah Jones, Goldman, Cabrel",
+    "ambiance": "🥂 Warm-up — energy 5.0-6.5, BPM 80-115 — Ex: Sheeran, EWF mid-tempo, Marvin Gaye",
+    "takeoff": "🚀 La montée — energy 6.5-7.5, BPM 100-125 — Ex: Donna Summer, Kool & The Gang, Drake",
+    "groove": "💃 Vraiment lancé — energy 7.5-8.5, BPM 115-130 — Ex: Calvin Harris, Sister Sledge, Bruno Mars",
+    "party": "🔥 Peak time — energy 8.5-10, BPM 120-135 — Ex: Avicii, Guetta, Justice, Sapés Comme Jamais",
+    "closing": "🌙 Descente émotionnelle — energy 4.5-6.0, BPM 90-115 — Ex: Bill Withers, Soul slow"
+  },
+  "_genres_bdd": [
+    "Chill",
+    "Pop",
+    "COCOVARIET",
+    "Rock",
+    "Hip-Hop",
+    "R&B",
+    "Latin",
+    "Afro",
+    "Disco",
+    "House",
+    "Electro"
+  ],
+  "_ui_categories": [
+    "Chill",
+    "Pop",
+    "Rock",
+    "Rap",
+    "Latin",
+    "Old school",
+    "Urban Groove",
+    "Dance",
+    "Électro"
+  ],
+  "_format_reponse": {
+    "id": "<conserver tel quel depuis tracks_a_classer>",
+    "genreBDD": "<genre parmi _genres_bdd>",
+    "uiCategoryPrimary": "<catégorie parmi _ui_categories>",
+    "uiCategoriesSecondary": [
+      "<0-2 catégories, JAMAIS = primary>"
+    ],
+    "phase": "<arrival/ambiance/takeoff/groove/party/closing>",
+    "phaseAlternate": "<phase adjacente à phase>",
+    "energy": "<1-10>",
+    "bpm": "<60-220>",
+    "danceability": "<0.0-1.0>",
+    "isBanger": "<true/false — true uniquement si groove ou party>",
+    "isSingalong": "<true/false>",
+    "isEmotional": "<true/false>",
+    "isCaliente": "<true/false>",
+    "isHardcore": "<true/false>",
+    "era": "<50s/60s/70s/80s/90s/2000s/2010s/2020s>",
+    "mood": "<fun/emotional/aggressive/chill>",
+    "language": "<FR/EN/ES/PT/instrumental/autre>",
+    "hasLyrics": "<true/false>",
+    "explicit": "<true/false>",
+    "notes": "<note DJ courte>",
+    "justification": "<1 ligne>"
+  },
+  "_regles_coherence": [
+    "phaseAlternate DOIT être adjacente à phase",
+    "uiCategoriesSecondary NE CONTIENT JAMAIS uiCategoryPrimary",
+    "BPM < 100 → PAS en party",
+    "energy <= 4 → PAS en groove/party",
+    "isBanger=true → phase groove ou party uniquement",
+    "era cohérent avec artiste"
+  ],
+  "tracks_a_classer": [
+    {
+      "index": 1,
+      "id": 8011854,
+      "title": "Marry You",
+      "artist": "Bruno Mars",
+      "genre": "Pop",
+      "bpm": 145,
+      "energy": 9,
+      "deezerRank": 900236
+    },
+    {
+      "index": 2,
+      "id": 596537,
+      "title": "Dans les yeux d'Émilie",
+      "artist": "Joe Dassin",
+      "genre": "COCOVARIET",
+      "bpm": 148,
+      "energy": 9,
+      "deezerRank": 900122
+    },
+    {
+      "index": 3,
+      "id": 14383880,
+      "title": "Levels",
+      "artist": "Avicii",
+      "genre": "House",
+      "bpm": 126,
+      "energy": 8,
+      "deezerRank": 898187
+    },
+    {
+      "index": 4,
+      "id": 3153065,
+      "title": "Bette Davis Eyes",
+      "artist": "Kim Carnes",
+      "genre": "COCOVARIET",
+      "bpm": 117,
+      "energy": 7,
+      "deezerRank": 897454
+    },
+    {
+      "index": 5,
+      "id": 15391618,
+      "title": "Toxic",
+      "artist": "Britney Spears",
+      "genre": "Pop",
+      "bpm": 143,
+      "energy": 9,
+      "deezerRank": 896147
+    },
+    {
+      "index": 6,
+      "id": 2634178712,
+      "title": "Rock This Party (Everybody Dance Now)",
+      "artist": "Bob Sinclar feat. Cutee B",
+      "genre": "House",
+      "bpm": 128,
+      "energy": 9,
+      "deezerRank": 893489
+    },
+    {
+      "index": 7,
+      "id": 124237488,
+      "title": "CAN'T STOP THE FEELING!",
+      "artist": "Justin Timberlake",
+      "genre": "House",
+      "bpm": 113,
+      "energy": 7,
+      "deezerRank": 890706
+    },
+    {
+      "index": 8,
+      "id": 576822202,
+      "title": "Cosmo",
+      "artist": "Soprano",
+      "genre": "Hip-Hop",
+      "bpm": 146,
+      "energy": 9,
+      "deezerRank": 888786
+    },
+    {
+      "index": 9,
+      "id": 2589549242,
+      "title": "It's Not Right But It's Okay",
+      "artist": "Mr. Belt & Wezol",
+      "genre": "House",
+      "bpm": 128,
+      "energy": 9,
+      "deezerRank": 888458
+    },
+    {
+      "index": 10,
+      "id": 4181750,
+      "title": "Murder On The Dancefloor",
+      "artist": "Sophie Ellis-Bextor",
+      "genre": "Disco",
+      "bpm": 117,
+      "energy": 7,
+      "deezerRank": 887253
+    },
+    {
+      "index": 11,
+      "id": 3194135561,
+      "title": "Walking Away (Infinity)",
+      "artist": "Matway",
+      "genre": "Electro",
+      "bpm": 135,
+      "energy": 9,
+      "deezerRank": 883526
+    },
+    {
+      "index": 12,
+      "id": 135203382,
+      "title": "Chocolat",
+      "artist": "Lartiste",
+      "genre": "COCOVARIET",
+      "bpm": 109,
+      "energy": 7,
+      "deezerRank": 883088
+    },
+    {
+      "index": 13,
+      "id": 576851222,
+      "title": "Djadja",
+      "artist": "Aya Nakamura",
+      "genre": "Hip-Hop",
+      "bpm": 98,
+      "energy": 6,
+      "deezerRank": 882432
+    },
+    {
+      "index": 14,
+      "id": 1619126272,
+      "title": "La goffa Lolita",
+      "artist": "Vincè la petite culotte",
+      "genre": "Pop",
+      "bpm": 130,
+      "energy": 9,
+      "deezerRank": 880358
+    },
+    {
+      "index": 15,
+      "id": 61424045,
+      "title": "Thrift Shop",
+      "artist": "Macklemore",
+      "genre": "Hip-Hop",
+      "bpm": 95,
+      "energy": 5,
+      "deezerRank": 877313
+    },
+    {
+      "index": 16,
+      "id": 532589062,
+      "title": "Le temps est bon",
+      "artist": "Bon Entendeur",
+      "genre": "Chill",
+      "bpm": 98,
+      "energy": 5,
+      "deezerRank": 872490
+    },
+    {
+      "index": 17,
+      "id": 12565420,
+      "title": "Party Rock Anthem",
+      "artist": "LMFAO",
+      "genre": "Electro",
+      "bpm": 130,
+      "energy": 9,
+      "deezerRank": 870127
+    },
+    {
+      "index": 18,
+      "id": 3445820,
+      "title": "When Love Takes Over",
+      "artist": "David Guetta",
+      "genre": "House",
+      "bpm": 130,
+      "energy": 9,
+      "deezerRank": 869894
+    },
+    {
+      "index": 19,
+      "id": 128743595,
+      "title": "The Next Episode",
+      "artist": "Dr. Dre",
+      "genre": "Hip-Hop",
+      "bpm": 95,
+      "energy": 5,
+      "deezerRank": 869718
+    },
+    {
+      "index": 20,
+      "id": 1855507607,
+      "title": "American Boy",
+      "artist": "Estelle",
+      "genre": "Pop",
+      "bpm": 118,
+      "energy": 7,
+      "deezerRank": 867920
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+--- /Users/Jean-Sebastien/App Workshop/Virtual DJ V3/relay-server/public/app.js
++++ /Users/Jean-Sebastien/App Workshop/Virtual DJ V3/relay-server/public/app.js
+@@ -478,7 +478,14 @@
+   showScreen('cockpit');
+   
+   // ★ Reset suggestions from previous party
+-  state.suggestions = [];
++  // Check if we changed party
++  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
++  if (saved.partyCode !== state.partyCode) {
++    state.suggestions = [];
++    state.trackHistory = [];
++    saveSession();
++  }
++
+   const suggestList = $('suggestions-list');
+   if (suggestList) suggestList.innerHTML = '';

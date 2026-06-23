@@ -1,0 +1,271 @@
+{
+  "_instruction": "INSTRUCTION : Tu es un DJ professionnel expert. Classe les 20 tracks listées ci-dessous selon les règles décrites. Génère ta réponse sous forme d'un FICHIER TÉLÉCHARGEABLE nommé \"batch_chatgpt_004_done.json\". Le fichier doit contenir exactement : { \"classifications\": [ ...tes 20 objets JSON... ] }. Ne mets RIEN dans la conversation, génère UNIQUEMENT le fichier.",
+  "_contexte_soiree": "40-80 invités | 6-7h de soirée (20h-2h30) | Public mixte 25-65 ans | Soirées privées (anniversaires, mariages, fêtes amis)",
+  "_phases": {
+    "arrival": "🌅 Apéro chic — energy 3.5-5.0, BPM 70-110 — Ex: Sade, Norah Jones, Goldman, Cabrel",
+    "ambiance": "🥂 Warm-up — energy 5.0-6.5, BPM 80-115 — Ex: Sheeran, EWF mid-tempo, Marvin Gaye",
+    "takeoff": "🚀 La montée — energy 6.5-7.5, BPM 100-125 — Ex: Donna Summer, Kool & The Gang, Drake",
+    "groove": "💃 Vraiment lancé — energy 7.5-8.5, BPM 115-130 — Ex: Calvin Harris, Sister Sledge, Bruno Mars",
+    "party": "🔥 Peak time — energy 8.5-10, BPM 120-135 — Ex: Avicii, Guetta, Justice, Sapés Comme Jamais",
+    "closing": "🌙 Descente émotionnelle — energy 4.5-6.0, BPM 90-115 — Ex: Bill Withers, Soul slow"
+  },
+  "_genres_bdd": [
+    "Chill",
+    "Pop",
+    "COCOVARIET",
+    "Rock",
+    "Hip-Hop",
+    "R&B",
+    "Latin",
+    "Afro",
+    "Disco",
+    "House",
+    "Electro"
+  ],
+  "_ui_categories": [
+    "Chill",
+    "Pop",
+    "Rock",
+    "Rap",
+    "Latin",
+    "Old school",
+    "Urban Groove",
+    "Dance",
+    "Électro"
+  ],
+  "_format_reponse": {
+    "id": "<conserver tel quel depuis tracks_a_classer>",
+    "genreBDD": "<genre parmi _genres_bdd>",
+    "uiCategoryPrimary": "<catégorie parmi _ui_categories>",
+    "uiCategoriesSecondary": [
+      "<0-2 catégories, JAMAIS = primary>"
+    ],
+    "phase": "<arrival/ambiance/takeoff/groove/party/closing>",
+    "phaseAlternate": "<phase adjacente à phase>",
+    "energy": "<1-10>",
+    "bpm": "<60-220>",
+    "danceability": "<0.0-1.0>",
+    "isBanger": "<true/false — true uniquement si groove ou party>",
+    "isSingalong": "<true/false>",
+    "isEmotional": "<true/false>",
+    "isCaliente": "<true/false>",
+    "isHardcore": "<true/false>",
+    "era": "<50s/60s/70s/80s/90s/2000s/2010s/2020s>",
+    "mood": "<fun/emotional/aggressive/chill>",
+    "language": "<FR/EN/ES/PT/instrumental/autre>",
+    "hasLyrics": "<true/false>",
+    "explicit": "<true/false>",
+    "notes": "<note DJ courte>",
+    "justification": "<1 ligne>"
+  },
+  "_regles_coherence": [
+    "phaseAlternate DOIT être adjacente à phase",
+    "uiCategoriesSecondary NE CONTIENT JAMAIS uiCategoryPrimary",
+    "BPM < 100 → PAS en party",
+    "energy <= 4 → PAS en groove/party",
+    "isBanger=true → phase groove ou party uniquement",
+    "era cohérent avec artiste"
+  ],
+  "tracks_a_classer": [
+    {
+      "index": 1,
+      "id": 2840316722,
+      "title": "Le chant des cygnes",
+      "artist": "Indochine",
+      "genre": "COCOVARIET",
+      "bpm": 138,
+      "energy": 9,
+      "deezerRank": 813492
+    },
+    {
+      "index": 2,
+      "id": 7117058,
+      "title": "Calabria 2007",
+      "artist": "Enur ft. Natasja",
+      "genre": "House",
+      "bpm": 126,
+      "energy": 8,
+      "deezerRank": 812357
+    },
+    {
+      "index": 3,
+      "id": 2862281,
+      "title": "Ça m'énerve",
+      "artist": "Helmut Fritz",
+      "genre": "House",
+      "bpm": 130,
+      "energy": 9,
+      "deezerRank": 811361
+    },
+    {
+      "index": 4,
+      "id": 2435238,
+      "title": "Let's Get It Started",
+      "artist": "Black Eyed Peas",
+      "genre": "Electro",
+      "bpm": 105,
+      "energy": 6,
+      "deezerRank": 811138
+    },
+    {
+      "index": 5,
+      "id": 7706008,
+      "title": "Don’t Stop The Party",
+      "artist": "Black Eyed Peas",
+      "genre": "Electro",
+      "bpm": 128,
+      "energy": 9,
+      "deezerRank": 810992
+    },
+    {
+      "index": 6,
+      "id": 2179672997,
+      "title": "The Magic Key",
+      "artist": "Trinix",
+      "genre": "Electro",
+      "bpm": 122,
+      "energy": 8,
+      "deezerRank": 809628
+    },
+    {
+      "index": 7,
+      "id": 2285438237,
+      "title": "The Rapture Pt.III",
+      "artist": "&ME",
+      "genre": "House",
+      "bpm": 120,
+      "energy": 8,
+      "deezerRank": 808796
+    },
+    {
+      "index": 8,
+      "id": 1239694902,
+      "title": "Marea",
+      "artist": "Fred again..",
+      "genre": "House",
+      "bpm": 123,
+      "energy": 8,
+      "deezerRank": 808208
+    },
+    {
+      "index": 9,
+      "id": 1924639057,
+      "title": "STAR WALKIN'",
+      "artist": "Lil Nas X",
+      "genre": "Electro",
+      "bpm": 71,
+      "energy": 3,
+      "deezerRank": 807914
+    },
+    {
+      "index": 10,
+      "id": 3135725,
+      "title": "Ça c'est vraiment toi",
+      "artist": "Telephone",
+      "genre": "COCOVARIET",
+      "bpm": 140,
+      "energy": 9,
+      "deezerRank": 807823
+    },
+    {
+      "index": 11,
+      "id": 123373232,
+      "title": "Bailar",
+      "artist": "Deorro",
+      "genre": "Electro",
+      "bpm": 128,
+      "energy": 9,
+      "deezerRank": 804731
+    },
+    {
+      "index": 12,
+      "id": 614756502,
+      "title": "Giant",
+      "artist": "Calvin Harris",
+      "genre": "House",
+      "bpm": 122,
+      "energy": 8,
+      "deezerRank": 804392
+    },
+    {
+      "index": 13,
+      "id": 2289342455,
+      "title": "WHERE SHE GOES",
+      "artist": "Bad Bunny",
+      "genre": "Hip-Hop",
+      "bpm": 144,
+      "energy": 9,
+      "deezerRank": 804160
+    },
+    {
+      "index": 14,
+      "id": 3409416781,
+      "title": "Sunny",
+      "artist": "Boney M.",
+      "genre": "Disco",
+      "bpm": 127,
+      "energy": 9,
+      "deezerRank": 802869
+    },
+    {
+      "index": 15,
+      "id": 1324559462,
+      "title": "Iko Iko (My Bestie)",
+      "artist": "Justin Wellington",
+      "genre": "Latin",
+      "bpm": 105,
+      "energy": 6,
+      "deezerRank": 802755
+    },
+    {
+      "index": 16,
+      "id": 2170492547,
+      "title": "Arranca",
+      "artist": "Becky G",
+      "genre": "Latin",
+      "bpm": 118,
+      "energy": 7,
+      "deezerRank": 802173
+    },
+    {
+      "index": 17,
+      "id": 825112142,
+      "title": "Que Calor",
+      "artist": "Major Lazer",
+      "genre": "House",
+      "bpm": 126,
+      "energy": 8,
+      "deezerRank": 802070
+    },
+    {
+      "index": 18,
+      "id": 2102633427,
+      "title": "Animals",
+      "artist": "Martin Garrix",
+      "genre": "House",
+      "bpm": 128,
+      "energy": 9,
+      "deezerRank": 796184
+    },
+    {
+      "index": 19,
+      "id": 886322,
+      "title": "Je ne suis pas un héros",
+      "artist": "Daniel Balavoine",
+      "genre": "COCOVARIET",
+      "bpm": 129,
+      "energy": 9,
+      "deezerRank": 795435
+    },
+    {
+      "index": 20,
+      "id": 3808859012,
+      "title": "Intoxicated",
+      "artist": "Martin Solveig",
+      "genre": "House",
+      "bpm": 125,
+      "energy": 9,
+      "deezerRank": 795121
+    }
+  ]
+}

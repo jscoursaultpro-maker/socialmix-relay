@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SocialMix — Set Up</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0f0f13; color: #fff; margin: 0; padding: 20px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .btn { background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; }
+    .btn:hover { background: #2563eb; }
+    .btn-secondary { background: #374151; }
+    .btn-secondary:hover { background: #4b5563; }
+    table { width: 100%; border-collapse: collapse; background: #1f2937; border-radius: 8px; overflow: hidden; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #374151; vertical-align: middle; }
+    th { background: #111827; font-weight: 600; color: #9ca3af; text-transform: uppercase; font-size: 12px; }
+    tr:hover { background: #374151; }
+    select { background: #111827; color: white; border: 1px solid #4b5563; padding: 8px; border-radius: 4px; width: 100%; }
+    .track-info { display: flex; align-items: center; gap: 12px; }
+    .track-info img { width: 50px; height: 50px; border-radius: 4px; object-fit: cover; }
+    .radio-group { display: flex; gap: 15px; align-items: center; background: #111827; padding: 8px 12px; border-radius: 6px; }
+    .radio-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+    .radio-group input[type="radio"] { accent-color: #3b82f6; cursor: pointer; width: 16px; height: 16px; }
+    .label-in { color: #10b981; }
+    .label-f { color: #ef4444; }
+    .save-status { font-size: 12px; color: #9ca3af; margin-left: 10px; opacity: 0; transition: opacity 0.3s; }
+    .save-status.show { opacity: 1; }
+    .save-status.success { color: #10b981; }
+    .save-status.error { color: #ef4444; }
+    .pagination { margin-top: 20px; display: flex; gap: 10px; justify-content: center; align-items: center; }
+    
+    .stats-container { display: flex; gap: 15px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; }
+    .stat-card { background: #1f2937; padding: 15px; border-radius: 8px; min-width: 140px; flex: 1; border: 1px solid #374151; }
+    .stat-card h3 { margin: 0 0 10px 0; font-size: 13px; color: #9ca3af; text-transform: uppercase; }
+    .stat-card .stat-total { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+    .stat-card .stat-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+    .stat-card .stat-row span { color: #9ca3af; }
+    
+    /* Login overlay */
+    #login-overlay { position: fixed; inset: 0; background: #0f0f13; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .login-box { background: #1f2937; padding: 30px; border-radius: 12px; text-align: center; }
+    .login-box input { margin: 15px 0; padding: 10px; font-size: 16px; background: #111827; color: white; border: 1px solid #4b5563; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div id="login-overlay">
+    <div class="login-box">
+      <h2>Connexion Admin</h2>
+      <input type="password" id="admin-pwd" placeholder="Mot de passe" />
+      <br>
+      <button class="btn" onclick="login()">Se connecter</button>
+    </div>
+  </div>
+
+  <div class="header">
+    <div>
+      <h1>Set Up (Curation)</h1>
+      <p style="color: #9ca3af; margin-top: 5px;">Audit des titres Premium (Platine & Complete). Auto-save activé.</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="/admin/hub" class="btn" style="background: #4b5563; text-decoration: none;">🏠 Hub</a>
+      <button class="btn btn-secondary" onclick="exportData()">Sync iOS</button>
+      <button class="btn" onclick="logout()">Déconnexion</button>
+    </div>
+  </div>
+
+  <div id="stats-container" class="stats-container"></div>
+
+  <div style="margin-bottom: 15px; display: flex; gap: 15px; background: #1f2937; padding: 10px 15px; border-radius: 8px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="color: #9ca3af; font-size: 14px;">🔍 Recherche:</span>
+      <input type="text" id="filter-search" placeholder="Titre, Artiste..." style="padding: 6px; border-radius: 4px; border: 1px solid #4b5563; background: #111827; color: white; width: 180px;" onkeypress="if(event.key === 'Enter') loadTracks(1)">
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="color: #9ca3af; font-size: 14px;">Phase:</span>
+      <select id="filter-phase" style="width: 140px; padding: 6px;" onchange="loadTracks(1)">
+        <option value="all">Toutes</option>
+        <option value="none">Sans Phase</option>
+        <option value="arrival">Arrival</option>
+        <option value="ambiance">Ambiance</option>
+        <option value="groove">Groove</option>
+        <option value="takeoff">Takeoff</option>
+        <option value="peak">Peak</option>
+        <option value="closing">Closing</option>
+      </select>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="color: #9ca3af; font-size: 14px;">Priorité:</span>
+      <select id="filter-prio" style="width: 130px; padding: 6px;" onchange="loadTracks(1)">
+        <option value="all">Toutes</option>
+        <option value="in">IN (Banger)</option>
+        <option value="backlog">Backlog</option>
+        <option value="filler">Filler (F)</option>
+      </select>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
+      <span style="color: #9ca3af; font-size: 14px;">Trier par:</span>
+      <select id="filter-sort" style="width: 160px; padding: 6px;" onchange="loadTracks(1)">
+        <option value="default">Défaut (Phase/NRJ)</option>
+        <option value="bpm_asc">BPM ↗ (Croissant)</option>
+        <option value="bpm_desc">BPM ↘ (Décroissant)</option>
+        <option value="title">Titre</option>
+        <option value="artist">Artiste</option>
+      </select>
+    </div>
+  </div>
+
+  <table id="tracks-table">
+    <thead>
+      <tr>
+        <th style="width: 35%;">Track</th>
+        <th style="width: 15%;">Genre / BPM</th>
+        <th style="width: 15%;">Phase</th>
+        <th style="width: 15%;">Phase Alt.</th>
+        <th style="width: 25%;">Priorité</th>
+      </tr>
+    </thead>
+    <tbody id="tracks-body">
+      <tr><td colspan="4" style="text-align:center;">Chargement...</td></tr>
+    </tbody>
+  </table>
+
+  <div class="pagination" id="pagination"></div>
+
+  <audio id="global-player" style="display:none"></audio>
+
+  <script>
+    let token = localStorage.getItem('adminToken');
+    if (token) document.getElementById('login-overlay').style.display = 'none';
+
+    async function login() {
+      const pwd = document.getElementById('admin-pwd').value;
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        token = data.token;
+        localStorage.setItem('adminToken', token);
+        document.getElementById('login-overlay').style.display = 'none';
+        loadTracks();
+      } else {
+        alert('Mot de passe incorrect');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('adminToken');
+      location.reload();
+    }
+
+    const headers = () => ({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+
+    let currentPage = 1;
+    let playingBtn = null;
+    let playingId = null;
+
+    async function loadTracks(page = currentPage) {
+      currentPage = page;
+      
+      loadStats();
+      
+      const tbody = document.getElementById('tracks-body');
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chargement...</td></tr>';
+
+      const phaseFilter = document.getElementById('filter-phase').value;
+      const prioFilter = document.getElementById('filter-prio').value;
+      const sortFilter = document.getElementById('filter-sort').value;
+      const searchFilter = encodeURIComponent(document.getElementById('filter-search').value.trim());
+
+      try {
+        const res = await fetch(`/api/admin/setup/tracks?page=${page}&limit=50&phase=${phaseFilter}&prio=${prioFilter}&sort=${sortFilter}&search=${searchFilter}`, { headers: headers() });
+        if (res.status === 403 || res.status === 401) return logout();
+        const data = await res.json();
+        
+        renderTracks(data.tracks);
+        renderPagination(data.page, data.totalPages, data.total);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: #ef4444;">Erreur: ${err.message}</td></tr>`;
+      }
+    }
+
+    function renderTracks(tracks) {
+      const tbody = document.getElementById('tracks-body');
+      tbody.innerHTML = '';
+      if (tracks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Aucune track trouvée</td></tr>';
+        return;
+      }
+
+      tracks.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.id = `row-${t._id}`;
+        
+        let priority = 'backlog';
+        if (t.isBanger) priority = 'in';
+        if (t.isFiller) priority = 'filler';
+
+        tr.innerHTML = `
+          <td>
+            <div class="track-info">
+              <img src="${t.coverArtURL || 'https://via.placeholder.com/50'}" onerror="this.src='https://via.placeholder.com/50'">
+              <div>
+                <div style="font-weight: 600; font-size: 15px;">${t.title}</div>
+                <div style="color: #9ca3af; font-size: 13px;">${t.artist}</div>
+                <div style="margin-top: 6px;">
+                  <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="playPreview('${(t.providers && t.providers.deezer && t.providers.deezer.trackId) || ''}', this, '${t._id}')">▶️ Play Preview</button>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div style="font-weight: 500;">${t.genre || 'Inconnu'}</div>
+            <div style="color:#9ca3af; font-size:13px; margin-top:4px; display:flex; align-items:center; gap:4px;">
+              BPM: <input type="number" id="bpm-${t._id}" value="${Math.round(t.bpm) || 0}" style="width: 50px; padding: 2px 4px; background: #111827; color: white; border: 1px solid #4b5563; border-radius: 4px;" onchange="autoSave('${t._id}')">
+            </div>
+          </td>
+          <td>
+            <select id="phase-${t._id}" onchange="autoSave('${t._id}')">
+              <option value="" ${!t.phase ? 'selected' : ''}>-- Sans Phase --</option>
+              <option value="arrival" ${t.phase === 'arrival' ? 'selected' : ''}>Arrival</option>
+              <option value="ambiance" ${t.phase === 'ambiance' ? 'selected' : ''}>Ambiance</option>
+              <option value="groove" ${t.phase === 'groove' ? 'selected' : ''}>Groove</option>
+              <option value="takeoff" ${t.phase === 'takeoff' ? 'selected' : ''}>Takeoff</option>
+              <option value="peak" ${t.phase === 'peak' ? 'selected' : ''}>Peak</option>
+              <option value="closing" ${t.phase === 'closing' ? 'selected' : ''}>Closing</option>
+            </select>
+          </td>
+          <td>
+            <select id="phaseAlt-${t._id}" onchange="autoSave('${t._id}')" style="background: #111827; color: #9ca3af; border-color: #374151;">
+              <option value="" ${!t.phaseAlternate && !t.phaseAlt ? 'selected' : ''}>-- Optionnel --</option>
+              <option value="arrival" ${t.phaseAlternate === 'arrival' || t.phaseAlt === 'arrival' ? 'selected' : ''}>Arrival</option>
+              <option value="ambiance" ${t.phaseAlternate === 'ambiance' || t.phaseAlt === 'ambiance' ? 'selected' : ''}>Ambiance</option>
+              <option value="groove" ${t.phaseAlternate === 'groove' || t.phaseAlt === 'groove' ? 'selected' : ''}>Groove</option>
+              <option value="takeoff" ${t.phaseAlternate === 'takeoff' || t.phaseAlt === 'takeoff' ? 'selected' : ''}>Takeoff</option>
+              <option value="peak" ${t.phaseAlternate === 'peak' || t.phaseAlt === 'peak' ? 'selected' : ''}>Peak</option>
+              <option value="closing" ${t.phaseAlternate === 'closing' || t.phaseAlt === 'closing' ? 'selected' : ''}>Closing</option>
+            </select>
+          </td>
+          <td>
+            <div style="display: flex; align-items: center;">
+                <div class="radio-group">
+                  <label class="label-in"><input type="radio" name="prio-${t._id}" value="in" ${priority === 'in' ? 'checked' : ''} onchange="autoSave('${t._id}', true)"> IN</label>
+                  <label><input type="radio" name="prio-${t._id}" value="backlog" ${priority === 'backlog' ? 'checked' : ''} onchange="autoSave('${t._id}', true)"> Back log</label>
+                  <label class="label-f"><input type="radio" name="prio-${t._id}" value="filler" ${priority === 'filler' ? 'checked' : ''} onchange="autoSave('${t._id}', true)"> F (Filler)</label>
+                </div>
+                <span class="save-status" id="status-${t._id}"></span>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderPagination(page, totalPages, totalItems) {
+      const div = document.getElementById('pagination');
+      div.innerHTML = '';
+      if (totalPages <= 1) return;
+
+      if (page > 1) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-secondary';
+        btn.innerText = 'Précédent';
+        btn.onclick = () => { window.scrollTo(0,0); loadTracks(page - 1); };
+        div.appendChild(btn);
+      }
+      
+      const span = document.createElement('span');
+      span.style.padding = '8px 16px';
+      span.style.color = '#9ca3af';
+      span.innerText = `Page ${page} / ${totalPages} (${totalItems} tracks)`;
+      div.appendChild(span);
+
+      if (page < totalPages) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-secondary';
+        btn.innerText = 'Suivant';
+        btn.onclick = () => { window.scrollTo(0,0); loadTracks(page + 1); };
+        div.appendChild(btn);
+      }
+    }
+
+    async function playPreview(deezerId, btnNode, trackId) {
+      if (!deezerId || deezerId === 'undefined') {
+        btnNode.innerText = '❌ No ID';
+        setTimeout(() => btnNode.innerText = '▶️ Play Preview', 2000);
+        return;
+      }
+      const audio = document.getElementById('global-player');
+      
+      if (playingId === trackId && !audio.paused) {
+        audio.pause();
+        btnNode.innerText = '▶️ Play Preview';
+        return;
+      }
+      
+      if (playingBtn) playingBtn.innerText = '▶️ Play Preview';
+
+      btnNode.innerText = '⏳ Load...';
+      
+      try {
+        const res = await fetch(`/api/admin/deezer/preview/${deezerId}`, { headers: headers() });
+        const data = await res.json();
+        if (data.preview) {
+          audio.src = data.preview;
+          audio.play();
+          btnNode.innerText = '⏸️ Pause';
+          playingBtn = btnNode;
+          playingId = trackId;
+          
+          audio.onended = () => { btnNode.innerText = '▶️ Play Preview'; playingBtn = null; playingId = null; };
+        } else {
+          btnNode.innerText = '❌ Pas de preview';
+          setTimeout(() => btnNode.innerText = '▶️ Play Preview', 2000);
+        }
+      } catch (err) {
+        btnNode.innerText = '❌ Erreur';
+        setTimeout(() => btnNode.innerText = '▶️ Play Preview', 2000);
+      }
+    }
+
+    async function autoSave(id, autoAdvance = false) {
+      const phase = document.getElementById(`phase-${id}`).value;
+      const phaseAlt = document.getElementById(`phaseAlt-${id}`).value;
+      const prio = document.querySelector(`input[name="prio-${id}"]:checked`).value;
+      const bpmInput = document.getElementById(`bpm-${id}`);
+      const bpm = bpmInput ? parseInt(bpmInput.value) : null;
+      
+      const status = document.getElementById(`status-${id}`);
+      status.innerText = 'Saving...';
+      status.className = 'save-status show';
+
+      let isBanger = false;
+      let isFiller = false;
+      if (prio === 'in') isBanger = true;
+      if (prio === 'filler') isFiller = true;
+
+      // Auto advance visual feedback (don't wait for save)
+      if (autoAdvance) {
+        const currentRow = document.getElementById(`row-${id}`);
+        if (currentRow && currentRow.nextElementSibling) {
+          const playBtn = currentRow.nextElementSibling.querySelector('button.btn-secondary');
+          if (playBtn) playBtn.click();
+        }
+      }
+
+      try {
+        const res = await fetch(`/api/admin/setup/tracks/${id}`, {
+          method: 'PATCH',
+          headers: headers(),
+          body: JSON.stringify({ phase: phase || null, phaseAlt: phaseAlt || null, isBanger, isFiller, bpm })
+        });
+        if (res.ok) {
+          status.innerText = 'Enregistré ✅';
+          status.className = 'save-status success show';
+          setTimeout(() => { status.className = 'save-status'; }, 2000);
+          loadStats();
+        } else {
+          status.innerText = 'Erreur ❌';
+          status.className = 'save-status error show';
+        }
+      } catch (err) {
+        status.innerText = 'Erreur ❌';
+        status.className = 'save-status error show';
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/admin/setup/stats', { headers: headers() });
+        const data = await res.json();
+        renderStats(data.stats);
+      } catch (err) {
+        console.error('Failed to load stats');
+      }
+    }
+
+    function renderStats(stats) {
+      const container = document.getElementById('stats-container');
+      container.innerHTML = '';
+      
+      const phases = ['arrival', 'ambiance', 'groove', 'takeoff', 'peak', 'closing', null];
+      const targets = {
+        arrival: 60,
+        ambiance: 100,
+        takeoff: 50,
+        groove: 100,
+        peak: 100,
+        closing: 50
+      };
+      
+      let totalGlobal = 0, inGlobal = 0, fGlobal = 0;
+
+      phases.forEach(p => {
+        const s = stats.find(x => x._id === p) || { total: 0, in: 0, filler: 0, backlog: 0 };
+        totalGlobal += s.total;
+        inGlobal += s.in;
+        fGlobal += s.filler;
+        
+        const title = p ? p : 'Sans Phase';
+        const target = targets[p];
+        const inText = target ? `${s.in} / ${target}` : s.in;
+        const color = (target && s.in >= target) ? '#10b981' : (target && s.in >= target * 0.5) ? '#f59e0b' : '#ef4444';
+        
+        container.innerHTML += `
+          <div class="stat-card">
+            <h3>${title}</h3>
+            <div class="stat-total">${s.total}</div>
+            <div class="stat-row"><span>IN</span> <strong style="color:${color}">${inText}</strong></div>
+            <div class="stat-row"><span>Backlog</span> <strong>${s.backlog}</strong></div>
+            <div class="stat-row"><span>Filler</span> <strong style="color:#ef4444">${s.filler}</strong></div>
+          </div>
+        `;
+      });
+      
+      // Global stats card
+      container.innerHTML = `
+        <div class="stat-card" style="border-color: #3b82f6;">
+          <h3 style="color: #3b82f6;">GLOBAL PREMIUM</h3>
+          <div class="stat-total">${totalGlobal}</div>
+          <div class="stat-row"><span>IN</span> <strong style="color:#10b981">${inGlobal} / 460</strong></div>
+          <div class="stat-row"><span>Filler</span> <strong style="color:#ef4444">${fGlobal}</strong></div>
+        </div>
+      ` + container.innerHTML;
+    }
+
+    async function exportData() {
+      const btn = document.querySelector('.header .btn-secondary');
+      const originalText = btn.innerText;
+      btn.innerText = '⏳ Syncing...';
+      
+      try {
+        const res = await fetch('/api/admin/sync-ios', { method: 'POST', headers: headers() });
+        const data = await res.json();
+        if (res.ok) {
+          alert(data.message || 'Sync réussi ! Le cache iOS est à jour.');
+        } else {
+          alert('Erreur: ' + data.error);
+        }
+      } catch (err) {
+        alert('Erreur serveur lors de la synchronisation');
+      } finally {
+        btn.innerText = originalText;
+      }
+    }
+
+    if (token) loadTracks();
+  </script>
+</body>
+</html>
