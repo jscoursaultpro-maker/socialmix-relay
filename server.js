@@ -2137,23 +2137,6 @@ io.on('connection', (socket) => {
     party.hostSocketId = socket.id;
     party.hostProfile = data.profile || null;
     party.isPreParty = false;
-    
-    // MAGIC INJECTION FOR JEAN-SEBASTIEN
-    try {
-      if (code !== 'STFBUN') {
-        const Party = (await import('./db.js')).Party;
-        if (Party) {
-          const stfbun = await Party.findOne({ code: 'STFBUN' }).lean();
-          if (stfbun && stfbun.participants && stfbun.participants.length > 0) {
-            party.participants = stfbun.participants.filter(p => !p.isHost);
-            party.isDirty = true;
-            console.log(`🪄 MAGIC INJECTION: Copied ${party.participants.length} guests from STFBUN to ${code}`);
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Magic injection failed:', e.message);
-    }
 
     parties.set(code, party);
 

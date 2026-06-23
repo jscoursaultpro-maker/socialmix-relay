@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const phasesOrder = ['arrival', 'ambiance', 'takeoff', 'groove', 'party', 'closing'];
 
 async function run() {
-  await mongoose.connect('mongodb+srv://jscoursaultpro_db_user:mylena22PRO@cluster0.drictlo.mongodb.net/socialmix?retryWrites=true&w=majority&appName=Cluster0');
+  await mongoose.connect('mongodb+srv://jscoursaultpro_db_user:********@cluster0.drictlo.mongodb.net/socialmix?retryWrites=true&w=majority&appName=Cluster0');
   const Track = mongoose.model('Track', new mongoose.Schema({}, { strict: false }));
 
   const filterGroup1 = { source: "batch_workflow", classifiedBy: "claude-sonnet-4-6-batch" };

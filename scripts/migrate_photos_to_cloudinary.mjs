@@ -18,7 +18,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 
 async function migratePhotos() {
   console.log(`🚀 Starting Migration ${DRY_RUN ? '(DRY RUN)' : ''}`);
-  const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://jscoursaultpro_db_user:mylena22PRO@cluster0.drictlo.mongodb.net/socialmix?retryWrites=true&w=majority&appName=Cluster0";
+  const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://jscoursaultpro_db_user:********@cluster0.drictlo.mongodb.net/socialmix?retryWrites=true&w=majority&appName=Cluster0";
   
   await mongoose.connect(MONGO_URI);
   console.log('✅ MongoDB connected');
