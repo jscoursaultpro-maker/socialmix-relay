@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════
-   SOCIAL MIX — Guest Web App v2
+   AhOuai — Guest Web App v2
    5-screen architecture with Profile + Social Hub
    ═══════════════════════════════════════════ */
 
@@ -422,7 +422,7 @@ async function setupLanding(activeCode) {
         banner.innerHTML = `
           <div class="app-banner-content">
             <span class="app-banner-icon">📱</span>
-            <span class="app-banner-text">Tu as l'app Social Mix ?</span>
+            <span class="app-banner-text">Tu as l'app AhOuai ?</span>
             <a href="${appURL}" class="app-banner-open">OUVRIR</a>
             <button class="app-banner-close" onclick="this.parentElement.parentElement.remove()">✕</button>
           </div>
@@ -1007,7 +1007,7 @@ function connectToRelay() {
         <div style="margin-top:16px;padding:14px 20px;background:linear-gradient(135deg,rgba(0,210,255,0.08),rgba(138,43,226,0.06));border:1px solid rgba(0,210,255,0.15);border-radius:12px;width:100%;max-width:300px;text-align:center;">
           <div style="font-size:20px;margin-bottom:4px;">📱</div>
           <div style="font-size:11px;font-weight:800;color:white;margin-bottom:2px;">TÉLÉCHARGE L'APP</div>
-          <div style="font-size:9px;color:var(--text-dim);margin-bottom:8px;">Garde un accès à tes soirées Social Mix</div>
+          <div style="font-size:9px;color:var(--text-dim);margin-bottom:8px;">Garde un accès à tes soirées AhOuai</div>
           <button onclick="alert('Bientôt disponible sur l\\'App Store ! 🎧')" style="padding:8px 20px;background:linear-gradient(135deg,#00d2ff,#8a2be2);border:none;border-radius:10px;font-size:11px;font-weight:800;color:white;cursor:pointer;">🍎 DISPONIBLE BIENTÔT</button>
         </div>
         
@@ -2981,7 +2981,7 @@ function quitParty() {
     <div style="display:flex;flex-direction:column;align-items:center;padding:20px;text-align:center;overflow-y:auto;max-height:100vh;-webkit-overflow-scrolling:touch">
       <div style="font-size:50px;margin-bottom:8px">👋</div>
       <h2 style="color:white;font-size:22px;font-weight:900;margin-bottom:2px">MERCI D'ÊTRE VENU(E) !</h2>
-      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">À bientôt pour une prochaine soirée Social Mix 🎧</p>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">À bientôt pour une prochaine soirée AhOuai 🎧</p>
       
       ${favTracksHTML ? `
         <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
@@ -3007,7 +3007,7 @@ function quitParty() {
       <div style="margin-top:16px;padding:14px 20px;background:linear-gradient(135deg,rgba(0,210,255,0.08),rgba(138,43,226,0.06));border:1px solid rgba(0,210,255,0.15);border-radius:12px;width:100%;max-width:300px;text-align:center;">
         <div style="font-size:20px;margin-bottom:4px;">📱</div>
         <div style="font-size:11px;font-weight:800;color:white;margin-bottom:2px;">TÉLÉCHARGE L'APP</div>
-        <div style="font-size:9px;color:var(--text-dim);margin-bottom:8px;">Garde un accès à tes soirées Social Mix</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-bottom:8px;">Garde un accès à tes soirées AhOuai</div>
         <button onclick="alert('Bientôt disponible sur l\\'App Store ! 🎧')" style="padding:8px 20px;background:linear-gradient(135deg,#00d2ff,#8a2be2);border:none;border-radius:10px;font-size:11px;font-weight:800;color:white;cursor:pointer;-webkit-appearance:none;touch-action:manipulation;">🍎 DISPONIBLE BIENTÔT</button>
       </div>
       
@@ -3277,7 +3277,7 @@ function downloadVCard(name, emoji, phone, email, insta) {
   if (phone) lines.push(`TEL;TYPE=CELL:${phone}`);
   if (email) lines.push(`EMAIL:${email}`);
   if (insta) lines.push(`X-SOCIALPROFILE;TYPE=instagram:${insta}`);
-  lines.push(`NOTE:Rencontré(e) à la soirée Social Mix 🎧`);
+  lines.push(`NOTE:Rencontré(e) à la soirée AhOuai 🎧`);
   lines.push('END:VCARD');
   const vcard = lines.join('\r\n');
   const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });

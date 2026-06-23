@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { networkInterfaces } from 'os';
@@ -149,11 +150,32 @@ async function seedEditorialCatalog() {
 const pendingRatings = new Map();  // partyCode → Map<trackKey, {feu,cool,bof,genre,hour}>
 
 const app = express();
+
+const corsOptions = {
+  origin: [
+    'https://ahouai.com',
+    'https://www.ahouai.com',
+    'https://join.ahouai.com',
+    'https://admin.ahouai.com',
+    'https://api.ahouai.com',
+    'https://socialmix-relay.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:8080'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
+};
+app.use(cors(corsOptions));
+
 const server = createServer(app);
 const PORT = process.env.PORT || 3069;
 
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
+  cors: {
+    origin: corsOptions.origin,
+    credentials: true,
+    methods: ['GET', 'POST']
+  },
   maxHttpBufferSize: 10e6,
   pingTimeout: 120000,     // 2 min — tolerate iOS background/network hiccups
   pingInterval: 25000,     // 25s — keep-alive heartbeat
@@ -174,6 +196,12 @@ function getLocalIP() {
       if (net.family === 'IPv4' && !net.internal) return net.address;
   return 'localhost';
 }
+
+// TODO (Universal Links AASA):
+// - Créer relay-server/public/.well-known/apple-app-site-association
+// - Configurer servir static files /.well-known/ via Express
+// - Récupérer TEAMID Apple Developer auprès de Jean-Sé
+// - Configurer Associated Domains dans Xcode
 
 // ─── Static files ───────────────────────────────────────────────────
 app.use((req, res, next) => {

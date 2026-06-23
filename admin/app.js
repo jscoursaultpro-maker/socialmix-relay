@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────────────────────────────
-   SocialMix Back Office — app.js
+   AhOuai Back Office — app.js
    Architecture : RAM-first, API calls via adminFetch()
    Contrainte : zero polling, full async/await, error-resilient
 ────────────────────────────────────────────────────────────────── */
