@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SocialMix — Monitor Curation V2</title>
+  <link rel="stylesheet" href="monitor.css">
+</head>
+<body>
+
+<!-- Auth -->
+<div id="auth-screen">
+  <h1>🎧 Monitor Curation V2</h1>
+  <p class="muted-text">Entrez le mot de passe admin</p>
+  <input type="password" id="auth-input" placeholder="Mot de passe admin" />
+  <button onclick="login()">Connexion</button>
+  <p id="auth-error" class="error-text" style="display:none">Mot de passe incorrect</p>
+</div>
+
+<!-- App -->
+<div id="app">
+  
+  <!-- Top Bar -->
+  <div class="stats-top-bar" id="stats-top-bar">
+    <div>
+      <h1 style="margin:0; font-size: 1.1em; color: #fff;">🎵 SocialMix Monitor V2</h1>
+      <span id="badge-total">Total: 0</span> | 
+      <span id="badge-complete">✅ Complètes (IA): 0 (0%)</span> | 
+      <span id="badge-platine">⭐ Platine (Validés): 0 (0%)</span> | 
+      <span id="badge-partielle">🟡 Partielles: 0</span> | 
+      <span id="badge-vide">🔴 Vides: 0</span>
+    </div>
+    <div>
+      <span id="badge-session">🎯 Aujourd'hui: +0 ✅ +0 ⭐</span> | 
+      <span id="badge-speed">Vitesse: 0/min</span> | 
+      <span id="badge-eta">🏆 ETA tout finir: --</span>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-secondary" onclick="toggleViewMode()" id="btn-toggle-view">📋 Mode Tableau</button>
+        <button class="btn btn-secondary" style="background:#00E676;color:#000;" onclick="syncIOS()">🔄 SYNC IOS</button>
+        <button class="btn btn-secondary" onclick="showStatsModal()">📊 Stats</button>
+        <button class="btn btn-secondary" onclick="location.href='/admin/settings'">⚙️ Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <h3>FILTRES</h3>
+      
+      <div class="filter-group">
+        <label><input type="checkbox" id="f-no-phase" onchange="applyFilter()" /> Sans phase</label>
+        <label><input type="checkbox" id="f-no-uicat" onchange="applyFilter()" /> Sans uiCategory</label>
+        <label><input type="checkbox" id="f-no-energy" onchange="applyFilter()" /> Sans energy</label>
+      </div>
+      
+      <div class="filter-group">
+        <label><input type="radio" name="f-type" id="f-all" value="all" onchange="applyFilter()"> Tout</label>
+        <label><input type="radio" name="f-type" id="f-vide" value="ql_vide" onchange="applyFilter()"> 🔴 Vides (À faire)</label>
+        <label><input type="radio" name="f-type" id="f-partielle" value="ql_partielle" onchange="applyFilter()"> 🟡 Partielles (Historique)</label>
+        <label><input type="radio" name="f-type" id="f-complete" value="ql_complete" onchange="applyFilter()" checked> ✅ Complètes (IA)</label>
+        <label><input type="radio" name="f-type" id="f-platine" value="ql_platine" onchange="applyFilter()"> ⭐ Platines (Validés)</label>
+        <label><input type="radio" name="f-type" id="f-no-phase-filter" value="complete_no_phase" onchange="applyFilter()"> ⚠️ Complètes sans phase</label>
+        <label><input type="radio" name="f-type" id="f-duplicates" value="duplicates" onchange="applyFilter()"> 👯 Doublons</label>
+      </div>
+
+      <div class="filter-group">
+        <label>Genre spécifique :</label>
+        <select id="f-genre" onchange="applyFilter()">
+          <option value="all">Tous genres</option>
+          <option value="Chill">Chill</option>
+          <option value="Pop">Pop</option>
+          <option value="Rock">Rock</option>
+          <option value="Rap">Rap / Hip-Hop</option>
+          <option value="R&B">R&B / Soul</option>
+          <option value="Latin">Latin / Reggaeton</option>
+          <option value="Afro">Afro</option>
+          <option value="Electro">Electro</option>
+          <option value="House">House</option>
+          <option value="Disco">Disco / Funk</option>
+          <option value="COCOVARIET">COCOVARIET</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Source :</label>
+        <select id="f-source" onchange="applyFilter()">
+          <option value="all">Toutes sources</option>
+          <option value="batch_workflow">Batch Claude (Nouveau)</option>
+          <option value="fantome_recovered">Fantôme Recovered</option>
+          <option value="gpt_imported">Ancien Import (GPT)</option>
+          <option value="editorial">Editorial</option>
+        </select>
+      </div>
+
+      <h3>TRI</h3>
+      <div class="filter-group">
+        <select id="f-sort" onchange="applyFilter()">
+          <option value="rank_desc">deezerRank DESC (populaire)</option>
+          <option value="rank_asc">deezerRank ASC (niches)</option>
+          <option value="random">Aléatoire</option>
+          <option value="recent">Plus récent</option>
+          <option value="oldest">Plus ancien</option>
+        </select>
+      </div>
+
+      <h3>BATCH SIZE</h3>
+      <div class="filter-group">
+        <select id="f-limit" onchange="applyFilter()">
+          <option value="1">1</option>
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="applyFilter()">APPLIQUER FILTRES</button>
+      
+      <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+        <h3>BATCH CLAUDE</h3>
+        <button class="btn btn-gpt" style="width: 100%; margin-bottom: 10px;" onclick="generatePrompt()">📋 GÉNÉRER PROMPT IA</button>
+        <button class="btn btn-gpt-import" style="width: 100%;" onclick="importGPT()">📥 IMPORTER RÉPONSE</button>
+      </div>
+      
+      <div class="phase-progress-panel" id="phase-progress-panel">
+        <h3>PROGRESSION PAR PHASE</h3>
+        <div id="phase-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+      
+      <div style="margin-top: 20px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 6px;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color: #aaa;">
+          <input type="checkbox" id="f-autoplay" checked /> 🎶 Auto-play au passage au titre suivant
+        </label>
+      </div>
+      <div class="shortcuts" style="margin-top: 20px;">
+        <h4>⌨️ Raccourcis</h4>
+        <div class="shortcut"><kbd>ESPACE</kbd> Play/Pause</div>
+        <div class="shortcut"><kbd>ENTER</kbd> Valider & Suivant</div>
+        <div class="shortcut"><kbd>S</kbd> Skip</div>
+        <div class="shortcut"><kbd>B</kbd> Block</div>
+        <div class="shortcut"><kbd>TAB</kbd> Champ suivant</div>
+        <div class="shortcut"><kbd>← / →</kbd> Track préc/suiv</div>
+        <div class="shortcut"><kbd>Z</kbd> Toggle Banger</div>
+        <div class="shortcut"><kbd>P</kbd> Toggle Singalong</div>
+        <div class="shortcut"><kbd>E</kbd> Toggle Emotional</div>
+        <div class="shortcut"><kbd>X</kbd> Toggle Hardcore</div>
+        <div class="shortcut"><kbd>1-6</kbd> Set Phase</div>
+        <div class="shortcut"><kbd>G</kbd> Reset Guess</div>
+      </div>
+    </div>
+
+    <!-- Center Zone (Single Focus) -->
+    <!-- MODE TABLEAU (caché par défaut) -->
+    <div class="table-view-container" id="table-view" style="display: none; padding: 20px; overflow-y: auto; flex: 1;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="sortable" data-sort="title" onclick="sortTable('title')">Titre <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="artist" onclick="sortTable('artist')">Artiste <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="bpm" onclick="sortTable('bpm')">BPM <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="genre" onclick="sortTable('genre')">Genre <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="uiCategoryPrimary" onclick="sortTable('uiCategoryPrimary')">UI Cat <span class="sort-icon"></span></th>
+            <th>UI Sec</th>
+            <th class="sortable" data-sort="phase" onclick="sortTable('phase')">Phase <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="phaseAlternate" onclick="sortTable('phaseAlternate')">Phase Alt <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="energy" onclick="sortTable('energy')">Energy <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="danceability" onclick="sortTable('danceability')">Dance <span class="sort-icon"></span></th>
+            <th>Flags</th>
+            <th class="sortable" data-sort="qualityLevel" onclick="sortTable('qualityLevel')">Statut <span class="sort-icon"></span></th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="table-tbody">
+          <!-- Injecté par JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MODE EDITION (1 track à la fois) -->
+    <div class="editor" id="editor">
+      <div class="empty-state">
+        <div class="icon">🎵</div>
+        <p>Sélectionne un batch pour commencer</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Stats Bar -->
+  <div class="bottom-bar">
+    <span id="bottom-stats">Aujourd'hui : 0 tracks classées | Vitesse : 0 tracks/min | Coverage phase : 0% | ETA finir : --</span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Templates for JS -->
+<template id="tpl-editor">
+  <div class="single-focus-container">
+    <div class="track-header">
+      <div class="track-progress">TRACK <span id="track-current">1</span> / <span id="track-total">25</span> (sur <span id="track-total-db">?</span> au total)</div>
+      
+      <div class="track-zone-a">
+        <img id="track-cover" src="" alt="Cover" />
+        <div class="track-zone-a-info">
+          <h2 style="display: flex; align-items: center; gap: 10px; margin: 0 0 10px 0;"><span id="track-title">"Title" — Artist</span> <span id="track-quality-badge" class="badge-quality badge-vide">🔴 VIDE</span></h2>
+          <div class="track-meta-chips">
+            <span class="chip">Album: <span id="track-album">-</span></span>
+            <span class="chip">Année: <span id="track-year">-</span></span>
+            <span class="chip">Durée: <span id="track-duration">-</span></span>
+            <span class="chip" id="track-rank-chip">Rank: <span id="track-rank">-</span></span>
+            <span class="chip">ISRC: <span id="track-isrc">-</span></span>
+            <span class="chip">Source: <span id="track-source">-</span></span>
+            <span class="chip">Langue: <span id="track-lang">-</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="player-container">
+      <button id="btn-play" class="btn-play" onclick="togglePlay()">▶</button>
+      <div class="player-info">
+        <div class="player-progress-container" onclick="seekAudio(event)">
+          <div class="player-progress-bar" id="audio-progress"></div>
+          ⭐ Platine (V):<br><span id="stat-platine" style="font-weight:700; color:var(--accent);">...</span>
+        </div>
+      </div>
+      <audio id="audio-player"></audio>
+    </div>
+
+    <div class="columns-container">
+      <!-- Col 1: History -->
+      <div class="col-history">
+        <div class="col-header">HISTORIQUE <small>(lecture)</small></div>
+        <div class="fields-list" id="col1-fields"></div>
+      </div>
+
+      <!-- Col 2: GPT Proposal -->
+      <div class="col-gpt">
+        <div class="col-header">IA Prop <small>(proposé)</small></div>
+        <div class="fields-list" id="col2-fields"></div>
+      </div>
+
+      <!-- Col 3: Adjustments -->
+      <div class="col-adjust">
+        <div class="col-header">AJUSTEMENT <small>(modifiable)</small></div>
+        <div class="fields-list" id="col3-fields"></div>
+      </div>
+    </div>
+
+    <div class="gpt-reasoning" id="gpt-reasoning">
+      L'IA n'a pas laissé de justification.
+    </div>
+
+    <!-- Zone C: Plus -->
+    <details class="zone-c-details" open>
+      <summary>🔽 Champs avancés</summary>
+      <div class="zone-c-content" id="zone-c-fields">
+        <!-- Will be populated by JS -->
+      </div>
+    </details>
+
+    <div class="actions-footer">
+      <button class="btn btn-secondary" onclick="prevTrack()">⏪ Précédente</button>
+      <div class="spacer"></div>
+      <button class="btn btn-secondary" onclick="skipTrack()">❌ SKIP</button>
+      <button class="btn btn-danger" onclick="blockTrack()">🚫 BLOCK</button>
+      <button class="btn btn-primary" onclick="validateTrack()">✅ VALIDER & SUIVANT</button>
+      <button class="btn btn-secondary" onclick="nextTrack()">⏩</button>
+    </div>
+  </div>
+</template>
+
+
+<!-- Modal Import Claude -->
+<div class="modal-overlay" id="import-modal" style="display: none; z-index: 1000;">
+  <div class="modal-content" style="max-width: 600px;">
+    <h2>📥 IMPORTER JSON CLAUDE</h2>
+    <p style="margin-bottom: 10px; color: var(--text-muted);">Colle ici l'intégralité du résultat JSON (ou le contenu du fichier .json) renvoyé par Claude :</p>
+    <textarea id="import-textarea" rows="15" style="width: 100%; padding: 10px; background: #222; color: #fff; border: 1px solid #444; border-radius: 6px; font-family: monospace;"></textarea>
+    <div style="display: flex; gap: 10px; margin-top: 15px;">
+      <button class="btn btn-secondary" onclick="document.getElementById('import-modal').style.display='none'">Annuler</button>
+      <button class="btn btn-primary" onclick="processImportGPT()">Valider l'import</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Modal -->
+<div class="modal-overlay" id="stats-modal">
+  <div class="modal-content">
+    <h2>🏆 SESSION STATS</h2>
+    <div class="modal-stat-row">
+      <span>Durée :</span>
+      <span class="modal-stat-value" id="modal-duration">--</span>
+    </div>
+    <div class="modal-stat-row">
+      <span>Tracks classifiées :</span>
+      <span class="modal-stat-value" id="modal-classified">--</span>
+    </div>
+    <hr style="border: 1px solid #333; margin: 15px 0;">
+    <div class="modal-stat-row" style="color: #ffcc00;">
+      <span>🟡 Partielles :</span>
+      <span class="modal-stat-value" id="modal-partielle">--</span>
+    </div>
+    <div class="modal-stat-row" style="color: #00ff44;">
+      <span>✅ Complètes (IA) :</span>
+      <span class="modal-stat-value" id="modal-complete">--</span>
+    </div>
+    <div class="modal-stat-row" style="color: #ffd700;">
+      <span>⭐ Platine (Validés) :</span>
+      <span class="modal-stat-value" id="modal-platine">--</span>
+    </div>
+    <hr style="border: 1px solid #333; margin: 15px 0;">
+    <div class="modal-stat-row">
+      <span>Vitesse moyenne :</span>
+      <span class="modal-stat-value" id="modal-speed">--</span>
+    </div>
+    <div class="modal-stat-row">
+      <span>Progression catalogue :</span>
+      <span class="modal-stat-value" id="modal-progress">--</span>
+    </div>
+    <button class="modal-close-btn" onclick="closeStatsModal()">Fermer</button>
+  </div>
+</div>
+
+<script src="monitor.js"></script>
+</body>
+</html>

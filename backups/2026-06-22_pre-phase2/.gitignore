@@ -1,0 +1,10 @@
+node_modules/
+.DS_Store
+*.log
+stress-test/results/
+*.cjs
+*.mjs
+Archive_*/
+extract_party.js
+list_parties.js
+.env

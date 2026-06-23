@@ -1,0 +1,366 @@
+{
+  "generatedAt": "2026-06-12T08:14:01.176Z",
+  "totalTracks": 2149,
+  "swiftTracks": 406,
+  "dbTracks": 1743,
+  "partyPct": 85.9,
+  "genreDistribution": {
+    "Ambient": 267,
+    "COCOVARIET": 36,
+    "Electro": 257,
+    "Hip-Hop": 368,
+    "Reggae": 7,
+    "Afro": 43,
+    "Années 80": 3,
+    "Disco": 112,
+    "House": 394,
+    "Latin": 157,
+    "Pop": 421,
+    "R&B": 7,
+    "Reggaeton": 9,
+    "Rock": 41,
+    "Variété Fr": 27
+  },
+  "sourceDistribution": {
+    "curated_hardcoded": 584,
+    "deezer_playlist_Afrobeats_Hits": 25,
+    "seed_unresolved": 292,
+    "editorial_seed": 482,
+    "csv_ambient_restored": 131,
+    "deezer_playlist_IBIZA_2026": 87,
+    "deezer_playlist_Hits_de_l__t_": 24,
+    "deezer_playlist_Disco_Essentials": 8,
+    "deezer_playlist_Soir_e_2000": 34,
+    "deezer_playlist_Hip_Hop_Hits": 50,
+    "deezer_playlist_Rap_Bangers": 41,
+    "deezer_playlist_Chill_House___House": 90,
+    "deezer_playlist_Soir_e_90": 40,
+    "deezer_playlist_Latin_Party": 61,
+    "deezer_playlist_City_Sounds_Havana": 50,
+    "deezer_playlist_Pop_Hits": 83,
+    "deezer_playlist_COCOVARIET__h_te_": 43,
+    "deezer_playlist_Top_France": 19,
+    "deezer_playlist_Rock_the_Party": 5
+  },
+  "issues": {
+    "noGenre": 0,
+    "invalidGenre": [
+      {
+        "title": "Soleil Bleu",
+        "artist": "Bleu Soleil",
+        "genre": "Reggae"
+      },
+      {
+        "title": "Essence",
+        "artist": "WizKid",
+        "genre": "Reggae"
+      },
+      {
+        "title": "Dancing On Dangerous",
+        "artist": "Sean Paul",
+        "genre": "Reggae"
+      },
+      {
+        "title": "Iko Iko (My Bestie)",
+        "artist": "Justin Wellington",
+        "genre": "Reggae"
+      },
+      {
+        "title": "Shining",
+        "artist": "joki",
+        "genre": "Reggae"
+      },
+      {
+        "title": "Sun Is Shining",
+        "artist": "Bob Marley & The Wailers",
+        "genre": "Reggae"
+      },
+      {
+        "title": "Gabriela",
+        "artist": "KATSEYE",
+        "genre": "Reggae"
+      }
+    ],
+    "bpmZero": 721,
+    "bpmTooLow": [],
+    "bpmTooHigh": [
+      {
+        "title": "All That She Wants",
+        "artist": "Ace of Base",
+        "bpm": 187.9
+      },
+      {
+        "title": "Agolo",
+        "artist": "Angelique Kidjo",
+        "bpm": 188
+      },
+      {
+        "title": "Dancing Queen",
+        "artist": "ABBA",
+        "bpm": 201
+      },
+      {
+        "title": "Kung Fu Fighting",
+        "artist": "Carl Douglas",
+        "bpm": 204
+      },
+      {
+        "title": "I'm So Excited",
+        "artist": "Pointer Sisters",
+        "bpm": 184.57
+      },
+      {
+        "title": "I'm So Excited",
+        "artist": "The Pointer Sisters",
+        "bpm": 184.57
+      },
+      {
+        "title": "Hey Mama",
+        "artist": "David Guetta",
+        "bpm": 179.8
+      },
+      {
+        "title": "Hey Mama (feat. Nicki Minaj, Bebe Rexha & Afrojack)",
+        "artist": "David Guetta",
+        "bpm": 172
+      },
+      {
+        "title": "In Da Club",
+        "artist": "50 Cent",
+        "bpm": 179.8
+      },
+      {
+        "title": "Lose Yourself",
+        "artist": "Eminem",
+        "bpm": 171.6
+      },
+      {
+        "title": "Runaway",
+        "artist": "AURORA",
+        "bpm": 172.27
+      },
+      {
+        "title": "Dos Perlas y un Dolor",
+        "artist": "Chucho Valdés",
+        "bpm": 185.4
+      },
+      {
+        "title": "La negra Tomasa",
+        "artist": "Compay Segundo",
+        "bpm": 188.8
+      },
+      {
+        "title": "Love The Way You Lie",
+        "artist": "Eminem",
+        "bpm": 173.7
+      },
+      {
+        "title": "Sadeness (Part I)",
+        "artist": "Enigma",
+        "bpm": 191.4
+      },
+      {
+        "title": "La Gozadera",
+        "artist": "Gente De Zona",
+        "bpm": 189.65
+      },
+      {
+        "title": "El Amante",
+        "artist": "Nicky Jam",
+        "bpm": 180
+      },
+      {
+        "title": "Mambo No 5",
+        "artist": "Perez Prado",
+        "bpm": 179.8
+      },
+      {
+        "title": "Summertime",
+        "artist": "The Sundays",
+        "bpm": 192.3
+      },
+      {
+        "title": "Loving Machine",
+        "artist": "TV Girl",
+        "bpm": 179.76
+      },
+      {
+        "title": "Maria Cristina",
+        "artist": "Vieja Trova Santiaguera",
+        "bpm": 193.2
+      },
+      {
+        "title": "Baby Boy (feat. Sean Paul)",
+        "artist": "Beyoncé",
+        "bpm": 182.1
+      },
+      {
+        "title": "Who's That Girl?",
+        "artist": "Eve",
+        "bpm": 193.2
+      },
+      {
+        "title": "Et l'on n'y peut rien",
+        "artist": "Jean-Jacques Goldman",
+        "bpm": 210.94
+      },
+      {
+        "title": "Mambo No. 5 (a Little Bit of...)",
+        "artist": "Lou Bega",
+        "bpm": 173.71
+      },
+      {
+        "title": "No One Knows",
+        "artist": "Queens of the Stone Age",
+        "bpm": 172
+      },
+      {
+        "title": "Can't Stop",
+        "artist": "Red Hot Chili Peppers",
+        "bpm": 183
+      },
+      {
+        "title": "Umbrella",
+        "artist": "Rihanna",
+        "bpm": 174
+      },
+      {
+        "title": "Angela",
+        "artist": "Saïan Supa Crew",
+        "bpm": 175.9
+      },
+      {
+        "title": "Get Busy",
+        "artist": "Sean Paul",
+        "bpm": 200.7
+      },
+      {
+        "title": "I'll Be There for You (Theme from Friends) (Single Version)",
+        "artist": "The Rembrandts",
+        "bpm": 190.5
+      },
+      {
+        "title": "Blinding Lights",
+        "artist": "The Weeknd",
+        "bpm": 170.84
+      },
+      {
+        "title": "Con Calma",
+        "artist": "Daddy Yankee",
+        "bpm": 187.93
+      },
+      {
+        "title": "Do I Wanna Know?",
+        "artist": "Arctic Monkeys",
+        "bpm": 171.6
+      },
+      {
+        "title": "Footloose",
+        "artist": "Kenny Loggins",
+        "bpm": 174
+      },
+      {
+        "title": "Use Somebody",
+        "artist": "Kings Of Leon",
+        "bpm": 170.1
+      },
+      {
+        "title": "Let's Get Loud",
+        "artist": "The Baseballs",
+        "bpm": 173
+      },
+      {
+        "title": "Oui ou non",
+        "artist": "Angèle",
+        "bpm": 199.73
+      },
+      {
+        "title": "J'irai où tu iras (with Jean-Jacques Goldman)",
+        "artist": "Céline Dion",
+        "bpm": 175
+      },
+      {
+        "title": "Musique (Remasterisé en 2004)",
+        "artist": "France Gall",
+        "bpm": 209
+      }
+    ],
+    "bpmSuspicious": 44,
+    "blacklisted": [],
+    "emptyTitle": 1,
+    "dupDeezerID": 264,
+    "dupTitleArtist": 259
+  },
+  "simulation": {
+    "placedTracks": 150,
+    "targetTracks": 150,
+    "avgBPM": 119,
+    "bpmMin": 99,
+    "bpmMax": 133,
+    "genreDistribution": {
+      "Pop": 40,
+      "Electro": 15,
+      "Hip-Hop": 31,
+      "Disco": 13,
+      "R&B": 3,
+      "Rock": 1,
+      "Latin": 13,
+      "House": 27,
+      "Afro": 3,
+      "COCOVARIET": 4
+    },
+    "issues": {
+      "noPool": 0,
+      "wrongBPM": 0,
+      "alreadyPlayed": 2
+    }
+  },
+  "checks": [
+    {
+      "name": "Pas de track sans genre",
+      "pass": true,
+      "value": "0 problèmes"
+    },
+    {
+      "name": "Pas de genre invalide",
+      "pass": false,
+      "value": "7 invalides"
+    },
+    {
+      "name": "Pas d'artiste blacklisté",
+      "pass": true,
+      "value": "0 trouvés"
+    },
+    {
+      "name": "Pas de titre vide",
+      "pass": false,
+      "value": "1 trouvés"
+    },
+    {
+      "name": "BPM aberrants (< 60 ou > 170)",
+      "pass": false,
+      "value": "40 aberrants"
+    },
+    {
+      "name": "Taux party-safe > 85%",
+      "pass": true,
+      "value": "85.9% party-safe"
+    },
+    {
+      "name": "Simulation 150 tracks réussie",
+      "pass": true,
+      "value": "150/150 placés"
+    },
+    {
+      "name": "Aucun pool de genre vide",
+      "pass": true,
+      "value": "0 fois sans pool"
+    },
+    {
+      "name": "BPM cohérents en simulation",
+      "pass": true,
+      "value": "0 écarts importants"
+    }
+  ],
+  "verdict": "FAIL"
+}

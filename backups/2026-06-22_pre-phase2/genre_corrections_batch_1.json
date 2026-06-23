@@ -1,0 +1,1352 @@
+[
+  {
+    "id": "seed_3833827681",
+    "title": "Us Humans (Mixed)",
+    "artist": "Andrea Terrano",
+    "currentGenre": "Afro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3833827561",
+    "title": "Yukon (Mixed)",
+    "artist": "BetejayMadeIt",
+    "currentGenre": "Afro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3833827601",
+    "title": "Prevail (Prelude [Mixed])",
+    "artist": "Ethiopian Chyld",
+    "currentGenre": "Afro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_428558022",
+    "title": "Who Mad Again",
+    "artist": "Jahyanai",
+    "currentGenre": "Afro",
+    "newGenre": "Afro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1644464022",
+    "title": "Calm Down",
+    "artist": "Rema",
+    "currentGenre": "Afro",
+    "newGenre": "Afro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_ee0u2adeq",
+    "title": "I Still Miss You (feat_ Mzansi Soulful Ones) [Café Del Mar Edit [Mixed]]",
+    "artist": "Roque",
+    "currentGenre": "Afro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_nj2tucaj8",
+    "title": "01-medhy_custos-elles_demandent",
+    "artist": "Unknown",
+    "currentGenre": "Afro",
+    "newGenre": "Afro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1998772137",
+    "title": "Tiki Taka",
+    "artist": "Vacra",
+    "currentGenre": "Afro",
+    "newGenre": "Afro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2536600371",
+    "title": "XOXO",
+    "artist": "Vacra",
+    "currentGenre": "Afro",
+    "newGenre": "Afro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_sn457vbon",
+    "title": "Grootman Groove (feat_ BONXNI & Sphecial) [Mixed]",
+    "artist": "Young GInger",
+    "currentGenre": "Afro",
+    "newGenre": "Afro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_561836",
+    "title": "Sweet Dreams",
+    "artist": "Eurythmics",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "Pop",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3833827551",
+    "title": "Oblivion (Mixed)",
+    "artist": "A Vision of Panorama & Meora",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_3833827531",
+    "title": "The Floating Sun (Mixed)",
+    "artist": "Café del Mar",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_3833827621",
+    "title": "Café Del Mar (Mixed)",
+    "artist": "Faunabeats, Café del Mar & Gelka",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_3833827701",
+    "title": "Body Language (Mixed)",
+    "artist": "Jamie Myerson",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_3833827591",
+    "title": "Sueños Soleados (Mixed)",
+    "artist": "John Beltran",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_3833827631",
+    "title": "Fraude (Mixed)",
+    "artist": "Mark Moon",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_3833827651",
+    "title": "Spare a Minute (Mixed)",
+    "artist": "Meltonix",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_3833827641",
+    "title": "Dreamer (Mixed)",
+    "artist": "Pig&Dan & Café del Mar",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_3833827661",
+    "title": "Second Vision (Mixed)",
+    "artist": "Pour Deux",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_3833827691",
+    "title": "The Calling ([Mixed] Freeman Remix)",
+    "artist": "Pressure Drop",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_3833827581",
+    "title": "Fly Away (Mixed)",
+    "artist": "Tech Support & Asa Tate",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_3833827711",
+    "title": "Platform (Mixed)",
+    "artist": "Visions of Light",
+    "currentGenre": "Chill",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "Chillout/Lounge mapped to House"
+  },
+  {
+    "id": "seed_2463390575",
+    "title": "Celui qui part",
+    "artist": "Joseph Kamel",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "COCOVARIET",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_0afm4ytf8",
+    "title": "60 - Kyo - Dernière danse",
+    "artist": "Kyo - Dernière danse",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "COCOVARIET",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2470627425",
+    "title": "Why Do the Bad Things Feel Good",
+    "artist": "Marina Kaye",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "Pop",
+    "confidence": "high",
+    "reasoning": "French artist but sings in English mainstream Pop"
+  },
+  {
+    "id": "seed_1940930987",
+    "title": "Mamma Mia",
+    "artist": "Mentissa",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "COCOVARIET",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_hgh0lj8tu",
+    "title": "92 - Molière l'opéra urbain - Et si c'était nous deux _",
+    "artist": "Molière l'opéra urbain - Et si c'était nous deux _",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "COCOVARIET",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_uti2x44zz",
+    "title": "76 - Nuit Incolore - Dépassé",
+    "artist": "Nuit Incolore - Dépassé",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "COCOVARIET",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2000225817",
+    "title": "Mercredi",
+    "artist": "Pierre de Maere",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "COCOVARIET",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_8ysmrb09w",
+    "title": "94 - Stéphane - Mieux comme ça _ (feat. Petit K)",
+    "artist": "Stéphane - Mieux comme ça _ (feat. Petit K)",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "COCOVARIET",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2389689175",
+    "title": "Comment on fait",
+    "artist": "Vianney",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "COCOVARIET",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2125799387",
+    "title": "Le feu",
+    "artist": "Vianney",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "COCOVARIET",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2389689205",
+    "title": "Il faudrait",
+    "artist": "Vianney",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "COCOVARIET",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_884041",
+    "title": "Gimme! Gimme! Gimme!",
+    "artist": "ABBA",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_757201022",
+    "title": "Don't Stop",
+    "artist": "Asso",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_8014711",
+    "title": "Nights (Feel Like Getting Down)",
+    "artist": "Billy Ocean",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1736104637",
+    "title": "Let's Start The Dance (Remix)",
+    "artist": "Bohannon Feat. Dr. Perri Johnson",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3409416781",
+    "title": "Sunny",
+    "artist": "Boney M.",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_11626680",
+    "title": "Do You Really Love Me",
+    "artist": "Bryan Loren",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1490273502",
+    "title": "Don't You Wanna Make Love",
+    "artist": "Carl Carlton",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_445812132",
+    "title": "Supernature",
+    "artist": "Cerrone",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_7d2q8ciap",
+    "title": "da funk_ancien2",
+    "artist": "daft punk",
+    "currentGenre": "Disco",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": "Daft Punk is Electro (except Get Lucky = Disco)"
+  },
+  {
+    "id": "seed_66609426",
+    "title": "Get Lucky",
+    "artist": "Daft Punk",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": "Daft Punk is Electro (except Get Lucky = Disco)"
+  },
+  {
+    "id": "seed_1912568",
+    "title": "Stand Up (Reach For The Sky)",
+    "artist": "Delegation",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3822044",
+    "title": "Long Train Runnin'",
+    "artist": "Doobie Brothers",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3578491641",
+    "title": "Way Out",
+    "artist": "Dynasty",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_487484142",
+    "title": "September",
+    "artist": "Earth Wind & Fire",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_611346",
+    "title": "Boogie Wonderland",
+    "artist": "Earth Wind & Fire",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_70096742",
+    "title": "Now I'm Fine",
+    "artist": "Grey & Hanks",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_b90zpmkb0",
+    "title": "Single Handed",
+    "artist": "Haywoode",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2175124797",
+    "title": "Half The Day's Gone And We Haven't Earned A Penny",
+    "artist": "Kenny Lynch",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_94556154",
+    "title": "Get Down On It",
+    "artist": "Kool & The Gang",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3750788562",
+    "title": "Dreamin'",
+    "artist": "Loleatta Holloway",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3786380072",
+    "title": "Wet My Whistle",
+    "artist": "Midnight Star",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_08s9x6a0n",
+    "title": "Make It Up To Me In Love",
+    "artist": "Odia Coates & Paul Anka",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_559415",
+    "title": "Going Back To My Roots",
+    "artist": "Odyssey",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_891347",
+    "title": "Taj Mahal",
+    "artist": "Paulinho Da Costa",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_346967941",
+    "title": "I'm So Excited",
+    "artist": "Pointer Sisters",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_fqogzauu8",
+    "title": "Magic Of You",
+    "artist": "Rafael Cameron",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_636405",
+    "title": "Sarà perché ti amo",
+    "artist": "Ricchi e Poveri",
+    "currentGenre": "COCOVARIET",
+    "newGenre": "Pop",
+    "confidence": "high",
+    "reasoning": "Italian pop mapped to Pop"
+  },
+  {
+    "id": "seed_5448329",
+    "title": "Friends",
+    "artist": "Shalamar",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_hz17sunog",
+    "title": "Let Love Shine",
+    "artist": "Skyy",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_67800556",
+    "title": "Over And Over",
+    "artist": "Sylvester",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_rsu0bakh9",
+    "title": "Pack Up your Things And Get Out Of My Life",
+    "artist": "T.C. Curtis",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_yfd02jvgd",
+    "title": "Keep On Doin' Whatcha Doin' (12' Long Version)",
+    "artist": "Ty Karim & Gene Griffin",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2285438237",
+    "title": "The Rapture Pt.III",
+    "artist": "&ME",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1269301652",
+    "title": "Discoteca",
+    "artist": "&ME",
+    "currentGenre": "Disco",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_w1ly88d7s",
+    "title": "Tupambane (feat_ Miss Vivandra) [Mixed]",
+    "artist": "12tree",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_365770611",
+    "title": "Introduction",
+    "artist": "Aaron Baron",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1746618207",
+    "title": "Forms Of Love",
+    "artist": "Adam Port",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_p0194xb5g",
+    "title": "Rolling in the deep (Tom Buster & Kidzoy remix)",
+    "artist": "Adele",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": "House remix"
+  },
+  {
+    "id": "seed_2161608057",
+    "title": "Waves & Wavs",
+    "artist": "Ahmed Spins",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_aypg6ga5s",
+    "title": "Intro (Original Club Mix)",
+    "artist": "Alan Braxe And Fred Falke",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1594457231",
+    "title": "Reborn",
+    "artist": "arodes",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1000999382",
+    "title": "Wake Me Up (Radio Edit)",
+    "artist": "Avicii",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_82398692",
+    "title": "Zouka",
+    "artist": "Bang La Decks",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_je0msy9xd",
+    "title": "13  - basto - i rave you (original mix)",
+    "artist": "basto - i rave you (original mix)",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_795642332",
+    "title": "Glue",
+    "artist": "Bicep",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3045968591",
+    "title": "Wizard of Love",
+    "artist": "Blond:ish",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2101999797",
+    "title": "Sete",
+    "artist": "Blond:ish",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2680113092",
+    "title": "Adore",
+    "artist": "Bob Sinclar",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2634178712",
+    "title": "Rock This Party (Everybody Dance Now)",
+    "artist": "Bob Sinclar feat. Cutee B",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2357139175",
+    "title": "Desire",
+    "artist": "Calvin Harris",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_7624161",
+    "title": "missing you [ft. novel]",
+    "artist": "david guetta",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3wgiyusxt",
+    "title": "Hey Mama (feat. Nicki Minaj, Bebe Rexha & Afrojack)",
+    "artist": "David Guetta",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_obd1mgruo",
+    "title": "09 - David Guetta - Paris",
+    "artist": "David Guetta - Paris",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_u9a30r01m",
+    "title": "Where Them Girls At (Radio Edit)",
+    "artist": "David Guetta ft Flo Rida and Nicki Minaj",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_15583799",
+    "title": "You Are My High (2024 Remastered)",
+    "artist": "Demon",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_487281862",
+    "title": "Paradon",
+    "artist": "Denis Horvat",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1613981692",
+    "title": "Can't Get You Out Of My Head",
+    "artist": "Desire",
+    "currentGenre": "House",
+    "newGenre": "Pop",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_67kfv3uks",
+    "title": "24 - Diala - Opiacés",
+    "artist": "Diala - Opiacés",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2570206672",
+    "title": "More Amor Por Favor",
+    "artist": "Dylan Linde",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_7117058",
+    "title": "Calabria 2007",
+    "artist": "Enur ft. Natasja",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_splomxust",
+    "title": "Proper Education (Radio Edit)",
+    "artist": "Eric Prydz",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_wqy6r4vkq",
+    "title": "I Think I Like It",
+    "artist": "Fake Blood",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_iwejnwf0d",
+    "title": "19 - Fedde Le Grand - So Much Love",
+    "artist": "Fedde Le Grand - So Much Love",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2562451692",
+    "title": "Voyage Voyage",
+    "artist": "Francis Mercier",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_zvutlxzwo",
+    "title": "Spaceman (Original Version) -",
+    "artist": "Hardwell",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3190936781",
+    "title": "Tout le monde est fou",
+    "artist": "Jain",
+    "currentGenre": "Electro",
+    "newGenre": "Pop",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_zy5f0585d",
+    "title": "Day 'N' Nite (Radio Edit)",
+    "artist": "Jamy Nox",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2877290402",
+    "title": "Ven Pa Ca",
+    "artist": "Joezi",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2508240851",
+    "title": "Strangers",
+    "artist": "Kenya Grace",
+    "currentGenre": "Electro",
+    "newGenre": "Pop",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_4631883",
+    "title": "2000 - Madhouse-like a prayer",
+    "artist": "Madhouse-like a prayer",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_569166552",
+    "title": "Light It Up (Feat. Nyla)",
+    "artist": "Major Lazer",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2670522762",
+    "title": "Opera",
+    "artist": "Marasi",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2365023705",
+    "title": "Boyz In Paris (with VINAI)",
+    "artist": "Marnik",
+    "currentGenre": "House",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3230816611",
+    "title": "Your Body",
+    "artist": "Marten Lou",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_rc08wafqp",
+    "title": "17 - Martin Solveig feat. Jay Sebag - C'est La Vie",
+    "artist": "Martin Solveig feat. Jay Sebag - C'est La Vie",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2008609407",
+    "title": "Dare Your Move",
+    "artist": "MAXI MERAKI",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2569218732",
+    "title": "Verona",
+    "artist": "Mili",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2486813731",
+    "title": "More Love",
+    "artist": "Moderat",
+    "currentGenre": "House",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1915841017",
+    "title": "Palomar",
+    "artist": "Monkey Safari",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2405566435",
+    "title": "Paris",
+    "artist": "Mont Rouge",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3311117271",
+    "title": "Belsunce",
+    "artist": "Mont Rouge",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2233638217",
+    "title": "Spacer",
+    "artist": "Mooglie",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2343066935",
+    "title": "Secret ID",
+    "artist": "Moojo",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3748159",
+    "title": "Flat Beat",
+    "artist": "Mr.Oizo",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2185516347",
+    "title": "Juno Love",
+    "artist": "Nico Morano",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2525458421",
+    "title": "Emowe",
+    "artist": "Notre Dame",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2472322121",
+    "title": "Overdrive (feat. Norma Jean Martine)",
+    "artist": "Ofenbach",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3408657731",
+    "title": "Make Me Feel",
+    "artist": "oskar med k",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1512797952",
+    "title": "Before",
+    "artist": "Pablo Fierro",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_69956741",
+    "title": "Doo Doo Wap",
+    "artist": "Paul Johnson",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2274284527",
+    "title": "Another Song To Myself",
+    "artist": "Picture This",
+    "currentGenre": "Pop",
+    "newGenre": "Pop",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2428475985",
+    "title": "Favourite Game",
+    "artist": "Rae & Christian",
+    "currentGenre": "Disco",
+    "newGenre": "Disco",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2642151722",
+    "title": "Famax",
+    "artist": "RAFFA GUIDO",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1892122097",
+    "title": "Les Gout",
+    "artist": "Rampa",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2692106502",
+    "title": "Contigo",
+    "artist": "REBRN",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2515453531",
+    "title": "Change This Pain For Ecstasy",
+    "artist": "Rex the Dog",
+    "currentGenre": "House",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_113475002",
+    "title": "Innerbloom",
+    "artist": "RÜFÜS DU SOL",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_q1js599pq",
+    "title": "robbie rivera vs billy paul",
+    "artist": "sex",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1741718587",
+    "title": "Sala Papa Ye",
+    "artist": "Soulroots",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2309134745",
+    "title": "God Is A Girl",
+    "artist": "Sound Of Legend",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1787557067",
+    "title": "Moth To A Flame",
+    "artist": "Swedish House Mafia",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2234892777",
+    "title": "Emorio",
+    "artist": "Trinix",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_108329720",
+    "title": "Do it",
+    "artist": "Trouble men",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2184848677",
+    "title": "Yakalongo",
+    "artist": "Ugo Banchi",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3u00zt8am",
+    "title": "01_bingo_players_and_far_east_movement_-_get_up_(rattle)",
+    "artist": "Unknown",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2v1oyvyh4",
+    "title": "101-the_pussycat_dolls-when_i_grow_up",
+    "artist": "Unknown",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_47ow59w0g",
+    "title": "108-desaparecidos_vs_walter_master_j-ibiza",
+    "artist": "Unknown",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_kkk67wz96",
+    "title": "204-guru_josh_project-infinity_2008_(klass_radio_edit)",
+    "artist": "Unknown",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_sc8iypee6",
+    "title": "214-muttonheads_and_matthieu_bouthier-make_your_own_kind_of_music",
+    "artist": "Unknown",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_0cgkom8i8",
+    "title": "215_radio_killer-lonely_heart-lzy",
+    "artist": "Unknown",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3gfcfxjre",
+    "title": "219-september-cry_for_you_(uk_radio_edit)",
+    "artist": "Unknown",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_reliwnfmr",
+    "title": "mp3_Sandro_Silva_Quintino_-_Epic_Original_Mix_",
+    "artist": "Unknown",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_n02caumi4",
+    "title": "This Is Love (Prod. by Swedish House Mafia) [UMD]",
+    "artist": "Will.I.Am Ft. Eva Simons",
+    "currentGenre": "Electro",
+    "newGenre": "Electro",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_2339030005",
+    "title": "Résiste",
+    "artist": "Yann Muller",
+    "currentGenre": "Electro",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_3409146481",
+    "title": "Je dois m'en aller",
+    "artist": "Yann Muller",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  },
+  {
+    "id": "seed_1923908287",
+    "title": "Seventh Street",
+    "artist": "Zac",
+    "currentGenre": "House",
+    "newGenre": "House",
+    "confidence": "high",
+    "reasoning": ""
+  }
+]

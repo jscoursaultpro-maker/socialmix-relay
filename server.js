@@ -16,6 +16,7 @@ import HostPreference from './models/HostPreference.js';
 import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRESS_METRICS=1
 import { uploadPhoto } from './services/cloudinaryService.js';
 import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
+import adminUsersRouter from './routes/admin/users.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -242,6 +243,7 @@ app.get('/api/tracks/snapshot', async (req, res) => {
 });
 
 // ─── Admin API ────────────────────────────────────────────────────────
+app.use('/api/admin/users', adminAuth, adminUsersRouter);
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {

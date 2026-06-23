@@ -1,0 +1,1366 @@
+Tu es un expert DJ et curateur musical pour SocialMix, une app de DJ intelligent pour soirées privées.
+
+SocialMix a 6 phases de soirée. Chaque phase a un rôle précis — sois rigoureux sur la distinction groove/takeoff :
+
+- arrival   : accueil des invités (E:2-5, BPM 70-110). Atmosphère détendue, singalong, pas encore dansant.
+              Ex: Angèle, Adele, Vianney, pop douce, R&B lent, variété française.
+
+- ambiance  : la salle se remplit et commence à bouger (E:5-7, BPM 108-124). Genre principal s'installe, énergie montante mais pas encore explosive.
+              Ex: Ed Sheeran danceable, Justin Timberlake, Dua Lipa (milieu), Disco mid-tempo.
+
+- groove    : dancefloor établi, tout le monde danse déjà (E:6-8, BPM 110-126). C'est le plateau confortable. L'énergie est STABLE et VARIÉE — on peut passer Disco, Hip-Hop, House légère, Pop festive. PAS d'urgence ni de tension.
+              Ex: Daft Punk (Get Lucky), Bruno Mars, Calvin Harris (feel so close), Beyoncé, Disco classique (115 BPM).
+              ⚠️ RÈGLE: si le titre invite à danser mais ne crée PAS de montée de tension → groove.
+
+- takeoff   : montée en puissance, énergie monte activement (E:8-9, BPM 124-138). Le DJ crée de la TENSION vers un climax. Titres avec build-up, drops, montée progressive. Le dancefloor est chauffé à blanc.
+              Ex: Calvin Harris (Summer, When Love Takes Over), David Guetta (She Wolf), Major Lazer, LMFAO, Avicii (Levels), Bingo Players.
+              ⚠️ RÈGLE: si le titre a un drop/build-up OU si BPM > 126 ET énergie ≥ 8 → takeoff.
+
+- peak      : apogée, énergie maximale, tout est déchaîné (E:9-10, BPM 128+). Rarement utilisé sauf vrais bangers club.
+              Ex: Miracle (Calvin Harris 143 BPM), Pedro (151 BPM), Skrillex, big room house.
+
+- closing   : fin de soirée, redescente (E:2-6, BPM 70-115). Classiques intemporels ou titres doux pour terminer.
+              Ex: Bohemian Rhapsody, Don't Stop Believin', variété française lente, R&B doux.
+
+RÈGLE DÉCISIVE groove vs takeoff :
+→ BPM ≤ 124 ET énergie ≤ 8 ET pas de build-up → groove
+→ BPM ≥ 125 ET énergie ≥ 8 ET style club/festival → takeoff
+→ BPM 122-126 : utilise le STYLE du morceau (House festive énergique = takeoff, Disco classique = groove)
+
+Genres SocialMix valides: House, Electro, Hip-Hop, Pop, Disco, Latin, Reggaeton, Rock, Afro, R&B, COCOVARIET, Chill, Jazz
+(Note: "Variété Fr" → utilise "COCOVARIET" ; "Années 80" → utilise le genre réel : Disco, Rock, Pop, COCOVARIET)
+
+Pour CHAQUE track ci-dessous, réponds sur UNE LIGNE au format JSON:
+{"id": "ARTIST — TITLE", "genre_ok": true/false, "genre_suggest": "...", "phase_ok": true/false, "phase_suggest": "...", "energy_suggest": N, "verdict": "✅ ok" | "⚠️ reclassifier" | "🔴 supprimer", "note": "..."}
+
+Critères d'évaluation:
+- genre_ok: le genre SocialMix est-il correct pour cet artiste/titre ?
+- phase_ok: la phase assignée est-elle cohérente avec l'énergie et le style ? (applique la règle groove/takeoff)
+- energy_suggest: estime l'énergie de 1-10 si elle est à 0 ou incorrecte
+- verdict "supprimer" si: karaoke, cover basse qualité, 8-bit, compilation radio, titre non-fête, medley générique
+
+TRACKS À ANALYSER:
+
+
+Ace of Base — All That She Wants | genre:Afro | bpm:187.9 | energy:? | phase:arrival
+Ava Max — So Am I | genre:Afro | bpm:130.01 | energy:? | phase:arrival
+CKay — love nwantiti (ah ah ah) | genre:Afro | bpm:93 | energy:5 | phase:arrival
+David Guetta — I Wanna Go Crazy (feat. will.i.am) | genre:Afro | bpm:128 | energy:? | phase:ambiance
+Disco Factory — You Make Me Feel | genre:Afro | bpm:132.5 | energy:? | phase:arrival
+Disco Factory — Gimme! Gimme! Gimme! | genre:Afro | bpm:128.8 | energy:? | phase:arrival
+Dr. Alban — Sing Hallelujah! | genre:Afro | bpm:124.53 | energy:? | phase:ambiance
+Ethiopian Chyld — Prevail (Prelude [Mixed]) | genre:Afro | bpm:120 | energy:6 | phase:ambiance
+Generation 90 — Missing " I Miss You Like The Deserts Miss The Rain" | genre:Afro | bpm:122.7 | energy:? | phase:ambiance
+Generation Mix — Feel It | genre:Afro | bpm:124.9 | energy:? | phase:ambiance
+Generation Mix — Scatman | genre:Afro | bpm:137.8 | energy:? | phase:arrival
+Generation Mix — Rythm Is A Dancer | genre:Afro | bpm:125.7 | energy:? | phase:ambiance
+Generation Mix — Where Do You Go | genre:Afro | bpm:124.9 | energy:? | phase:ambiance
+Generation Mix — Born To Be Alive | genre:Afro | bpm:132.9 | energy:? | phase:arrival
+Generation Mix — I Like To Move It | genre:Afro | bpm:125.3 | energy:? | phase:ambiance
+Generation Mix — Be My Lover | genre:Afro | bpm:137.3 | energy:? | phase:arrival
+Generation Mix — Pump Up The Jam | genre:Afro | bpm:127.2 | energy:? | phase:ambiance
+Generation Mix — Le Freak | genre:Afro | bpm:119.8 | energy:? | phase:ambiance
+Generation Mix — The Rhythm of the Night | genre:Afro | bpm:128.4 | energy:? | phase:arrival
+Jahyanai — Who Mad Again | genre:Afro | bpm:102.08 | energy:? | phase:closing
+Lizzo — Juice | genre:Afro | bpm:119.84 | energy:? | phase:ambiance
+M83 — Midnight City | genre:Afro | bpm:104.9 | energy:? | phase:closing
+Omah lay — soso (JOSEPH Remix) | genre:Afro | bpm:120 | energy:8 | phase:groove
+Queen — I Want To Break Free (Remastered 2011) | genre:Afro | bpm:108.8 | energy:? | phase:closing
+Rema — Calm Down | genre:Afro | bpm:? | energy:? | phase:unclassified
+The Action Steps — What Is Love | genre:Afro | bpm:124.91 | energy:? | phase:ambiance
+The Schlagerflowers — Medley: Mambo Nr.5 / We're Going to Ibiza / Bailamos | genre:Afro | bpm:87 | energy:? | phase:closing
+Vacra — Tiki Taka | genre:Afro | bpm:120 | energy:6 | phase:ambiance
+Vacra — XOXO | genre:Afro | bpm:120 | energy:6 | phase:ambiance
+Vengaboys — We're Going To Ibiza! (Unplugged) | genre:Afro | bpm:? | energy:? | phase:unclassified
+Wham! — Wake Me Up Before You Go-Go | genre:Afro | bpm:81.5 | energy:? | phase:closing
+Whigfield — Saturday Night (Radio Edit) | genre:Afro | bpm:130 | energy:? | phase:arrival
+Eurythmics — Sweet Dreams | genre:Années 80 | bpm:125.3 | energy:? | phase:ambiance
+Goldman — Quand la musique est bonne | genre:Années 80 | bpm:? | energy:? | phase:unclassified
+Indochine — L'aventurier | genre:Années 80 | bpm:? | energy:? | phase:unclassified
+ABBA — Gimme! Gimme! Gimme! | genre:Disco | bpm:119.1 | energy:? | phase:ambiance
+Angie Stone — Wish I Didn't Miss You | genre:Disco | bpm:124 | energy:8 | phase:groove
+Asso — Don't Stop | genre:Disco | bpm:115 | energy:8 | phase:groove
+Billy Ocean — Nights (Feel Like Getting Down) | genre:Disco | bpm:115 | energy:8 | phase:groove
+Blondie — Heart Of Glass | genre:Disco | bpm:115 | energy:8 | phase:groove
+Blondie — Heart Of Glass (Remix) | genre:Disco | bpm:114.5 | energy:? | phase:closing
+Bohannon Feat. Dr. Perri Johnson — Let's Start The Dance (Remix) | genre:Disco | bpm:115 | energy:8 | phase:groove
+Boney M. — Sunny | genre:Disco | bpm:? | energy:? | phase:unclassified
+Bryan Loren — Do You Really Love Me | genre:Disco | bpm:115 | energy:8 | phase:groove
+Carl Carlton — Don't You Wanna Make Love | genre:Disco | bpm:115 | energy:8 | phase:groove
+Cerrone — Supernature | genre:Disco | bpm:? | energy:? | phase:unclassified
+Cerrone — Supernature | genre:Disco | bpm:123 | energy:8 | phase:groove
+Cheryl Lynn — Got to Be Real | genre:Disco | bpm:115 | energy:7 | phase:ambiance
+Chic — Le Freak (Edit) | genre:Disco | bpm:119 | energy:7 | phase:ambiance
+Daft Punk — Get Lucky | genre:Disco | bpm:116.13 | energy:? | phase:ambiance
+Delegation — Stand Up (Reach For The Sky) | genre:Disco | bpm:115 | energy:8 | phase:groove
+DiscoGalactiX — Saturday Hustle | genre:Disco | bpm:127 | energy:9 | phase:takeoff
+Doobie Brothers — Long Train Runnin' | genre:Disco | bpm:117.8 | energy:? | phase:ambiance
+Dynasty — Way Out | genre:Disco | bpm:115 | energy:8 | phase:groove
+Earth Wind & Fire — September | genre:Disco | bpm:126.43 | energy:? | phase:ambiance
+Earth Wind & Fire — Boogie Wonderland | genre:Disco | bpm:131.7 | energy:? | phase:arrival
+Earth, Wind & Fire — Boogie Wonderland (with The Emotions) | genre:Disco | bpm:? | energy:? | phase:unclassified
+Grey & Hanks — Now I'm Fine | genre:Disco | bpm:115 | energy:8 | phase:groove
+Indeep — Last Night a D.J. Saved My Life | genre:Disco | bpm:110 | energy:6 | phase:closing
+Jamelia — Superstar | genre:Disco | bpm:110 | energy:7 | phase:closing
+Kenny Lynch — Half The Day's Gone And We Haven't Earned A Penny | genre:Disco | bpm:115 | energy:8 | phase:groove
+Kool & The Gang — Get Down On It | genre:Disco | bpm:111.7 | energy:? | phase:closing
+Kool & The Gang — Celebration (Single Version) | genre:Disco | bpm:121 | energy:7 | phase:ambiance
+Loleatta Holloway — Dreamin' | genre:Disco | bpm:115 | energy:8 | phase:groove
+Madonna — Holiday | genre:Disco | bpm:115.5 | energy:? | phase:ambiance
+Michael Jackson — Don't Stop 'Til You Get Enough (2003 Edit) | genre:Disco | bpm:119 | energy:7 | phase:ambiance
+Michael Jackson — Billie Jean | genre:Disco | bpm:117 | energy:7 | phase:ambiance
+Michael Zager Band — Let's All Chant | genre:Disco | bpm:122 | energy:8 | phase:groove
+Midnight Star — Wet My Whistle | genre:Disco | bpm:115 | energy:8 | phase:groove
+Odyssey — Going Back To My Roots | genre:Disco | bpm:? | energy:? | phase:unclassified
+Oliver Cheatham — Get Down Saturday Night | genre:Disco | bpm:117 | energy:7 | phase:ambiance
+Paulinho Da Costa — Taj Mahal | genre:Disco | bpm:115 | energy:8 | phase:groove
+Pointer Sisters — I'm So Excited | genre:Disco | bpm:184.57 | energy:? | phase:arrival
+Queen — Another One Bites The Dust | genre:Disco | bpm:110 | energy:8 | phase:groove
+Raye — WHERE IS MY HUSBAND! | genre:Disco | bpm:116 | energy:7 | phase:ambiance
+René & Angela — I Love You More (Remastered) | genre:Disco | bpm:105.5 | energy:? | phase:closing
+Ricchi e Poveri — Sarà perché ti amo | genre:Disco | bpm:120.2 | energy:? | phase:ambiance
+Shalamar — Friends | genre:Disco | bpm:115 | energy:8 | phase:groove
+Silver Convention — Fly Robin Fly | genre:Disco | bpm:100.1 | energy:? | phase:closing
+Sister Sledge — We Are Family (1995 Remaster) | genre:Disco | bpm:116 | energy:7 | phase:ambiance
+Sylvester — Over And Over | genre:Disco | bpm:115 | energy:8 | phase:groove
+Tame Impala — Dracula | genre:Disco | bpm:115 | energy:7 | phase:ambiance
+The Hues Corporation — Rock the Boat | genre:Disco | bpm:106.83 | energy:? | phase:closing
+The Jacksons — Blame It on the Boogie | genre:Disco | bpm:113.27 | energy:? | phase:closing
+The Pointer Sisters — I'm So Excited | genre:Disco | bpm:184.57 | energy:? | phase:arrival
+Thelma Houston — Don't Leave Me This Way | genre:Disco | bpm:125 | energy:9 | phase:takeoff
+&ME — The Rapture Pt.III | genre:Electro | bpm:? | energy:? | phase:unclassified
+&ME — Discoteca | genre:Electro | bpm:? | energy:? | phase:unclassified
+Aaron Baron — Introduction | genre:Electro | bpm:? | energy:? | phase:unclassified
+Adam Beyer — Desolate Lands | genre:Electro | bpm:129 | energy:9 | phase:takeoff
+Adam Port — Forms Of Love | genre:Electro | bpm:? | energy:? | phase:unclassified
+AFROJACK — Awake Tonight | genre:Electro | bpm:? | energy:? | phase:unclassified
+Agoria — Cambodia | genre:Electro | bpm:126 | energy:9 | phase:takeoff
+Ahmed Spins — Waves & Wavs | genre:Electro | bpm:? | energy:? | phase:unclassified
+Alexandra Stan — Mr. Saxobeat | genre:Electro | bpm:127 | energy:9 | phase:takeoff
+Alok — Looking For Love | genre:Electro | bpm:128 | energy:9 | phase:takeoff
+Angèle — What You Want | genre:Electro | bpm:114 | energy:7 | phase:closing
+arodes — Reborn | genre:Electro | bpm:? | energy:? | phase:unclassified
+AronChupa — I'm an Albatraoz | genre:Electro | bpm:128 | energy:9 | phase:takeoff
+Avicii — Wake Me Up (Radio Edit) | genre:Electro | bpm:120 | energy:6 | phase:ambiance
+Bang La Decks — Zouka | genre:Electro | bpm:97 | energy:? | phase:closing
+Bicep — Glue | genre:Electro | bpm:? | energy:? | phase:unclassified
+Bingo Players — Rattle | genre:Electro | bpm:128 | energy:9 | phase:takeoff
+Black Eyed Peas — Don’t Stop The Party | genre:Electro | bpm:128 | energy:9 | phase:takeoff
+Black Eyed Peas — I Gotta Feeling | genre:Electro | bpm:128 | energy:9 | phase:takeoff
+Bleu Soleil — Soleil Bleu | genre:Electro | bpm:80 | energy:7 | phase:closing
+Blond:ish — Wizard of Love | genre:Electro | bpm:? | energy:? | phase:unclassified
+Blond:ish — Sete | genre:Electro | bpm:? | energy:? | phase:unclassified
+Bob Sinclar — Adore | genre:Electro | bpm:? | energy:? | phase:unclassified
+Bonnie Tyler — Holding Out for a Hero | genre:Electro | bpm:149 | energy:9 | phase:party
+C2C — Down The Road | genre:Electro | bpm:111 | energy:7 | phase:closing
+Calvin Harris — Desire | genre:Electro | bpm:120 | energy:6 | phase:ambiance
+Calvin Harris — Lovers In A Past Life | genre:Electro | bpm:130 | energy:9 | phase:takeoff
+Calvin Harris — Miracle | genre:Electro | bpm:143 | energy:9 | phase:party
+Carl Cox — Inferno | genre:Electro | bpm:126 | energy:9 | phase:takeoff
+Cassius — Toop Toop | genre:Electro | bpm:132 | energy:9 | phase:takeoff
+Cristian Marchi — We Are Perfect | genre:Electro | bpm:129 | energy:9 | phase:takeoff
+david guetta — missing you [ft. novel] | genre:Electro | bpm:120 | energy:6 | phase:ambiance
+David Guetta — Hey Mama | genre:Electro | bpm:179.8 | energy:? | phase:arrival
+David Guetta — Sexy Bitch (feat. Akon) | genre:Electro | bpm:130.01 | energy:? | phase:arrival
+Denis Horvat — Paradon | genre:Electro | bpm:? | energy:? | phase:unclassified
+Deorro — Bailar | genre:Electro | bpm:128 | energy:9 | phase:takeoff
+Desire — Can't Get You Out Of My Head | genre:Electro | bpm:? | energy:? | phase:unclassified
+Destiny's Child — Say My Name | genre:Electro | bpm:69 | energy:3 | phase:arrival
+Dylan Linde — More Amor Por Favor | genre:Electro | bpm:? | energy:? | phase:unclassified
+Dynoro — In My Mind | genre:Electro | bpm:126 | energy:8 | phase:takeoff
+Endor — Pump It Up | genre:Electro | bpm:129 | energy:9 | phase:takeoff
+Eric Prydz — Proper Education | genre:Electro | bpm:? | energy:? | phase:unclassified
+Francis Mercier — Voyage Voyage | genre:Electro | bpm:? | energy:? | phase:unclassified
+Gabry Ponte — Exotica | genre:Electro | bpm:130 | energy:9 | phase:takeoff
+Gabry Ponte — Not Alone | genre:Electro | bpm:140 | energy:9 | phase:takeoff
+Gorillaz — Feel Good Inc. | genre:Electro | bpm:139 | energy:8 | phase:takeoff
+Guy2bezbar — Monaco | genre:Electro | bpm:123 | energy:8 | phase:groove
+Hard Lights — I Wanna Dance with Somebody | genre:Electro | bpm:135 | energy:9 | phase:takeoff
+Jaden Bojsen — Let's Go | genre:Electro | bpm:129 | energy:9 | phase:takeoff
+Jain — Tout le monde est fou | genre:Electro | bpm:? | energy:? | phase:unclassified
+Jain — Tout le monde est fou | genre:Electro | bpm:124 | energy:8 | phase:groove
+Jain — Makeba | genre:Electro | bpm:124 | energy:8 | phase:groove
+Jamy Nox — Day N Nite | genre:Electro | bpm:? | energy:? | phase:unclassified
+Jamy Nox — Day N Nite | genre:Electro | bpm:124 | energy:8 | phase:groove
+Jaxomy — Pedro | genre:Electro | bpm:151 | energy:9 | phase:party
+Joé Dwet Filé — Jolie madame | genre:Electro | bpm:80 | energy:4 | phase:arrival
+Joezi — Ven Pa Ca | genre:Electro | bpm:? | energy:? | phase:unclassified
+Jul — Asalto | genre:Electro | bpm:142 | energy:7 | phase:groove
+Kenya Grace — Strangers | genre:Electro | bpm:120 | energy:6 | phase:ambiance
+Kygo — Woke Up in Love | genre:Electro | bpm:106 | energy:6 | phase:closing
+Lil Nas X — STAR WALKIN' | genre:Electro | bpm:71 | energy:3 | phase:arrival
+LMFAO — Party Rock Anthem | genre:Electro | bpm:130 | energy:9 | phase:takeoff
+Madhouse-like a prayer — 2000 - Madhouse-like a prayer | genre:Electro | bpm:120 | energy:6 | phase:ambiance
+Major Lazer — Light It Up (Feat. Nyla) | genre:Electro | bpm:125 | energy:9 | phase:takeoff
+Marasi — Opera | genre:Electro | bpm:? | energy:? | phase:unclassified
+Marshmello — Numb | genre:Electro | bpm:120 | energy:8 | phase:groove
+Marten Lou — Your Body | genre:Electro | bpm:? | energy:? | phase:unclassified
+Matway — Walking Away (Infinity) | genre:Electro | bpm:135 | energy:9 | phase:takeoff
+MAXI MERAKI — Dare Your Move | genre:Electro | bpm:? | energy:? | phase:unclassified
+Mili — Verona | genre:Electro | bpm:? | energy:? | phase:unclassified
+Moderat — More Love | genre:Electro | bpm:? | energy:? | phase:unclassified
+Monkey Safari — Palomar | genre:Electro | bpm:? | energy:? | phase:unclassified
+Mont Rouge — Paris | genre:Electro | bpm:? | energy:? | phase:unclassified
+Mont Rouge — Belsunce | genre:Electro | bpm:? | energy:? | phase:unclassified
+Mooglie — Spacer | genre:Electro | bpm:? | energy:? | phase:unclassified
+Moojo — Secret ID | genre:Electro | bpm:? | energy:? | phase:unclassified
+MOONLGHT — Free Bird | genre:Electro | bpm:142 | energy:9 | phase:party
+Mr.Oizo — Flat Beat | genre:Electro | bpm:128 | energy:8 | phase:takeoff
+Nico Morano — Juno Love | genre:Electro | bpm:? | energy:? | phase:unclassified
+Notre Dame — Emowe | genre:Electro | bpm:? | energy:? | phase:unclassified
+Ofenbach — Overdrive (feat. Norma Jean Martine) | genre:Electro | bpm:125 | energy:9 | phase:takeoff
+oskar med k — Make Me Feel | genre:Electro | bpm:? | energy:? | phase:unclassified
+Oxlade — KU LO SA | genre:Electro | bpm:93 | energy:5 | phase:arrival
+Pablo Fierro — Before | genre:Electro | bpm:? | energy:? | phase:unclassified
+Paul Johnson — Doo Doo Wap | genre:Electro | bpm:120 | energy:6 | phase:ambiance
+Paul Kalkbrenner — QUE CE SOIT CLAIR | genre:Electro | bpm:130 | energy:9 | phase:takeoff
+Ph Electro — San Francisco | genre:Electro | bpm:130 | energy:9 | phase:takeoff
+Picture This — Another Song To Myself | genre:Electro | bpm:? | energy:? | phase:unclassified
+Rae & Christian — Favourite Game | genre:Electro | bpm:? | energy:? | phase:unclassified
+RAFFA GUIDO — Famax | genre:Electro | bpm:? | energy:? | phase:unclassified
+Rampa — Les Gout | genre:Electro | bpm:? | energy:? | phase:unclassified
+REBRN — Contigo | genre:Electro | bpm:? | energy:? | phase:unclassified
+Regard — Secrets | genre:Electro | bpm:119 | energy:7 | phase:ambiance
+Rex the Dog — Change This Pain For Ecstasy | genre:Electro | bpm:? | energy:? | phase:unclassified
+RÜFÜS DU SOL — Innerbloom | genre:Electro | bpm:121.96 | energy:? | phase:ambiance
+sapientdream — Past Lives | genre:Electro | bpm:124 | energy:8 | phase:groove
+Showtek — Booyah | genre:Electro | bpm:128 | energy:9 | phase:takeoff
+Soulroots — Sala Papa Ye | genre:Electro | bpm:? | energy:? | phase:unclassified
+Sound Of Legend — God Is A Girl | genre:Electro | bpm:120 | energy:6 | phase:ambiance
+Swedish House Mafia — Moth To A Flame | genre:Electro | bpm:? | energy:? | phase:unclassified
+The Killers — Somebody Told Me | genre:Electro | bpm:138 | energy:8 | phase:takeoff
+Trinix — Emorio | genre:Electro | bpm:125 | energy:9 | phase:takeoff
+Trinix — The Magic Key | genre:Electro | bpm:122 | energy:8 | phase:groove
+Trouble men — Do it | genre:Electro | bpm:124 | energy:6 | phase:ambiance
+Ugo Banchi — Yakalongo | genre:Electro | bpm:? | energy:? | phase:unclassified
+Yann Muller — Résiste | genre:Electro | bpm:? | energy:? | phase:unclassified
+Yann Muller — Je dois m'en aller | genre:Electro | bpm:? | energy:? | phase:unclassified
+Youngr — Tried So Hard | genre:Electro | bpm:125 | energy:9 | phase:takeoff
+Zac — Seventh Street | genre:Electro | bpm:? | energy:? | phase:unclassified
+21 Savage — MR RECOUP | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+21 Savage — ATLANTA TEARS | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+2Pac — Changes | genre:Hip-Hop | bpm:111 | energy:7 | phase:closing
+47Ter — Rooftop (feat. Robin) | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+50 Cent — In Da Club | genre:Hip-Hop | bpm:179.8 | energy:? | phase:arrival
+A Boogie Wit da Hoodie — Part of Me | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+A$AP Rocky — STAY HERE 4 LIFE (feat. Brent Faiyaz) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+A$AP Rocky — STOLE YA FLOW | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Alonzo — TOUT VA BIEN | genre:Hip-Hop | bpm:100 | energy:6 | phase:closing
+Alonzo — 18 Carats | genre:Hip-Hop | bpm:110 | energy:7 | phase:closing
+Aretha Franklin — Respect | genre:Hip-Hop | bpm:120 | energy:6 | phase:ambiance
+Aya Nakamura — Baby | genre:Hip-Hop | bpm:120 | energy:6 | phase:ambiance
+Aya Nakamura — Copines | genre:Hip-Hop | bpm:90 | energy:7 | phase:closing
+Aya Nakamura — Sexy Nana | genre:Hip-Hop | bpm:148 | energy:7 | phase:groove
+Baby Keem — Ca$ino | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Baby Keem — Good Flirts (feat. Kendrick Lamar & Momo Boyd) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Bad Bunny — WHERE SHE GOES | genre:Hip-Hop | bpm:144 | energy:9 | phase:party
+Beastie Boys — No Sleep Till Brooklyn | genre:Hip-Hop | bpm:97 | energy:7 | phase:closing
+Beyoncé — BREAK MY SOUL | genre:Hip-Hop | bpm:115 | energy:7 | phase:ambiance
+BIA — WE ON GO | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Bigflo & Oli — Dernière | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Bigflo & Oli — Picasso | genre:Hip-Hop | bpm:115 | energy:7 | phase:ambiance
+BigXthaPlug — 2AM | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+BigXthaPlug — The Largest | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+BigXthaPlug — All The Way (feat. Bailey Zimmerman) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+BigXthaPlug — 6WA | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+BigXthaPlug — 6IXER PARTY (FEAT. SNOOP DOGG) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Black Eyed Peas — MAMACITA | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Blackstreet — No Diggity | genre:Hip-Hop | bpm:89 | energy:5 | phase:arrival
+BNYX® — HunchO STEP! | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+BNYX® — EVERYWHERE I GO (REMIND ME) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Booba — Kendall | genre:Hip-Hop | bpm:130 | energy:7 | phase:takeoff
+Bossman Dlow — Motion Party | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Bossman Dlow — Motion Party (Remix) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Bossman Dlow — Nothin Like Me | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Bryson Tiller — IT'S OK | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Camila Cabello — Bam Bam | genre:Hip-Hop | bpm:95 | energy:5 | phase:arrival
+Cardi B — Outside | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Central Cee — WAGWAN | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Cut Killer — La Haine | genre:Hip-Hop | bpm:100.1 | energy:? | phase:closing
+Cut Killer — La Haine | genre:Hip-Hop | bpm:100 | energy:6 | phase:closing
+DaBaby — POP DAT THANG | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Daddy Yankee — Daddy Yankee feat Lloyd Banks and Young Buck- Rompe (Remix) | genre:Hip-Hop | bpm:120 | energy:6 | phase:ambiance
+Dave — Raindance | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+disiz — melodrama | genre:Hip-Hop | bpm:154 | energy:9 | phase:party
+DJ Khaled — Wild Thoughts (feat. Rihanna & Bryson Tiller) | genre:Hip-Hop | bpm:98 | energy:6 | phase:closing
+DJ Khaled — One of Them | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Djadja & Dinaz — Capitaine | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Djaksparo — Pangor | genre:Hip-Hop | bpm:146 | energy:7 | phase:groove
+Doechii — Anxiety | genre:Hip-Hop | bpm:129 | energy:9 | phase:takeoff
+Doja Cat — Paint The Town Red | genre:Hip-Hop | bpm:100 | energy:6 | phase:closing
+Don Toliver — Body | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Don Toliver — ATM | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Don Toliver — E85 | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Don Toliver — Tiramisu | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Don Toliver — Secondhand (feat. Rema) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Don Toliver — FWU | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Dr. Dre — The Next Episode | genre:Hip-Hop | bpm:95.26 | energy:? | phase:closing
+Dr. Dre — Still D.R.E. | genre:Hip-Hop | bpm:93.33 | energy:? | phase:closing
+Drake — One Dance | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Drake — 2 Hard 4 The Radio | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Drake — Janice STFU | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Drake — Which One | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Drake — National Treasures | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Eminem — Without Me | genre:Hip-Hop | bpm:112.3 | energy:? | phase:closing
+Eminem — Lose Yourself | genre:Hip-Hop | bpm:171.6 | energy:? | phase:arrival
+Enrique Iglesias — Tonight Im Fucking You (feat. Ludacris) | genre:Hip-Hop | bpm:120 | energy:6 | phase:ambiance
+EsDeeKid — 4 Raws | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Fatman Scoop — Be Faithful | genre:Hip-Hop | bpm:101.1 | energy:? | phase:closing
+Franglish — Génération impolie | genre:Hip-Hop | bpm:127 | energy:7 | phase:ambiance
+Fredo Bang — Gates Flow 2 (She Don't Wanna) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Future — TOO FAST | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+G Herbo — Thug | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Gambi — RENÉ CAOVILLA | genre:Hip-Hop | bpm:128 | energy:7 | phase:ambiance
+Gazo — NANANI NANANA | genre:Hip-Hop | bpm:87 | energy:4 | phase:arrival
+Gazo — MAMI WATA | genre:Hip-Hop | bpm:88 | energy:4 | phase:arrival
+Genezio — OG | genre:Hip-Hop | bpm:117 | energy:7 | phase:ambiance
+GIMS — CIEL | genre:Hip-Hop | bpm:81 | energy:7 | phase:closing
+GIMS — PARISIENNE | genre:Hip-Hop | bpm:123 | energy:7 | phase:ambiance
+GIMS — BLOQUÉ | genre:Hip-Hop | bpm:126 | energy:7 | phase:ambiance
+GloRilla — WHATCHU KNO ABOUT ME | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+GloRilla — TGIF | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Gunna — just say dat | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Gunna — wgft (feat. Burna Boy) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Hamza — Nocif | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Hamza — KYKY2BONDY | genre:Hip-Hop | bpm:140 | energy:7 | phase:takeoff
+House of Pain — Jump Around | genre:Hip-Hop | bpm:106.83 | energy:? | phase:closing
+Ice Spice — Pretty Girl | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+ISS — FEU VERT | genre:Hip-Hop | bpm:123 | energy:7 | phase:ambiance
+J. Cole — Only You | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+J. Cole — Two Six | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+J. Cole — Bunce Road Blues | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Jeremih — Wait On It (feat. Bryson Tiller & Chris Brown) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Josman — Les Flammes | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Jul — La faille | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Jul — J'fais que danser | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Jul — Sensations | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Jul — J'oublie tout | genre:Hip-Hop | bpm:120 | energy:7 | phase:ambiance
+Jul — Le monde est à moi | genre:Hip-Hop | bpm:120 | energy:7 | phase:ambiance
+Jul — Sous la lune | genre:Hip-Hop | bpm:120 | energy:7 | phase:ambiance
+Jul — La bandite | genre:Hip-Hop | bpm:123 | energy:7 | phase:ambiance
+Jul — C'est la cité | genre:Hip-Hop | bpm:123 | energy:7 | phase:ambiance
+Jul — C'est dur d'aimer | genre:Hip-Hop | bpm:124 | energy:7 | phase:ambiance
+Jul — Phénoménal | genre:Hip-Hop | bpm:133 | energy:7 | phase:takeoff
+Jul — Parfum quartier | genre:Hip-Hop | bpm:141 | energy:7 | phase:groove
+Kaaris — Mobalpa | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+KAROL G — TQG | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+KeBlack — LAISSE MOI | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Kendrick Lamar — luther | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Key Glock — She Ready | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Key Glock — Loco | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Key Glock — A+ | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Kris Kross — Jump | genre:Hip-Hop | bpm:102.1 | energy:? | phase:closing
+kulturr — méli-mélo | genre:Hip-Hop | bpm:128 | energy:7 | phase:ambiance
+La Rvfleuze — Argent Sale | genre:Hip-Hop | bpm:130 | energy:7 | phase:takeoff
+La Rvfleuze — PARLU | genre:Hip-Hop | bpm:133 | energy:7 | phase:takeoff
+Latto — Somebody | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Latto — Brokey | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Latto — Hostage (feat. 21 Savage) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Latto — GOMF (feat. GloRilla) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Latto — Business & Personal (Intro) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Lil Baby — Mrs. Trendsetter | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Lil Durk — Can't Hide It (feat. Jhené Aiko) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Lil Nas X — INDUSTRY BABY | genre:Hip-Hop | bpm:75 | energy:3 | phase:arrival
+Lil Tecca — Dark Thoughts | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Lil Uzi Vert — What You Saying | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Loe Shimmy — 3am | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Luidji — Reste en Vie | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Lynda — Au suivant | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Mac Miller — Cinderella (feat. Ty Dolla $ign) | genre:Hip-Hop | bpm:140.15 | energy:? | phase:arrival
+Macklemore — Thrift Shop | genre:Hip-Hop | bpm:95 | energy:? | phase:closing
+Maes — Akatsuki | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Maes — Fetty Wap | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Mauvais Djo — Maladie | genre:Hip-Hop | bpm:130 | energy:7 | phase:takeoff
+Mauvais Djo — Pilé | genre:Hip-Hop | bpm:130 | energy:7 | phase:takeoff
+Memphis Bleek — Dear Summer | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Metro Boomin — Creepin' | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Monaleo — Putting Ya Dine | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+NAV — MUTT | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+NAV — Trimski | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Naza — 1,2,3 Soleil | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Nemzzz — GEEKIN | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+NLE Choppa — Or What | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Nono La Grinta — Paris | genre:Hip-Hop | bpm:124 | energy:7 | phase:ambiance
+Nono La Grinta — LOVE YOU | genre:Hip-Hop | bpm:130 | energy:7 | phase:takeoff
+Notorious B.I.G. — Hypnotize | genre:Hip-Hop | bpm:94 | energy:? | phase:closing
+Offset — SAY MY GRACE | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Offset — Different Species | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Offset — Bodies | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Olupellar — Summer Party (Edit) | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Orelsan — Basique | genre:Hip-Hop | bpm:132 | energy:9 | phase:takeoff
+Playboi Carti — RATHER LIE | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+PLK — Tu dors ? | genre:Hip-Hop | bpm:115 | energy:7 | phase:ambiance
+PLK — Pocahontas | genre:Hip-Hop | bpm:124 | energy:7 | phase:ambiance
+PLK — Sex Model | genre:Hip-Hop | bpm:160 | energy:7 | phase:groove
+Pluto — WHIM WHAMIEE | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Pooh Shiesty — FDO | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Public Enemy — Bring the Noise | genre:Hip-Hop | bpm:130 | energy:9 | phase:takeoff
+R2 — RUINART | genre:Hip-Hop | bpm:122 | energy:7 | phase:ambiance
+Rambo Goyard — B.M.S | genre:Hip-Hop | bpm:154 | energy:7 | phase:groove
+Rauw Alejandro — Pasaporte | genre:Hip-Hop | bpm:117 | energy:7 | phase:ambiance
+Real Boston Richey — Help Me | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Real Boston Richey — Bitch You Weird | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Rihanna — Where Have You Been | genre:Hip-Hop | bpm:120 | energy:6 | phase:ambiance
+Rima — Dana Dana | genre:Hip-Hop | bpm:103 | energy:6 | phase:closing
+RK — Lola | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+RnBoi — MON BÉBÉ | genre:Hip-Hop | bpm:114 | energy:7 | phase:closing
+RnBoi — AVEC MOI | genre:Hip-Hop | bpm:120 | energy:7 | phase:ambiance
+RnBoi — ELLE VOULAIT | genre:Hip-Hop | bpm:125 | energy:7 | phase:ambiance
+Run-DMC — Walk This Way | genre:Hip-Hop | bpm:106 | energy:8 | phase:groove
+SDM — Mr. Ocho | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+SDM — Bolide allemand | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+SenSey' — Coco & Chanel | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Sexion D'Assaut — Wati by Night | genre:Hip-Hop | bpm:115 | energy:7 | phase:ambiance
+Sexyy Red — Rackies (feat. ATL Jacob) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Sexyy Red — Hang Wit a Bad Bitch | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Shakira — Hips Don't Lie (Feat. Wyclef Jean) | genre:Hip-Hop | bpm:120 | energy:6 | phase:ambiance
+Snoop Dogg — Sweat | genre:Hip-Hop | bpm:130 | energy:9 | phase:takeoff
+Soolking — Casanova | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Soolking — Tour du monde | genre:Hip-Hop | bpm:126 | energy:7 | phase:ambiance
+Soprano — Cosmo | genre:Hip-Hop | bpm:146 | energy:9 | phase:party
+Southstar — Miss You | genre:Hip-Hop | bpm:145 | energy:9 | phase:party
+Swae Lee — MURAL | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Swae Lee — NO CALL NO SHOW | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+SZA — 30 For 30 (with Kendrick Lamar) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+T.I. — LET 'EM KNOW | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Tayc — Room 69 | genre:Hip-Hop | bpm:120 | energy:6 | phase:ambiance
+Tayc — GIRLFRIEND | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Tee Grizzley — Swear to God (feat. Future) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Temper City — Self Aware | genre:Hip-Hop | bpm:162 | energy:7 | phase:groove
+The Isley Brothers — Shout! | genre:Hip-Hop | bpm:70 | energy:3 | phase:arrival
+The Weeknd — K-POP | genre:Hip-Hop | bpm:121 | energy:8 | phase:groove
+Theodora — FASHION DESIGNA | genre:Hip-Hop | bpm:112 | energy:7 | phase:closing
+Theodora — ZOU BISOU | genre:Hip-Hop | bpm:150 | energy:7 | phase:groove
+Theodora — Miss Kitoko | genre:Hip-Hop | bpm:154 | energy:7 | phase:groove
+Tiakola — Meuda | genre:Hip-Hop | bpm:71 | energy:3 | phase:arrival
+Trap Dickey — Down South | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+TRIANGLE DES BERMUDES — À l'aise | genre:Hip-Hop | bpm:127 | energy:7 | phase:ambiance
+TRIANGLE DES BERMUDES — Balek | genre:Hip-Hop | bpm:135 | energy:7 | phase:takeoff
+Ty Dolla $ign — DON'T KILL THE PARTY (feat. Quavo & Juicy J) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Usher — Yeah! | genre:Hip-Hop | bpm:105 | energy:6 | phase:closing
+VEN1 — Hakayet | genre:Hip-Hop | bpm:139 | energy:7 | phase:takeoff
+Vince Staples — White Flag | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Were Vana — La Loupe | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Werenoi — Tu connais | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Werenoi — Chemin d'or | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Will.I.Am & Britney Spears — Scream & Shout | genre:Hip-Hop | bpm:120 | energy:6 | phase:ambiance
+Yeat — COMË N GO | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Yeat — Made It On Our Own | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Yeat — Let King Tonka Talk | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+YG — STATE OF EMERGENCY | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Young Thug — Money On Money (feat. Future) | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+YoungBoy Never Broke Again — Bruce Wayne | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+YoungBoy Never Broke Again — Shot Callin | genre:Hip-Hop | bpm:? | energy:? | phase:unclassified
+Zeg P — Avion de chasse | genre:Hip-Hop | bpm:130 | energy:7 | phase:takeoff
+Ziak — Vautours | genre:Hip-Hop | bpm:95 | energy:7 | phase:closing
+Zola — NETFLIX CHILL | genre:Hip-Hop | bpm:100 | energy:7 | phase:closing
+&ME — Paris (Chloé Caillet Remix) | genre:House | bpm:120 | energy:8 | phase:groove
+Aalson — Dreamer | genre:House | bpm:? | energy:? | phase:unclassified
+Adam Port — Move | genre:House | bpm:? | energy:? | phase:unclassified
+Adriatique — Miracle | genre:House | bpm:123 | energy:8 | phase:groove
+Adriatique — Like A Dream | genre:House | bpm:123 | energy:8 | phase:groove
+Adryan — Dreaming | genre:House | bpm:? | energy:? | phase:unclassified
+aelera — find myself | genre:House | bpm:? | energy:? | phase:unclassified
+AFROJACK — Never Forget You | genre:House | bpm:? | energy:? | phase:unclassified
+AfroSalto — All Good Things (Come To An End) [feat. AfroSalto] | genre:House | bpm:? | energy:? | phase:unclassified
+Aiden — Chasing Time | genre:House | bpm:? | energy:? | phase:unclassified
+Akon — Akon's Beautiful Day (David Guetta & Hypaton Remix) | genre:House | bpm:? | energy:? | phase:unclassified
+Alan Walker — Dancing in love | genre:House | bpm:? | energy:? | phase:unclassified
+Alex Adair — Spend The Night | genre:House | bpm:? | energy:? | phase:unclassified
+Alex Baker — Anchor | genre:House | bpm:? | energy:? | phase:unclassified
+Alex Breitling — Hope | genre:House | bpm:? | energy:? | phase:unclassified
+Alex Breitling — Endless Skies | genre:House | bpm:? | energy:? | phase:unclassified
+Alok — Work With My Love | genre:House | bpm:124 | energy:8 | phase:groove
+Alok — last night i dreamt i fell in love | genre:House | bpm:? | energy:? | phase:unclassified
+Alok — Allein Allein | genre:House | bpm:? | energy:? | phase:unclassified
+ANOTR — Talk To You | genre:House | bpm:132 | energy:7 | phase:takeoff
+Armand van Helden — You Don't Know Me | genre:House | bpm:130.01 | energy:? | phase:arrival
+Armin van Buuren — Everything I Wanted | genre:House | bpm:? | energy:? | phase:unclassified
+Armin van Buuren — Pulstar | genre:House | bpm:? | energy:? | phase:unclassified
+Armin van Buuren — Es Vedrà | genre:House | bpm:? | energy:? | phase:unclassified
+Armin van Buuren — In The Dark | genre:House | bpm:? | energy:? | phase:unclassified
+Aural — downtown | genre:House | bpm:? | energy:? | phase:unclassified
+Avicii — Levels | genre:House | bpm:126 | energy:? | phase:ambiance
+Avicii — Without You | genre:House | bpm:134 | energy:9 | phase:takeoff
+Bakermat — Baianá | genre:House | bpm:121.96 | energy:? | phase:ambiance
+Bakermat — One Day (Vandaag) | genre:House | bpm:128 | energy:9 | phase:takeoff
+bandhagen — next chapter | genre:House | bpm:? | energy:? | phase:unclassified
+Bebe Rexha — New Religion | genre:House | bpm:128 | energy:7 | phase:ambiance
+Because of Art — Falling For | genre:House | bpm:? | energy:? | phase:unclassified
+Benedetto — Your World | genre:House | bpm:129 | energy:9 | phase:takeoff
+Berner Sen — Joyful Air | genre:House | bpm:? | energy:? | phase:unclassified
+Beyoncé — CUFF IT | genre:House | bpm:115 | energy:7 | phase:ambiance
+Birø — Under The Moonlight | genre:House | bpm:? | energy:? | phase:unclassified
+Birrd — Takeoff | genre:House | bpm:? | energy:? | phase:unclassified
+Bjarne Hendrik — Somebody | genre:House | bpm:? | energy:? | phase:unclassified
+Block & Crown — Pump up the Jam | genre:House | bpm:? | energy:? | phase:unclassified
+Block & Crown — Pretty Good Times | genre:House | bpm:? | energy:? | phase:unclassified
+Blond:ish — Sete | genre:House | bpm:125 | energy:9 | phase:takeoff
+Bob Sinclar — Rock This Party | genre:House | bpm:? | energy:? | phase:unclassified
+Bob Sinclar — Rock This Party (Everybody Dance Now) | genre:House | bpm:? | energy:? | phase:unclassified
+Bon Entendeur — Le temps est bon | genre:House | bpm:98 | energy:5 | phase:arrival
+Bon Entendeur — Basta Cazzate | genre:House | bpm:118 | energy:7 | phase:ambiance
+Brendel — Nisramont | genre:House | bpm:? | energy:? | phase:unclassified
+Calvin Harris — Feel So Close | genre:House | bpm:128 | energy:? | phase:ambiance
+Calvin Harris — How Deep Is Your Love | genre:House | bpm:122 | energy:? | phase:ambiance
+Calvin Harris — One Kiss | genre:House | bpm:? | energy:? | phase:unclassified
+Calvin Harris — Summer | genre:House | bpm:? | energy:? | phase:unclassified
+Calvin Harris — Giant | genre:House | bpm:122 | energy:8 | phase:groove
+Calvin Harris — Promises | genre:House | bpm:123 | energy:8 | phase:groove
+Calvin Harris — Blessings | genre:House | bpm:? | energy:? | phase:unclassified
+Calvin Harris — Free | genre:House | bpm:? | energy:? | phase:unclassified
+Catching Flies — Sunlite | genre:House | bpm:? | energy:? | phase:unclassified
+Chase & Status — BACKBONE | genre:House | bpm:? | energy:? | phase:unclassified
+ChaseWest — Playing With Fire | genre:House | bpm:? | energy:? | phase:unclassified
+Cheat Codes — Be Your Friend | genre:House | bpm:131 | energy:9 | phase:takeoff
+Claude François — Magnolias for Ever | genre:House | bpm:128 | energy:9 | phase:takeoff
+Cloudcage — In My Head | genre:House | bpm:? | energy:? | phase:unclassified
+CLÜE — Be Somewhere | genre:House | bpm:? | energy:? | phase:unclassified
+Cristoph — Changes | genre:House | bpm:? | energy:? | phase:unclassified
+Crystal Waters — Gypsy Woman | genre:House | bpm:120.2 | energy:? | phase:ambiance
+Cushy — Dawn | genre:House | bpm:? | energy:? | phase:unclassified
+D.Polo — Another Life | genre:House | bpm:? | energy:? | phase:unclassified
+Daft Punk — Robot Rock | genre:House | bpm:111.7 | energy:? | phase:closing
+Daft Punk — Around the World | genre:House | bpm:126 | energy:8 | phase:takeoff
+Daft Punk — Around the World (Radio Edit) | genre:House | bpm:121.24 | energy:? | phase:ambiance
+Damian Lazarus — Sunrise Generation (Meera Remix) | genre:House | bpm:120 | energy:8 | phase:groove
+Dance Fruits Music — Seven Nation Army | genre:House | bpm:? | energy:? | phase:unclassified
+David Guetta — Memories | genre:House | bpm:? | energy:? | phase:unclassified
+David Guetta — Final Countdown 2025 | genre:House | bpm:? | energy:? | phase:unclassified
+David Guetta — She Wolf (Falling to Pieces) [feat. Sia] | genre:House | bpm:130 | energy:9 | phase:takeoff
+David Guetta — Just a Little More Love | genre:House | bpm:128 | energy:9 | phase:takeoff
+David Guetta — Love Is Gone | genre:House | bpm:128 | energy:9 | phase:takeoff
+David Guetta — Together | genre:House | bpm:128 | energy:9 | phase:takeoff
+David Guetta — When Love Takes Over | genre:House | bpm:130 | energy:9 | phase:takeoff
+David Guetta — After You (feat. FAANGS) | genre:House | bpm:? | energy:? | phase:unclassified
+David Guetta — Never Going Home Tonight (feat. Madison Love) | genre:House | bpm:? | energy:? | phase:unclassified
+David Guetta — Chills (Feel My Love) | genre:House | bpm:? | energy:? | phase:unclassified
+Demon — You Are My High (2024 Remastered) | genre:House | bpm:121 | energy:8 | phase:groove
+Dillon Francis — Jet Setter | genre:House | bpm:? | energy:? | phase:unclassified
+Dimitri Vegas & Like Mike — Come On | genre:House | bpm:? | energy:? | phase:unclassified
+Dimitri Vegas & Like Mike — Axel F | genre:House | bpm:? | energy:? | phase:unclassified
+DJ Antoine — Welcome To St. Tropez | genre:House | bpm:124.9 | energy:? | phase:ambiance
+Dj Hermes — Sing It Back | genre:House | bpm:124 | energy:8 | phase:groove
+DJ Jarell — Havanero | genre:House | bpm:122 | energy:8 | phase:groove
+DJs From Mars — Shout | genre:House | bpm:? | energy:? | phase:unclassified
+Douran — Wind Runner (Grandbrothers Remix) | genre:House | bpm:? | energy:? | phase:unclassified
+Duce — Chateau | genre:House | bpm:? | energy:? | phase:unclassified
+Duce — Been A While | genre:House | bpm:? | energy:? | phase:unclassified
+Duke Dumont — Ain't Giving Up (Paul Woolford’s Special Request Remix) | genre:House | bpm:? | energy:? | phase:unclassified
+Echo Riviera — Drift | genre:House | bpm:? | energy:? | phase:unclassified
+Elderbrook — Numb | genre:House | bpm:120 | energy:8 | phase:groove
+Elderbrook — Afters | genre:House | bpm:? | energy:? | phase:unclassified
+Enur ft. Natasja — Calabria 2007 | genre:House | bpm:126 | energy:8 | phase:takeoff
+Eric Prydz — Call on Me | genre:House | bpm:126 | energy:9 | phase:takeoff
+ERIICE — Baille | genre:House | bpm:? | energy:? | phase:unclassified
+Extrawelt — Clapland | genre:House | bpm:? | energy:? | phase:unclassified
+Fake Blood — I Think I Like It (radio edit) | genre:House | bpm:128 | energy:9 | phase:takeoff
+FarLight — Finding Myself | genre:House | bpm:? | energy:? | phase:unclassified
+Farves — See You | genre:House | bpm:? | energy:? | phase:unclassified
+Faul & Wad — Tambora | genre:House | bpm:? | energy:? | phase:unclassified
+Fedde Le Grand — Put Your Hands Up For Detroit | genre:House | bpm:128 | energy:9 | phase:takeoff
+Fedde Le Grand — Rude Boy | genre:House | bpm:? | energy:? | phase:unclassified
+Felipe Allenn — Bulanga | genre:House | bpm:120 | energy:8 | phase:groove
+Ferreck Dawn — Make Me Weak | genre:House | bpm:? | energy:? | phase:unclassified
+First Sun — atrium | genre:House | bpm:? | energy:? | phase:unclassified
+Floorplan — Feel It | genre:House | bpm:? | energy:? | phase:unclassified
+Foreal People — Shake (Dr Packer Re-Shake) | genre:House | bpm:120 | energy:7 | phase:ambiance
+Francoise Sanders — If You Wanna Call It Love | genre:House | bpm:? | energy:? | phase:unclassified
+Fred again.. — Marea | genre:House | bpm:? | energy:? | phase:unclassified
+fwd/slash — Yearning For You | genre:House | bpm:? | energy:? | phase:unclassified
+Gala — Freed From Desire | genre:House | bpm:? | energy:? | phase:unclassified
+gelato mac — lemonade | genre:House | bpm:? | energy:? | phase:unclassified
+Grandbrothers — Cybèle | genre:House | bpm:? | energy:? | phase:unclassified
+Healr — unsaid | genre:House | bpm:? | energy:? | phase:unclassified
+Helmut Fritz — Ça m'énerve | genre:House | bpm:130 | energy:9 | phase:takeoff
+Henry Robin — Can't Help It | genre:House | bpm:? | energy:? | phase:unclassified
+Hobes — Feel It | genre:House | bpm:? | energy:? | phase:unclassified
+Hot Since 82 — Preach | genre:House | bpm:? | energy:? | phase:unclassified
+HUGEL — La Verdolaga | genre:House | bpm:124 | energy:8 | phase:groove
+HUGEL — Jamaican | genre:House | bpm:122 | energy:8 | phase:groove
+HUGEL — Free (You Got To Live) | genre:House | bpm:? | energy:? | phase:unclassified
+HUGEL — PYHU (Put Your Hands Up) | genre:House | bpm:? | energy:? | phase:unclassified
+Ikerfoxx — Lovely | genre:House | bpm:122 | energy:8 | phase:groove
+Il:lo — Meltemi | genre:House | bpm:? | energy:? | phase:unclassified
+IPeiqi — Wildcard | genre:House | bpm:? | energy:? | phase:unclassified
+Iskarelyn — New Beginnings | genre:House | bpm:? | energy:? | phase:unclassified
+Iskarelyn — Hope | genre:House | bpm:? | energy:? | phase:unclassified
+itsgreat — Touch | genre:House | bpm:? | energy:? | phase:unclassified
+IVE — Supernova Love | genre:House | bpm:? | energy:? | phase:unclassified
+Jake and the colors — Pressure | genre:House | bpm:? | energy:? | phase:unclassified
+Jake and the colors — Echoes | genre:House | bpm:? | energy:? | phase:unclassified
+Jamie Jones — My Paradise | genre:House | bpm:? | energy:? | phase:unclassified
+Jamie Jones — My Paradise | genre:House | bpm:128 | energy:9 | phase:takeoff
+Jamie xx — Baddy On The Floor | genre:House | bpm:124 | energy:8 | phase:groove
+Jasper Tygner — Life Expected | genre:House | bpm:? | energy:? | phase:unclassified
+Javi Colors — Feeling Good | genre:House | bpm:124 | energy:8 | phase:groove
+Jess Bays — Can You? | genre:House | bpm:? | energy:? | phase:unclassified
+Jesus Fernandez — Music Is The Answer (Dancin' And Prancin') (Edit) | genre:House | bpm:? | energy:? | phase:unclassified
+Jesus Fernandez — La Samba | genre:House | bpm:? | energy:? | phase:unclassified
+Jimi Jules — My City's On Fire (Notre Dame Remix) | genre:House | bpm:119 | energy:7 | phase:ambiance
+Joel Corry — Daydream | genre:House | bpm:? | energy:? | phase:unclassified
+Joel Corry — Be Alright (UK House Mix) | genre:House | bpm:? | energy:? | phase:unclassified
+Joezi — 7 Seconds | genre:House | bpm:124 | energy:8 | phase:groove
+Jonas Blue — Lifeline | genre:House | bpm:? | energy:? | phase:unclassified
+just here. — Morning Light | genre:House | bpm:? | energy:? | phase:unclassified
+just here. — High Tides | genre:House | bpm:? | energy:? | phase:unclassified
+Justice — We Are Your Friends | genre:House | bpm:? | energy:? | phase:unclassified
+Justice — D.A.N.C.E | genre:House | bpm:113 | energy:? | phase:closing
+Justice — D.A.N.C.E | genre:House | bpm:113 | energy:7 | phase:closing
+Justin Bieber — Beauty And A Beat | genre:House | bpm:128 | energy:7 | phase:ambiance
+Kid Cudi — Pursuit Of Happiness | genre:House | bpm:128 | energy:9 | phase:takeoff
+Kungs — This Girl (Kungs Vs. Cookin' On 3 Burners) (Kungs Vs. Cookin' On 3 Burners) | genre:House | bpm:122 | energy:8 | phase:groove
+Kungs — Never Going Home | genre:House | bpm:122 | energy:8 | phase:groove
+Lanle — Sunday Glow | genre:House | bpm:? | energy:? | phase:unclassified
+Last Sun — Falling | genre:House | bpm:? | energy:? | phase:unclassified
+Latin Deejays — Trompeta | genre:House | bpm:? | energy:? | phase:unclassified
+Latin Deejays — Toca Las Palmas | genre:House | bpm:? | energy:? | phase:unclassified
+Latin Deejays — Tu Ta Rica | genre:House | bpm:? | energy:? | phase:unclassified
+Latin Deejays — Que No Pare La Fiesta | genre:House | bpm:? | energy:? | phase:unclassified
+Latin Deejays — Sentimiento | genre:House | bpm:? | energy:? | phase:unclassified
+Latin Deejays — Jungle's Groove | genre:House | bpm:? | energy:? | phase:unclassified
+Laurent Wolf — No Stress | genre:House | bpm:130 | energy:9 | phase:takeoff
+Leaving Laurel — her certain uncertainty (edit) | genre:House | bpm:? | energy:? | phase:unclassified
+LÉVI — Jump | genre:House | bpm:? | energy:? | phase:unclassified
+Light Chaser — 82 | genre:House | bpm:? | energy:? | phase:unclassified
+Like Mike — Let It Burn | genre:House | bpm:? | energy:? | phase:unclassified
+Lost Frequencies — In My Bones | genre:House | bpm:128 | energy:9 | phase:takeoff
+LTJ XPerience — No Rhyme No Reason | genre:House | bpm:? | energy:? | phase:unclassified
+LTJ XPerience — No Rhyme No Reason | genre:House | bpm:110 | energy:7 | phase:closing
+Lykke Li — I Follow Rivers | genre:House | bpm:121.96 | energy:? | phase:ambiance
+Marcus Elmett — Café Con Ron - Tech-House | genre:House | bpm:? | energy:? | phase:unclassified
+Marlon Hoffstadt — I Think I Need A DJ | genre:House | bpm:? | energy:? | phase:unclassified
+Marnik — Boyz In Paris (with VINAI) | genre:House | bpm:149 | energy:9 | phase:party
+Marnik — POWER | genre:House | bpm:150 | energy:9 | phase:party
+Marnik — Cocorito | genre:House | bpm:150 | energy:9 | phase:party
+Marshmello — Esta Vida | genre:House | bpm:124 | energy:8 | phase:groove
+Marten Lou — My Love for You | genre:House | bpm:122 | energy:8 | phase:groove
+Martim Rola — Sunday Sunrise | genre:House | bpm:? | energy:? | phase:unclassified
+Martin Garrix — Summer Days | genre:House | bpm:? | energy:? | phase:unclassified
+Martin Garrix — Animals | genre:House | bpm:128 | energy:9 | phase:takeoff
+Martin Garrix — Told You So (Lavern & VisionV Remix) | genre:House | bpm:? | energy:? | phase:unclassified
+Martin Garrix — Smile (feat. Carolina Liar) | genre:House | bpm:? | energy:? | phase:unclassified
+Martin Solveig — Intoxicated | genre:House | bpm:124.9 | energy:? | phase:ambiance
+Martin Solveig — All Stars | genre:House | bpm:124.16 | energy:? | phase:ambiance
+Martin Solveig — Intoxicated | genre:House | bpm:125 | energy:9 | phase:takeoff
+Martin Solveig — Hello | genre:House | bpm:128 | energy:9 | phase:takeoff
+Martin Solveig — I Want You | genre:House | bpm:128 | energy:9 | phase:takeoff
+Matrx — Aurelia | genre:House | bpm:? | energy:? | phase:unclassified
+Meduza — No Sleep | genre:House | bpm:128 | energy:9 | phase:takeoff
+Mesto — Caramelle | genre:House | bpm:128 | energy:9 | phase:takeoff
+Michael Gray — The Weekend (Radio Edit) | genre:House | bpm:127 | energy:9 | phase:takeoff
+Midnight Pass — Lido | genre:House | bpm:? | energy:? | phase:unclassified
+Mike rish — Leaving Brixton | genre:House | bpm:? | energy:? | phase:unclassified
+Milk & Sugar — Higher & Higher (Illyus & Barrientos Remix) | genre:House | bpm:? | energy:? | phase:unclassified
+Miravo — Without You | genre:House | bpm:? | energy:? | phase:unclassified
+MoBlack — Yamore | genre:House | bpm:? | energy:? | phase:unclassified
+Moire — shifted perspective | genre:House | bpm:? | energy:? | phase:unclassified
+Mont Rouge — W4U (feat. Jen) | genre:House | bpm:120 | energy:8 | phase:groove
+Mossera — Bosky | genre:House | bpm:? | energy:? | phase:unclassified
+Motivación Musical — Picante | genre:House | bpm:? | energy:? | phase:unclassified
+Mousse T. — Horny | genre:House | bpm:? | energy:? | phase:unclassified
+Mousse T. — Horny | genre:House | bpm:123 | energy:8 | phase:groove
+Mr. Belt & Wezol — It's Not Right But It's Okay | genre:House | bpm:128 | energy:9 | phase:takeoff
+Mylène Farmer — C'est à qui le tour | genre:House | bpm:102 | energy:7 | phase:closing
+Natascha Polke — Take Me Down | genre:House | bpm:? | energy:? | phase:unclassified
+Nightcrawlers — Friday (feat. Mufasa & Hypeman) (Dopamine Re-Edit) | genre:House | bpm:123 | energy:8 | phase:groove
+Nora En Pure — Watermark | genre:House | bpm:? | energy:? | phase:unclassified
+Nordsky — Daydreaming | genre:House | bpm:? | energy:? | phase:unclassified
+nova fell — don't forget | genre:House | bpm:? | energy:? | phase:unclassified
+Nox Vahn — Nemora | genre:House | bpm:? | energy:? | phase:unclassified
+Odare — Nobody Else | genre:House | bpm:? | energy:? | phase:unclassified
+Oliver $ — Pushing On | genre:House | bpm:? | energy:? | phase:unclassified
+Oliver River — Remember To Live | genre:House | bpm:? | energy:? | phase:unclassified
+Oliver River — dancing's done | genre:House | bpm:? | energy:? | phase:unclassified
+overuu — closure | genre:House | bpm:? | energy:? | phase:unclassified
+P.A.V — Feel Your Touch | genre:House | bpm:? | energy:? | phase:unclassified
+P.A.V — Everywhere I Go | genre:House | bpm:? | energy:? | phase:unclassified
+Passing Clouds — Wake Me Up | genre:House | bpm:? | energy:? | phase:unclassified
+Passing Clouds — Next To Me | genre:House | bpm:? | energy:? | phase:unclassified
+Pietro — Bailando | genre:House | bpm:? | energy:? | phase:unclassified
+Play!On — Platja de Ses Salines | genre:House | bpm:? | energy:? | phase:unclassified
+Pocomoxo — Bullerengue | genre:House | bpm:? | energy:? | phase:unclassified
+Priior — Then & Now | genre:House | bpm:? | energy:? | phase:unclassified
+Purple Disco Machine — Fireworks (feat. Moss Kena & The Knocks) | genre:House | bpm:118 | energy:7 | phase:ambiance
+Purple Disco Machine — In The Dark | genre:House | bpm:116 | energy:7 | phase:ambiance
+Purple Disco Machine — Dopamine | genre:House | bpm:118 | energy:7 | phase:ambiance
+Purple Disco Machine — Honey Boy | genre:House | bpm:120 | energy:8 | phase:groove
+puulse — haunted | genre:House | bpm:? | energy:? | phase:unclassified
+Raffa FL — Latinamerica (feat. Vika) | genre:House | bpm:? | energy:? | phase:unclassified
+REBRN — Contigo | genre:House | bpm:123 | energy:8 | phase:groove
+Redondo — Pretty Baby | genre:House | bpm:125 | energy:9 | phase:takeoff
+Renei — Clouds | genre:House | bpm:? | energy:? | phase:unclassified
+Retro Lover — Dancing Shadows | genre:House | bpm:? | energy:? | phase:unclassified
+Rex the Dog — Change This Pain For Ecstasy | genre:House | bpm:124 | energy:8 | phase:groove
+Riton — Turn Me On | genre:House | bpm:124 | energy:8 | phase:groove
+RK — YAKUZA | genre:House | bpm:125 | energy:7 | phase:ambiance
+Robosonic — The Edge | genre:House | bpm:120 | energy:8 | phase:groove
+Rodriguez — Timbalea | genre:House | bpm:? | energy:? | phase:unclassified
+Rodriguez — Alegría | genre:House | bpm:? | energy:? | phase:unclassified
+Rodriguez — La Rumba | genre:House | bpm:? | energy:? | phase:unclassified
+Rodriguez — Mambo | genre:House | bpm:? | energy:? | phase:unclassified
+Rodriguez — Vamo' A Perrear | genre:House | bpm:? | energy:? | phase:unclassified
+rshand — Decay | genre:House | bpm:? | energy:? | phase:unclassified
+Rytes — Forever | genre:House | bpm:? | energy:? | phase:unclassified
+SAINt JHN — Roses | genre:House | bpm:122 | energy:8 | phase:groove
+Sander Kleinenberg — My Lexicon | genre:House | bpm:? | energy:? | phase:unclassified
+Sean Rivers — Winding Down | genre:House | bpm:? | energy:? | phase:unclassified
+Seawyn — From Here | genre:House | bpm:? | energy:? | phase:unclassified
+Sébastien Léger — Sweep | genre:House | bpm:? | energy:? | phase:unclassified
+shandr — Timeless | genre:House | bpm:? | energy:? | phase:unclassified
+shandr — Her Radiance | genre:House | bpm:? | energy:? | phase:unclassified
+Sigala — Riptide (feat. Ilan Kidron) | genre:House | bpm:122 | energy:8 | phase:groove
+Slowtide — A Way Back Home | genre:House | bpm:? | energy:? | phase:unclassified
+Solara — Marea | genre:House | bpm:? | energy:? | phase:unclassified
+Stardust — Music Sounds Better With You | genre:House | bpm:? | energy:? | phase:unclassified
+Stardust — Music Sounds Better With You | genre:House | bpm:124 | energy:8 | phase:groove
+STRYV — Positions | genre:House | bpm:? | energy:? | phase:unclassified
+sundraze — Sunkissed | genre:House | bpm:? | energy:? | phase:unclassified
+Swedish House Mafia — Wait So Long (Why Do I Have To) | genre:House | bpm:? | energy:? | phase:unclassified
+Syzz — Gimme Gimme Gimme | genre:House | bpm:? | energy:? | phase:unclassified
+TCTS — Masquerade | genre:House | bpm:? | energy:? | phase:unclassified
+Tech H — Rave In The Shadows | genre:House | bpm:? | energy:? | phase:unclassified
+Tech H — Toma | genre:House | bpm:? | energy:? | phase:unclassified
+The Bucketheads — The Bomb! | genre:House | bpm:126 | energy:? | phase:ambiance
+The Bucketheads — The Bomb! | genre:House | bpm:126 | energy:9 | phase:takeoff
+The Meridian — Celebration | genre:House | bpm:? | energy:? | phase:unclassified
+The Prince Karma — Later Bitches | genre:House | bpm:120.89 | energy:? | phase:ambiance
+THIERRY VON DER WARTH — Mina Kupenda | genre:House | bpm:? | energy:? | phase:unclassified
+Tinlicker — Because You Move Me | genre:House | bpm:123 | energy:8 | phase:groove
+TR3NACRIA — Intro | genre:House | bpm:122 | energy:8 | phase:groove
+TRIBALISSIMO — I Like The Bongo | genre:House | bpm:? | energy:? | phase:unclassified
+TRIBALISSIMO — Tribal Sound | genre:House | bpm:? | energy:? | phase:unclassified
+TRIBALISSIMO — Under The Sun | genre:House | bpm:? | energy:? | phase:unclassified
+TRIBALISSIMO — Sunset Fever | genre:House | bpm:? | energy:? | phase:unclassified
+TRIBALISSIMO — Latin Guitar | genre:House | bpm:? | energy:? | phase:unclassified
+TRIBALISSIMO — Tribal Flute | genre:House | bpm:? | energy:? | phase:unclassified
+TRIBALISSIMO — The Rhythm of the Wild | genre:House | bpm:? | energy:? | phase:unclassified
+Trilucid — Let Go Of Your Pain | genre:House | bpm:? | energy:? | phase:unclassified
+Tropical Sunset Vibes — Summer Party | genre:House | bpm:? | energy:? | phase:unclassified
+Tropical Sunset Vibes — Rhythm of the Sun | genre:House | bpm:? | energy:? | phase:unclassified
+Tropical Sunset Vibes — Feel The Beat | genre:House | bpm:? | energy:? | phase:unclassified
+Tropical Sunset Vibes — Dancing in the Heatwave | genre:House | bpm:? | energy:? | phase:unclassified
+Tropical Sunset Vibes — Starry Night | genre:House | bpm:? | energy:? | phase:unclassified
+Tropical Sunset Vibes — Sunset Serenade | genre:House | bpm:? | energy:? | phase:unclassified
+TVLI — Nuage | genre:House | bpm:? | energy:? | phase:unclassified
+vahr — Adrift | genre:House | bpm:? | energy:? | phase:unclassified
+Verb — Yu Feel | genre:House | bpm:124 | energy:8 | phase:groove
+Watermät — Bullit | genre:House | bpm:121.96 | energy:? | phase:ambiance
+Yann Muller — Les Oies Sauvages | genre:House | bpm:121 | energy:8 | phase:groove
+Yuma — BORDERLINE | genre:House | bpm:? | energy:? | phase:unclassified
+YVMV — For U | genre:House | bpm:? | energy:? | phase:unclassified
+Zaga — Dakiti (Afro House Remix) | genre:House | bpm:? | energy:? | phase:unclassified
+ZHU — Faded | genre:House | bpm:124.9 | energy:? | phase:ambiance
+(Reggaeton)Daddy Yankee — La Gasolina | genre:Latin | bpm:120 | energy:6 | phase:ambiance
+3OH!3 — RICHMAN | genre:Latin | bpm:162.1 | energy:? | phase:arrival
+Afro Cuban All Stars — Amor verdadero | genre:Latin | bpm:137.81 | energy:? | phase:arrival
+Akon — We Don't Care | genre:Latin | bpm:? | energy:? | phase:unclassified
+Alex Sampson — Pretty Baby | genre:Latin | bpm:? | energy:? | phase:unclassified
+AURORA — Runaway | genre:Latin | bpm:172.27 | energy:? | phase:arrival
+Aventura — Obsesion | genre:Latin | bpm:134 | energy:9 | phase:takeoff
+Bad Bunny — Tití Me Preguntó | genre:Latin | bpm:111 | energy:7 | phase:closing
+Bad Bunny — BAILE INolVIDABLE | genre:Latin | bpm:90 | energy:5 | phase:arrival
+Bad Bunny — DtMF | genre:Latin | bpm:113 | energy:7 | phase:closing
+Bad Bunny — NUEVAYoL | genre:Latin | bpm:118 | energy:7 | phase:ambiance
+Bad Bunny — EoO | genre:Latin | bpm:? | energy:? | phase:unclassified
+Bebo Valdés — El Manisero (Mambo Son) | genre:Latin | bpm:163.41 | energy:? | phase:arrival
+Becky G — Arranca | genre:Latin | bpm:? | energy:? | phase:unclassified
+Bella Kay — iloveitiloveitiloveit | genre:Latin | bpm:? | energy:? | phase:unclassified
+Bella Kay — Steady | genre:Latin | bpm:? | energy:? | phase:unclassified
+Benny Benassi — Love is Gonna Save Us | genre:Latin | bpm:132.1 | energy:? | phase:arrival
+Bruno Mars — Cha Cha Cha | genre:Latin | bpm:? | energy:? | phase:unclassified
+Bruno Mars — Risk It All | genre:Latin | bpm:? | energy:? | phase:unclassified
+BTS — SWIM | genre:Latin | bpm:? | energy:? | phase:unclassified
+Buena Vista Social Club — Chan Chan | genre:Latin | bpm:166.04 | energy:? | phase:arrival
+Burak Yeter — Tuesday | genre:Latin | bpm:98.91 | energy:? | phase:closing
+C. Tangana — Ateo | genre:Latin | bpm:130 | energy:9 | phase:takeoff
+Cachao — Descarga Cubana | genre:Latin | bpm:112 | energy:? | phase:closing
+Carlos Puebla y sus Tradicionales — Hasta Siempre | genre:Latin | bpm:110.84 | energy:? | phase:closing
+Celia Cruz — La Vida Es Un Carnaval | genre:Latin | bpm:103.88 | energy:? | phase:closing
+Celia Cruz — Guantanamera | genre:Latin | bpm:140.15 | energy:? | phase:arrival
+Cheo Feliciano — El Ratón | genre:Latin | bpm:95.7 | energy:? | phase:closing
+Christina Perri — a thousand years | genre:Latin | bpm:93.1 | energy:? | phase:closing
+Chucho Valdés — Dos Perlas y un Dolor | genre:Latin | bpm:185.4 | energy:? | phase:arrival
+Coldplay — Something Just Like This | genre:Latin | bpm:102.85 | energy:? | phase:closing
+Compay Segundo — La negra Tomasa | genre:Latin | bpm:188.8 | energy:? | phase:arrival
+Cris MJ — Locura y Maldad | genre:Latin | bpm:? | energy:? | phase:unclassified
+Cubanismo — Descarga De Hoy | genre:Latin | bpm:113.3 | energy:? | phase:closing
+Daymé Arocena — Negra Caridad | genre:Latin | bpm:128 | energy:? | phase:ambiance
+Diana King — Shy Guy | genre:Latin | bpm:94 | energy:5 | phase:arrival
+Doja Cat — Like That (feat. Gucci Mane) | genre:Latin | bpm:106.01 | energy:? | phase:closing
+Doja Cat — Ain't Shit | genre:Latin | bpm:? | energy:? | phase:unclassified
+Dominic Fike — Babydoll | genre:Latin | bpm:168.06 | energy:? | phase:arrival
+Dominic Fike — White Keys | genre:Latin | bpm:? | energy:? | phase:unclassified
+Don Miguelo — Como Yo Le Doy | genre:Latin | bpm:? | energy:? | phase:unclassified
+Don Omar — Danza Kuduro | genre:Latin | bpm:130 | energy:9 | phase:takeoff
+Eddie Palmieri — La Malanga | genre:Latin | bpm:? | energy:? | phase:unclassified
+Eddie Palmieri — Café | genre:Latin | bpm:? | energy:? | phase:unclassified
+Eminem — Love The Way You Lie | genre:Latin | bpm:173.7 | energy:? | phase:arrival
+Enigma — Sadeness (Part I) | genre:Latin | bpm:191.4 | energy:? | phase:arrival
+F3miii — NOBLE | genre:Latin | bpm:? | energy:? | phase:unclassified
+Fania All Stars — El Rey De La Puntualidad | genre:Latin | bpm:106.3 | energy:? | phase:closing
+Fania All Stars — Guajira Con Tumbao | genre:Latin | bpm:? | energy:? | phase:unclassified
+Fania All Stars — Ella Fue (She Was The One) (Album Version) | genre:Latin | bpm:121.6 | energy:? | phase:ambiance
+Farruko — Pepas | genre:Latin | bpm:? | energy:? | phase:unclassified
+Farruko — Pepas (Tiësto) | genre:Latin | bpm:? | energy:? | phase:unclassified
+Farruko — El Incomprendido | genre:Latin | bpm:128 | energy:9 | phase:takeoff
+Gente De Zona — La Gozadera | genre:Latin | bpm:189.65 | energy:? | phase:arrival
+Gerry Woo — Jive Samba | genre:Latin | bpm:117.79 | energy:? | phase:ambiance
+Green Day — Boulevard of Broken Dreams | genre:Latin | bpm:166.71 | energy:? | phase:arrival
+Gusttavo Lima — Balada | genre:Latin | bpm:128 | energy:9 | phase:takeoff
+Harry Styles — Sign of the Times | genre:Latin | bpm:119.84 | energy:? | phase:ambiance
+Ibrahím Ferrer — Marieta | genre:Latin | bpm:? | energy:? | phase:unclassified
+Jackson 5 — I Want You Back | genre:Latin | bpm:98.2 | energy:? | phase:closing
+Jasmine Thompson — Mad World | genre:Latin | bpm:? | energy:? | phase:unclassified
+Jennifer Lopez — On The Floor (Radio Edit) | genre:Latin | bpm:130 | energy:? | phase:arrival
+Joe Bataan — Latin Strut | genre:Latin | bpm:130.83 | energy:? | phase:arrival
+Joe Cain & His Orchestra — A Bailar Guajira | genre:Latin | bpm:? | energy:? | phase:unclassified
+Joe Cuba Sextette — Bang! Bang! | genre:Latin | bpm:? | energy:? | phase:unclassified
+Joe Cuba Sextette — Mujer Divina | genre:Latin | bpm:101.58 | energy:? | phase:closing
+Johnny Pacheco — Canto A La Habana | genre:Latin | bpm:? | energy:? | phase:unclassified
+Johnny Pacheco — Quimbara | genre:Latin | bpm:? | energy:? | phase:unclassified
+Juan Formell y Los Van Van — Esto te pone la cabeza mala | genre:Latin | bpm:102.3 | energy:? | phase:closing
+Julia Wolf — In My Room | genre:Latin | bpm:? | energy:? | phase:unclassified
+Justin Bieber — EVERYTHING HALLELUJAH | genre:Latin | bpm:? | energy:? | phase:unclassified
+Kacey Musgraves — Mexico Honey | genre:Latin | bpm:? | energy:? | phase:unclassified
+Kako Y Su Orquesta — Kako's Boogaloo | genre:Latin | bpm:? | energy:? | phase:unclassified
+Kali Uchis — Te Mata | genre:Latin | bpm:100 | energy:7 | phase:closing
+KAROL G — Si Antes Te Hubiera Conocido | genre:Latin | bpm:128 | energy:9 | phase:takeoff
+Katy Perry — The One That Got Away | genre:Latin | bpm:133.8 | energy:? | phase:arrival
+Katy Perry — Legendary Lovers | genre:Latin | bpm:126 | energy:? | phase:ambiance
+Kylie Minogue — Can't Get You out of My Head | genre:Latin | bpm:126 | energy:? | phase:ambiance
+La Lupe — Fever | genre:Latin | bpm:? | energy:? | phase:unclassified
+La Lupe — Dominique | genre:Latin | bpm:? | energy:? | phase:unclassified
+La Playa Sextet — Twist and Shout | genre:Latin | bpm:149.3 | energy:? | phase:arrival
+Lady Gaga — RUNWAY | genre:Latin | bpm:? | energy:? | phase:unclassified
+Lady Gaga — Telephone | genre:Latin | bpm:121.96 | energy:? | phase:ambiance
+Lalo Guerrero — Marihuana Boogie (Remastered) | genre:Latin | bpm:? | energy:? | phase:unclassified
+Laurinha Costa — Six Seven | genre:Latin | bpm:? | energy:? | phase:unclassified
+Lucenzo — Danza Kuduro | genre:Latin | bpm:130 | energy:9 | phase:takeoff
+Madonna — Into the Groove | genre:Latin | bpm:116.5 | energy:? | phase:ambiance
+Malcolm Todd — Earrings | genre:Latin | bpm:? | energy:? | phase:unclassified
+Maluma — Hawái | genre:Latin | bpm:90 | energy:5 | phase:arrival
+Maluma — COCO LOCO | genre:Latin | bpm:110 | energy:7 | phase:closing
+MC Fioti — Bum Bum Tam Tam | genre:Latin | bpm:132.09 | energy:? | phase:arrival
+Metro Station — Shake It | genre:Latin | bpm:149.8 | energy:? | phase:arrival
+Michael Jackson — Chicago | genre:Latin | bpm:88 | energy:? | phase:closing
+MICHEL TELO — Ai se eu te pego (nossa nossa) | genre:Latin | bpm:96 | energy:6 | phase:closing
+Miguel — damned | genre:Latin | bpm:107.9 | energy:? | phase:closing
+Milky — Just The Way You Are | genre:Latin | bpm:? | energy:? | phase:unclassified
+Mongo Santamaria — Watermelon Man | genre:Latin | bpm:118.8 | energy:? | phase:ambiance
+Mongo Santamaria — Green Onions | genre:Latin | bpm:126 | energy:? | phase:ambiance
+Noah Kahan — The Great Divide | genre:Latin | bpm:? | energy:? | phase:unclassified
+Noah Kahan — Doors | genre:Latin | bpm:? | energy:? | phase:unclassified
+Olga Guillot — Lágrimas Negras | genre:Latin | bpm:? | energy:? | phase:unclassified
+Olivia Dean — So Easy (To Fall In Love) | genre:Latin | bpm:? | energy:? | phase:unclassified
+Omar Apollo — Evergreen (You Didn’t Deserve Me At All) | genre:Latin | bpm:? | energy:? | phase:unclassified
+Omara Portuondo — No me llores más | genre:Latin | bpm:124.2 | energy:? | phase:ambiance
+Omara Portuondo — ¿Dónde Estabas Tú? | genre:Latin | bpm:116.5 | energy:? | phase:ambiance
+Orishas — Represent | genre:Latin | bpm:95.3 | energy:? | phase:closing
+Perez Prado — Mambo No 5 | genre:Latin | bpm:179.8 | energy:? | phase:arrival
+Pete Rodriguez — I like it like that | genre:Latin | bpm:133.3 | energy:? | phase:arrival
+PinkPantheress — Girl Like Me | genre:Latin | bpm:? | energy:? | phase:unclassified
+PinkPantheress — Stateside + Zara Larsson | genre:Latin | bpm:? | energy:? | phase:unclassified
+Plain White T's — Hey There Delilah | genre:Latin | bpm:? | energy:? | phase:unclassified
+Poncho Sanchez — El Shing-A-Ling | genre:Latin | bpm:133.8 | energy:? | phase:arrival
+Ray Barretto — A Deeper Shade Of Soul | genre:Latin | bpm:? | energy:? | phase:unclassified
+Ray Barretto — Indestructible | genre:Latin | bpm:107.7 | energy:? | phase:closing
+Reik — A Un Paso De La Luna | genre:Latin | bpm:122 | energy:8 | phase:groove
+Roberto Fonseca — Kachucha | genre:Latin | bpm:? | energy:? | phase:unclassified
+Roberto Roena y Su Apollo Sound — Que Se Sepa | genre:Latin | bpm:? | energy:? | phase:unclassified
+ROSALÍA — LA FAMA | genre:Latin | bpm:136 | energy:9 | phase:takeoff
+ROSALÍA — BESO | genre:Latin | bpm:95 | energy:5 | phase:arrival
+Rubén González — Cumbanchero | genre:Latin | bpm:128.4 | energy:? | phase:arrival
+Salomé de Bahia — Outro Lugar | genre:Latin | bpm:128 | energy:9 | phase:takeoff
+Santi Sanz — Para Que Llorar | genre:Latin | bpm:? | energy:? | phase:unclassified
+Sean Paul — No Lie | genre:Latin | bpm:102 | energy:6 | phase:closing
+Sean Paul — (When You Gonna) Give It Up to Me (Radio Version) | genre:Latin | bpm:? | energy:? | phase:unclassified
+Shaggy — Boombastic | genre:Latin | bpm:79 | energy:3 | phase:arrival
+Shakira — Loca | genre:Latin | bpm:112 | energy:? | phase:closing
+Shakira — Copa Vacía | genre:Latin | bpm:90 | energy:5 | phase:arrival
+Shakira — Soltera | genre:Latin | bpm:100 | energy:6 | phase:closing
+Shakira — Monotonía | genre:Latin | bpm:132 | energy:9 | phase:takeoff
+Shakira — Dai Dai | genre:Latin | bpm:116 | energy:7 | phase:ambiance
+Shakira — ALGO TÚ | genre:Latin | bpm:? | energy:? | phase:unclassified
+shakira ft. pitbull — rabiosa | genre:Latin | bpm:124 | energy:6 | phase:ambiance
+Sidney Gish — Impostor Syndrome | genre:Latin | bpm:? | energy:? | phase:unclassified
+SIENNA SPIRO — The Visitor | genre:Latin | bpm:? | energy:? | phase:unclassified
+Slayyyter — DANCE... | genre:Latin | bpm:? | energy:? | phase:unclassified
+sombr — Homewrecker | genre:Latin | bpm:? | energy:? | phase:unclassified
+Soolking — Suavemente | genre:Latin | bpm:? | energy:? | phase:unclassified
+STELLA LEFTY — Boston | genre:Latin | bpm:? | energy:? | phase:unclassified
+The Chemical Brothers — Go | genre:Latin | bpm:119.84 | energy:? | phase:ambiance
+The Sundays — Summertime | genre:Latin | bpm:192.3 | energy:? | phase:arrival
+Tito Puente — Oye Como Va | genre:Latin | bpm:122.7 | energy:? | phase:ambiance
+Tove Lo — Stay High (Habits Remix) | genre:Latin | bpm:120.89 | energy:? | phase:ambiance
+TV Girl — Loving Machine | genre:Latin | bpm:179.76 | energy:? | phase:arrival
+Vieja Trova Santiaguera — Maria Cristina | genre:Latin | bpm:193.2 | energy:? | phase:arrival
+Wale — Bad (feat. Rihanna) (Remix) | genre:Latin | bpm:113.9 | energy:? | phase:closing
+Willie Colón — Eso Se Baila Así | genre:Latin | bpm:? | energy:? | phase:unclassified
+Willie Colón — Ché Ché Colé | genre:Latin | bpm:? | energy:? | phase:unclassified
+Willie Rosario — El Apartamento | genre:Latin | bpm:128 | energy:? | phase:ambiance
+Willie Rosario and His Orchestra — Let's Boogaloo | genre:Latin | bpm:? | energy:? | phase:unclassified
+2 Be 3 — Toujours là pour toi (Never Gonna Give You Up) | genre:Pop | bpm:132.1 | energy:? | phase:arrival
+Aaron Modesto — Pra Não Esquecer De Mim | genre:Pop | bpm:? | energy:? | phase:unclassified
+AC/DC — Highway to Hell | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Adé — Insomnies (Version alternative) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Adèle Castillon — Été avec toi | genre:Pop | bpm:120 | energy:7 | phase:ambiance
+Ahma Valentine — Le monde en face | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Alex Warren — FEVER DREAM | genre:Pop | bpm:108 | energy:7 | phase:closing
+Alex Warren — Ordinary | genre:Pop | bpm:112 | energy:7 | phase:closing
+Alice DJ — Better Off Alone (1999 Original Hit Radio) | genre:Pop | bpm:136.9 | energy:? | phase:arrival
+Alien Ant Farm — Smooth Criminal | genre:Pop | bpm:127 | energy:8 | phase:takeoff
+All Saints — Never Ever | genre:Pop | bpm:67 | energy:3 | phase:arrival
+Alonzo — Velar | genre:Pop | bpm:? | energy:? | phase:unclassified
+Alonzo — En Goumin | genre:Pop | bpm:? | energy:? | phase:unclassified
+Ambre — j'me demande | genre:Pop | bpm:? | energy:? | phase:unclassified
+Amel Bent — Ma philosophie | genre:Pop | bpm:99.86 | energy:? | phase:closing
+Amy Winehouse — Rehab | genre:Pop | bpm:145.6 | energy:? | phase:arrival
+Ana Castela — Olha Onde Eu Tô | genre:Pop | bpm:? | energy:? | phase:unclassified
+Ana Mena — Un beso de improviso | genre:Pop | bpm:128 | energy:9 | phase:takeoff
+Ana Mena — LAS 12 | genre:Pop | bpm:130 | energy:9 | phase:takeoff
+Ana Mena — Madrid City | genre:Pop | bpm:132 | energy:9 | phase:takeoff
+Anaïs — Mon Coeur, Mon Amour (Garage Mix) | genre:Pop | bpm:168.1 | energy:? | phase:arrival
+Anastacia — I'm Outta Love (Radio Edit) | genre:Pop | bpm:119.5 | energy:? | phase:ambiance
+Anitta — Mil Veces | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Aqua — Barbie Girl | genre:Pop | bpm:130 | energy:? | phase:arrival
+Arctic Monkeys — R U Mine? | genre:Pop | bpm:97 | energy:7 | phase:closing
+Ariana Grande — hate that i made you love me | genre:Pop | bpm:96 | energy:7 | phase:closing
+Aya Nakamura — Pookie | genre:Pop | bpm:97.97 | energy:? | phase:closing
+Aya Nakamura — Djadja | genre:Pop | bpm:97.97 | energy:? | phase:closing
+Ayra Starr — Rush | genre:Pop | bpm:115 | energy:5 | phase:arrival
+BB Brunes — Dis-moi | genre:Pop | bpm:130 | energy:9 | phase:takeoff
+Beck — Loser | genre:Pop | bpm:85 | energy:7 | phase:closing
+Beyoncé — Single Ladies (Put a Ring on It) | genre:Pop | bpm:97 | energy:4 | phase:arrival
+Beyoncé — Baby Boy (feat. Sean Paul) | genre:Pop | bpm:182.1 | energy:? | phase:arrival
+Black Box — Ride on Time | genre:Pop | bpm:? | energy:? | phase:unclassified
+Black Eyed Peas — Let's Get It Started | genre:Pop | bpm:? | energy:? | phase:unclassified
+Black Eyed Peas — Pump It | genre:Pop | bpm:153.7 | energy:? | phase:arrival
+Black Eyed Peas — RITMO | genre:Pop | bpm:104.93 | energy:? | phase:closing
+BLACKPINK — JUMP | genre:Pop | bpm:145 | energy:9 | phase:party
+BlasterJaxx — Désenchantée 3000 | genre:Pop | bpm:? | energy:? | phase:unclassified
+BlasterJaxx — Unfaithful | genre:Pop | bpm:? | energy:? | phase:unclassified
+Blur — Song 2 | genre:Pop | bpm:130 | energy:8 | phase:takeoff
+Bon Entendeur — Toute première fois | genre:Pop | bpm:? | energy:? | phase:unclassified
+Boris — Soirée disco | genre:Pop | bpm:139.7 | energy:? | phase:arrival
+Boston — More Than a Feeling | genre:Pop | bpm:110 | energy:8 | phase:groove
+Britney Spears — Toxic | genre:Pop | bpm:143 | energy:9 | phase:party
+Britney Spears — I'm a Slave 4 U | genre:Pop | bpm:110 | energy:? | phase:closing
+Britney Spears — ...Baby One More Time | genre:Pop | bpm:? | energy:? | phase:unclassified
+Bruno Mars — 24K Magic | genre:Pop | bpm:106.83 | energy:? | phase:closing
+Bruno Mars — Marry You | genre:Pop | bpm:145 | energy:9 | phase:party
+Bruno Mars — I Just Might | genre:Pop | bpm:103 | energy:7 | phase:closing
+Camila Cabello — Havana | genre:Pop | bpm:104.93 | energy:? | phase:closing
+Carly Rae Jepsen — Call Me Maybe | genre:Pop | bpm:120 | energy:7 | phase:ambiance
+Cascada — Everytime We Touch | genre:Pop | bpm:142.1 | energy:? | phase:arrival
+Charlotte Cardin — Feel Good | genre:Pop | bpm:111 | energy:7 | phase:closing
+Cheu-B — Catalina | genre:Pop | bpm:? | energy:? | phase:unclassified
+Christophe Maé — L'amour | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Christophe Maé — La lune | genre:Pop | bpm:98 | energy:7 | phase:closing
+Christophe Willem — PS : Je t'aime | genre:Pop | bpm:? | energy:? | phase:unclassified
+Christophe Willem — Double je (Remix) | genre:Pop | bpm:120.2 | energy:? | phase:ambiance
+Clara Luciani — Dansons tant qu'on est vivant (Celebration) (avec Kool & The Gang) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Clara Luciani — Courage (Edit) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Clayton & Romário — Não Namora (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Clayton & Romário — Se Eu Te Perdoar (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Clayton & Romário — Opa Cadê Eu (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Coldplay — Viva La Vida | genre:Pop | bpm:138 | energy:9 | phase:takeoff
+Coolio — Gangsta's Paradise | genre:Pop | bpm:159.63 | energy:? | phase:arrival
+Da Hool — Meet Her at the Loveparade (Radio Edit) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Danilo e Davi — Apaga Apaga Apaga (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Danilo e Davi — Não Mexe nas Minhas Gavetas (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+David Bowie — Let's Dance | genre:Pop | bpm:115 | energy:8 | phase:groove
+David Kushner — Daylight | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Destiny's Child — Survivor | genre:Pop | bpm:160.9 | energy:? | phase:arrival
+Diam's — La Boulette (Génération Nan Nan) | genre:Pop | bpm:98.9 | energy:? | phase:closing
+Diego & Arnaldo — Vai Cair Água (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Diego & Victor Hugo — Tubarões | genre:Pop | bpm:? | energy:? | phase:unclassified
+Dimitri Rougeul — Hakuna Matata | genre:Pop | bpm:163.4 | energy:? | phase:arrival
+Discobitch — C'est beau la bourgeoisie (Radio Edit) | genre:Pop | bpm:128 | energy:? | phase:ambiance
+Disney — Zoo (De "Zootopie 2") | genre:Pop | bpm:? | energy:? | phase:unclassified
+Disney — Zoo (From "Zootropolis 2") | genre:Pop | bpm:? | energy:? | phase:unclassified
+DJ Antoine — Sarà perché ti amo | genre:Pop | bpm:? | energy:? | phase:unclassified
+DJ Gu — Reliquia do 2T | genre:Pop | bpm:? | energy:? | phase:unclassified
+DJ Japa NK — Gauchinha | genre:Pop | bpm:? | energy:? | phase:unclassified
+DJ Japa NK — SET DO JAPA NK 2.0 | genre:Pop | bpm:? | energy:? | phase:unclassified
+DJ Japa NK — Posso Até Não Te Dar Flores | genre:Pop | bpm:? | energy:? | phase:unclassified
+Dj Luan Gomes — PEGA A MALDADE DA BANDIDA | genre:Pop | bpm:? | energy:? | phase:unclassified
+DJ Oreia — Diário de um Cafajeste | genre:Pop | bpm:? | energy:? | phase:unclassified
+dj yuri pedrada — SET DJ YURI PEDRADA - TRAVA CHIP | genre:Pop | bpm:? | energy:? | phase:unclassified
+Djo — End of Beginning | genre:Pop | bpm:160 | energy:7 | phase:groove
+Doja Cat — Say So | genre:Pop | bpm:110.84 | energy:? | phase:closing
+Dr. Yaro — Confirmé | genre:Pop | bpm:? | energy:? | phase:unclassified
+Drops INA — É Ele | genre:Pop | bpm:? | energy:? | phase:unclassified
+Eddy de Pretto — LOVE'n'TENDRESSE | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Eddy de Pretto — CRASH <3 | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Edward Maya — Stereo Love (Radio Edit) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Eiffel 65 — Blue (Da Ba Dee) (Video Edit) | genre:Pop | bpm:128 | energy:? | phase:ambiance
+Elliott — La Camisa Negra | genre:Pop | bpm:? | energy:? | phase:unclassified
+Estelle — American Boy | genre:Pop | bpm:118 | energy:7 | phase:ambiance
+Europe — The Final Countdown | genre:Pop | bpm:118 | energy:8 | phase:groove
+Eve — Who's That Girl? | genre:Pop | bpm:193.2 | energy:? | phase:arrival
+Fally Ipupa — Doucement | genre:Pop | bpm:? | energy:? | phase:unclassified
+Felipe e Rodrigo — Ignora (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Felipe e Rodrigo — Gosta De Rua (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Felipe Rodrigues — Tudo É Perda (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Fernandinho — Único (Live) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Ferrugem — Arrependidaço (Onde Você Anda) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Ferrugem — Apaguei Pra Todos (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Feu! Chatterton — Allons Voir | genre:Pop | bpm:? | energy:? | phase:unclassified
+fhop music — Tu és + Águas Purificadoras (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Filho do Piseiro — Raparigas | genre:Pop | bpm:? | energy:? | phase:unclassified
+Fine Young Cannibals — Good Thing | genre:Pop | bpm:82 | energy:4 | phase:arrival
+Flo Rida — Right Round | genre:Pop | bpm:124.9 | energy:? | phase:ambiance
+Flo Rida — Good Feeling | genre:Pop | bpm:128 | energy:? | phase:ambiance
+France Gall — Ella, elle l'a (Remasterisé en 2004) | genre:Pop | bpm:100.1 | energy:? | phase:closing
+Franz Ferdinand — Take Me Out | genre:Pop | bpm:104 | energy:8 | phase:groove
+Gabriela Rocha — Me Atraiu (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Get Worship — Um Novo Dia (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+GIMS — Est-ce que tu m'aimes | genre:Pop | bpm:? | energy:? | phase:unclassified
+GIMS — Bella | genre:Pop | bpm:? | energy:? | phase:unclassified
+GIMS — SPA | genre:Pop | bpm:127 | energy:7 | phase:ambiance
+GIMS — Soleil | genre:Pop | bpm:130 | energy:7 | phase:takeoff
+GIMS — APPELLE TA COPINE | genre:Pop | bpm:? | energy:? | phase:unclassified
+GIMS — Triple S | genre:Pop | bpm:? | energy:? | phase:unclassified
+GIMS — Emprise | genre:Pop | bpm:? | energy:? | phase:unclassified
+Gotye — Somebody That I Used To Know | genre:Pop | bpm:129 | energy:9 | phase:takeoff
+Gradur — Congolaise | genre:Pop | bpm:? | energy:? | phase:unclassified
+Green Day — American Idiot | genre:Pop | bpm:93 | energy:7 | phase:closing
+Green Day — Basket Case | genre:Pop | bpm:113 | energy:8 | phase:groove
+Grupo Menos É Mais — P do Pecado (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Grupo Menos É Mais — Pela Última Vez (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Grupo Menos É Mais — Brinda Aê (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Grupo Menos É Mais — Champanhe (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Grupo Menos É Mais — Coração Partido (Corazón Partío) (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Grupo Menos É Mais — Queria Ser Tu / Interfone (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Grupo Menos É Mais — Aquele Lugar (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Grupo Menos É Mais — Jejum de Amor / Caixa Postal / Vida Vazia (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Guilherme & Benuto — Grau de Maluca | genre:Pop | bpm:? | energy:? | phase:unclassified
+Guilherme & Benuto — Eu Duvido | genre:Pop | bpm:? | energy:? | phase:unclassified
+Guns N' Roses — Welcome To The Jungle | genre:Pop | bpm:123 | energy:8 | phase:groove
+Gusttavo Lima — Retrovisor | genre:Pop | bpm:? | energy:? | phase:unclassified
+Gwen Stefani — The Sweet Escape | genre:Pop | bpm:120 | energy:7 | phase:ambiance
+Haddaway — What is Love | genre:Pop | bpm:123.8 | energy:? | phase:ambiance
+Hanson — MMMBop | genre:Pop | bpm:104.9 | energy:? | phase:closing
+Henrique & Juliano — Última Saudade (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Henrique & Juliano — Amigo Da Minha Saudade (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Henrique & Juliano — Saudade De Quem Eu Sou (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Henrique & Juliano — Seja Ex (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Henrique & Juliano — Amor Dos Outros (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Henrique & Juliano — Logo Logo (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+HUNTR/X — Golden | genre:Pop | bpm:123 | energy:7 | phase:ambiance
+HUNTR/X — Briller (Golden - version française) | genre:Pop | bpm:? | energy:? | phase:unclassified
+IAM — Je danse le Mia | genre:Pop | bpm:102.8 | energy:? | phase:closing
+Isadora Pompeo — Ovelhinha (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Isaías Saad — Bondade de Deus | genre:Pop | bpm:? | energy:? | phase:unclassified
+Izïa — Mon cœur | genre:Pop | bpm:? | energy:? | phase:unclassified
+Jaden Bojsen — Upside Down | genre:Pop | bpm:? | energy:? | phase:unclassified
+Jain — Night Heights | genre:Pop | bpm:100 | energy:6 | phase:closing
+Jean-Jacques Goldman — Et l'on n'y peut rien | genre:Pop | bpm:210.94 | energy:? | phase:arrival
+Jeck — Parapluie | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Jeck — La recette | genre:Pop | bpm:116 | energy:7 | phase:ambiance
+Jenifer — Je danse | genre:Pop | bpm:98.9 | energy:? | phase:closing
+Jeninho — Peão Todo Tatuado | genre:Pop | bpm:? | energy:? | phase:unclassified
+Jennifer Lopez — Get Right | genre:Pop | bpm:97 | energy:? | phase:closing
+Jennifer Lopez — Let's Get Loud | genre:Pop | bpm:130.8 | energy:? | phase:arrival
+Jennifer Lopez — Save Me Tonight | genre:Pop | bpm:? | energy:? | phase:unclassified
+Joan Jett and the Blackhearts — I Love Rock 'N Roll | genre:Pop | bpm:94 | energy:7 | phase:closing
+Jocelyne Labylle — Laisse parler les gens !!! (feat. Jacob Desvarieux & Passi) | genre:Pop | bpm:116.1 | energy:? | phase:ambiance
+Joé Dwet Filé — Rihanna | genre:Pop | bpm:? | energy:? | phase:unclassified
+Johnny Hallyday — Allumer le feu | genre:Pop | bpm:? | energy:? | phase:unclassified
+Jorge & Mateus — Xonei | genre:Pop | bpm:? | energy:? | phase:unclassified
+Jorge & Mateus — Cantada Boba (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Jorge & Mateus — Sol Nos Olhos | genre:Pop | bpm:? | energy:? | phase:unclassified
+Jorge & Mateus — Haverá Sinais (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Jovan — On verra bien | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Jul — Parasite | genre:Pop | bpm:? | energy:? | phase:unclassified
+Julien Doré — Chou wasabi (feat. Micky Green) | genre:Pop | bpm:124.9 | energy:? | phase:ambiance
+Juliette Armanet — Qu'importe | genre:Pop | bpm:? | energy:? | phase:unclassified
+Julliany Souza — Quem É Esse? (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Justė — Turn The Lights Off | genre:Pop | bpm:? | energy:? | phase:unclassified
+Justin Timberlake — CAN'T STOP THE FEELING! | genre:Pop | bpm:112.96 | energy:? | phase:closing
+Justin Timberlake — SexyBack | genre:Pop | bpm:117.1 | energy:? | phase:ambiance
+Justin Timberlake — SexyBack | genre:Pop | bpm:117 | energy:7 | phase:ambiance
+Justin Wellington — Iko Iko (My Bestie) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Kasabian — Shoot the Runner | genre:Pop | bpm:131 | energy:8 | phase:takeoff
+Kassav' — Zouk la ce sel médicament nou ni | genre:Pop | bpm:115 | energy:5 | phase:arrival
+KATSEYE — Gabriela | genre:Pop | bpm:146 | energy:7 | phase:groove
+Katy Perry — I Kissed A Girl | genre:Pop | bpm:130 | energy:9 | phase:takeoff
+Kendji Girac — Andalouse | genre:Pop | bpm:112 | energy:? | phase:closing
+Kendji Girac — Un, Dos, Tres | genre:Pop | bpm:? | energy:? | phase:unclassified
+Kevin Lyttle — Turn Me On | genre:Pop | bpm:106.3 | energy:? | phase:closing
+Kim Carnes — Bette Davis Eyes | genre:Pop | bpm:117 | energy:7 | phase:ambiance
+Kygo — Love Me Now | genre:Pop | bpm:102 | energy:6 | phase:closing
+L2B  — Movie | genre:Pop | bpm:? | energy:? | phase:unclassified
+L5 — Toutes les femmes de ta vie | genre:Pop | bpm:98.91 | energy:? | phase:closing
+La Bouche — Be My Lover | genre:Pop | bpm:134.7 | energy:? | phase:arrival
+La Mano 1.9 — ATL | genre:Pop | bpm:? | energy:? | phase:unclassified
+Lartiste — Chocolat | genre:Pop | bpm:109.09 | energy:? | phase:closing
+Larusso — Tu m'oublieras | genre:Pop | bpm:111.1 | energy:? | phase:closing
+Lauana Prado — Saudade Burra (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Lenny Kravitz — Are You Gonna Go My Way | genre:Pop | bpm:? | energy:? | phase:unclassified
+Les Innocents — Colore | genre:Pop | bpm:108.8 | energy:? | phase:closing
+Leto — Pineapple | genre:Pop | bpm:? | energy:? | phase:unclassified
+Lilicub — Voyage en Italie | genre:Pop | bpm:135.1 | energy:? | phase:arrival
+Lily Allen — Fuck You | genre:Pop | bpm:130 | energy:9 | phase:takeoff
+Linkin Park — Numb | genre:Pop | bpm:110 | energy:8 | phase:groove
+Linkin Park — In the End | genre:Pop | bpm:105.2 | energy:? | phase:closing
+LMFAO — Sexy And I Know It | genre:Pop | bpm:130 | energy:? | phase:arrival
+Loreen — Tattoo | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Loreen — Is It Love | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Lou Bega — Mambo No. 5 (a Little Bit of...) | genre:Pop | bpm:173.71 | energy:? | phase:arrival
+Louane — Pardonne-moi | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Louane — Secret | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Louane — Chiens | genre:Pop | bpm:? | energy:? | phase:unclassified
+Luan Santana — OLHO MARROM - Ao Vivo em Lisboa | genre:Pop | bpm:? | energy:? | phase:unclassified
+Luis Fonsi & Daddy Yankee — Despacito | genre:Pop | bpm:115 | energy:5 | phase:arrival
+LUIZA — Jet Lag | genre:Pop | bpm:? | energy:? | phase:unclassified
+M. Pokora — Trophée | genre:Pop | bpm:? | energy:? | phase:unclassified
+Macklemore — Can't Hold Us | genre:Pop | bpm:146.09 | energy:? | phase:arrival
+Madonna — Hung Up | genre:Pop | bpm:124.9 | energy:? | phase:ambiance
+Mae Stephens — If We Ever Broke Up | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Malo' — Meilleurs qu'hier | genre:Pop | bpm:? | energy:? | phase:unclassified
+Manau — La tribu de Dana | genre:Pop | bpm:93.5 | energy:? | phase:closing
+Måneskin — Beggin' | genre:Pop | bpm:134 | energy:9 | phase:takeoff
+Måneskin — I WANNA BE YOUR SLAVE | genre:Pop | bpm:134 | energy:8 | phase:takeoff
+Måneskin — MAMMAMIA | genre:Pop | bpm:142 | energy:8 | phase:party
+Manon Lisa — Le Petit Pêcheur | genre:Pop | bpm:? | energy:? | phase:unclassified
+marguerite — les filles, les meufs | genre:Pop | bpm:? | energy:? | phase:unclassified
+marguerite — la maison | genre:Pop | bpm:? | energy:? | phase:unclassified
+Mari Fernandez — Saudade do Carai | genre:Pop | bpm:? | energy:? | phase:unclassified
+Marília Mendonça — Leão | genre:Pop | bpm:? | energy:? | phase:unclassified
+Marina Kaye — Why Do the Bad Things Feel Good | genre:Pop | bpm:120 | energy:6 | phase:ambiance
+Marine — Escroc | genre:Pop | bpm:? | energy:? | phase:unclassified
+Massive Wagons — Bangin in Your Stereo | genre:Pop | bpm:132 | energy:8 | phase:takeoff
+Matheus & Kauan — Ilusão De Ótica (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Mauvais Djo — Pilé (Gospel) | genre:Pop | bpm:? | energy:? | phase:unclassified
+MC Hammer — U Can't Touch This | genre:Pop | bpm:133.4 | energy:? | phase:arrival
+Mc Jacaré — Carnívoro | genre:Pop | bpm:? | energy:? | phase:unclassified
+Mc Lele JP — Famoso Ímã | O poderoso chatão | genre:Pop | bpm:? | energy:? | phase:unclassified
+Mc Lele JP — Vai Tomando Pock Pock | genre:Pop | bpm:? | energy:? | phase:unclassified
+Mc Livinho — Se Saudade Sentir (Se Prepara 3) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Mentissa — Mamma Mia | genre:Pop | bpm:120 | energy:6 | phase:ambiance
+Mentissa — Désolée | genre:Pop | bpm:? | energy:? | phase:unclassified
+Metallica — Enter Sandman | genre:Pop | bpm:123 | energy:8 | phase:groove
+Michael Jackson — Beat It | genre:Pop | bpm:138.7 | energy:? | phase:arrival
+Michael Jackson — Beat It | genre:Pop | bpm:139 | energy:9 | phase:takeoff
+MIKA — C’est la Vie | genre:Pop | bpm:115 | energy:5 | phase:arrival
+MIKA — Elle me dit | genre:Pop | bpm:126 | energy:? | phase:ambiance
+MIKA — Love Today | genre:Pop | bpm:124.53 | energy:? | phase:ambiance
+MIKA — Relax, Take It Easy | genre:Pop | bpm:? | energy:? | phase:unclassified
+miki — particule | genre:Pop | bpm:? | energy:? | phase:unclassified
+miki — ça pik un peu quand même | genre:Pop | bpm:? | energy:? | phase:unclassified
+Miley Cyrus — Flowers | genre:Pop | bpm:118 | energy:7 | phase:ambiance
+Mj Records — Insegurança / Fim de Noite | genre:Pop | bpm:? | energy:? | phase:unclassified
+MORADA — É Tudo Sobre Você (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Murilo Huff — Saudade Estranha - Du Nada (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Murilo Huff — Deixa Eu (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Mylène Farmer — Désenchantée | genre:Pop | bpm:? | energy:? | phase:unclassified
+Nâdiya — Et c'est parti... (feat. Smartzee) | genre:Pop | bpm:98 | energy:? | phase:closing
+Naïka — ONE TRACK MIND | genre:Pop | bpm:91 | energy:7 | phase:closing
+Natanzinho Lima — Um Beijo por Minuto (25 Milhões) (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Nightcrawlers — Push The Feeling On (Mk Dub Revisited Edit) | genre:Pop | bpm:123 | energy:? | phase:ambiance
+Ninho — LES DIAMANTS DE BOKASSA | genre:Pop | bpm:? | energy:? | phase:unclassified
+Niska — Adriano | genre:Pop | bpm:? | energy:? | phase:unclassified
+Oasis — Live Forever | genre:Pop | bpm:91 | energy:7 | phase:closing
+Oasis — Whatever | genre:Pop | bpm:93 | energy:7 | phase:closing
+Ofenbach — Miles Away | genre:Pop | bpm:? | energy:? | phase:unclassified
+Oliver Tree — Miss You (Marten Lou Remix) | genre:Pop | bpm:125 | energy:9 | phase:takeoff
+Olivia Dean — Man I Need | genre:Pop | bpm:119 | energy:7 | phase:ambiance
+Olivia Rodrigo — vampire | genre:Pop | bpm:115 | energy:5 | phase:arrival
+OMI — Cheerleader | genre:Pop | bpm:118.12 | energy:? | phase:ambiance
+OneRepublic — RUNAWAY | genre:Pop | bpm:115 | energy:5 | phase:arrival
+OneRepublic — Mirage (for Assassin's Creed Mirage) | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Ophélie Winter — Dieu m'a donné la foi | genre:Pop | bpm:108 | energy:? | phase:closing
+Oria — Soirée mondaine | genre:Pop | bpm:150 | energy:7 | phase:groove
+P!nk — What About Us | genre:Pop | bpm:114 | energy:7 | phase:closing
+P!nk — TRUSTFALL | genre:Pop | bpm:122 | energy:8 | phase:groove
+Panda — Eu Te Seguro | genre:Pop | bpm:? | energy:? | phase:unclassified
+Panda — Calcinha de Renda | genre:Pop | bpm:? | energy:? | phase:unclassified
+Panda — Baqueado (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Panda — 12 Horas / Pra Você Acreditar (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Panic! At the Disco — I Write Sins Not Tragedies | genre:Pop | bpm:85 | energy:7 | phase:closing
+Papi Sanchez — Enamorame | genre:Pop | bpm:120.2 | energy:? | phase:ambiance
+PEDRO SAMPAIO — JETSKI | genre:Pop | bpm:? | energy:? | phase:unclassified
+PEDRO SAMPAIO — SEQUÊNCIA FEITICEIRA | genre:Pop | bpm:? | energy:? | phase:unclassified
+Pharrell Williams — Happy | genre:Pop | bpm:160 | energy:9 | phase:party
+Philippe Chany — La carioca | genre:Pop | bpm:140.15 | energy:? | phase:arrival
+Pitbull — Give Me Everything | genre:Pop | bpm:? | energy:? | phase:unclassified
+Pitbull — Hotel Room Service | genre:Pop | bpm:126 | energy:? | phase:ambiance
+Pixies — Where Is My Mind? | genre:Pop | bpm:162 | energy:8 | phase:party
+Queens of the Stone Age — No One Knows | genre:Pop | bpm:172 | energy:8 | phase:party
+Rachid Taha — Abdel Kader (Live à Bercy, Paris / 1998) | genre:Pop | bpm:104.93 | energy:? | phase:closing
+Rafa e Junior — Ama Um Maloqueiro | genre:Pop | bpm:? | energy:? | phase:unclassified
+Rage Against the Machine — Killing In The Name | genre:Pop | bpm:89 | energy:7 | phase:closing
+Red Hot Chili Peppers — Give It Away | genre:Pop | bpm:92 | energy:7 | phase:closing
+Red Hot Chili Peppers — Can't Stop | genre:Pop | bpm:183 | energy:8 | phase:party
+Rednex — Cotton Eye Joe | genre:Pop | bpm:? | energy:? | phase:unclassified
+Reel 2 Real — I Like to Move It | genre:Pop | bpm:128 | energy:? | phase:ambiance
+Refused — New Noise | genre:Pop | bpm:106 | energy:8 | phase:groove
+Renascer Praise — Escape | genre:Pop | bpm:? | energy:? | phase:unclassified
+Ricky Martin — María | genre:Pop | bpm:126.8 | energy:? | phase:ambiance
+Ridsa — Dis Moi Tout | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Ridsa — Me Enamore | genre:Pop | bpm:? | energy:? | phase:unclassified
+Rihanna — Don't Stop The Music | genre:Pop | bpm:122.68 | energy:? | phase:ambiance
+Rihanna — Disturbia | genre:Pop | bpm:? | energy:? | phase:unclassified
+RnBoi — BTRD | genre:Pop | bpm:? | energy:? | phase:unclassified
+Robbie Williams — Rock DJ | genre:Pop | bpm:103 | energy:6 | phase:closing
+Robert Miles — Children | genre:Pop | bpm:136.9 | energy:? | phase:arrival
+Robin S — Show Me Love | genre:Pop | bpm:120.2 | energy:? | phase:ambiance
+Saïan Supa Crew — Angela | genre:Pop | bpm:175.9 | energy:? | phase:arrival
+Sam Sauvage — La Fin Du Monde | genre:Pop | bpm:? | energy:? | phase:unclassified
+Sam Sauvage — Les Gens Qui Dansent (j'adore) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Sean Paul — Give It Up to Me | genre:Pop | bpm:95.93 | energy:? | phase:closing
+Sean Paul — Get Busy | genre:Pop | bpm:200.7 | energy:? | phase:arrival
+Sean Paul — Temperature | genre:Pop | bpm:? | energy:? | phase:unclassified
+Selena Gomez — Single Soon | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Serge Gainsbourg — Sea, Sex And Sun | genre:Pop | bpm:124.16 | energy:? | phase:ambiance
+Sex Pistols — God Save The Queen | genre:Pop | bpm:149 | energy:8 | phase:party
+Shaggy — It Wasn't Me | genre:Pop | bpm:94.6 | energy:? | phase:closing
+Shania Twain — That Don't Impress Me Much | genre:Pop | bpm:124.91 | energy:? | phase:ambiance
+Shania Twain — Man! I Feel Like A Woman! | genre:Pop | bpm:124.9 | energy:? | phase:ambiance
+Sia — Cheap Thrills (feat. Sean Paul) | genre:Pop | bpm:90 | energy:5 | phase:arrival
+Simone Mendes — Erro Gostoso (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Simone Mendes — Saudade Proibida (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Slayyyter — DANCE... (Edit) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Slimane — Chez toi | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Slimane — Des milliers de je t'aime | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Smash Mouth — All Star | genre:Pop | bpm:104 | energy:8 | phase:groove
+Snap! — Rhythm Is A Dancer | genre:Pop | bpm:124.16 | energy:? | phase:ambiance
+Sophie Ellis-Bextor — Murder On The Dancefloor | genre:Pop | bpm:117.1 | energy:? | phase:ambiance
+Sound Of Legend — San Francisco | genre:Pop | bpm:? | energy:? | phase:unclassified
+Spice Girls — Wannabe | genre:Pop | bpm:110 | energy:? | phase:closing
+Star Academy — Paris Latino | genre:Pop | bpm:113.9 | energy:? | phase:closing
+Stromae — Alors on danse | genre:Pop | bpm:119.8 | energy:? | phase:ambiance
+Superbus — Butterfly | genre:Pop | bpm:? | energy:? | phase:unclassified
+Supergrass — Alright | genre:Pop | bpm:146 | energy:8 | phase:party
+Suprême NTM — Ma Benz (feat. Lord Kossity) | genre:Pop | bpm:91.1 | energy:? | phase:closing
+Tarkan — Şımarık | genre:Pop | bpm:97.05 | energy:? | phase:closing
+Taylor Swift — The Fate of Ophelia | genre:Pop | bpm:124 | energy:7 | phase:ambiance
+Taylor Swift — Opalite | genre:Pop | bpm:? | energy:? | phase:unclassified
+Technotronic — Pump Up The Jam | genre:Pop | bpm:124.5 | energy:? | phase:ambiance
+Teddy Swims — Mr. Know It All | genre:Pop | bpm:? | energy:? | phase:unclassified
+Teddybears — Cobrastyle | genre:Pop | bpm:? | energy:? | phase:unclassified
+Telephone — Ça c'est vraiment toi (Remasterisé en 2006) | genre:Pop | bpm:139.7 | energy:? | phase:arrival
+The Beatles — Help! | genre:Pop | bpm:95 | energy:7 | phase:closing
+the black eyed peas — just can't get enough | genre:Pop | bpm:115 | energy:5 | phase:arrival
+The Clash — Should I Stay or Should I Go | genre:Pop | bpm:113 | energy:8 | phase:groove
+The Cramps — Goo Goo Muck | genre:Pop | bpm:142 | energy:8 | phase:party
+The Cure — Boys Don't Cry | genre:Pop | bpm:85 | energy:7 | phase:closing
+The Cure — Lullaby | genre:Pop | bpm:94 | energy:7 | phase:closing
+The Darkness — Love Is Only a Feeling | genre:Pop | bpm:158 | energy:8 | phase:party
+The Hives — Hate To Say I Told You So | genre:Pop | bpm:135 | energy:8 | phase:takeoff
+The Knack — My Sharona | genre:Pop | bpm:147 | energy:8 | phase:party
+The Offspring — The Kids Aren't Alright | genre:Pop | bpm:100 | energy:7 | phase:closing
+The Offspring — Pretty Fly | genre:Pop | bpm:143 | energy:8 | phase:party
+The Offspring — Come Out and Play | genre:Pop | bpm:158 | energy:8 | phase:party
+The Police — Roxanne | genre:Pop | bpm:132 | energy:8 | phase:takeoff
+The Pussycat Dolls — Don't Cha | genre:Pop | bpm:119.8 | energy:? | phase:ambiance
+The Rembrandts — I'll Be There for You (Theme from Friends) (Single Version) | genre:Pop | bpm:190.5 | energy:? | phase:arrival
+The Rolling Stones — Paint It, Black | genre:Pop | bpm:158 | energy:7 | phase:groove
+The Supermen Lovers — Starlight (Radio Edit) | genre:Pop | bpm:127.6 | energy:? | phase:ambiance
+The Undertones — Teenage Kicks | genre:Pop | bpm:135 | energy:8 | phase:takeoff
+The Weeknd — Blinding Lights | genre:Pop | bpm:170.84 | energy:? | phase:arrival
+THEODORT — Chacun son chacun | genre:Pop | bpm:115 | energy:7 | phase:ambiance
+Tom Gregory — River | genre:Pop | bpm:110 | energy:7 | phase:closing
+Tom Jones — Sexbomb (Peppermint Disco Radio Edit) | genre:Pop | bpm:123 | energy:? | phase:ambiance
+Toto — Africa | genre:Pop | bpm:93 | energy:7 | phase:closing
+Tove Lo — disco tits | genre:Pop | bpm:110 | energy:7 | phase:closing
+TRIANGLE DES BERMUDES — Mopao aye (feat. MC YOSHI, Mauvais Djo & Kokosvoice) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Tribal King — Façon Sex | genre:Pop | bpm:119.84 | energy:? | phase:ambiance
+Trinix — Madan | genre:Pop | bpm:? | energy:? | phase:unclassified
+Troye Sivan — One Of Your Girls | genre:Pop | bpm:115 | energy:5 | phase:arrival
+Tyla — SHE DID IT AGAIN (feat. Zara Larsson) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Van Halen — Jump | genre:Pop | bpm:130 | energy:8 | phase:takeoff
+Vanessa Paradis — Dès que j'te vois | genre:Pop | bpm:? | energy:? | phase:unclassified
+Various Musique — Better Off Alone (Originally By Alice Deejay) | genre:Pop | bpm:136 | energy:? | phase:arrival
+Vengaboys — We Like To Party! (The Vengabus) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Vianney — Keep it Simple (feat. Mika) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Vincè la petite culotte — La goffa Lolita | genre:Pop | bpm:130 | energy:9 | phase:takeoff
+Vitinho Imperador — Eu Me Apaixonei | genre:Pop | bpm:? | energy:? | phase:unclassified
+Vitor Santana — João 20 + pra Sempre - Ao Vivo | genre:Pop | bpm:? | energy:? | phase:unclassified
+Wheatus — Teenage Dirtbag | genre:Pop | bpm:95 | energy:7 | phase:closing
+Will Smith — Miami | genre:Pop | bpm:108.2 | energy:? | phase:closing
+Will Smith — Men In Black (From "Men In Black" Soundtrack) | genre:Pop | bpm:107.67 | energy:? | phase:closing
+Wolfmother — Dimension | genre:Pop | bpm:142 | energy:8 | phase:party
+Yann Muller — Paroles | genre:Pop | bpm:125 | energy:9 | phase:takeoff
+Zaho — Comme Caroline | genre:Pop | bpm:99 | energy:7 | phase:closing
+Zara Larsson — Lush Life | genre:Pop | bpm:98 | energy:7 | phase:closing
+Zara Larsson — Eurosummer (Girls Trip) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Zé Felipe — Sua Boca Mente (You're Still The One) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Zé Neto & Cristiano — Cadeira Cativa (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Zé Neto & Cristiano — Escondendo o Ouro (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Zé Neto & Cristiano — Barulho Do Foguete (Ao Vivo) | genre:Pop | bpm:? | energy:? | phase:unclassified
+Zebda — Tomber la chemise | genre:Pop | bpm:132.94 | energy:? | phase:arrival
+Zouk Machine — Maldon | genre:Pop | bpm:132.5 | energy:? | phase:arrival
+Aya Nakamura — Baddies | genre:R&B | bpm:160 | energy:7 | phase:groove
+Beyoncé — Crazy In Love | genre:R&B | bpm:99.2 | energy:? | phase:closing
+K-Maro — Femme Like U | genre:R&B | bpm:117.12 | energy:? | phase:ambiance
+Mary J. Blige — Family Affair | genre:R&B | bpm:92.9 | energy:? | phase:closing
+Michael Jackson — Human Nature | genre:R&B | bpm:93 | energy:7 | phase:closing
+Ms. Lauryn Hill — Doo Wop | genre:R&B | bpm:99.9 | energy:? | phase:closing
+Usher — Yeah! | genre:R&B | bpm:104.9 | energy:? | phase:closing
+Bad Bunny — DÁKITI | genre:Reggaeton | bpm:? | energy:? | phase:unclassified
+Daddy Yankee — Con Calma | genre:Reggaeton | bpm:187.93 | energy:? | phase:arrival
+DJ Snake — Loco Contigo | genre:Reggaeton | bpm:95.93 | energy:? | phase:closing
+DJ Snake — Magenta Riddim | genre:Reggaeton | bpm:102.08 | energy:? | phase:closing
+J Balvin — Mi Gente | genre:Reggaeton | bpm:104.93 | energy:? | phase:closing
+J Balvin — Tonto | genre:Reggaeton | bpm:? | energy:? | phase:unclassified
+Major Lazer — Que Calor | genre:Reggaeton | bpm:? | energy:? | phase:unclassified
+ROSALÍA — DESPECHÁ | genre:Reggaeton | bpm:? | energy:? | phase:unclassified
+Sean Paul — Dancing On Dangerous | genre:Reggaeton | bpm:? | energy:? | phase:unclassified
+AC/DC — Back In Black | genre:Rock | bpm:82 | energy:? | phase:closing
+Arctic Monkeys — Do I Wanna Know? | genre:Rock | bpm:171.6 | energy:? | phase:arrival
+Billie Eilish — What Was I Made For? [From The Motion Picture "Barbie"] | genre:Rock | bpm:120 | energy:6 | phase:ambiance
+blink-182 — All The Small Things | genre:Rock | bpm:147.7 | energy:? | phase:arrival
+Bon Jovi — It's My Life | genre:Rock | bpm:119.8 | energy:? | phase:ambiance
+Foo Fighters — Everlong | genre:Rock | bpm:105 | energy:? | phase:closing
+Guns N' Roses — Paradise City | genre:Rock | bpm:100 | energy:6 | phase:closing
+Imagine Dragons — Believer | genre:Rock | bpm:? | energy:? | phase:unclassified
+Imagine Dragons — Waves | genre:Rock | bpm:120 | energy:6 | phase:ambiance
+Imagine Dragons — Children of the Sky (a Starfield song) | genre:Rock | bpm:120 | energy:6 | phase:ambiance
+Indochine — Trois nuits par semaine | genre:Rock | bpm:138 | energy:9 | phase:takeoff
+Indochine — Le chant des cygnes | genre:Rock | bpm:138 | energy:9 | phase:takeoff
+Kenny Loggins — Footloose | genre:Rock | bpm:174 | energy:9 | phase:party
+Kings Of Leon — Sex On Fire | genre:Rock | bpm:105 | energy:? | phase:closing
+Kings Of Leon — Use Somebody | genre:Rock | bpm:170.1 | energy:? | phase:arrival
+Lewis Capaldi — Wish You The Best | genre:Rock | bpm:120 | energy:6 | phase:ambiance
+Louise Attaque — J't'emmène au vent | genre:Rock | bpm:138 | energy:9 | phase:takeoff
+Mother's Cake — Toxic Brother | genre:Rock | bpm:? | energy:? | phase:unclassified
+Muse — Supermassive Black Hole | genre:Rock | bpm:? | energy:? | phase:unclassified
+Nirvana — Smells Like Teen Spirit | genre:Rock | bpm:? | energy:? | phase:unclassified
+Queen — Bohemian Rhapsody | genre:Rock | bpm:104.9 | energy:? | phase:closing
+Queen — We Will Rock You | genre:Rock | bpm:125.3 | energy:? | phase:ambiance
+Queen — Don't Stop Me Now | genre:Rock | bpm:135.11 | energy:? | phase:arrival
+Queen — We Will Rock You (Remastered 2011) | genre:Rock | bpm:81.2 | energy:? | phase:closing
+Red Hot Chili Peppers — Californication | genre:Rock | bpm:? | energy:? | phase:unclassified
+Tame Impala — The Less I Know the Better | genre:Rock | bpm:116.1 | energy:? | phase:ambiance
+Telephone — Ça c'est vraiment toi | genre:Rock | bpm:140 | energy:9 | phase:takeoff
+Telephone — New York avec toi | genre:Rock | bpm:162 | energy:9 | phase:party
+The Baseballs — Let's Get Loud | genre:Rock | bpm:173 | energy:8 | phase:party
+The Killers — Mr. Brightside | genre:Rock | bpm:91.9 | energy:? | phase:closing
+The White Stripes — Seven Nation Army | genre:Rock | bpm:125.3 | energy:? | phase:ambiance
+The White Stripes — Seven Nation Army | genre:Rock | bpm:123 | energy:8 | phase:groove
+Wavves — No Shade | genre:Rock | bpm:93.54 | energy:? | phase:closing
+YUNGBLUD — Hated | genre:Rock | bpm:120 | energy:6 | phase:ambiance
+Angèle — Oui ou non | genre:Variété Fr | bpm:199.73 | energy:? | phase:arrival
+Angèle — CP_009_ Évidemment | genre:Variété Fr | bpm:? | energy:? | phase:unclassified
+Aya Nakamura — La pétasse | genre:Variété Fr | bpm:? | energy:? | phase:unclassified
+Céline Dion — J'irai où tu iras (with Jean-Jacques Goldman) | genre:Variété Fr | bpm:175 | energy:9 | phase:party
+Dalida — Monday, Tuesday... Laissez-moi danser | genre:Variété Fr | bpm:134 | energy:9 | phase:takeoff
+Daniel Balavoine — Je ne suis pas un héros | genre:Variété Fr | bpm:129 | energy:9 | phase:takeoff
+Joe Dassin — Dans les yeux d'Émilie | genre:Variété Fr | bpm:148 | energy:9 | phase:party
+Joseph Kamel — Celui qui part | genre:Variété Fr | bpm:120 | energy:6 | phase:ambiance
+Maître Gims — Sapés Comme Jamais | genre:Variété Fr | bpm:112.3 | energy:? | phase:closing
+Patrick Bruel — Place des grands hommes | genre:Variété Fr | bpm:131 | energy:9 | phase:takeoff
+Pierre de Maere — Mercredi | genre:Variété Fr | bpm:120 | energy:6 | phase:ambiance
+Serge Gainsbourg — Sea, Sex And Sun | genre:Variété Fr | bpm:119 | energy:7 | phase:ambiance
+Stromae — Tous Les Mêmes | genre:Variété Fr | bpm:146.1 | energy:? | phase:arrival
+Stromae — Papaoutai | genre:Variété Fr | bpm:? | energy:? | phase:unclassified
+Stromae — Formidable | genre:Variété Fr | bpm:101.1 | energy:? | phase:closing
+Stromae — Santé | genre:Variété Fr | bpm:? | energy:? | phase:unclassified
+Vianney — Comment on fait | genre:Variété Fr | bpm:120 | energy:6 | phase:ambiance
+Vianney — Le feu | genre:Variété Fr | bpm:120 | energy:6 | phase:ambiance
+Vianney — Il faudrait | genre:Variété Fr | bpm:120 | energy:6 | phase:ambiance
+
+Réponds uniquement avec les JSONs, un par ligne, sans markdown, sans explication.
