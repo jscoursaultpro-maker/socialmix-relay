@@ -2132,7 +2132,72 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // ── NEW party (no existing or secret mismatch) ──
+    // ── FIX FAILLE 6: Try to recover from MongoDB before creating a blank party ──
+    // This handles the case where: server RAM was cleared (restart/crash) AND
+    // the iOS host reconnects later with the same code + hostSecret.
+    // Without this, a blank party would be flushed to MongoDB, erasing all history.
+    if (data.hostSecret) {
+      try {
+        const dbParty = await Party.findOne({ code, endedAt: null }).lean();
+        if (dbParty && dbParty.hostSecret === data.hostSecret) {
+          // ✅ Found matching party in DB — restore it to RAM and resume
+          // createPartyState is already imported at top of file
+          const restoredParty = createPartyState(code);
+          restoredParty.mode = dbParty.mode || 'appMix';
+          restoredParty.currentTrack = dbParty.currentTrack || null;
+          restoredParty.nextTrack = dbParty.nextTrack || null;
+          restoredParty.trackHistory = dbParty.trackHistory || [];
+          restoredParty.genreVotes = dbParty.genreVotes || {};
+          restoredParty.vibeScore = dbParty.vibeScore || 0;
+          restoredParty.participants = dbParty.participants || [];
+          restoredParty.guestVotes = dbParty.guestVotes || {};
+          restoredParty.suggestions = dbParty.suggestions || [];
+          restoredParty.hostProfile = data.profile || dbParty.hostProfile || null;
+          restoredParty.photos = dbParty.photos || [];
+          restoredParty.costumeEntries = dbParty.costumeEntries || [];
+          restoredParty.costumeOpen = dbParty.costumeOpen !== false;
+          restoredParty.costumeVoters = dbParty.costumeVoters || {};
+          restoredParty.participantScores = dbParty.participantScores || {};
+          restoredParty.guestGenreVotes = dbParty.guestGenreVotes || {};
+          restoredParty.hostSecret = dbParty.hostSecret;
+          restoredParty.partyType = dbParty.partyType || 'hosted';
+          restoredParty.sessionTokens = dbParty.sessionTokens || {};
+          restoredParty.createdAt = dbParty.createdAt ? new Date(dbParty.createdAt).toISOString() : restoredParty.createdAt;
+          restoredParty.isDirty = false;
+          restoredParty.hostSocketId = socket.id;
+          restoredParty.isPreParty = false;
+          restoredParty.lifecycle.status = 'live';
+          restoredParty.lifecycle.lastActivityAt = new Date().toISOString();
+
+          // Update or insert host participant entry
+          const hostIdx = restoredParty.participants.findIndex(p => p.isHost);
+          if (hostIdx >= 0) {
+            restoredParty.participants[hostIdx].id = socket.id;
+            restoredParty.participants[hostIdx].connected = true;
+          } else {
+            restoredParty.participants.unshift({
+              id: socket.id, name: hostName, emoji: hostEmoji,
+              photo: data.profile?.photo || null,
+              phone: data.profile?.phone || '', email: data.profile?.email || '', instagram: data.profile?.instagram || '',
+              partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true
+            });
+          }
+
+          parties.set(code, restoredParty);
+          const guestCount = restoredParty.participants.filter(p => !p.isHost).length;
+          console.log(`🔄 Party RECOVERED from MongoDB: ${code} (host: "${hostName}", tracks: ${restoredParty.trackHistory.length}, guests: ${guestCount})`);
+
+          socket.emit('party:state', buildLightState(restoredParty));
+          io.to(`guest:${code}`).emit('party:started', { code, profile: restoredParty.hostProfile });
+          io.to(`guest:${code}`).emit('participants:update', restoredParty.participants);
+          return;
+        }
+      } catch (dbErr) {
+        console.error(`[${code}] ⚠️ MongoDB recovery attempt failed — creating new party:`, dbErr.message);
+      }
+    }
+
+    // ── NEW party (no existing in RAM, no matching DB record, or recovery failed) ──
     const party = createPartyState(code);
     party.hostSocketId = socket.id;
     party.hostProfile = data.profile || null;
