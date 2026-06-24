@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AhOuai — Ghost Tracks Manager</title>
+  <meta name="description" content="Dashboard de gestion des tracks fantômes — identifie les titres jamais joués par DJ Brain." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset + Base ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f0f13;
+      --surface1:  #15151d;
+      --surface2:  #1c1c28;
+      --surface3:  #252535;
+      --border:    rgba(255,255,255,0.07);
+      --text:      #f0f0ff;
+      --text-dim:  #8888aa;
+      --text-micro:#555577;
+
+      --blue:   #3b82f6;
+      --purple: #8b5cf6;
+      --green:  #10b981;
+      --orange: #f59e0b;
+      --red:    #ef4444;
+      --teal:   #14b8a6;
+      --ghost:  #a78bfa; /* purple-ish for ghost theme */
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ─── Layout ──────────────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    /* ─── Header ──────────────────────────────────────────────────── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+    .header-left { display: flex; flex-direction: column; gap: 6px; }
+    .header-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color .2s;
+      margin-bottom: 4px;
+    }
+    .header-back:hover { color: var(--ghost); }
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .h1-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+      background: rgba(167,139,250,.15);
+      color: var(--ghost);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    .page-sub { color: var(--text-dim); font-size: 14px; margin-top: 4px; }
+    .updated-at { font-size: 11px; color: var(--text-micro); margin-top: 2px; }
+
+    .header-right { display: flex; align-items: center; gap: 10px; }
+
+    /* ─── Buttons ─────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn-ghost-primary {
+      background: rgba(167,139,250,.15);
+      color: var(--ghost);
+      border: 1px solid rgba(167,139,250,.3);
+    }
+    .btn-ghost-primary:hover {
+      background: rgba(167,139,250,.25);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(167,139,250,.2);
+    }
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--surface3); color: var(--text); }
+    .btn-spin { animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Summary strip ───────────────────────────────────────────── */
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+    @media (max-width: 640px) { .summary-strip { grid-template-columns: 1fr; } }
+
+    .summary-card {
+      background: var(--surface1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+    .summary-card.safe::before   { background: var(--green); }
+    .summary-card.ghost::before  { background: var(--ghost); }
+    .summary-card.total::before  { background: var(--blue); }
+
+    .summary-label { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: .7px; }
+    .summary-value { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.04em; }
+    .summary-card.safe  .summary-value { color: var(--green); }
+    .summary-card.ghost .summary-value { color: var(--ghost); }
+    .summary-card.total .summary-value { color: var(--blue); }
+    .summary-pct { font-size: 12px; color: var(--text-dim); }
+
+    /* ─── Section title ───────────────────────────────────────────── */
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ─── Category grid ───────────────────────────────────────────── */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .cat-card {
+      background: var(--surface1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: all .25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .cat-card:hover {
+      border-color: var(--card-accent, var(--ghost));
+      background: var(--surface2);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    }
+    .cat-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-glow, transparent), transparent 70%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .cat-card:hover::after { opacity: 1; }
+
+    .cat-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .cat-icon {
+      font-size: 1.6rem;
+      width: 44px; height: 44px;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      background: var(--card-icon-bg, rgba(167,139,250,.12));
+      flex-shrink: 0;
+    }
+    .cat-count {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--card-accent, var(--ghost));
+      line-height: 1;
+    }
+    .cat-name { font-size: 14px; font-weight: 700; }
+    .cat-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+    .cat-severity {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+    }
+    .sev-high   { background: rgba(239,68,68,.15); color: var(--red); }
+    .sev-medium { background: rgba(245,158,11,.15); color: var(--orange); }
+    .sev-low    { background: rgba(16,185,129,.15); color: var(--green); }
+    .sev-info   { background: rgba(59,130,246,.15); color: var(--blue); }
+
+    .cat-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--card-accent, var(--ghost));
+      text-decoration: none;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--card-accent, var(--ghost)) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--card-accent, var(--ghost)) 25%, transparent);
+      transition: all .2s;
+      cursor: pointer;
+      align-self: flex-start;
+      margin-top: auto;
+    }
+    .cat-action:hover {
+      background: color-mix(in srgb, var(--card-accent, var(--ghost)) 22%, transparent);
+      transform: translateX(3px);
+    }
+    .cat-action .arrow { transition: transform .2s; }
+    .cat-action:hover .arrow { transform: translateX(3px); }
+
+    /* ─── Progress bar ────────────────────────────────────────────── */
+    .progress-section {
+      background: var(--surface1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      margin-bottom: 32px;
+    }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .progress-label-text { font-size: 13px; font-weight: 600; }
+    .progress-pct { font-size: 13px; color: var(--text-dim); }
+    .progress-track {
+      height: 8px;
+      background: var(--surface3);
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 20px;
+      background: linear-gradient(90deg, var(--green), var(--teal));
+      transition: width .8s cubic-bezier(.4,0,.2,1);
+    }
+    .progress-hint { font-size: 11px; color: var(--text-micro); }
+
+    /* ─── Skeleton loader ─────────────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer { to { background-position: -200% center; } }
+
+    /* ─── Toast ───────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: all .3s;
+      pointer-events: none;
+      z-index: 9999;
+      max-width: 320px;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ─── Login gate ──────────────────────────────────────────────── */
+    #login-gate {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-card {
+      background: var(--surface1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .login-logo { text-align: center; }
+    .login-logo .icon { font-size: 2.5rem; }
+    .login-logo h2 { font-size: 1.4rem; font-weight: 800; margin-top: 8px; }
+    .login-logo p { color: var(--text-dim); font-size: 13px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; }
+    .field input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .field input:focus { border-color: var(--ghost); }
+    .btn-login {
+      width: 100%;
+      justify-content: center;
+      padding: 11px;
+      background: var(--ghost);
+      color: #0f0f13;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
+    }
+    .btn-login:hover { opacity: .9; }
+    .login-error { color: var(--red); font-size: 12px; text-align: center; min-height: 16px; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- ─── LOGIN GATE ─────────────────────────────────────────────── -->
+<div id="login-gate" class="hidden">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon">👻</div>
+      <h2>Ghost Tracks Manager</h2>
+      <p>AhOuai Back Office</p>
+    </div>
+    <form id="login-form">
+      <div class="field">
+        <label>Mot de passe admin</label>
+        <input type="password" id="login-password" placeholder="••••••••••••" autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn btn-login" style="margin-top: 8px;">Connexion →</button>
+    </form>
+    <p id="login-error" class="login-error"></p>
+  </div>
+</div>
+
+<!-- ─── MAIN APP ───────────────────────────────────────────────── -->
+<div id="app" class="hidden">
+  <div class="page-wrap">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <a href="/admin/hub" class="header-back">← Hub Admin</a>
+        <h1>
+          👻 Ghost Tracks Manager
+          <span class="h1-badge">Audit Live</span>
+        </h1>
+        <p class="page-sub">Identifie les tracks jamais jouées par DJ Brain — 5 catégories d'anomalies</p>
+        <p class="updated-at" id="updated-at">Chargement…</p>
+      </div>
+      <div class="header-right">
+        <a href="/admin/hub" class="btn btn-secondary">← Hub</a>
+        <button id="btn-refresh" class="btn btn-ghost-primary" onclick="loadDashboard()">
+          <span id="refresh-icon">↻</span> Rafraîchir
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary strip -->
+    <div class="summary-strip">
+      <div class="summary-card total">
+        <div class="summary-label">Total BDD</div>
+        <div class="summary-value" id="sum-total">—</div>
+        <div class="summary-pct">tracks scannées</div>
+      </div>
+      <div class="summary-card ghost">
+        <div class="summary-label">Ghost potentielles</div>
+        <div class="summary-value" id="sum-ghost">—</div>
+        <div class="summary-pct" id="sum-ghost-pct">ROI nul estimé</div>
+      </div>
+      <div class="summary-card safe">
+        <div class="summary-label">Tracks safe</div>
+        <div class="summary-value" id="sum-safe">—</div>
+        <div class="summary-pct" id="sum-safe-pct">aucune anomalie</div>
+      </div>
+    </div>
+
+    <!-- Progress safe ratio -->
+    <div class="progress-section">
+      <div class="progress-label">
+        <span class="progress-label-text">📊 Ratio tracks safe vs ghost</span>
+        <span class="progress-pct" id="prog-pct">—</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="prog-bar" style="width: 0%"></div>
+      </div>
+      <p class="progress-hint" id="prog-hint">Objectif : réduire les ghosts sous 20% de la BDD via phasing, BPM enrichment et déduplication</p>
+    </div>
+
+    <!-- Categories -->
+    <div class="section-title">📋 Catégories</div>
+    <div class="cat-grid" id="cat-grid">
+      <!-- Skeleton while loading -->
+      <div class="cat-card skeleton" style="height: 180px; --card-accent: #a78bfa;"></div>
+      <div class="cat-card skeleton" style="height: 180px; --card-accent: #a78bfa;"></div>
+      <div class="cat-card skeleton" style="height: 180px; --card-accent: #a78bfa;"></div>
+      <div class="cat-card skeleton" style="height: 180px; --card-accent: #a78bfa;"></div>
+      <div class="cat-card skeleton" style="height: 180px; --card-accent: #a78bfa;"></div>
+      <div class="cat-card skeleton" style="height: 180px; --card-accent: #a78bfa;"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ─── Auth ───────────────────────────────────────────────────────────
+const TOKEN_KEY = 'admin_token';
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function authHeaders() {
+  return { 'Content-Type': 'application/json', 'x-admin-token': getToken() };
+}
+
+async function checkAuth() {
+  const token = getToken();
+  if (!token) { showLogin(); return; }
+  // Quick probe
+  const r = await fetch('/api/admin/ghost/dashboard', { headers: { 'x-admin-token': token } });
+  if (r.status === 401) { showLogin(); }
+  else { showApp(); loadDashboard(); }
+}
+
+function showLogin() {
+  document.getElementById('login-gate').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+}
+function showApp() {
+  document.getElementById('login-gate').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+}
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const pw = document.getElementById('login-password').value;
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+  try {
+    const r = await fetch('/api/admin/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    });
+    if (!r.ok) { err.textContent = 'Mot de passe incorrect'; return; }
+    const { token } = await r.json();
+    localStorage.setItem(TOKEN_KEY, token);
+    showApp();
+    loadDashboard();
+  } catch(e) {
+    err.textContent = 'Erreur serveur — vérifiez la connexion';
+  }
+});
+
+// ─── Dashboard data ──────────────────────────────────────────────────
+const CAT_CONFIG = [
+  {
+    key: 'orphan',
+    icon: '🏚️',
+    name: 'Orphelines sans phase',
+    desc: 'Tracks sans phaseTag — DJ Brain ne peut pas les sélectionner sans phase assignée.',
+    filter: 'ghost_no_phase',
+    accent: '#ef4444',
+    iconBg: 'rgba(239,68,68,.12)',
+    glow: 'rgba(239,68,68,.06)',
+    severity: 'high',
+    sevLabel: '🔴 Critique'
+  },
+  {
+    key: 'missing_bpm',
+    icon: '🥁',
+    name: 'Sans BPM',
+    desc: 'BPM manquant ou à 0 — le scoring par BPM cohérence est désactivé pour ces tracks.',
+    filter: 'ghost_no_bpm',
+    accent: '#f59e0b',
+    iconBg: 'rgba(245,158,11,.12)',
+    glow: 'rgba(245,158,11,.06)',
+    severity: 'medium',
+    sevLabel: '🟠 Moyen'
+  },
+  {
+    key: 'incoherent_arrival_high',
+    icon: '🌡️',
+    name: 'Incohérentes — trop chaudes',
+    desc: 'Phase arrival/ambiance mais energy > 7 sans phaseAlternate valide. Risque de casser l\'ambiance du début de soirée.',
+    filter: 'incoherent_arrival_high',
+    accent: '#f59e0b',
+    iconBg: 'rgba(245,158,11,.12)',
+    glow: 'rgba(245,158,11,.06)',
+    severity: 'medium',
+    sevLabel: '🟠 Moyen'
+  },
+  {
+    key: 'missing_rank',
+    icon: '📊',
+    name: 'Sans rank Deezer',
+    desc: 'Popularité inconnue — deezerRank = 0. Le scoring popularité est absent, elles sont défavorisées.',
+    filter: 'ghost_no_rank',
+    accent: '#8b5cf6',
+    iconBg: 'rgba(139,92,246,.12)',
+    glow: 'rgba(139,92,246,.06)',
+    severity: 'medium',
+    sevLabel: '🟠 Moyen'
+  },
+  {
+    key: 'duplicates_groups',
+    icon: '🔁',
+    name: 'Doublons potentiels',
+    desc: 'Même titre normalisé, artistes différents (covers/remixes vs originaux). Chiffre en groupes.',
+    filter: 'duplicates',
+    accent: '#3b82f6',
+    iconBg: 'rgba(59,130,246,.12)',
+    glow: 'rgba(59,130,246,.06)',
+    severity: 'low',
+    sevLabel: '🔵 Info',
+    monitorUrl: '/admin/dedup'
+  },
+  {
+    key: 'incoherent_groove_low',
+    icon: '🪫',
+    name: 'Groove/Party trop calmes',
+    desc: 'Phase groove ou party mais energy < 4. Ces tracks risquent de casser le momentum en soirée.',
+    filter: 'incoherent_groove_low',
+    accent: '#14b8a6',
+    iconBg: 'rgba(20,184,166,.12)',
+    glow: 'rgba(20,184,166,.06)',
+    severity: 'low',
+    sevLabel: '🟡 Faible'
+  },
+  {
+    key: 'incoherent_closing_electro',
+    icon: '💀',
+    name: 'Closing + Electro Hard',
+    desc: 'Phase closing + genre electro hard + BPM > 150. Anti-doctrine closing (trop agressif).',
+    filter: 'incoherent_closing_electro',
+    accent: '#ef4444',
+    iconBg: 'rgba(239,68,68,.12)',
+    glow: 'rgba(239,68,68,.06)',
+    severity: 'low',
+    sevLabel: '🟢 OK'
+  },
+  {
+    key: 'blocked',
+    icon: '🚫',
+    name: 'Bloquées (isBlocked)',
+    desc: 'Tracks explicitement bloquées (covers, Rock Masters). Confirmation du compte attendu : 8.',
+    filter: null,
+    accent: '#6b7280',
+    iconBg: 'rgba(107,114,128,.12)',
+    glow: 'rgba(107,114,128,.04)',
+    severity: 'info',
+    sevLabel: '✅ Géré'
+  }
+];
+
+async function loadDashboard() {
+  const icon = document.getElementById('refresh-icon');
+  icon.classList.add('btn-spin');
+  document.getElementById('btn-refresh').disabled = true;
+
+  try {
+    const r = await fetch('/api/admin/ghost/dashboard', { headers: authHeaders() });
+    if (r.status === 401) { showLogin(); return; }
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    renderDashboard(data);
+    showToast('✅ Dashboard actualisé');
+  } catch(err) {
+    showToast('❌ Erreur : ' + err.message, true);
+  } finally {
+    icon.classList.remove('btn-spin');
+    document.getElementById('btn-refresh').disabled = false;
+  }
+}
+
+function renderDashboard(data) {
+  const { total, safe, ghost, categories, updatedAt } = data;
+
+  // Summary
+  document.getElementById('sum-total').textContent = fmt(total);
+  document.getElementById('sum-ghost').textContent = fmt(ghost);
+  document.getElementById('sum-safe').textContent = fmt(safe);
+  const ghostPct = total ? ((ghost / total) * 100).toFixed(1) : 0;
+  const safePct  = total ? ((safe  / total) * 100).toFixed(1) : 0;
+  document.getElementById('sum-ghost-pct').textContent = `${ghostPct}% de la BDD`;
+  document.getElementById('sum-safe-pct').textContent  = `${safePct}% de la BDD`;
+
+  // Progress
+  document.getElementById('prog-pct').textContent = `${safePct}% safe`;
+  document.getElementById('prog-bar').style.width  = `${safePct}%`;
+
+  // Updated at
+  const dt = new Date(updatedAt);
+  document.getElementById('updated-at').textContent =
+    `Dernière actualisation : ${dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
+  // Category cards
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML = '';
+
+  for (const cfg of CAT_CONFIG) {
+    const count = categories[cfg.key] ?? 0;
+    const url   = cfg.monitorUrl || (cfg.filter ? `/admin/monitor.html?filter=${cfg.filter}` : null);
+
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    card.style.cssText = `--card-accent: ${cfg.accent}; --card-icon-bg: ${cfg.iconBg}; --card-glow: ${cfg.glow};`;
+
+    const sevClass = { high: 'sev-high', medium: 'sev-medium', low: 'sev-low', info: 'sev-info' }[cfg.severity] || 'sev-info';
+
+    card.innerHTML = `
+      <div class="cat-top">
+        <div class="cat-icon">${cfg.icon}</div>
+        <div class="cat-count">${fmt(count)}</div>
+      </div>
+      <div>
+        <div class="cat-name">${cfg.name}</div>
+        <div style="margin-top: 4px;">
+          <span class="cat-severity ${sevClass}">${cfg.sevLabel}</span>
+        </div>
+      </div>
+      <div class="cat-desc">${cfg.desc}</div>
+      ${url ? `<a class="cat-action" href="${url}" target="_blank" rel="noopener">
+        Gérer dans Monitor <span class="arrow">→</span>
+      </a>` : `<div class="cat-action" style="cursor:default; opacity:.5">Géré automatiquement</div>`}
+    `;
+    grid.appendChild(card);
+  }
+}
+
+function fmt(n) {
+  return (n ?? '—').toLocaleString('fr-FR');
+}
+
+// ─── Toast ───────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = isError ? 'rgba(239,68,68,.4)' : 'rgba(16,185,129,.3)';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ─── Boot ────────────────────────────────────────────────────────────
+checkAuth();
+</script>
+</body>
+</html>
