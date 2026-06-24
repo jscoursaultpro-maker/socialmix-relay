@@ -112,14 +112,36 @@ function docToPartyState(doc) {
   return party;
 }
 
-// ─── Flush a single party to MongoDB ────────────────────────────────
+// ─── Flush a single party to MongoDB ────────────────────────────────────────────────────────────
+// ⚠️ FIX FAILLE 6 : Ne JAMAIS écraser trackHistory ou participants si la RAM est vide
+// et que MongoDB possède déjà des données (cas de reconnexion post-crash ou post-restart).
 async function flushParty(party) {
   if (!connected) return;
   try {
     const doc = partyToDoc(party);
+
+    // Fetch the existing MongoDB document to compare arrays before overwriting
+    const existingDoc = await Party.findOne({ code: party.code }).lean();
+    const safeUpdate = { ...doc };
+
+    if (existingDoc) {
+      // Protect trackHistory: never overwrite with an empty array if MongoDB has data
+      if ((!doc.trackHistory || doc.trackHistory.length === 0) && existingDoc.trackHistory?.length > 0) {
+        delete safeUpdate.trackHistory;
+        console.log(`[${party.code}] 🛡️ Flush: preserved ${existingDoc.trackHistory.length} tracks from DB (RAM was empty)`);
+      }
+      // Protect participants: never overwrite with an empty/host-only array if MongoDB has more
+      const ramGuests = (doc.participants || []).filter(p => !p.isHost).length;
+      const dbGuests  = (existingDoc.participants || []).filter(p => !p.isHost).length;
+      if (ramGuests === 0 && dbGuests > 0) {
+        delete safeUpdate.participants;
+        console.log(`[${party.code}] 🛡️ Flush: preserved ${dbGuests} guest participants from DB (RAM had none)`);
+      }
+    }
+
     await Party.findOneAndUpdate(
       { code: party.code },
-      { $set: doc },
+      { $set: safeUpdate },
       { upsert: true, new: true }
     );
     party.isDirty = false;
