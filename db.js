@@ -16,7 +16,7 @@ let flushTimer = null;
 
 // ─── Connect ────────────────────────────────────────────────────────
 export async function connectDB() {
-  const uri = process.env.MONGO_URI;
+  const uri = process.env.MONGODB_URI;
   if (!uri) {
     console.log('⚠️  No MONGO_URI — running in-memory only (no persistence)');
     return false;
@@ -132,7 +132,7 @@ async function flushParty(party) {
       }
       // Protect participants: never overwrite with an empty/host-only array if MongoDB has more
       const ramGuests = (doc.participants || []).filter(p => !p.isHost).length;
-      const dbGuests  = (existingDoc.participants || []).filter(p => !p.isHost).length;
+      const dbGuests = (existingDoc.participants || []).filter(p => !p.isHost).length;
       if (ramGuests === 0 && dbGuests > 0) {
         delete safeUpdate.participants;
         console.log(`[${party.code}] 🛡️ Flush: preserved ${dbGuests} guest participants from DB (RAM had none)`);
@@ -191,7 +191,7 @@ export async function flushEndedParty(party) {
       totalScore: party.participantScores[g.name]?.score || 0
     }));
     if (sessions.length > 0) {
-      await GuestSession.insertMany(sessions, { ordered: false }).catch(() => {});
+      await GuestSession.insertMany(sessions, { ordered: false }).catch(() => { });
       console.log(`💾 [${party.code}] Saved ${sessions.length} guest sessions`);
     }
   } catch (err) {

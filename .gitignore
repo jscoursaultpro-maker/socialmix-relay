@@ -8,3 +8,6 @@ Archive_*/
 extract_party.js
 list_parties.js
 .env
+
+# Backups physiques (avant fixes Antigravity)
+.backups/
