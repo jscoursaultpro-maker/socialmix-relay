@@ -2455,7 +2455,7 @@ io.on('connection', (socket) => {
 
   socket.on('host:voteResults', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    party.vibeScore = data.vibeScore || 0;
+    party.vibeScore = Math.round(Number(data.vibeScore) || 0); // fix(bug3-B): defensive round — iOS energyLevel is Double
   });
 
   socket.on('host:trackHistory', (data) => {
@@ -2910,7 +2910,7 @@ io.on('connection', (socket) => {
         },
         $inc: inc,
         $set: {
-          'performance.avgVibeAtPlay': vibeScore || 0,
+          'performance.avgVibeAtPlay': Math.round(Number(vibeScore) || 0), // fix(bug3-B2): round Double vibeScore before Mongo storage
           updatedAt: new Date(),
         }
       };
