@@ -9,6 +9,10 @@
  *   node --env-file=.env scripts/audit-ghost-tracks.js              # dry-run (défaut)
  *   node --env-file=.env scripts/audit-ghost-tracks.js --export-csv # + export CSV
  *
+ * v2 (E2A) : phaseAlternate pris en compte dans cat 2A et 2C
+ *   - Cat 2A : exclut les tracks dont phaseAlternate ∈ [takeoff, groove, party]
+ *   - Cat 2C : exclut les tracks dont phaseAlternate = 'party'
+ *
  * ⚠️  Mode PUREMENT INFORMATIF — aucune écriture BDD
  *
  * Doctrine sécurité :
@@ -189,11 +193,18 @@ async function main() {
     !t.phase || t.phase.trim() === '' || t.phase === 'undefined'
   );
 
-  // ── CAT 2a — arrival/ambiance + energy > 7 ──────────────────────────────
-  const cat2a = allTracks.filter(t =>
-    ['arrival', 'ambiance'].includes((t.phase || '').toLowerCase()) &&
-    typeof t.energy === 'number' && t.energy > 7
-  );
+  // ── CAT 2a — arrival/ambiance + energy > 7 (sans phaseAlternate valide) ─
+  // v2 E2A: exclut les tracks dont phaseAlternate ∈ [takeoff, groove, party]
+  // → ces tracks sont légitimement classées high-energy sur leur phase secondaire
+  const HIGH_ENERGY_PHASES = ['takeoff', 'groove', 'party'];
+  const cat2a = allTracks.filter(t => {
+    if (!['arrival', 'ambiance'].includes((t.phase || '').toLowerCase())) return false;
+    if (typeof t.energy !== 'number' || t.energy <= 7) return false;
+    // Exclure si phaseAlternate couvre une phase high-energy (pas une vraie incohérence)
+    const alt = (t.phaseAlternate || '').toLowerCase();
+    if (alt && HIGH_ENERGY_PHASES.includes(alt)) return false;
+    return true;
+  });
 
   // ── CAT 2b — groove/party + energy < 4 ──────────────────────────────────
   const cat2b = allTracks.filter(t =>
@@ -202,10 +213,13 @@ async function main() {
   );
 
   // ── CAT 2c — closing + genre electro hard + bpm > 150 ───────────────────
+  // v2 E2A: exclut les tracks dont phaseAlternate = 'party'
   const ELECTRO_HARD_GENRES = ['electro hard', 'hardstyle', 'hardcore', 'industrial', 'techno hard', 'hard techno'];
   const cat2c = allTracks.filter(t => {
     const phase = (t.phase || '').toLowerCase();
     const genre = (t.genre || '').toLowerCase();
+    const alt   = (t.phaseAlternate || '').toLowerCase();
+    if (alt === 'party') return false; // exclure : phaseAlternate party = légitimement OK
     return phase === 'closing' &&
            ELECTRO_HARD_GENRES.some(g => genre.includes(g)) &&
            typeof t.bpm === 'number' && t.bpm > 150;
@@ -249,8 +263,8 @@ async function main() {
   );
 
   // Cat 2a
-  printCategory('CATÉGORIE 2a — INCOHÉRENTES arrival/ambiance + energy>7', cat2a,
-    t => ` (phase:${t.phase}, energy:${t.energy}, bpm:${t.bpm ?? 'null'})`
+  printCategory('CATÉGORIE 2a — INCOHÉRENTES arrival/ambiance + energy>7 (phaseAlternate exclu)', cat2a,
+    t => ` (phase:${t.phase}, alt:${t.phaseAlternate || 'null'}, energy:${t.energy}, bpm:${t.bpm ?? 'null'})`
   );
 
   // Cat 2b
@@ -259,8 +273,8 @@ async function main() {
   );
 
   // Cat 2c
-  printCategory('CATÉGORIE 2c — INCOHÉRENTES closing + electro hard + bpm>150', cat2c,
-    t => ` (phase:${t.phase}, genre:${t.genre}, bpm:${t.bpm})`
+  printCategory('CATÉGORIE 2c — INCOHÉRENTES closing + electro hard + bpm>150 (phaseAlternate party exclu)', cat2c,
+    t => ` (phase:${t.phase}, alt:${t.phaseAlternate || 'null'}, genre:${t.genre}, bpm:${t.bpm})`
   );
 
   // Cat 3
