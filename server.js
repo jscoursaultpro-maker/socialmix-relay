@@ -203,6 +203,21 @@ function getLocalIP() {
 // - Récupérer TEAMID Apple Developer auprès de Jean-Sé
 // - Configurer Associated Domains dans Xcode
 
+// ─── Bug 4 fix — admin.ahouai.com redirect ──────────────────────────
+// When a request arrives on admin.ahouai.com without an /admin prefix
+// (i.e. the bare root "/"), redirect to /admin so Express serves the
+// admin SPA instead of the guest SPA from public/.
+// This relies on Render propagating the Host header correctly, which it
+// does when admin.ahouai.com is registered as a Custom Domain on Render.
+app.use((req, res, next) => {
+  const host = (req.headers.host || '').toLowerCase();
+  if (host.startsWith('admin.') && (req.path === '/' || req.path === '')) {
+    console.log(`[Admin Redirect] ${host}${req.path} → /admin`);
+    return res.redirect(301, '/admin');
+  }
+  next();
+});
+
 // ─── Static files ───────────────────────────────────────────────────
 app.use((req, res, next) => {
   if (req.path.endsWith('.html') || req.path.endsWith('.js') || req.path.endsWith('.css') || req.path === '/') {
