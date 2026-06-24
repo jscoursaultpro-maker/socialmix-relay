@@ -2730,8 +2730,66 @@ io.on('connection', (socket) => {
     console.log(`[${party.code}] SUGGEST: "${title}" by ${data.guestName || '?'} -> host has ${hostSockets ? hostSockets.size : 0} socket(s)`);
   });
 
+  // FIX FAILLE 3 — Host self-suggestion sync to MongoDB
+  // Mirrors guest:suggest but authenticated via hostSecret.
+  // Allows host suggestions to be persisted in MongoDB and broadcast to the guest web app.
+  socket.on('host:suggest', async (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+
+    // 1. Authenticate: hostSecret must match
+    if (!data.hostSecret || data.hostSecret !== party.hostSecret) {
+      console.warn(`[${party.code}] ⛔ host:suggest REJECTED — invalid hostSecret`);
+      return;
+    }
+
+    updateActivity(party);
+
+    const title    = data.title  || data.query || '';
+    const artist   = data.artist || '';
+    const deezerID = data.deezerID || 0;
+    const hostDisplayName = data.guestName || party.hostProfile?.name || 'Hôte';
+
+    // 2. Déjà joué ce soir ? (log seulement, on n'empêche pas l'hôte de suggérer)
+    const alreadyPlayed = party.trackHistory.some(t =>
+      (t.title || '').toLowerCase() === title.toLowerCase()
+    );
+    if (alreadyPlayed) {
+      console.log(`[${party.code}] host:suggest: "${title}" déjà joué — suggestion enregistrée quand même`);
+    }
+
+    // 3. Enregistrer la suggestion avec marqueur isHost
+    const suggestion = {
+      ...data,
+      guestId:   'host',
+      guestName: hostDisplayName,
+      isHost:    true,
+      status:    'pending',
+      sentAt:    new Date().toISOString(),
+      queuedAt: null, playingAt: null, playedAt: null, dismissedAt: null,
+      socketId:  socket.id
+    };
+    party.suggestions = cappedPush(party.suggestions, suggestion, 200);
+    party.isDirty = true;
+
+    // 4. Broadcast to guest web app (isHost=true → affichage icône 🎧 côté guest)
+    const guestRoom = `guest:${party.code}`;
+    io.to(guestRoom).emit('suggestion:added', {
+      title,
+      artist,
+      deezerID,
+      suggestedBy:     'host',
+      suggestedByName: hostDisplayName,
+      isHost:          true,
+      status:          'pending',
+      sentAt:          suggestion.sentAt
+    });
+
+    console.log(`[${party.code}] HOST SUGGEST: "${title}" — ${artist} → broadcast to ${guestRoom}`);
+  });
+
   // Track played event — anti-replay + performance tracking + suggestion boost
   socket.on('host:trackPlayed', async (data) => {
+
     const party = getMutableParty(socket); if (!party) return;
     
     const { title, artist, genre, isrc, deezerID, vibeScore, fromSuggestion, isGuessed } = data;
