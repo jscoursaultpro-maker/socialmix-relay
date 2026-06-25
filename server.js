@@ -1568,90 +1568,37 @@ app.get('/api/party/:code/meta', async (req, res) => {
 
 app.get('/api/party/:code/explore', async (req, res) => {
   const code = req.params.code;
-  const limit = parseInt(req.query.limit) || 12;
-  
+
   try {
     const partyState = parties.get(code);
     if (partyState && partyState.lifecycle && partyState.lifecycle.status === 'archived') {
       return res.status(403).json({ error: 'Party archived' });
     }
-    
-    // Get played track IDs to exclude
-    const playedIds = new Set();
+
+    // ★ Phase 4B — Phase-aware explore (7 current + 3 neighbor)
+    const PHASE_ORDER = ['arrival', 'ambiance', 'takeoff', 'groove', 'party', 'closing'];
+    const currentPhase = (partyState?.currentPhase || 'ambiance').toLowerCase();
+    const currentEnergy = partyState?.vibeScore || 5;
+    const idx = PHASE_ORDER.indexOf(currentPhase);
+
+    // Neighbor phase: next phase forward, except closing → party (memory lane)
+    let neighborPhase = null;
+    if (currentPhase === 'closing') {
+      neighborPhase = 'party';
+    } else if (idx >= 0 && idx < PHASE_ORDER.length - 1) {
+      neighborPhase = PHASE_ORDER[idx + 1];
+    }
+
+    // Build exclusion sets (played + already suggested)
+    const playedTitles = new Set();
+    const suggestedTitles = new Set();
     if (partyState) {
-      if (partyState.currentTrack?.deezerID) playedIds.add(partyState.currentTrack.deezerID);
-      (partyState.trackHistory || []).forEach(t => { if (t.deezerID) playedIds.add(t.deezerID); });
+      if (partyState.currentTrack?.title) playedTitles.add((partyState.currentTrack.title).toLowerCase());
+      (partyState.trackHistory || []).forEach(t => { if (t.title) playedTitles.add(t.title.toLowerCase()); });
+      (partyState.suggestions || []).forEach(s => { if (s.title) suggestedTitles.add(s.title.toLowerCase()); });
     }
-    
-    // Try MongoDB first (richer data with covers)
-    let allTracks = [];
-    if (typeof Track !== 'undefined' && Track.find) {
-      try {
-        const mongoTracks = await Track.find({
-          'providers.deezer.trackId': { $gt: 0 },
-          qualityLevel: { $in: ['complete', 'platine'] },
-          isBlocked: { $ne: true }
-        }).select('title artist providers coverArtURL duration bpm genre uiCategoryPrimary energy').lean();
-        
-        allTracks = mongoTracks.map(t => {
-          const albumId = t.providers?.deezer?.albumId;
-          const coverUrl = t.coverArtURL || (albumId ? `https://api.deezer.com/album/${albumId}/image` : null);
-          return {
-            id: t.providers?.deezer?.trackId,
-            title: t.title,
-            artist: { name: typeof t.artist === 'object' ? t.artist.name : t.artist },
-            album: { cover_medium: coverUrl },
-            duration: t.duration || 0,
-            bpm: Math.round(t.bpm || 0),
-            genre: t.genre,
-            uiCategoryPrimary: t.uiCategoryPrimary,
-            energy: t.energy || 5
-          };
-        });
-      } catch (e) {
-        console.log('[Explore] MongoDB fallback to JSON:', e.message);
-      }
-    }
-    
-    // Fallback to curated_base JSON
-    if (allTracks.length === 0 && fs.existsSync(CURATED_DB_PATH)) {
-      const db = JSON.parse(fs.readFileSync(CURATED_DB_PATH, 'utf-8'));
-      allTracks = (db.tracks || []).map(t => {
-        const albumId = t.providers?.deezer?.albumId;
-        const coverUrl = t.coverArtURL || (albumId ? `https://api.deezer.com/album/${albumId}/image` : null);
-        return {
-          id: t.providers?.deezer?.trackId,
-          title: t.title,
-          artist: { name: t.artist },
-          album: { cover_medium: coverUrl },
-          duration: t.duration || 0,
-          bpm: Math.round(t.bpm || 0),
-          genre: t.genre,
-          uiCategoryPrimary: t.uiCategoryPrimary,
-          energy: t.energy || 5
-        };
-      });
-    }
-    
-    // Exclude played tracks and tracks without deezerID
-    allTracks = allTracks.filter(t => t.id && !playedIds.has(t.id));
-    
-    if (allTracks.length === 0) {
-      return res.json({ data: [] });
-    }
-    
-    // Pick diverse selection: ~40% from current genre context, ~60% random from all
-    let currentGenre = null;
-    if (partyState?.currentTrack?.genre) {
-      currentGenre = partyState.currentTrack.genre;
-    } else if (partyState?.trackHistory?.length > 0) {
-      currentGenre = partyState.trackHistory[partyState.trackHistory.length - 1].genre;
-    }
-    
-    const contextTracks = currentGenre ? allTracks.filter(t => t.genre === currentGenre) : [];
-    const otherTracks = currentGenre ? allTracks.filter(t => t.genre !== currentGenre) : allTracks;
-    
-    // Fisher-Yates shuffle both pools
+
+    // Fisher-Yates shuffle
     const shuffle = arr => {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -1659,30 +1606,91 @@ app.get('/api/party/:code/explore', async (req, res) => {
       }
       return arr;
     };
-    
-    shuffle(contextTracks);
-    shuffle(otherTracks);
-    
-    // Mix: take some from context, rest from others
-    const contextCount = Math.min(Math.ceil(limit * 0.4), contextTracks.length);
-    const otherCount = Math.min(limit - contextCount, otherTracks.length);
-    
-    let selected = [
-      ...contextTracks.slice(0, contextCount),
-      ...otherTracks.slice(0, otherCount)
-    ];
-    
-    // If we still need more, add from whichever pool has leftovers
-    if (selected.length < limit) {
-      const remaining = [...contextTracks.slice(contextCount), ...otherTracks.slice(otherCount)];
-      shuffle(remaining);
-      selected = [...selected, ...remaining.slice(0, limit - selected.length)];
+
+    // Track formatter (compatible with existing web guest renderSuggestResults)
+    const formatTrack = t => ({
+      id: t.providers?.deezer?.trackId || t.id,
+      title: t.title,
+      artist: { name: typeof t.artist === 'object' ? t.artist.name : t.artist },
+      album: { cover_medium: t.coverArtURL || (t.providers?.deezer?.albumId ? `https://api.deezer.com/album/${t.providers.deezer.albumId}/image` : null) },
+      duration: t.duration || 0,
+      bpm: Math.round(t.bpm || 0),
+      genre: t.genre,
+      uiCategoryPrimary: t.uiCategoryPrimary,
+      energy: t.energy || 5,
+      _phaseSource: t.phase || t.phaseAlternate || currentPhase
+    });
+
+    // Filter helper: exclude played/suggested, require deezerID
+    const isEligible = t => {
+      const deezerID = t.providers?.deezer?.trackId;
+      if (!deezerID) return false;
+      const titleLow = (t.title || '').toLowerCase();
+      return !playedTitles.has(titleLow) && !suggestedTitles.has(titleLow);
+    };
+
+    let currentPool = [], neighborPool = [];
+
+    if (typeof Track !== 'undefined' && Track.find) {
+      try {
+        // 7 tracks from current phase (energy ±2)
+        const rawCurrent = await Track.find({
+          $or: [{ phase: currentPhase }, { phaseAlternate: currentPhase }],
+          isBlocked: { $ne: true },
+          adminQualified: true,
+          'providers.deezer.trackId': { $gt: 0 },
+          energy: { $gte: Math.max(1, currentEnergy - 2), $lte: Math.min(10, currentEnergy + 2) }
+        }).limit(40).lean();
+
+        currentPool = shuffle(rawCurrent.filter(isEligible)).slice(0, 7).map(formatTrack);
+
+        // 3 tracks from neighbor phase
+        if (neighborPhase) {
+          const rawNeighbor = await Track.find({
+            $or: [{ phase: neighborPhase }, { phaseAlternate: neighborPhase }],
+            isBlocked: { $ne: true },
+            adminQualified: true,
+            'providers.deezer.trackId': { $gt: 0 }
+          }).limit(25).lean();
+
+          neighborPool = shuffle(rawNeighbor.filter(isEligible)).slice(0, 3).map(formatTrack);
+        }
+      } catch (e) {
+        console.log('[Explore] MongoDB error, falling back to generic logic:', e.message);
+      }
     }
-    
-    // Final shuffle so context tracks aren't always first
-    shuffle(selected);
-    
-    res.json({ data: selected });
+
+    // Fallback: if MongoDB returned nothing, use generic curated JSON (no phase filter)
+    if (currentPool.length === 0 && fs.existsSync(CURATED_DB_PATH)) {
+      const db = JSON.parse(fs.readFileSync(CURATED_DB_PATH, 'utf-8'));
+      const allTracks = (db.tracks || []).filter(t => t.providers?.deezer?.trackId && !playedTitles.has((t.title||'').toLowerCase()));
+      const fmt = t => ({
+        id: t.providers.deezer.trackId,
+        title: t.title,
+        artist: { name: t.artist },
+        album: { cover_medium: t.coverArtURL || null },
+        duration: t.duration || 0,
+        bpm: Math.round(t.bpm || 0),
+        genre: t.genre,
+        uiCategoryPrimary: t.uiCategoryPrimary,
+        energy: t.energy || 5,
+        _phaseSource: currentPhase
+      });
+      currentPool = shuffle([...allTracks]).slice(0, 7).map(fmt);
+      neighborPool = shuffle([...allTracks]).slice(7, 10).map(fmt);
+    }
+
+    const data = [...currentPool, ...neighborPool];
+
+    res.json({
+      data,
+      meta: {
+        currentPhase,
+        neighborPhase,
+        currentEnergy,
+        counts: { current: currentPool.length, neighbor: neighborPool.length }
+      }
+    });
   } catch (err) {
     console.error('[Explore] Error:', err.message);
     res.status(500).json({ error: 'Explore failed' });
@@ -2130,7 +2138,11 @@ function buildLightState(party) {
     scheduledFor: party.scheduledFor,    // ★ MVP Pre-Party
     welcomeText: party.welcomeText,      // ★ MVP Pre-Party
     coverPhoto: party.coverPhoto,        // ★ MVP Pre-Party
-    isPreParty: party.isPreParty         // ★ MVP Pre-Party
+    isPreParty: party.isPreParty,        // ★ MVP Pre-Party
+    // ★ Phase 4A — Phase Indicator: expose current phase + energy to web guest
+    currentPhase: party.currentPhase || null,
+    vibeScore: party.vibeScore || 5,
+    nextTrack: party.nextTrack || null   // ★ Phase 4: next track preview
   };
 
   const sizeKB = Math.round(JSON.stringify(light).length / 1024);

@@ -878,6 +878,8 @@ function connectToRelay() {
         updateVoteButtons();
       }
     }
+    // ★ Phase 4A — update phase indicator widget
+    if (ps.currentPhase) updatePhaseIndicator(ps.currentPhase);
     saveSession();
   });
 
@@ -1516,6 +1518,16 @@ function setupSuggest() {
       searchDeezerSuggestions();
     }
   });
+
+  // ★ Phase 4C — Auto-trigger explore on focus (click in input = instant suggestions)
+  input.addEventListener('focus', () => {
+    if (!state.partyCode) return;
+    // Only load if results are empty (don't override an active search or typed results)
+    const results = $('suggest-results');
+    if (results && results.children.length === 0) {
+      loadTrendingSuggestions();
+    }
+  });
 }
 
 function searchDeezerSuggestions() {
@@ -1536,6 +1548,15 @@ function searchDeezerSuggestions() {
       console.error('[Suggest] Search error:', err);
       container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:#ff6b6b;">❌ Erreur de recherche</div>';
     });
+}
+
+// ★ Phase 4A — Phase Indicator
+function updatePhaseIndicator(phase) {
+  if (!phase) return;
+  const p = phase.toLowerCase();
+  document.querySelectorAll('.phase-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.phase === p);
+  });
 }
 
 function loadTrendingSuggestions() {
