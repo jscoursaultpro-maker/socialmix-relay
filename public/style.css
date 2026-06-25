@@ -350,18 +350,17 @@ html, body {
 /* ★ Phase 4A — Phase Indicator */
 .phase-indicator {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  padding: 14px 10px 12px;
+  justify-content: space-around;
+  align-items: center;       /* ← fix: flex-end coupait les emojis */
+  min-height: 72px;          /* ← fix: hauteur explicite pour emoji+label */
+  padding: 10px 8px;
   margin: 2px 0;
   background: rgba(10, 18, 22, 0.55);
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.05);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  overflow: visible;         /* ← fix: overflow:auto écrasait la hauteur */
 }
 .phase-indicator::-webkit-scrollbar { display: none; }
 
