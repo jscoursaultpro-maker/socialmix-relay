@@ -2130,7 +2130,11 @@ function buildLightState(party) {
     scheduledFor: party.scheduledFor,    // ★ MVP Pre-Party
     welcomeText: party.welcomeText,      // ★ MVP Pre-Party
     coverPhoto: party.coverPhoto,        // ★ MVP Pre-Party
-    isPreParty: party.isPreParty         // ★ MVP Pre-Party
+    isPreParty: party.isPreParty,        // ★ MVP Pre-Party
+    // ★ Phase 4A — Phase Indicator: expose current phase + energy to web guest
+    currentPhase: party.currentPhase || null,
+    vibeScore: party.vibeScore || 5,
+    nextTrack: party.nextTrack || null   // ★ Phase 4: next track preview
   };
 
   const sizeKB = Math.round(JSON.stringify(light).length / 1024);
