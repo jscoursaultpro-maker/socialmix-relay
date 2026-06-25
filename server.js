@@ -2284,7 +2284,8 @@ io.on('connection', (socket) => {
         ...track,
         playedAt: new Date().toISOString(),
         requestedBy,
-        source: historySource
+        source: historySource,
+        phase: party.currentPhase || 'unknown'  // ★ Bug 6 fix — persist phase for audit
       }, 500);
       addPoints(party, 'host', 'DJ', 15, 'nouveau titre : ' + track.title);
 
@@ -2311,7 +2312,8 @@ io.on('connection', (socket) => {
       artworkURL: payload.artworkURL,
       startedAt: payload.detectedAt || new Date().toISOString(),
       source: 'live_dj_shazam',
-      votes: { bof: 0, cool: 0, feu: 0 }
+      votes: { bof: 0, cool: 0, feu: 0 },
+      phase: party.currentPhase || 'unknown'  // ★ Bug 6 fix — persist phase for audit
     };
     
     // Normalize title to prevent adding identical tracks repeatedly
