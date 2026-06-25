@@ -1,4 +1,47 @@
-let prevQueueSize = 0;
+// ─── Deep-link URL param support ──────────────────────────
+// Reads ?filter=X from URL and pre-checks the matching radio
+// Called at boot (if already authed) and post-login
+function applyFilterFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const f = params.get('filter');
+  if (!f) return;
+
+  // Try to find a matching radio by value
+  const radio = document.querySelector(`input[name="f-type"][value="${CSS.escape(f)}"]`);
+  if (radio) {
+    // Uncheck current default
+    document.querySelectorAll('input[name="f-type"]').forEach(r => r.checked = false);
+    radio.checked = true;
+    // Scroll sidebar to make it visible
+    radio.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  // Show ghost filter banner if it's a ghost filter
+  const GHOST_FILTERS = ['ghost_no_phase', 'ghost_no_bpm', 'ghost_no_rank',
+    'incoherent_arrival_high', 'incoherent_groove_low', 'incoherent_closing_electro'];
+  if (GHOST_FILTERS.includes(f)) {
+    const GHOST_LABELS = {
+      ghost_no_phase:            '🏚️ Orphelines — sans phase assignée',
+      ghost_no_bpm:              '🥁 Sans BPM',
+      ghost_no_rank:             '📊 Sans rank Deezer',
+      incoherent_arrival_high:   '🌡️ Arrival/ambiance + energy > 7',
+      incoherent_groove_low:     '🪫 Groove/party + energy < 4',
+      incoherent_closing_electro:'💀 Closing + electro hard + BPM > 150'
+    };
+    let banner = document.getElementById('ghost-filter-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'ghost-filter-banner';
+      banner.style.cssText = 'background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:8px 14px;margin:8px 16px;font-size:12px;color:#a78bfa;display:flex;align-items:center;gap:8px;';
+      const topBar = document.getElementById('stats-top-bar');
+      if (topBar && topBar.nextSibling) {
+        topBar.parentNode.insertBefore(banner, topBar.nextSibling);
+      }
+    }
+    banner.innerHTML = `<span>👻 Filtre Ghost actif :</span><strong>${GHOST_LABELS[f] || f}</strong><a href="/admin/ghost.html" style="margin-left:auto;color:#a78bfa;font-size:11px;">← Retour Ghost Manager</a>`;
+  }
+}
+
 let adminToken = null;
 let tracks = [];
 let currentIdx = -1;
@@ -25,6 +68,7 @@ window.addEventListener('load', async () => {
       document.getElementById('app').classList.add('visible');
       updateStats();
       setInterval(updateStats, 10000);
+      applyFilterFromURL(); // ★ deep-link: pre-check radio from ?filter=
       loadTracks();
       return;
     }
@@ -53,6 +97,7 @@ async function login() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   updateStats();
+  applyFilterFromURL(); // ★ deep-link: pre-check radio from ?filter= post-login
   loadTracks();
 }
 

@@ -203,6 +203,21 @@ function getLocalIP() {
 // - Récupérer TEAMID Apple Developer auprès de Jean-Sé
 // - Configurer Associated Domains dans Xcode
 
+// ─── Bug 4 fix — admin.ahouai.com redirect ──────────────────────────
+// When a request arrives on admin.ahouai.com without an /admin prefix
+// (i.e. the bare root "/"), redirect to /admin so Express serves the
+// admin SPA instead of the guest SPA from public/.
+// This relies on Render propagating the Host header correctly, which it
+// does when admin.ahouai.com is registered as a Custom Domain on Render.
+app.use((req, res, next) => {
+  const host = (req.headers.host || '').toLowerCase();
+  if (host.startsWith('admin.') && (req.path === '/' || req.path === '')) {
+    console.log(`[Admin Redirect] ${host}${req.path} → /admin`);
+    return res.redirect(301, '/admin');
+  }
+  next();
+});
+
 // ─── Static files ───────────────────────────────────────────────────
 app.use((req, res, next) => {
   if (req.path.endsWith('.html') || req.path.endsWith('.js') || req.path.endsWith('.css') || req.path === '/') {
@@ -859,6 +874,45 @@ app.get('/api/monitor/tracks', adminAuth, async (req, res) => {
     if (filter === 'no_energy') query.$or = [{ energy: null }, { energy: 0 }];
     if (filter === 'incomplete') query.$or = [{ bpm: null }, { bpm: 0 }, { energy: null }, { energy: 0 }];
 
+    // ★ Ghost Tracks filters (E2B)
+    const HIGH_ENERGY_PHASES = ['takeoff', 'groove', 'party'];
+    if (filter === 'incoherent_arrival_high') {
+      // arrival/ambiance + energy>7 AND phaseAlternate NOT a high-energy phase
+      query.phase = { $in: ['arrival', 'ambiance'] };
+      query.energy = { $gt: 7 };
+      query.$and = [{
+        $or: [
+          { phaseAlternate: null },
+          { phaseAlternate: '' },
+          { phaseAlternate: { $exists: false } },
+          { phaseAlternate: { $nin: HIGH_ENERGY_PHASES } }
+        ]
+      }];
+    }
+    if (filter === 'incoherent_groove_low') {
+      // groove/party + energy < 4
+      query.phase = { $in: ['groove', 'party'] };
+      query.energy = { $lt: 4, $gt: 0 };
+    }
+    if (filter === 'incoherent_closing_electro') {
+      // closing + electro hard genres + bpm>150 AND phaseAlternate != party
+      const ELECTRO_HARD = ['electro hard', 'hardstyle', 'hardcore', 'industrial', 'techno hard', 'hard techno'];
+      query.phase = 'closing';
+      query.genre = { $in: ELECTRO_HARD.map(g => new RegExp(g, 'i')) };
+      query.bpm = { $gt: 150 };
+      query.phaseAlternate = { $ne: 'party' };
+    }
+    if (filter === 'ghost_no_phase') {
+      // Orphelines — aucune phase assignée
+      query.$or = [{ phase: null }, { phase: '' }, { phase: { $exists: false } }];
+    }
+    if (filter === 'ghost_no_bpm') {
+      query.$or = [{ bpm: null }, { bpm: 0 }];
+    }
+    if (filter === 'ghost_no_rank') {
+      query.$or = [{ deezerRank: null }, { deezerRank: 0 }];
+    }
+
     if (phase && phase !== 'all') {
       if (phase === 'unclassified') query.phase = null;
       else query.phase = phase;
@@ -902,6 +956,93 @@ app.get('/api/monitor/tracks', adminAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET /api/admin/ghost/dashboard — live counts par catégorie ghost (E2B)
+app.get('/api/admin/ghost/dashboard', adminAuth, async (req, res) => {
+  try {
+    const HIGH_ENERGY_PHASES = ['takeoff', 'groove', 'party'];
+    const ELECTRO_HARD = ['electro hard', 'hardstyle', 'hardcore', 'industrial', 'techno hard', 'hard techno'];
+
+    const [total, blocked, missing_bpm, missing_rank, missing_phase, incoherent_groove_low, incoherent_closing_electro, byGenre] = await Promise.all([
+      Track.countDocuments(),
+      Track.countDocuments({ isBlocked: true }),
+      Track.countDocuments({ $or: [{ bpm: null }, { bpm: 0 }] }),
+      Track.countDocuments({ $or: [{ deezerRank: null }, { deezerRank: 0 }] }),
+      Track.countDocuments({ $or: [{ phase: null }, { phase: '' }, { phase: { $exists: false } }] }),
+      Track.countDocuments({ phase: { $in: ['groove', 'party'] }, energy: { $lt: 4, $gt: 0 } }),
+      Track.countDocuments({
+        phase: 'closing',
+        genre: { $in: ELECTRO_HARD.map(g => new RegExp(g, 'i')) },
+        bpm: { $gt: 150 },
+        phaseAlternate: { $ne: 'party' }
+      }),
+      Track.aggregate([
+        { $group: { _id: '$genre', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 }
+      ])
+    ]);
+
+    // Cat 2A requires server-side filtering for phaseAlternate exclusion
+    const incoherent_arrival_raw = await Track.find({
+      phase: { $in: ['arrival', 'ambiance'] },
+      energy: { $gt: 7 }
+    }).select('phaseAlternate').lean();
+    const incoherent_arrival_high = incoherent_arrival_raw.filter(t => {
+      const alt = (t.phaseAlternate || '').toLowerCase();
+      return !alt || !HIGH_ENERGY_PHASES.includes(alt);
+    }).length;
+
+    // Duplicate groups (same normalized title, different artists) via aggregation
+    const dupeAgg = await Track.aggregate([
+      { $project: {
+        normTitle: {
+          $trim: { input:
+            { $replaceAll: { input:
+              { $toLower: { $regexFind: { input: '$title', regex: /^[^([]+/ } }.match || '$title' },
+              find: '  ', replacement: ' ' }
+            }
+          }
+        },
+        artist: 1
+      }},
+      { $group: { _id: '$normTitle', artists: { $addToSet: '$artist' }, count: { $sum: 1 } } },
+      { $match: { $expr: { $gte: [{ $size: '$artists' }, 2] } } },
+      { $count: 'groups' }
+    ]);
+    const duplicates_groups = dupeAgg[0]?.groups ?? 0;
+
+    const ghost = missing_phase + incoherent_arrival_high + incoherent_groove_low + incoherent_closing_electro + missing_bpm;
+    // Deduplicated estimate (many tracks fall in multiple categories)
+    const ghost_estimated = Math.min(ghost, Math.round(total * 0.37)); // rough dedup
+
+    res.json({
+      total,
+      safe: total - Math.min(missing_phase, total),
+      ghost: ghost,
+      updatedAt: new Date().toISOString(),
+      categories: {
+        orphan:                   missing_phase,
+        incoherent_arrival_high:  incoherent_arrival_high,
+        incoherent_groove_low:    incoherent_groove_low,
+        incoherent_closing_electro: incoherent_closing_electro,
+        missing_bpm:              missing_bpm,
+        missing_rank:             missing_rank,
+        duplicates_groups:        duplicates_groups,
+        blocked:                  blocked
+      },
+      topGenres: byGenre
+    });
+  } catch (err) {
+    console.error('[Admin] ❌ ghost/dashboard error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /admin/ghost.html
+app.get('/admin/ghost.html', (req, res) => {
+  res.sendFile(join(__dirname, 'admin', 'ghost.html'));
 });
 
 // GET /api/monitor/track/:id — un track par ID
@@ -2442,7 +2583,7 @@ io.on('connection', (socket) => {
 
   socket.on('host:voteResults', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    party.vibeScore = data.vibeScore || 0;
+    party.vibeScore = Math.round(Number(data.vibeScore) || 0); // fix(bug3-B): defensive round — iOS energyLevel is Double
   });
 
   socket.on('host:trackHistory', (data) => {
@@ -2960,7 +3101,7 @@ io.on('connection', (socket) => {
         },
         $inc: inc,
         $set: {
-          'performance.avgVibeAtPlay': vibeScore || 0,
+          'performance.avgVibeAtPlay': Math.round(Number(vibeScore) || 0), // fix(bug3-B2): round Double vibeScore before Mongo storage
           updatedAt: new Date(),
         }
       };
