@@ -12,7 +12,7 @@
     <link rel="apple-touch-icon" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260625v08">
+    <link rel="stylesheet" href="style.css?v=20260625v09">
 </head>
 <body>
 
@@ -311,11 +311,29 @@
           </div>
 
           <!-- 5. Party — fusée -->
+          <!-- 5. Party — feu d'artifice (cohérence iOS fireworks SF Symbol) -->
           <div class="phase-item" data-phase="party">
             <span class="phase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
-              <path d="M12 2c2.5 3.5 4 7 4 10a4 4 0 0 1-8 0c0-3 1.5-6.5 4-10z"/>
-              <circle cx="12" cy="10" r="1.5" fill="currentColor" stroke="none"/>
-              <path d="M9.5 16.5L7.5 21l3-1.5 1 1.5 1-1.5 3 1.5-2-4.5"/>
+              <!-- Centre -->
+              <circle cx="12" cy="12" r="0.8" fill="currentColor" stroke="none"/>
+              <!-- 8 rayons -->
+              <line x1="12" y1="3" x2="12" y2="6.5"/>
+              <line x1="12" y1="17.5" x2="12" y2="21"/>
+              <line x1="3" y1="12" x2="6.5" y2="12"/>
+              <line x1="17.5" y1="12" x2="21" y2="12"/>
+              <line x1="5.6" y1="5.6" x2="7.8" y2="7.8"/>
+              <line x1="16.2" y1="16.2" x2="18.4" y2="18.4"/>
+              <line x1="5.6" y1="18.4" x2="7.8" y2="16.2"/>
+              <line x1="16.2" y1="7.8" x2="18.4" y2="5.6"/>
+              <!-- Étoiles aux extrémités -->
+              <circle cx="12" cy="2.5" r="1" fill="currentColor" stroke="none"/>
+              <circle cx="12" cy="21.5" r="1" fill="currentColor" stroke="none"/>
+              <circle cx="2.5" cy="12" r="1" fill="currentColor" stroke="none"/>
+              <circle cx="21.5" cy="12" r="1" fill="currentColor" stroke="none"/>
+              <circle cx="5.3" cy="5.3" r="0.9" fill="currentColor" stroke="none"/>
+              <circle cx="18.7" cy="18.7" r="0.9" fill="currentColor" stroke="none"/>
+              <circle cx="5.3" cy="18.7" r="0.9" fill="currentColor" stroke="none"/>
+              <circle cx="18.7" cy="5.3" r="0.9" fill="currentColor" stroke="none"/>
             </svg></span>
           </div>
 
