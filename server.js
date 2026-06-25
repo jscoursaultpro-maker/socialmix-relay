@@ -2548,8 +2548,10 @@ io.on('connection', (socket) => {
     party.currentPhase = data.phase || 'arrival';
     party.isDirty = true;
     console.log(`[${party.code}] Phase -> ${party.currentPhase}`);
-    // ★ Fix 2 — broadcaster party:state aux guests pour sync widget phase indicator
-    io.to(party.code).emit('party:state', buildLightState(party));
+    // ★ Fix 2 — broadcaster party:state aux guests + host pour sync widget phase indicator
+    const phaseState = buildLightState(party);
+    io.to(`guest:${party.code}`).emit('party:state', phaseState);
+    io.to(`host:${party.code}`).emit('party:state', phaseState);
   });
 
   socket.on('host:genreVote', (data) => {
