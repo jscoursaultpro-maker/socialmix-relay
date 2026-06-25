@@ -1518,6 +1518,16 @@ function setupSuggest() {
       searchDeezerSuggestions();
     }
   });
+
+  // ★ Phase 4C — Auto-trigger explore on focus (click in input = instant suggestions)
+  input.addEventListener('focus', () => {
+    if (!state.partyCode) return;
+    // Only load if results are empty (don't override an active search or typed results)
+    const results = $('suggest-results');
+    if (results && results.children.length === 0) {
+      loadTrendingSuggestions();
+    }
+  });
 }
 
 function searchDeezerSuggestions() {
