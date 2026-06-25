@@ -878,6 +878,8 @@ function connectToRelay() {
         updateVoteButtons();
       }
     }
+    // ★ Phase 4A — update phase indicator widget
+    if (ps.currentPhase) updatePhaseIndicator(ps.currentPhase);
     saveSession();
   });
 
@@ -1536,6 +1538,15 @@ function searchDeezerSuggestions() {
       console.error('[Suggest] Search error:', err);
       container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:#ff6b6b;">❌ Erreur de recherche</div>';
     });
+}
+
+// ★ Phase 4A — Phase Indicator
+function updatePhaseIndicator(phase) {
+  if (!phase) return;
+  const p = phase.toLowerCase();
+  document.querySelectorAll('.phase-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.phase === p);
+  });
 }
 
 function loadTrendingSuggestions() {
