@@ -1550,25 +1550,12 @@ function searchDeezerSuggestions() {
     });
 }
 
-// ★ Phase 4A — Phase Indicator (sync iOS host colors)
+// ★ Phase 4A — Phase Indicator (v4: SVG tiles — CSS handles all colors)
 function updatePhaseIndicator(phase) {
   if (!phase) return;
   const p = phase.toLowerCase();
   document.querySelectorAll('.phase-item').forEach(item => {
-    const isActive = item.dataset.phase === p;
-    item.classList.toggle('active', isActive);
-    // Apply per-phase brand color as glow on active item (matches iOS host palette)
-    const icon = item.querySelector('.phase-icon');
-    if (icon) {
-      if (isActive) {
-        const color = item.dataset.color || '#1abc9c';
-        icon.style.filter = `drop-shadow(0 0 8px ${color}cc)`;
-        icon.style.transform = 'scale(1.1)';
-      } else {
-        icon.style.filter = '';
-        icon.style.transform = '';
-      }
-    }
+    item.classList.toggle('active', item.dataset.phase === p);
   });
 }
 
