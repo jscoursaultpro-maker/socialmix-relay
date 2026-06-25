@@ -2449,6 +2449,21 @@ io.on('connection', (socket) => {
     } // end if (isNewTrack)
     } // end if (track)
 
+    // ★ D2 — Sync phase auto DJBrain → serveur → guests web
+    // currentPhase est dans track (pas dans un sous-objet) — vérification directe
+    if (track && track.currentPhase && track.currentPhase !== party.currentPhase) {
+      const newPhase = track.currentPhase.toLowerCase();
+      const VALID_PHASES = ['arrival','ambiance','takeoff','groove','party','closing'];
+      if (VALID_PHASES.includes(newPhase)) {
+        party.currentPhase = newPhase;
+        party.isDirty = true;
+        const phaseState = buildLightState(party);
+        io.to(`guest:${party.code}`).emit('party:state', phaseState);
+        io.to(`host:${party.code}`).emit('party:state', phaseState);
+        console.log(`[${party.code}] 🎯 Phase auto-sync DJBrain -> ${newPhase}`);
+      }
+    }
+
     // ★ R5 fix: requestedBy inclus dans le payload — les guests voient l'attribution en temps réel
     io.to(`guest:${party.code}`).emit('track:update', { ...stripSecret(track), requestedBy });
     console.log(`🎵 [${party.code}] Track: ${track?.title} — ${track?.artist} (by: ${requestedBy.guestName || 'DJ Brain'})`);
