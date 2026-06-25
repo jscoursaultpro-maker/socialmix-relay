@@ -1147,6 +1147,62 @@ function connectToRelay() {
     updateSuggestionBadge(data.title, data.status, data.message);
   });
 
+  // ★ Bug 5b fix — Hydrate pending suggestion after reconnect
+  // Server emits this on guest:resume / guest:join when a pending suggestion exists
+  socket.on('suggestion:confirmed', (data) => {
+    console.log('[Suggestion] confirmed:', data.title, '— fromReconnect:', data.fromReconnect);
+
+    // Persist in local state (prevent double add)
+    const alreadyInState = state.suggestions.find(s =>
+      (s.title || '').toLowerCase() === (data.title || '').toLowerCase()
+    );
+    if (!alreadyInState) {
+      state.suggestions.push({
+        title: data.title,
+        artist: data.artist,
+        coverURL: data.coverURL || null,
+        deezerID: data.deezerID || null,
+        status: data.status || 'queued',
+        sentAt: data.sentAt || new Date().toISOString()
+      });
+    } else {
+      // Update status in case it changed (e.g. queued → next)
+      alreadyInState.status = data.status || alreadyInState.status;
+    }
+    saveSession();
+
+    if (data.fromReconnect) {
+      // Reconnexion : suggestion existait déjà → toast discret
+      showSuggestionToast(
+        `✓ "${data.title}" est toujours en queue (pos. ${data.position || '?'})`,
+        'pending'
+      );
+    } else {
+      // Fresh suggestion confirmée par le serveur
+      showSuggestionToast(
+        `🎵 Suggestion envoyée ! Pos. ${data.position || '?'} dans la queue`,
+        'queued'
+      );
+    }
+
+    // Refresh suggestion badge in UI if the function exists
+    updateSuggestionBadge(data.title, data.status || 'queued', null);
+  });
+
+  // ★ Bug 5b fix — Hydrate guest's previous votes on reconnect
+  socket.on('votes:hydrate', (data) => {
+    if (!data || !data.myVotes) return;
+    console.log('[Votes] Hydrating previous votes:', Object.keys(data.myVotes).length, 'tracks');
+
+    // Restore vote for the current track if we voted on it before disconnect
+    const currentTitle = state.currentTrack?.title;
+    if (currentTitle && data.myVotes[currentTitle]) {
+      state.currentVote = data.myVotes[currentTitle];
+      updateVoteButtons();
+      console.log('[Votes] Restored vote for current track:', state.currentVote);
+    }
+  });
+
   // Costume entries updated from server
   socket.on('costume:entries', (entries) => {
     state.costumeEntries = entries;
