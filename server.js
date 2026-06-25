@@ -2545,7 +2545,7 @@ io.on('connection', (socket) => {
   // Phase update from host — fired when DJ changes phase in CockpitView
   socket.on('host:phaseUpdate', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    party.currentPhase = data.phase || 'groove';
+    party.currentPhase = data.phase || 'arrival';
     console.log(`[${party.code}] Phase -> ${party.currentPhase}`);
   });
 
@@ -2962,7 +2962,7 @@ io.on('connection', (socket) => {
       addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${title}`);
 
     // 4. Verifier la coherence de phase via MongoDB (async, non-bloquant)
-    const currentPhase = party.currentPhase || 'groove';
+    const currentPhase = party.currentPhase || 'arrival';
     const compatible   = PHASE_ADJACENCY[currentPhase] || [currentPhase];
 
     if (deezerID) {
