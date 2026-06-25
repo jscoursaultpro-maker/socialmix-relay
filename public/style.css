@@ -347,75 +347,48 @@ html, body {
 }
 .photo-delete-btn.hidden { display: none; }
 
-/* ★ Phase 4A — Phase Indicator */
+/* ★ Phase 4A — Phase Indicator (v3: emoji-only, no labels) */
 .phase-indicator {
   display: flex;
   justify-content: space-around;
-  align-items: center;       /* ← fix: flex-end coupait les emojis */
-  min-height: 72px;          /* ← fix: hauteur explicite pour emoji+label */
-  padding: 10px 8px;
+  align-items: center;
+  padding: 12px 6px;
   margin: 2px 0;
   background: rgba(10, 18, 22, 0.55);
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.05);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  overflow: visible;         /* ← fix: overflow:auto écrasait la hauteur */
 }
-.phase-indicator::-webkit-scrollbar { display: none; }
-
 .phase-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  opacity: 0.3;
-  transition: opacity 0.4s ease, transform 0.4s ease;
-  min-width: 48px;
-  flex: 1;
-  cursor: default;
-  user-select: none;
-}
-.phase-item.active {
-  opacity: 1;
-  transform: scale(1.12);
-  animation: phasePulse 2s ease-in-out infinite;
-}
-.phase-icon {
-  font-size: 26px;
-  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  /* emojis ignore color CSS — use opacity/filter for active state */
+  flex: 1;
+  padding: 6px 0;
+  opacity: 0.28;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  cursor: default;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.phase-item.active {
+  opacity: 1;
+  transform: scale(1.28);
+  animation: phasePulse 2.2s ease-in-out infinite;
+}
+.phase-icon {
+  font-size: 30px;
+  line-height: 1;
+  display: block;
   transition: filter 0.4s ease;
 }
 .phase-item.active .phase-icon {
-  /* Drop-shadow en turquoise pour halo glow sur l'emoji actif */
-  filter: drop-shadow(0 0 5px rgba(26,188,156,0.7));
+  filter: drop-shadow(0 0 8px rgba(26,188,156,0.8));
 }
-.phase-label {
-  font-size: 9px;
-  font-weight: 600;
-  color: rgba(180,200,210,0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-}
-.phase-item.active .phase-label { color: #1abc9c; }
 @keyframes phasePulse {
-  0%, 100% { transform: scale(1.12); }
-  50%       { transform: scale(1.19); }
-}
-@media (max-width: 380px) {
-  .phase-indicator { padding: 12px 6px 10px; }
-  .phase-item { min-width: 40px; }
-  .phase-icon { width: 26px; height: 26px; }
-  .phase-icon svg { width: 22px; height: 22px; }
-  .phase-label { font-size: 8px; }
+  0%, 100% { transform: scale(1.28); }
+  50%       { transform: scale(1.38); }
 }
 
 /* Glassmorphism Cards */
