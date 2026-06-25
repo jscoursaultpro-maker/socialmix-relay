@@ -2568,6 +2568,28 @@ io.on('connection', (socket) => {
     }
     console.log(`👤 [${code}] Guest joined: ${guest.emoji} ${guest.name} (token: ${sessionToken.substring(0, 8)}...) — Total participants: ${party.participants.length}`)
     console.log(`👤 [${code}] Participant list: ${party.participants.map(p => `${p.name}${p.isHost ? ' [HOST]' : ''}`).join(', ')}`);
+
+    // ★ Bug 5 fix — Hydrate pending suggestion on fresh join (covers rapid deconnect/reconnect)
+    const pendingSuggJoin = (party.suggestions || []).find(s =>
+      s.guestName === guestName &&
+      ['queued', 'next', 'pending'].includes(s.status)
+    );
+    if (pendingSuggJoin) {
+      const queuePosJoin = party.suggestions
+        .filter(s => ['queued', 'next', 'pending'].includes(s.status))
+        .indexOf(pendingSuggJoin) + 1;
+      socket.emit('suggestion:confirmed', {
+        title: pendingSuggJoin.title,
+        artist: pendingSuggJoin.artist,
+        coverURL: pendingSuggJoin.coverURL || null,
+        deezerID: pendingSuggJoin.deezerID || null,
+        position: queuePosJoin,
+        status: pendingSuggJoin.status,
+        sentAt: pendingSuggJoin.sentAt || pendingSuggJoin.queuedAt,
+        fromReconnect: true
+      });
+      console.log(`🔄 [${code}] Hydrated pending suggestion (join) for ${guestName}: "${pendingSuggJoin.title}" (pos:${queuePosJoin})`);
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -2616,7 +2638,35 @@ io.on('connection', (socket) => {
       partyCode: code
     });
     console.log(`🔄 [${code}] Guest resumed: ${participant.emoji} ${participant.name}`);
-    
+
+    // ★ Bug 5 fix — Hydrate pending suggestion after reconnect
+    const pendingSugg = (party.suggestions || []).find(s =>
+      s.guestName === guestName &&
+      ['queued', 'next', 'pending'].includes(s.status)
+    );
+    if (pendingSugg) {
+      const queuePos = party.suggestions
+        .filter(s => ['queued', 'next', 'pending'].includes(s.status))
+        .indexOf(pendingSugg) + 1;
+      socket.emit('suggestion:confirmed', {
+        title: pendingSugg.title,
+        artist: pendingSugg.artist,
+        coverURL: pendingSugg.coverURL || null,
+        deezerID: pendingSugg.deezerID || null,
+        position: queuePos,
+        status: pendingSugg.status,
+        sentAt: pendingSugg.sentAt || pendingSugg.queuedAt,
+        fromReconnect: true
+      });
+      console.log(`🔄 [${code}] Hydrated pending suggestion for ${guestName}: "${pendingSugg.title}" (pos:${queuePos})`);
+    }
+
+    // ★ Bug 5 fix — Hydrate guest’s own votes after reconnect
+    const myVotes = party.guestVotes?.[participant.id] ||
+                    party.guestVotes?.[participant.userId] || {};
+    if (Object.keys(myVotes).length > 0) {
+      socket.emit('votes:hydrate', { myVotes });
+    }
 
   });
 
