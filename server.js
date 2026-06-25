@@ -2640,6 +2640,19 @@ io.on('connection', (socket) => {
     io.to(`guest:${party.code}`).emit('guest:voted', data);
     if (data.guestId) addPoints(party, data.guestId, data.guestName || 'Guest', 10, `vote ${data.type}`);
     
+    // ★ Bug 7 fix — persist vote counters directly in trackHistory
+    if (data.trackTitle) {
+      const voted = party.trackHistory.find(t =>
+        (t.title || '').toLowerCase() === (data.trackTitle || '').toLowerCase()
+      );
+      if (voted) {
+        if (data.type === 'fire') voted.votesFeu = (voted.votesFeu || 0) + 1;
+        else if (data.type === 'like') voted.votesTop = (voted.votesTop || 0) + 1;
+        else if (data.type === 'meh')  voted.votesBof  = (voted.votesBof  || 0) + 1;
+        party.isDirty = true;  // déclenche flush MongoDB
+      }
+    }
+
     // ★ Phase 3 — Queue rating for debounced aggregation
     if (data.type && data.trackTitle) {
       const trackKey = data.isrc || fallbackHash(data.trackTitle, data.trackArtist || '');
@@ -3294,6 +3307,19 @@ io.on('connection', (socket) => {
     const vibeMap = { meh: -1, like: 1, fire: 3 };
     party.vibeScore = Math.max(0, party.vibeScore + (vibeMap[data.type] || 0));
     io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: party.genreVotes, vibeScore: party.vibeScore });
+    
+    // ★ Bug 7 fix — persist host vote counters in trackHistory
+    if (trackTitle) {
+      const voted = party.trackHistory.find(t =>
+        (t.title || '').toLowerCase() === (trackTitle || '').toLowerCase()
+      );
+      if (voted) {
+        if (data.type === 'fire') voted.votesFeu = (voted.votesFeu || 0) + 1;
+        else if (data.type === 'like') voted.votesTop = (voted.votesTop || 0) + 1;
+        else if (data.type === 'meh')  voted.votesBof  = (voted.votesBof  || 0) + 1;
+        party.isDirty = true;  // déclenche flush MongoDB
+      }
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════════
