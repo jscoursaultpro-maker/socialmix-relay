@@ -3038,6 +3038,22 @@ io.on('connection', (socket) => {
     party.suggestions = cappedPush(party.suggestions, suggestion, 200);
     const hostRoom = `host:${party.code}`;
     io.to(hostRoom).emit('guest:suggested', suggestion);
+    
+    // ★ Fix Z3: broadcast to other guests so they see cross-guest suggestions in real-time
+    // Exclude the suggester (they get suggestion:confirmed) and the host (gets guest:suggested)
+    socket.to(`guest:${party.code}`).emit('suggestion:added', {
+      id:        suggestion.id,
+      title:     suggestion.title,
+      artist:    suggestion.artist,
+      guestId:   suggestion.guestId,
+      guestName: suggestion.guestName,
+      status:    suggestion.status,
+      boostCount: 0,
+      boostedBy:  [],
+      sentAt:    suggestion.sentAt,
+      isHost:    false
+    });
+    
     if (data.guestId || data.guestName)
       addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${title}`);
 

@@ -880,6 +880,39 @@ function connectToRelay() {
     }
     // ★ Phase 4A — update phase indicator widget
     if (ps.currentPhase) updatePhaseIndicator(ps.currentPhase);
+    
+    // ★ Fix Z3: merge party suggestions from server into state.suggestions
+    // The server sends ALL party suggestions in party:state (buildLightState L2173).
+    // Without this, cross-guest suggestions (Pierre's) never appear for Sam.
+    if (Array.isArray(ps.suggestions) && ps.suggestions.length > 0) {
+      const myId   = state.guestId || '';
+      const myName = state.guestName || '';
+      ps.suggestions.forEach(serverSugg => {
+        if (!serverSugg.title || !serverSugg.id) return;
+        // Find existing by id or by title+guestName
+        const existing = state.suggestions.find(s =>
+          s.id === serverSugg.id ||
+          (s.title === serverSugg.title && s.guestName === serverSugg.guestName)
+        );
+        if (existing) {
+          // Update mutable fields (status, boostCount, boostedBy)
+          existing.id        = serverSugg.id        || existing.id;
+          existing.status    = serverSugg.status    || existing.status;
+          existing.boostCount= serverSugg.boostCount != null ? serverSugg.boostCount : existing.boostCount;
+          existing.boostedBy = serverSugg.boostedBy || existing.boostedBy;
+        } else {
+          // Add new suggestion (from other guests)
+          state.suggestions.push(serverSugg);
+        }
+      });
+      // Prune dismissed/played that are not mine (keep UI clean)
+      state.suggestions = state.suggestions.filter(s =>
+        s.guestId === myId || s.guestName === myName ||
+        ['pending','queued','next'].includes(s.status)
+      );
+      renderGuestSuggestions();
+    }
+    
     saveSession();
   });
 
@@ -1128,6 +1161,27 @@ function connectToRelay() {
   socket.on('photo:error', (data) => {
     console.warn('[Photo] Server error:', data.error);
     alert(data.message || data.error || 'Erreur photo');
+  });
+
+  // ★ Fix Z3: real-time cross-guest suggestion sync
+  // Server broadcasts suggestion:added to guest room when any guest adds a suggestion.
+  // Without this, Sam only sees Pierre's suggestions after the next party:state resync.
+  socket.on('suggestion:added', (sugg) => {
+    if (!sugg || !sugg.title || !sugg.id) return;
+    const myId   = state.guestId || '';
+    const myName = state.guestName || '';
+    const isMine = sugg.guestId === myId || sugg.guestName === myName;
+    if (isMine) return; // mine are handled by suggestion:confirmed
+    
+    const existing = state.suggestions.find(s =>
+      s.id === sugg.id ||
+      (s.title === sugg.title && s.guestName === sugg.guestName)
+    );
+    if (!existing) {
+      state.suggestions.push(sugg);
+      console.log('[Suggestion] ★ cross-guest added:', sugg.title, 'by', sugg.guestName);
+      renderGuestSuggestions();
+    }
   });
 
   // Suggestion status feedback from host
@@ -1868,9 +1922,13 @@ function renderGuestSuggestions() {
 // ─── Boost une suggestion d'un autre guest ─────────────────────────────────
 async function boostSuggestion(suggId, title) {
   const code    = state.partyCode;
-  const guestId = state.guestId || state.socketId || '';
+  const guestId = state.guestId || '';
   const guestName = state.guestName || 'Guest';
-  if (!code || !suggId || !guestId) return;
+  if (!code || !suggId || !guestId) {
+    console.warn('[Boost] missing code/suggId/guestId', { code, suggId, guestId });
+    return;
+  }
+  console.log('[BOOST] click', { suggId, guestId, guestName, title });
 
   try {
     const res = await fetch(`${window.RELAY_URL || ''}/api/party/${code}/suggestion/${suggId}/boost`, {
@@ -1879,16 +1937,17 @@ async function boostSuggestion(suggId, title) {
       body: JSON.stringify({ guestId, guestName })
     });
     const json = await res.json();
+    console.log('[BOOST] response', res.status, json);
     if (!res.ok) {
       showSuggestionToast(json.error || 'Erreur boost', 'pending');
       return;
     }
-    // Optimistic update local
+    // Optimistic update local — search ALL suggestions (mine + others)
     const sugg = (state.suggestions || []).find(s => s.id === suggId);
     if (sugg) {
       sugg.boostCount = json.boostCount;
       if (!sugg.boostedBy) sugg.boostedBy = [];
-      sugg.boostedBy.push(guestId);
+      if (!sugg.boostedBy.includes(guestId)) sugg.boostedBy.push(guestId);
     }
     renderGuestSuggestions();
     showSuggestionToast(`🔥 ${escapeHtml(title)} boosté !`, 'queued');
