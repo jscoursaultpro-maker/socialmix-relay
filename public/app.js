@@ -1847,11 +1847,19 @@ function renderGuestSuggestions() {
   }
 
   // ── Section B : QUEUE DES AUTRES (en attente) ────────────────────────
+  // Ensemble des titres déjà soumis par moi (pour anti-auto-boost visuel robuste)
+  const myTitles = new Set(
+    allSuggs
+      .filter(s => s.guestId === myId || s.guestName === myName)
+      .map(s => (s.title || '').toLowerCase().trim())
+  );
+
   const others = allSuggs.filter(s =>
     ['pending','queued','next'].includes(s.status) &&
     s.guestId !== myId &&
     s.guestName !== myName &&
-    !s.isHost
+    !s.isHost &&
+    !myTitles.has((s.title || '').toLowerCase().trim()) // ★ anti-auto-boost visuel par titre
   ).sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt)); // plus anciennes en premier
 
   if (others.length === 0) return;
@@ -1871,8 +1879,10 @@ function renderGuestSuggestions() {
     const toShow = expanded ? others : others.slice(0, PREVIEW_COUNT);
 
     toShow.forEach(sugg => {
-      const alreadyBoosted = (sugg.boostedBy || []).includes(myId);
-      const isMine = sugg.guestId === myId || sugg.guestName === myName;
+    const alreadyBoosted = (sugg.boostedBy || []).includes(myId);
+      // isMine: vérification par guestId, guestName, OU titre (cas guestName='Guest')
+      const isMine = sugg.guestId === myId || sugg.guestName === myName ||
+        myTitles.has((sugg.title || '').toLowerCase().trim());
       const boostCount = sugg.boostCount || 0;
 
       let boostBtn = '';
@@ -1926,12 +1936,22 @@ function renderGuestSuggestions() {
 
 // ─── Boost une suggestion d'un autre guest ─────────────────────────────────
 async function boostSuggestion(suggId, title) {
-  const code    = state.partyCode;
-  const guestId = state.guestId || '';
+  const code      = state.partyCode;
+  const guestId   = state.guestId || '';
   const guestName = state.guestName || 'Guest';
-  if (!code || !suggId || !guestId) {
-    console.warn('[Boost] missing code/suggId/guestId', { code, suggId, guestId });
+
+  if (!code) {
+    showSuggestionToast('Soirée introuvable — rechargez la page', 'pending');
     return;
+  }
+  if (!guestId) {
+    showSuggestionToast('Session expirée — rechargez la page', 'pending');
+    return;
+  }
+  // suggId peut être vide pour une suggestion legacy (créée avant l'UUID serveur)
+  // on passe quand même, le serveur fera un fallback sur le titre
+  if (!suggId || suggId === 'undefined') {
+    console.warn('[Boost] suggId manquant pour', title, '— fallback titre côté serveur');
   }
   console.log('[BOOST] click', { suggId, guestId, guestName, title });
 
@@ -1952,10 +1972,10 @@ async function boostSuggestion(suggId, title) {
   }
 
   try {
-    const res = await fetch(`${window.RELAY_URL || ''}/api/party/${code}/suggestion/${suggId}/boost`, {
+    const res = await fetch(`${window.RELAY_URL || ''}/api/party/${code}/suggestion/${suggId || ''}/boost`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ guestId, guestName })
+      body: JSON.stringify({ guestId, guestName, suggestionTitle: title }) // ★ fallback titre pour legacy
     });
     const json = await res.json();
     console.log('[BOOST] response', res.status, json);

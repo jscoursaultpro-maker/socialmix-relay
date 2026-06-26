@@ -1549,9 +1549,28 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
     party = dbParty;
   }
 
-  // Trouver la suggestion par UUID
-  const sugg = (party.suggestions || []).find(s => s.id === suggId);
-  if (!sugg) return res.status(404).json({ error: 'Suggestion introuvable' });
+  // Retroactivement assigner un UUID aux suggestions sans ID (legacy)
+  (party.suggestions || []).forEach(s => { if (!s.id) s.id = randomUUID(); });
+
+  // Trouver la suggestion par UUID (primary) ou par titre+guestName (fallback pour legacy)
+  let sugg = (party.suggestions || []).find(s => s.id === suggId);
+  if (!sugg && suggId && suggId !== 'undefined') {
+    // ID valide mais pas trouvé — peut-être un ID périmé
+    console.warn(`[${code}] /boost: id '${suggId}' not found`);
+    return res.status(404).json({ error: 'Suggestion introuvable (ID périmé — rechargez la page)' });
+  }
+  if (!sugg) {
+    // ID vide ou 'undefined' — fallback titre (legacy suggestions without UUID)
+    const titleFallback = (req.body || {}).suggestionTitle;
+    if (titleFallback) {
+      sugg = (party.suggestions || []).find(s =>
+        s.title?.toLowerCase().trim() === titleFallback.toLowerCase().trim() &&
+        ['pending','queued','next'].includes(s.status)
+      );
+      if (sugg) console.log(`[${code}] /boost: fallback title match for '${titleFallback}'`);
+    }
+    if (!sugg) return res.status(404).json({ error: 'Suggestion introuvable' });
+  }
 
   // Guard 1 : status actif seulement
   if (!['pending', 'queued', 'next'].includes(sugg.status)) {
