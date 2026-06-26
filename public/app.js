@@ -1742,43 +1742,162 @@ function renderGuestSuggestions() {
   const list = $('suggestions-list');
   if (!list) return;
   list.innerHTML = '';
-  
-  (state.suggestions || []).forEach(sugg => {
-    const item = document.createElement('div');
-    item.className = 'suggestion-item';
-    item.setAttribute('data-suggest-title', sugg.title);
-    
-    // Configs for status
-    const configs = {
-      pending:        { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
-      received:       { dot: '#00c853', icon: '✅', label: 'Reçue par le DJ' },
-      already_played: { dot: '#ff9800', icon: '🔄', label: 'Déjà joué ce soir' },
-      duplicate:      { dot: '#ab47bc', icon: '👥', label: 'Déjà demandé' },
-      phase_wait:     { dot: '#ffc107', icon: '⏳', label: 'Gardée pour plus tard' },
-      queued:         { dot: '#00b8a9', icon: '🎶', label: 'En file d\'attente' },
-      next:           { dot: '#ff6b35', icon: '🔥', label: 'C\'est la prochaine !' },
-      played:         { dot: '#ffd700', icon: '🎉', label: 'Bien joué !' },
-      dismissed:      { dot: '#667',    icon: '😉', label: 'Peut-être plus tard' },
-      accepted:       { dot: '#00c853', icon: '✅', label: 'Acceptée par le DJ !' },
-      refused:        { dot: '#667',    icon: '😉', label: 'Pas pour ce soir' }
-    };
-    const c = configs[sugg.status] || configs.pending;
-    const msg = sugg.message || `${c.icon} ${c.label}`;
-    
-    item.innerHTML = `
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span class="suggestion-check">✅</span>
-          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(sugg.title)} — ${escapeHtml(sugg.artist)}</span>
+
+  const configs = {
+    pending:        { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
+    received:       { dot: '#00c853', icon: '✅', label: 'Reçue par le DJ' },
+    already_played: { dot: '#ff9800', icon: '🔄', label: 'Déjà joué ce soir' },
+    duplicate:      { dot: '#ab47bc', icon: '👥', label: 'Déjà demandé' },
+    phase_wait:     { dot: '#ffc107', icon: '⏳', label: 'Gardée pour plus tard' },
+    queued:         { dot: '#00b8a9', icon: '🎶', label: 'En file d\'attente' },
+    next:           { dot: '#ff6b35', icon: '🔥', label: 'C\'est la prochaine !' },
+    played:         { dot: '#ffd700', icon: '🎉', label: 'Bien joué !' },
+    dismissed:      { dot: '#667',    icon: '😉', label: 'Peut-être plus tard' },
+    accepted:       { dot: '#00c853', icon: '✅', label: 'Acceptée par le DJ !' },
+    refused:        { dot: '#667',    icon: '😉', label: 'Pas pour ce soir' }
+  };
+
+  const allSuggs = state.suggestions || [];
+  const myId = state.guestId || state.socketId || '';
+  const myName = state.guestName || '';
+
+  // ── Section A : MES suggestions ─────────────────────────────────────
+  const mine = allSuggs.filter(s => s.guestId === myId || s.guestName === myName);
+  if (mine.length > 0) {
+    const header = document.createElement('div');
+    header.style.cssText = 'font-size:9px;font-weight:800;color:rgba(255,255,255,0.35);letter-spacing:0.5px;margin:4px 0 6px;';
+    header.textContent = 'MES SUGGESTIONS';
+    list.appendChild(header);
+
+    mine.forEach(sugg => {
+      const c = configs[sugg.status] || configs.pending;
+      const msg = sugg.message || `${c.icon} ${c.label}`;
+      const item = document.createElement('div');
+      item.className = 'suggestion-item';
+      item.setAttribute('data-suggest-title', sugg.title);
+      item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;margin-bottom:4px;background:rgba(255,255,255,0.03);';
+      item.innerHTML = `
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="suggestion-check">✅</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700;color:white;">${escapeHtml(sugg.title)} — ${escapeHtml(sugg.artist || '')}</span>
+          </div>
+          <div class="suggest-status-badge" style="margin-top:3px;font-size:9px;font-weight:800;color:${c.dot};display:flex;align-items:center;gap:4px;">
+            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c.dot};box-shadow:0 0 4px ${c.dot};"></span>
+            ${escapeHtml(msg)}
+          </div>
         </div>
-        <div class="suggest-status-badge" style="margin-top:4px;font-size:9px;font-weight:800;color:${c.dot};display:flex;align-items:center;gap:4px;">
-          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c.dot};box-shadow:0 0 4px ${c.dot};"></span>
-          ${escapeHtml(msg)}
+        ${(sugg.boostCount||0) > 0 ? `<span style="font-size:10px;font-weight:800;color:#ff6b35;background:rgba(255,107,53,0.12);padding:2px 7px;border-radius:20px;">🔥 ${sugg.boostCount}</span>` : ''}`;
+      list.appendChild(item);
+    });
+  }
+
+  // ── Section B : QUEUE DES AUTRES (en attente) ────────────────────────
+  const others = allSuggs.filter(s =>
+    ['pending','queued','next'].includes(s.status) &&
+    s.guestId !== myId &&
+    s.guestName !== myName &&
+    !s.isHost
+  ).sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt)); // plus anciennes en premier
+
+  if (others.length === 0) return;
+
+  const sectionHeader = document.createElement('div');
+  sectionHeader.style.cssText = 'font-size:9px;font-weight:800;color:rgba(255,255,255,0.35);letter-spacing:0.5px;margin:10px 0 6px;display:flex;align-items:center;justify-content:space-between;';
+  sectionHeader.innerHTML = `<span>💬 EN ATTENTE (${others.length})</span>`;
+  list.appendChild(sectionHeader);
+
+  const PREVIEW_COUNT = 3;
+  let expanded = false;
+
+  function renderOthers() {
+    const existing = list.querySelectorAll('.other-sugg-item, .expand-btn-row');
+    existing.forEach(el => el.remove());
+
+    const toShow = expanded ? others : others.slice(0, PREVIEW_COUNT);
+
+    toShow.forEach(sugg => {
+      const alreadyBoosted = (sugg.boostedBy || []).includes(myId);
+      const isMine = sugg.guestId === myId || sugg.guestName === myName;
+      const boostCount = sugg.boostCount || 0;
+
+      let boostBtn = '';
+      if (isMine) {
+        boostBtn = `<button disabled style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);border:none;border-radius:20px;padding:3px 8px;cursor:default;">Ma sugg</button>`;
+      } else if (alreadyBoosted) {
+        boostBtn = `<button disabled style="font-size:9px;font-weight:800;color:#ff6b35;background:rgba(255,107,53,0.12);border:1px solid rgba(255,107,53,0.3);border-radius:20px;padding:3px 8px;cursor:default;">🔥 Boosté${boostCount > 1 ? ' '+boostCount : ''}</button>`;
+      } else {
+        boostBtn = `<button onclick="boostSuggestion('${escapeAttr(sugg.id)}','${escapeAttr(sugg.title)}')" style="font-size:9px;font-weight:800;color:#ff6b35;background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.2);border-radius:20px;padding:3px 8px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,107,53,0.18)'" onmouseout="this.style.background='rgba(255,107,53,0.08)'">🔥 ${boostCount > 0 ? boostCount : 'Booster'}</button>`;
+      }
+
+      const c = configs[sugg.status] || configs.pending;
+      const item = document.createElement('div');
+      item.className = 'suggestion-item other-sugg-item';
+      item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;margin-bottom:4px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);';
+      item.innerHTML = `
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(sugg.title)}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${escapeHtml(sugg.artist || '')} · <span style="color:rgba(255,255,255,0.3);">par ${escapeHtml(sugg.guestName || 'Guest')}</span>
+          </div>
         </div>
-      </div>`;
-    list.appendChild(item);
-  });
+        ${boostBtn}`;
+      list.appendChild(item);
+    });
+
+    // Bouton expand/collapse
+    if (others.length > PREVIEW_COUNT) {
+      const btnRow = document.createElement('div');
+      btnRow.className = 'expand-btn-row';
+      btnRow.style.cssText = 'text-align:center;margin-top:4px;';
+      btnRow.innerHTML = `<button onclick="toggleOtherSugg()" style="font-size:9px;font-weight:800;color:rgba(0,210,255,0.7);background:none;border:1px solid rgba(0,210,255,0.15);border-radius:20px;padding:3px 10px;cursor:pointer;">
+        ${expanded ? '▲ Fermer' : `▼ Voir tout (${others.length})`}
+      </button>`;
+      list.appendChild(btnRow);
+    }
+  }
+
+  window.toggleOtherSugg = function() {
+    expanded = !expanded;
+    renderOthers();
+  };
+
+  renderOthers();
 }
+
+// ─── Boost une suggestion d'un autre guest ─────────────────────────────────
+async function boostSuggestion(suggId, title) {
+  const code    = state.partyCode;
+  const guestId = state.guestId || state.socketId || '';
+  const guestName = state.guestName || 'Guest';
+  if (!code || !suggId || !guestId) return;
+
+  try {
+    const res = await fetch(`${window.RELAY_URL || ''}/api/party/${code}/suggestion/${suggId}/boost`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guestId, guestName })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      showSuggestionToast(json.error || 'Erreur boost', 'pending');
+      return;
+    }
+    // Optimistic update local
+    const sugg = (state.suggestions || []).find(s => s.id === suggId);
+    if (sugg) {
+      sugg.boostCount = json.boostCount;
+      if (!sugg.boostedBy) sugg.boostedBy = [];
+      sugg.boostedBy.push(guestId);
+    }
+    renderGuestSuggestions();
+    showSuggestionToast(`🔥 ${escapeHtml(title)} boosté !`, 'queued');
+  } catch (e) {
+    console.error('[Boost] ❌', e);
+    showSuggestionToast('Erreur réseau', 'pending');
+  }
+}
+
 
 // Helpers for safe HTML rendering
 function escapeHtml(str) {
@@ -2774,9 +2893,13 @@ function handleDiapoPhoto(e) {
     saveSession();
     
     if (socket && socket.connected) {
+      // ★ Fix bonus: cloudUrl is already a Cloudinary URL — send as 'url' (not dataURL)
+      // so the server skips re-upload and broadcasts directly
       socket.emit('guest:photo', {
-        dataURL: cloudUrl,
-        guestName: state.guestName
+        url: cloudUrl,
+        dataURL: cloudUrl,   // backward-compat: server guard reads data.dataURL for size check
+        guestName: state.guestName,
+        guestId: state.guestId
       });
       console.log('[Photo] Emitted to server');
     } else {

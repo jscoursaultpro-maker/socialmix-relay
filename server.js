@@ -1532,6 +1532,63 @@ app.post('/api/party/schedule', express.json({limit: '5mb'}), async (req, res) =
   }
 });
 
+// ─── POST /api/party/:code/suggestion/:suggId/boost ─────────────────────────
+// Permet à un guest de booster la suggestion d'un autre guest
+// Règles : anti-auto-boost, anti-double-boost, status actif seulement
+app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
+  const code   = (req.params.code || '').toUpperCase();
+  const suggId = req.params.suggId;
+  const { guestId, guestName } = req.body || {};
+
+  if (!guestId || !guestName) return res.status(400).json({ error: 'guestId + guestName requis' });
+
+  let party = parties.get(code);
+  if (!party) {
+    const dbParty = await Party.findOne({ code }).lean();
+    if (!dbParty) return res.status(404).json({ error: 'Soirée introuvable' });
+    party = dbParty;
+  }
+
+  // Trouver la suggestion par UUID
+  const sugg = (party.suggestions || []).find(s => s.id === suggId);
+  if (!sugg) return res.status(404).json({ error: 'Suggestion introuvable' });
+
+  // Guard 1 : status actif seulement
+  if (!['pending', 'queued', 'next'].includes(sugg.status)) {
+    return res.status(409).json({ error: 'Suggestion déjà jouée ou rejetée' });
+  }
+
+  // Guard 2 : anti-auto-boost (pas sa propre suggestion)
+  if (sugg.guestId === guestId || sugg.socketId === guestId) {
+    return res.status(409).json({ error: 'Tu ne peux pas booster ta propre suggestion' });
+  }
+
+  // Guard 3 : anti-double-boost
+  if (!sugg.boostedBy) sugg.boostedBy = [];
+  if (sugg.boostedBy.includes(guestId)) {
+    return res.status(409).json({ error: 'Tu as déjà boosté cette suggestion' });
+  }
+
+  // Appliquer le boost
+  sugg.boostCount = (sugg.boostCount || 0) + 1;
+  sugg.boostedBy.push(guestId);
+  party.isDirty = true;
+
+  // Gamification : +3 pts au boosteur, +1 pt au suggéreur original
+  addPoints(party, guestId, guestName, 3, `boost: ${sugg.title}`);
+  if (sugg.guestId && sugg.guestId !== 'host') {
+    addPoints(party, sugg.guestId, sugg.guestName || 'Guest', 1, `boost reçu: ${sugg.title}`);
+  }
+
+  // Broadcast à toute la soirée (host room + guest room)
+  const updatedState = buildLightState(party);
+  io.to(code).emit('party:state', updatedState);
+  io.to(`host:${code}`).emit('party:state', updatedState);
+
+  console.log(`[${code}] 🔥 Boost: "${sugg.title}" → ${sugg.boostCount} boost(s) par ${guestName}`);
+  res.json({ ok: true, boostCount: sugg.boostCount, suggId });
+});
+
 app.get('/api/party/:code/meta', async (req, res) => {
   const code = (req.params.code || '').toUpperCase();
   let party = parties.get(code);
@@ -2970,10 +3027,13 @@ io.on('connection', (socket) => {
     // 3. Enregistrer la suggestion
     const suggestion = {
       ...data,
+      id: randomUUID(),       // ★ boost: identifiant pérenne
       status: 'pending',
       sentAt: new Date().toISOString(),
       queuedAt: null, playingAt: null, playedAt: null, dismissedAt: null,
-      socketId: socket.id
+      socketId: socket.id,
+      boostCount: 0,          // ★ boost: compteur
+      boostedBy: []           // ★ boost: [guestId] anti-double/auto
     };
     party.suggestions = cappedPush(party.suggestions, suggestion, 200);
     const hostRoom = `host:${party.code}`;
@@ -3063,13 +3123,16 @@ io.on('connection', (socket) => {
     // 3. Enregistrer la suggestion avec marqueur isHost
     const suggestion = {
       ...data,
+      id: randomUUID(),       // ★ boost: identifiant pérenne
       guestId:   'host',
       guestName: hostDisplayName,
       isHost:    true,
       status:    'pending',
       sentAt:    new Date().toISOString(),
       queuedAt: null, playingAt: null, playedAt: null, dismissedAt: null,
-      socketId:  socket.id
+      socketId:  socket.id,
+      boostCount: 0,          // ★ boost: compteur
+      boostedBy: []           // ★ boost: [guestId] anti-double/auto
     };
     party.suggestions = cappedPush(party.suggestions, suggestion, 200);
     party.isDirty = true;
@@ -3343,14 +3406,23 @@ io.on('connection', (socket) => {
     }
     
     try {
-      // 1. Upload Cloudinary
-      const uploaded = await uploadPhoto(data.dataURL, party.code);
+      let photoMeta;
+      
+      // ★ Fix bonus: if client already uploaded to Cloudinary and sends data.url → skip re-upload
+      if (data.url && data.url.startsWith('https://')) {
+        console.log(`📸 [${party.code}] Photo already on Cloudinary — skip re-upload`);
+        photoMeta = { url: data.url, publicId: null, width: null, height: null };
+      } else {
+        // 1. Upload Cloudinary (base64 path)
+        const uploaded = await uploadPhoto(data.dataURL, party.code);
+        photoMeta = { url: uploaded.url, publicId: uploaded.publicId, width: uploaded.width, height: uploaded.height };
+      }
       
       const photo = { 
-        url: uploaded.url,
-        publicId: uploaded.publicId,
-        width: uploaded.width,
-        height: uploaded.height,
+        url: photoMeta.url,
+        publicId: photoMeta.publicId,
+        width: photoMeta.width,
+        height: photoMeta.height,
         guestName: data.guestName || 'Guest', 
         guestId: data.guestId || socket.id,
         caption: data.caption || null, 
