@@ -1877,11 +1877,16 @@ function renderGuestSuggestions() {
 
       let boostBtn = '';
       if (isMine) {
-        boostBtn = `<button disabled style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);border:none;border-radius:20px;padding:3px 8px;cursor:default;">Ma sugg</button>`;
+        // Ma suggestion : label discret
+        boostBtn = `<button disabled style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);border:none;border-radius:20px;padding:3px 8px;cursor:default;white-space:nowrap;">Ma sugg</button>`;
       } else if (alreadyBoosted) {
-        boostBtn = `<button disabled style="font-size:9px;font-weight:800;color:#ff6b35;background:rgba(255,107,53,0.12);border:1px solid rgba(255,107,53,0.3);border-radius:20px;padding:3px 8px;cursor:default;">🔥 Boosté${boostCount > 1 ? ' '+boostCount : ''}</button>`;
+        // ★ Fix Z6: état "boostée par moi" en TURQUOISE avec checkmark
+        const label = boostCount > 1 ? `🔥✓ Boostée · ${boostCount}` : '🔥✓ Boostée';
+        boostBtn = `<button disabled style="font-size:9px;font-weight:800;color:#14B8A6;background:rgba(20,184,166,0.15);border:1.5px solid rgba(20,184,166,0.4);border-radius:20px;padding:3px 9px;cursor:default;white-space:nowrap;letter-spacing:0.2px;">${label}</button>`;
       } else {
-        boostBtn = `<button onclick="boostSuggestion('${escapeAttr(sugg.id)}','${escapeAttr(sugg.title)}')" style="font-size:9px;font-weight:800;color:#ff6b35;background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.2);border-radius:20px;padding:3px 8px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,107,53,0.18)'" onmouseout="this.style.background='rgba(255,107,53,0.08)'">🔥 ${boostCount > 0 ? boostCount : 'Booster'}</button>`;
+        // Bouton Booster actif : orange CTA
+        const label = boostCount > 0 ? `🔥 ${boostCount}` : '🔥 Booster';
+        boostBtn = `<button id="boost-btn-${escapeAttr(sugg.id)}" onclick="boostSuggestion('${escapeAttr(sugg.id)}','${escapeAttr(sugg.title)}')" style="font-size:9px;font-weight:800;color:#ff6b35;background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.2);border-radius:20px;padding:3px 9px;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,107,53,0.2)';this.style.borderColor='rgba(255,107,53,0.5)'" onmouseout="this.style.background='rgba(255,107,53,0.08)';this.style.borderColor='rgba(255,107,53,0.2)'">${label}</button>`;
       }
 
       const c = configs[sugg.status] || configs.pending;
@@ -1930,6 +1935,22 @@ async function boostSuggestion(suggId, title) {
   }
   console.log('[BOOST] click', { suggId, guestId, guestName, title });
 
+  // ★ Fix Z6: instant optimistic turquoise feedback (before network round-trip)
+  const btn = document.getElementById(`boost-btn-${suggId}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.style.color = '#14B8A6';
+    btn.style.background = 'rgba(20,184,166,0.18)';
+    btn.style.border = '1.5px solid rgba(20,184,166,0.5)';
+    btn.textContent = '🔥✓ Boostée';
+    // Pulse animation
+    btn.animate([
+      { transform: 'scale(1)',    opacity: 1   },
+      { transform: 'scale(1.2)', opacity: 0.9 },
+      { transform: 'scale(1)',    opacity: 1   }
+    ], { duration: 300, easing: 'ease-out' });
+  }
+
   try {
     const res = await fetch(`${window.RELAY_URL || ''}/api/party/${code}/suggestion/${suggId}/boost`, {
       method: 'POST',
@@ -1940,6 +1961,14 @@ async function boostSuggestion(suggId, title) {
     console.log('[BOOST] response', res.status, json);
     if (!res.ok) {
       showSuggestionToast(json.error || 'Erreur boost', 'pending');
+      // Revert on error
+      if (btn) {
+        btn.disabled = false;
+        btn.style.color = '#ff6b35';
+        btn.style.background = 'rgba(255,107,53,0.08)';
+        btn.style.border = '1px solid rgba(255,107,53,0.2)';
+        btn.textContent = '🔥 Booster';
+      }
       return;
     }
     // Optimistic update local — search ALL suggestions (mine + others)

@@ -1574,10 +1574,16 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   sugg.boostedBy.push(guestId);
   party.isDirty = true;
 
-  // Gamification : +3 pts au boosteur, +1 pt au suggéreur original
-  addPoints(party, guestId, guestName, 3, `boost: ${sugg.title}`);
-  if (sugg.guestId && sugg.guestId !== 'host') {
-    addPoints(party, sugg.guestId, sugg.guestName || 'Guest', 1, `boost reçu: ${sugg.title}`);
+  // Gamification :
+  // - Guest boost  → +3 pts au boosteur, +1 pt au suggéreur
+  // ★ Z7: Host boost → 0 pts au host (DJ), +3 pts au suggéreur (validation DJ = signal fort)
+  const isHostBoost = (guestId || '').startsWith('host:') || guestId === 'host';
+  if (!isHostBoost) {
+    addPoints(party, guestId, guestName, 3, `boost: ${sugg.title}`);
+  }
+  const suggesterPoints = isHostBoost ? 3 : 1; // Host boost = +3 au suggéreur (signal fort)
+  if (sugg.guestId && sugg.guestId !== 'host' && !sugg.guestId.startsWith('host:')) {
+    addPoints(party, sugg.guestId, sugg.guestName || 'Guest', suggesterPoints, `boost reçu: ${sugg.title}`);
   }
 
   // Broadcast à toute la soirée (host room + guest room)
@@ -1585,7 +1591,8 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   io.to(code).emit('party:state', updatedState);
   io.to(`host:${code}`).emit('party:state', updatedState);
 
-  console.log(`[${code}] 🔥 Boost: "${sugg.title}" → ${sugg.boostCount} boost(s) par ${guestName}`);
+  const boostLabel = isHostBoost ? '🎧 Host-boost' : '🔥 Boost';
+  console.log(`[${code}] ${boostLabel}: "${sugg.title}" → ${sugg.boostCount} boost(s) par ${guestName}`);
   res.json({ ok: true, boostCount: sugg.boostCount, suggId });
 });
 
