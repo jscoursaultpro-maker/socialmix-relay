@@ -80,9 +80,9 @@
         <option value="none">Sans Phase</option>
         <option value="arrival">Arrival</option>
         <option value="ambiance">Ambiance</option>
-        <option value="groove">Groove</option>
         <option value="takeoff">Takeoff</option>
-        <option value="peak">Peak</option>
+        <option value="groove">Groove</option>
+        <option value="party">Party</option>
         <option value="closing">Closing</option>
       </select>
     </div>
@@ -227,9 +227,9 @@
               <option value="" ${!t.phase ? 'selected' : ''}>-- Sans Phase --</option>
               <option value="arrival" ${t.phase === 'arrival' ? 'selected' : ''}>Arrival</option>
               <option value="ambiance" ${t.phase === 'ambiance' ? 'selected' : ''}>Ambiance</option>
-              <option value="groove" ${t.phase === 'groove' ? 'selected' : ''}>Groove</option>
               <option value="takeoff" ${t.phase === 'takeoff' ? 'selected' : ''}>Takeoff</option>
-              <option value="peak" ${t.phase === 'peak' ? 'selected' : ''}>Peak</option>
+              <option value="groove" ${t.phase === 'groove' ? 'selected' : ''}>Groove</option>
+              <option value="party" ${t.phase === 'party' ? 'selected' : ''}>Party</option>
               <option value="closing" ${t.phase === 'closing' ? 'selected' : ''}>Closing</option>
             </select>
           </td>
@@ -238,9 +238,9 @@
               <option value="" ${!t.phaseAlternate && !t.phaseAlt ? 'selected' : ''}>-- Optionnel --</option>
               <option value="arrival" ${t.phaseAlternate === 'arrival' || t.phaseAlt === 'arrival' ? 'selected' : ''}>Arrival</option>
               <option value="ambiance" ${t.phaseAlternate === 'ambiance' || t.phaseAlt === 'ambiance' ? 'selected' : ''}>Ambiance</option>
-              <option value="groove" ${t.phaseAlternate === 'groove' || t.phaseAlt === 'groove' ? 'selected' : ''}>Groove</option>
               <option value="takeoff" ${t.phaseAlternate === 'takeoff' || t.phaseAlt === 'takeoff' ? 'selected' : ''}>Takeoff</option>
-              <option value="peak" ${t.phaseAlternate === 'peak' || t.phaseAlt === 'peak' ? 'selected' : ''}>Peak</option>
+              <option value="groove" ${t.phaseAlternate === 'groove' || t.phaseAlt === 'groove' ? 'selected' : ''}>Groove</option>
+              <option value="party" ${t.phaseAlternate === 'party' || t.phaseAlt === 'party' ? 'selected' : ''}>Party</option>
               <option value="closing" ${t.phaseAlternate === 'closing' || t.phaseAlt === 'closing' ? 'selected' : ''}>Closing</option>
             </select>
           </td>
@@ -386,13 +386,13 @@
       const container = document.getElementById('stats-container');
       container.innerHTML = '';
       
-      const phases = ['arrival', 'ambiance', 'groove', 'takeoff', 'peak', 'closing', null];
+      const phases = ['arrival', 'ambiance', 'takeoff', 'groove', 'party', 'closing', null];
       const targets = {
         arrival: 60,
         ambiance: 100,
         takeoff: 50,
         groove: 100,
-        peak: 100,
+        party: 100,
         closing: 50
       };
       

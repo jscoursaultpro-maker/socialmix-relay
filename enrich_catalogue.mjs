@@ -11,7 +11,7 @@ import fs from 'fs';
 import https from 'https';
 
 const SPOTIFY_CLIENT_ID = '2c7bee5534134542adce16efcf986fb4';
-const SPOTIFY_CLIENT_SECRET = '6d710f4e0bb34a7b815b07332b66eb30';
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
 const BASE_V3_PATH = './curated_base_v3.json';
 const OUTPUT_PATH = './curated_base_v4.json';

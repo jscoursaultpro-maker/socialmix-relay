@@ -23,7 +23,7 @@ async function run() {
     return performRollback(rollbackTarget);
   }
 
-  await mongoose.connect(process.env.MONGO_URI);
+  await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI);
   
   // 1. EXPORT from MongoDB — only Platine + Complète
   console.log('[Sync] ⏳ Fetching tracks from MongoDB (Platine + Complète only)...');

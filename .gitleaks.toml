@@ -1,0 +1,26 @@
+title = "AhOuai gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "ahouai-mongodb-uri"
+description = "MongoDB connection string with credentials"
+regex = '''mongodb(\+srv)?://[^:]+:[^@]+@'''
+tags = ["mongodb", "credentials"]
+
+[[rules]]
+id = "ahouai-hex-secret-32"
+description = "32-char hex secret (Spotify-like)"
+regex = '''['"][0-9a-f]{32}['"]'''
+tags = ["secret", "hex"]
+
+[[rules]]
+id = "ahouai-secret-assignment"
+description = "Suspicious secret assignment"
+regex = '''(password|secret|token|api_?key)\s*[=:]\s*['"][^'"\s]{12,}['"]'''
+tags = ["secret"]
+
+[allowlist]
+description = "Allowlist paths"
+paths = ['''node_modules/''', '''\.git/''', '''package-lock\.json''']

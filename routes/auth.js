@@ -25,8 +25,10 @@ function getAppleSigningKey(header, callback) {
   });
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_dev';
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'fallback_refresh_for_dev';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET env var required');
+const REFRESH_SECRET = process.env.REFRESH_SECRET;
+if (!REFRESH_SECRET) throw new Error('REFRESH_SECRET env var required');
 
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 

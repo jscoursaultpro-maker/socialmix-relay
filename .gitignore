@@ -11,3 +11,6 @@ list_parties.js
 
 # Backups physiques (avant fixes Antigravity)
 .backups/
+# Local backups (do not commit)
+backups/
+*.bak.*
