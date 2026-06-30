@@ -2340,6 +2340,9 @@ io.on('connection', (socket) => {
       existing.lifecycle.status = 'live';
       existing.lifecycle.lastActivityAt = new Date().toISOString();
       existing.isPreParty = false;
+      // ★ A1 fix: persist isPreParty=false en BDD IMMÉDIATEMENT
+      Party.findOneAndUpdate({ code }, { isPreParty: false }, { upsert: false })
+        .catch(err => console.error(`[${code}] ⚠️ Persist isPreParty (RESUME) failed:`, err.message));
 
       // Update host participant entry with new socket id
       const hostIdx = existing.participants.findIndex(p => p.isHost);
@@ -2399,9 +2402,12 @@ io.on('connection', (socket) => {
           restoredParty.partyType = dbParty.partyType || 'hosted';
           restoredParty.sessionTokens = dbParty.sessionTokens || {};
           restoredParty.createdAt = dbParty.createdAt ? new Date(dbParty.createdAt).toISOString() : restoredParty.createdAt;
-          restoredParty.isDirty = false;
+          restoredParty.isDirty = true; // ★ A1 fix: forcer flush MongoDB pour persister isPreParty=false
           restoredParty.hostSocketId = socket.id;
           restoredParty.isPreParty = false;
+          // ★ A1 fix: persist isPreParty=false en BDD IMMÉDIATEMENT
+          Party.findOneAndUpdate({ code }, { isPreParty: false }, { upsert: false })
+            .catch(err => console.error(`[${code}] ⚠️ Persist isPreParty (RECOVERED) failed:`, err.message));
           restoredParty.lifecycle.status = 'live';
           restoredParty.lifecycle.lastActivityAt = new Date().toISOString();
 
@@ -2438,6 +2444,9 @@ io.on('connection', (socket) => {
     party.hostSocketId = socket.id;
     party.hostProfile = data.profile || null;
     party.isPreParty = false;
+    // ★ A1 fix: persist isPreParty=false en BDD IMMÉDIATEMENT (NEW party)
+    Party.findOneAndUpdate({ code }, { isPreParty: false }, { upsert: false })
+      .catch(err => console.error(`[${code}] ⚠️ Persist isPreParty (NEW) failed:`, err.message));
 
     parties.set(code, party);
 
