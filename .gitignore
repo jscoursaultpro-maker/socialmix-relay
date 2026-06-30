@@ -13,3 +13,4 @@ list_parties.js
 .backups/
 # Local backups (do not commit)
 backups/
+*.bak.*
