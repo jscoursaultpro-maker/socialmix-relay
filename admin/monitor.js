@@ -49,7 +49,7 @@ let isPlaying = false;
 let sessionStats = { startTime: Date.now(), count: 0 };
 
 const GENRES = ['House','Electro','Disco','Pop','Hip-Hop','R&B','Latin','Reggaeton','Afro','Rock','COCOVARIET','Chill','Ambient','Jazz','Classical','Folk, World, & Country','Non-Music','Unknown'];
-const PHASES = ['arrival','ambiance','takeoff','groove','peak','closing'];
+const PHASES = ['arrival','ambiance','takeoff','groove','party','closing'];
 const UI_CATEGORIES = ["Chill", "Pop", "Rock", "Rap", "Latin", "Old school", "Urban Groove", "Dance", "Électro"];
 const ERAS = ["50s", "60s", "70s", "80s", "90s", "2000s", "2010s", "2020s"];
 const MOODS = ["fun", "emotional", "aggressive", "chill"];
@@ -669,7 +669,7 @@ function sortTable(col) {
     window._tableSortDir = 'asc';
   }
 
-  const phaseOrder = ['arrival', 'ambiance', 'takeoff', 'groove', 'peak', 'party', 'closing'];
+  const phaseOrder = ['arrival', 'ambiance', 'takeoff', 'groove', 'party', 'closing'];
   const qualityOrder = ['vide', 'partielle', 'complete', 'platine'];
 
   tracks.sort((a, b) => {
@@ -727,7 +727,7 @@ function renderTable() {
     const q = t.qualityLevel || 'vide';
     const qStr = q === 'vide' ? '🔴' : q === 'partielle' ? '🟡' : q === 'complete' ? '✅' : '⭐';
 
-    const phaseEmoji = {'arrival':'🌅','ambiance':'🥂','takeoff':'🚀','groove':'💃','peak':'🔥','party':'🔥','closing':'🌙'};
+    const phaseEmoji = {'arrival':'🌅','ambiance':'🥂','takeoff':'🚀','groove':'💃','party':'🔥','closing':'🌙'};
     const phaseStr = t.phase ? `${phaseEmoji[t.phase]||''} ${t.phase}` : '-';
     const phaseAltStr = t.phaseAlternate ? `${phaseEmoji[t.phaseAlternate]||''} ${t.phaseAlternate}` : '-';
 

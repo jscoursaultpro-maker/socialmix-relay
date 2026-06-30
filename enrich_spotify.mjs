@@ -21,7 +21,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const SPOTIFY_CLIENT_ID     = '2c7bee5534134542adce16efcf986fb4';
-const SPOTIFY_CLIENT_SECRET = '6d710f4e0bb34a7b815b07332b66eb30';
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const DB_PATH               = path.join(__dirname, './curated_base_v3.json');
 
 // ── Délais ultra-sécurisés ───────────────────────────────
