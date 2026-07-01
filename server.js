@@ -188,6 +188,25 @@ const io = new Server(server, {
 const parties = new Map();           // code → PartyState
 const partyCleanupTimers = new Map(); // code → setTimeout ID
 
+// ★ A3a — Idempotence cache: partyCode → Set of last 500 eventIds
+const seenEventIds = new Map(); // code → Set<string>
+const SEEN_EVENTIDS_CAP = 500;
+
+function checkAndRegisterEventId(partyCode, eventId) {
+  if (!eventId) return { isDuplicate: false };
+  const id = String(eventId).toLowerCase();
+  if (!seenEventIds.has(partyCode)) seenEventIds.set(partyCode, new Set());
+  const seen = seenEventIds.get(partyCode);
+  if (seen.has(id)) return { isDuplicate: true };
+  seen.add(id);
+  // Sliding window: evict oldest entries when over cap
+  if (seen.size > SEEN_EVENTIDS_CAP) {
+    const oldest = seen.values().next().value;
+    seen.delete(oldest);
+  }
+  return { isDuplicate: false };
+}
+
 function markDirty(party) { if (party) party.isDirty = true; }
 
 function getLocalIP() {
@@ -3003,8 +3022,16 @@ io.on('connection', (socket) => {
     console.log(`🔄 [${party.code}] Host requested state resync`);
   });
 
-  socket.on('guest:vote', (data) => {
-    const party = getMutableParty(socket); if (!party) return;
+  socket.on('guest:vote', (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    
+    // ★ A3a — Idempotence guard
+    const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
+    if (isDuplicate) {
+      console.log(`[${party.code}] ♻️  guest:vote DUPLICATE eventId=${data.eventId}`);
+      return cb({ ok: true, duplicate: true, eventId: data.eventId });
+    }
     updateActivity(party);
     if (!party.guestVotes[data.guestId]) party.guestVotes[data.guestId] = {};
     party.guestVotes[data.guestId][data.trackId || 'current'] = data.type;
@@ -3038,10 +3065,19 @@ io.on('connection', (socket) => {
       else if (data.type === 'like') entry.cool++;
       else if (data.type === 'meh') entry.bof++;
     }
+    cb({ ok: true, eventId: data.eventId });
   });
 
-  socket.on('guest:genreVote', (data) => {
-    const party = getMutableParty(socket); if (!party) return;
+  socket.on('guest:genreVote', (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    
+    // ★ A3a — Idempotence guard
+    const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
+    if (isDuplicate) {
+      console.log(`[${party.code}] ♻️  guest:genreVote DUPLICATE eventId=${data.eventId}`);
+      return cb({ ok: true, duplicate: true, eventId: data.eventId });
+    }
     updateActivity(party);
     const voterKey = data.guestName || data.guestId || socket.id;
     const genre = data.genre;
@@ -3065,6 +3101,7 @@ io.on('connection', (socket) => {
     });
     io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: totals });
     io.to(`host:${party.code}`).emit('votes:update', { genreVotes: totals });
+    cb({ ok: true, eventId: data.eventId });
   });
 
   // Phase adjacency — a track is OK if its phase OR phaseAlternate is in this list
@@ -3077,10 +3114,17 @@ io.on('connection', (socket) => {
     closing:  ['closing', 'ambiance', 'arrival']
   };
 
-  socket.on('guest:suggest', async (data) => {
-    const party = getMutableParty(socket); if (!party) return;
+  socket.on('guest:suggest', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     updateActivity(party);
-
+    
+    // ★ A3a — Idempotence guard
+    const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
+    if (isDuplicate) {
+      console.log(`[${party.code}] ♻️  guest:suggest DUPLICATE eventId=${data.eventId}`);
+      return cb({ ok: true, duplicate: true, eventId: data.eventId });
+    }
     const title    = data.title  || data.query || '';
     const artist   = data.artist || '';
     const deezerID = data.deezerID || 0;
@@ -3199,6 +3243,7 @@ io.on('connection', (socket) => {
 
     const hostSockets = io.sockets.adapter.rooms.get(hostRoom);
     console.log(`[${party.code}] SUGGEST: "${title}" by ${data.guestName || '?'} -> host has ${hostSockets ? hostSockets.size : 0} socket(s)`);
+    cb({ ok: true, eventId: data.eventId });
   });
 
   // FIX FAILLE 3 — Host self-suggestion sync to MongoDB
@@ -3492,10 +3537,17 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('guest:photo', async (data) => {
-    const party = getMutableParty(socket); if (!party) return;
+  socket.on('guest:photo', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     updateActivity(party);
     
+    // ★ A3a — Idempotence guard
+    const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
+    if (isDuplicate) {
+      console.log(`[${party.code}] ♻️  guest:photo DUPLICATE eventId=${data.eventId}`);
+      return cb({ ok: true, duplicate: true, eventId: data.eventId });
+    }
     // Payload size guard — reject > 500KB base64 (~375KB raw)
     const payloadSize = (data.dataURL || '').length;
     if (payloadSize > 500 * 1024) {
@@ -3574,6 +3626,7 @@ io.on('connection', (socket) => {
       console.error(`📸 [${party.code}] Photo UPLOAD FAILED`, err);
       socket.emit('photo:error', { error: 'UPLOAD_FAILED', message: '📸 Échec du téléchargement de la photo.' });
     }
+    cb({ ok: true, eventId: data.eventId });
   });
 
   socket.on('guest:deletePhoto', (data) => {
