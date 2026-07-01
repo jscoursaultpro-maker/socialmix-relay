@@ -2301,8 +2301,9 @@ function buildLightState(party, isHost = false) {
     photo: p.photo
   }));
 
-  // Cap track history: full for host (AfterGlow), last 20 for guests (network safety)
-  const historyCap = isHost ? -500 : -20;
+  // Cap track history: full for host (AfterGlow), last 50 for guests (network safety + late-joiner vibe)
+  // ★ A9-11: -20 → -50 for guests — a late-joiner sees ~2h of history instead of ~1h, better context
+  const historyCap = isHost ? -500 : -50;
   const recentHistory = (party.trackHistory || []).slice(historyCap);
 
   const light = {
@@ -2638,12 +2639,25 @@ io.on('connection', (socket) => {
           // We will use dj_brain_auto as default fallback
       }
 
+      // ★ A9-7 — Snapshot vote counts at the moment the track is archived
+      // guestVotes: { guestId: { trackTitle: 'fire'|'like'|'meh' } }
+      // Aggregate votes for the PREVIOUS current track (track.title = the one now being archived)
+      const snapTitle = (track.title || '').trim();
+      const voteSnapshot = { fireCount: 0, likeCount: 0, mehCount: 0 };
+      for (const gId in party.guestVotes) {
+        const voteType = party.guestVotes[gId][snapTitle];
+        if (voteType === 'fire') voteSnapshot.fireCount++;
+        else if (voteType === 'like') voteSnapshot.likeCount++;
+        else if (voteType === 'meh') voteSnapshot.mehCount++;
+      }
+
       party.trackHistory = cappedUnshift(party.trackHistory, {
         ...track,
         playedAt: new Date().toISOString(),
         requestedBy,
         source: historySource,
-        phase: party.currentPhase || 'unknown'  // ★ Bug 6 fix — persist phase for audit
+        phase: party.currentPhase || 'unknown',  // ★ Bug 6 fix — persist phase for audit
+        ...voteSnapshot                           // ★ A9-7 — persist vote snapshot
       }, 500);
       addPoints(party, 'host', 'DJ', 15, 'nouveau titre : ' + track.title);
 
@@ -2741,7 +2755,21 @@ io.on('connection', (socket) => {
       liveTrack.requestedBy = requestedBy;
       
       // Append to trackHistory (at index 0)
-      party.trackHistory = cappedUnshift(party.trackHistory, liveTrack, 500);
+      // ★ A9-6 — inject phase at push time (liveTrack from client has no phase field)
+      // ★ A9-7 — snapshot vote counts for the liveTrack being archived
+      const liveSnapTitle = (liveTrack.title || '').trim();
+      const liveVoteSnapshot = { fireCount: 0, likeCount: 0, mehCount: 0 };
+      for (const gId in party.guestVotes) {
+        const voteType = party.guestVotes[gId][liveSnapTitle];
+        if (voteType === 'fire') liveVoteSnapshot.fireCount++;
+        else if (voteType === 'like') liveVoteSnapshot.likeCount++;
+        else if (voteType === 'meh') liveVoteSnapshot.mehCount++;
+      }
+      party.trackHistory = cappedUnshift(party.trackHistory, {
+        ...liveTrack,
+        phase: party.currentPhase || 'unknown',
+        ...liveVoteSnapshot
+      }, 500);
       addPoints(party, 'host', 'DJ', 20, 'Mix Live Track: ' + liveTrack.title);
     }
     
