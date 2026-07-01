@@ -18,7 +18,7 @@ let socket = null;
 const pendingEvents = new Map(); // eventId → {event, payload, sentAt, attempts}
 const PENDING_CAP = 50;
 
-function emitWithAck(event, payload) {
+function emitWithAck(event, payload, onAck) {
   const eventId = payload.eventId || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).slice(2));
   payload.eventId = eventId;
 
@@ -37,9 +37,12 @@ function emitWithAck(event, payload) {
   socket.emit(event, payload, (ack) => {
     if (ack && ack.ok) {
       pendingEvents.delete(eventId);
-    } else {
+    } else if (!ack?.error) {
+      // Pas d'erreur métier mais pas de ok = timeout/problème réseau -> retry
       scheduleRetryWeb(eventId, 1);
     }
+    // Dans tous les cas, appeler le callback appelant si fourni
+    if (typeof onAck === 'function') onAck(ack);
   });
 }
 
@@ -1808,6 +1811,18 @@ function sendSuggestion(deezerID, title, artist, coverURL, duration) {
     query: `${title} - ${artist}`,
     guestName: state.guestName,
     guestId: state.guestId
+  }, (ack) => {
+    // ★ A4 — Z11 dedup: feedback utilisateur sur refus serveur
+    if (!ack) return; // timeout/déconnecté = silence
+    if (ack.ok) {
+      showToast('✅ Suggestion envoyée au DJ !', 3000);
+    } else if (ack.error === 'already_played') {
+      showToast('🔁 ' + (ack.reason || 'Cette track a déjà été jouée ce soir'), 4000);
+    } else if (ack.error === 'already_suggested') {
+      showToast('🎵 ' + (ack.reason || 'Un autre invité a déjà proposé cette track'), 4000);
+    } else if (ack.error) {
+      showToast('⚠️ ' + (ack.reason || 'Suggestion refusée'), 4000);
+    }
   });
   
   console.log(`[Suggest] ✅ Sent: ${title} by ${artist} (ID: ${deezerID})`);

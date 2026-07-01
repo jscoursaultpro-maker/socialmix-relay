@@ -3169,35 +3169,30 @@ io.on('connection', (socket) => {
     const artist   = data.artist || '';
     const deezerID = data.deezerID || 0;
 
-    // 1. Deja joue ce soir ?
+    // ★ A4 — Z11 dedup niveau 1: déjà joué ce soir ?
+    // Check via playedKeys (deezerID) ET title (fallback sans deezerID)
     const alreadyPlayed = (party.playedKeys || []).some(k =>
-      k === String(deezerID)
+      deezerID > 0 && k === String(deezerID)
     ) || party.trackHistory.some(t =>
       (t.title || '').toLowerCase() === title.toLowerCase()
     );
     if (alreadyPlayed) {
-      socket.emit('suggestion:status', {
-        title, artist, status: 'already_played',
-        message: 'Ce titre a déjà été joué ce soir !'
-      });
-      if (data.guestId || data.guestName)
-        addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 2, `suggest (deja joue): ${title}`);
-      return;
+      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'rejected' });
+      return cb({ ok: false, error: 'already_played', reason: 'Cette track a déjà été jouée ce soir' });
     }
 
-    // 2. Deja en queue ?
-    const alreadyQueued = party.suggestions.some(s =>
+    // ★ A4 — Z11 dedup niveau 2: déjà en attente dans la queue ?
+    const alreadyQueued = party.suggestions.find(s =>
       (s.title || '').toLowerCase() === title.toLowerCase() &&
       ['pending', 'queued', 'next'].includes(s.status)
     );
     if (alreadyQueued) {
-      socket.emit('suggestion:status', {
-        title, artist, status: 'duplicate',
-        message: "Quelqu'un l'a déjà demandé — ça monte dans la liste !"
+      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'rejected' });
+      return cb({
+        ok: false,
+        error: 'already_suggested',
+        reason: `${alreadyQueued.guestName || 'Un autre invité'} a déjà suggéré cette track`
       });
-      if (data.guestId || data.guestName)
-        addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 2, `suggest (doublon): ${title}`);
-      return;
     }
 
     // 3. Enregistrer la suggestion
