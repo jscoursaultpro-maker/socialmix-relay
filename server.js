@@ -16,6 +16,7 @@ import Track from './models/Track.js';
 import HostPreference from './models/HostPreference.js';
 import { Photo } from './models/Photo.js';
 import { EventLog } from './models/EventLog.js'; // ★ A3c — Structured audit trail
+import { AudioEvent } from './models/AudioEvent.js'; // ★ A6a — Audio pipeline audit
 import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRESS_METRICS=1
 import { uploadPhoto } from './services/cloudinaryService.js';
 import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
@@ -1684,6 +1685,41 @@ app.get('/api/party/:code/audit', async (req, res) => {
     res.json({ ok: true, partyCode: code, count: events.length, events });
   } catch (err) {
     console.error('[Audit GET] error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ★ A6a — GET /api/party/:code/audio-events?date=YYYY-MM-DD&type=...&hostSecret=...
+app.get('/api/party/:code/audio-events', async (req, res) => {
+  const code = (req.params.code || '').toUpperCase();
+  const { date, type, hostSecret } = req.query;
+
+  if (!hostSecret) return res.status(401).json({ error: 'hostSecret required' });
+  try {
+    const dbParty = await Party.findOne({ code, endedAt: null }).select('hostSecret').lean();
+    const activeParty = parties.get(code);
+    const secret = dbParty?.hostSecret || activeParty?.hostSecret;
+    if (!secret || secret !== hostSecret) return res.status(403).json({ error: 'Unauthorized' });
+
+    const filter = { partyCode: code };
+    if (type) filter.eventType = type;
+    if (date) {
+      const day = new Date(date);
+      filter.ts = {
+        $gte: new Date(day.setHours(0, 0, 0, 0)),
+        $lte: new Date(day.setHours(23, 59, 59, 999))
+      };
+    }
+
+    const events = await AudioEvent.find(filter)
+      .sort({ ts: 1 })
+      .limit(10000)
+      .lean()
+      .select('-__v');
+
+    res.json({ ok: true, partyCode: code, count: events.length, events });
+  } catch (err) {
+    console.error('[AudioEvents GET] error:', err.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -3433,6 +3469,39 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ★ A6a — Audio pipeline events (crossfade, gap, watchdog, preQueue)
+  // Pattern A3a: idempotent eventId, ack callback
+  socket.on('host:audioEvent', (data, cb) => {
+    const callback = typeof cb === 'function' ? cb : () => {};
+    const { eventId, code, type, meta } = data || {};
+
+    if (!code || !type) return callback({ ok: false, error: 'missing_fields' });
+
+    // Idempotent dedup (in-memory, same session)
+    if (eventId) {
+      const key = `${code}:${String(eventId).toLowerCase()}`;
+      if (seenAudioEventIds.has(key)) {
+        return callback({ ok: true, duplicate: true });
+      }
+      seenAudioEventIds.add(key);
+      if (seenAudioEventIds.size > 2000) {
+        // Evict oldest (Set preserves insertion order)
+        seenAudioEventIds.delete(seenAudioEventIds.values().next().value);
+      }
+    }
+
+    logAudioEvent({
+      partyCode: code,
+      hostId: socket.id,
+      eventType: type,
+      eventId: eventId || undefined,
+      meta: meta || {}
+    });
+
+    console.log(`[AudioEvent] ${code} / ${type}`, JSON.stringify(meta || {}).slice(0, 120));
+    callback({ ok: true });
+  });
+
   // ★ Phase 3 — Host preferences update
   socket.on('host:updatePreferences', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
@@ -3980,6 +4049,31 @@ async function boot() {
     }
   }
   setInterval(flushEventLogs, 2000);
+
+  // ★ A6a — AudioEvent buffer + flush (batch 2s, pattern A3c)
+  const audioEventBuffer = [];
+  const seenAudioEventIds = new Set(); // In-memory dedup (cap 2000)
+  async function flushAudioEvents() {
+    if (audioEventBuffer.length === 0) return;
+    const batch = audioEventBuffer.splice(0, audioEventBuffer.length);
+    try {
+      await AudioEvent.insertMany(batch, { ordered: false });
+    } catch (err) {
+      if (err.code !== 11000) console.error('[AudioEvent] flush error:', err.message);
+    }
+  }
+  setInterval(flushAudioEvents, 2000);
+
+  function logAudioEvent({ partyCode, hostId, eventType, eventId, meta }) {
+    audioEventBuffer.push({
+      ts: new Date(),
+      partyCode: (partyCode || '').toUpperCase(),
+      hostId: hostId || undefined,
+      eventType: eventType || 'other',
+      eventId: eventId ? String(eventId).toLowerCase() : undefined,
+      meta: meta || {}
+    });
+  }
 
   function logEvent({ partyCode, eventType, eventId, guestId, decision }) {
     eventLogBuffer.push({
