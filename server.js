@@ -2405,6 +2405,7 @@ io.on('connection', (socket) => {
           restoredParty.currentTrack = dbParty.currentTrack || null;
           restoredParty.nextTrack = dbParty.nextTrack || null;
           restoredParty.trackHistory = dbParty.trackHistory || [];
+          restoredParty.currentPhase = dbParty.currentPhase || 'arrival'; // ★ fix(critical): restore phase post-crash (bug AS8SF5)
           restoredParty.genreVotes = dbParty.genreVotes || {};
           restoredParty.vibeScore = dbParty.vibeScore || 0;
           restoredParty.participants = dbParty.participants || [];
