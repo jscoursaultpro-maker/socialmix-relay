@@ -13,6 +13,50 @@ const EMOJIS = ['🎉','🕺','💃','🎶','🌟','🤩','😎','🎭','🔥','
 
 // ─── State ───────────────────────────────────────────
 let socket = null;
+
+// ★ A3b — Pending event queue (crash-recovery anti-perte d'événements)
+const pendingEvents = new Map(); // eventId → {event, payload, sentAt, attempts}
+const PENDING_CAP = 50;
+
+function emitWithAck(event, payload) {
+  const eventId = payload.eventId || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+  payload.eventId = eventId;
+
+  if (!pendingEvents.has(eventId)) {
+    if (pendingEvents.size >= PENDING_CAP) {
+      pendingEvents.delete(pendingEvents.keys().next().value); // FIFO drop oldest
+    }
+    pendingEvents.set(eventId, { event, payload, sentAt: Date.now(), attempts: 0 });
+  }
+
+  if (!socket || !socket.connected) {
+    console.log('[A3b] Socket déconnecté — event queued:', event, eventId.slice(0,8));
+    return;
+  }
+
+  socket.emit(event, payload, (ack) => {
+    if (ack && ack.ok) {
+      pendingEvents.delete(eventId);
+    } else {
+      scheduleRetryWeb(eventId, 1);
+    }
+  });
+}
+
+function scheduleRetryWeb(eventId, attempt) {
+  if (attempt > 3) { pendingEvents.delete(eventId); return; }
+  const delays = [1000, 3000, 9000];
+  const delay = delays[Math.min(attempt - 1, delays.length - 1)];
+  setTimeout(() => {
+    const pending = pendingEvents.get(eventId);
+    if (!pending || !socket || !socket.connected) return;
+    socket.emit(pending.event, pending.payload, (ack) => {
+      if (ack && ack.ok) { pendingEvents.delete(eventId); }
+      else { scheduleRetryWeb(eventId, attempt + 1); }
+    });
+  }, delay);
+}
+
 let currentScreen = 'landing';
 let state = {
   guestId: null,
@@ -774,6 +818,17 @@ function connectToRelay() {
     }
     updateConnection('connected', 'Connecté');
     
+    // A3b — Rejouer les events en attente avant de rejoindre (tri par sentAt ASC)
+    if (pendingEvents.size > 0) {
+      const sorted = [...pendingEvents.values()].sort((a, b) => a.sentAt - b.sentAt);
+      console.log('[A3b] 🔄 Replaying', sorted.length, 'pending event(s) on reconnect...');
+      for (const pending of sorted) {
+        socket.emit(pending.event, pending.payload, (ack) => {
+          if (ack && ack.ok) pendingEvents.delete(pending.payload.eventId);
+        });
+      }
+    }
+    
     // Try to resume existing session first
     const resumeData = loadResumeSession();
     if (resumeData && resumeData.partyCode === state.partyCode) {
@@ -1395,7 +1450,7 @@ function setupVoteButtons() {
           trackId: state.currentTrack?.title || 'current',
           trackTitle: state.currentTrack?.title || 'Titre en cours'
         };
-        socket.emit('guest:vote', voteData);
+        emitWithAck('guest:vote', voteData);
         // Track own vote for engagement dashboard
         state.allVotes.push(voteData);
         updateEngagementFromVotes();
@@ -1447,7 +1502,7 @@ function setupGenreTrends() {
     banner.addEventListener('click', () => {
       state._genreVoteExpired = false;
       if (socket && socket.connected) {
-        socket.emit('guest:genreVote', {
+        emitWithAck('guest:genreVote', {
           genre: state.selectedGenre,
           guestName: state.guestName,
           guestId: state.guestId
@@ -1485,9 +1540,9 @@ function setupGenreTrends() {
 
       // Server handles all counting
       if (socket && socket.connected) {
-        socket.emit('guest:genreVote', {
-          genre: state.selectedGenre,       // null = cancel
-          previousGenre: previousGenre,     // what to decrement
+        emitWithAck('guest:genreVote', {
+          genre: state.selectedGenre,
+          previousGenre: previousGenre,
           guestName: state.guestName,
           guestId: state.guestId
         });
@@ -1744,7 +1799,7 @@ function sendSuggestion(deezerID, title, artist, coverURL, duration) {
   }
   
   // Send structured data to server
-  socket.emit('guest:suggest', {
+  emitWithAck('guest:suggest', {
     title: title,
     artist: artist,
     deezerID: deezerID,
@@ -3003,15 +3058,15 @@ function handleDiapoPhoto(e) {
     if (socket && socket.connected) {
       // ★ Fix bonus: cloudUrl is already a Cloudinary URL — send as 'url' (not dataURL)
       // so the server skips re-upload and broadcasts directly
-      socket.emit('guest:photo', {
+      emitWithAck('guest:photo', {
         url: cloudUrl,
-        dataURL: cloudUrl,   // backward-compat: server guard reads data.dataURL for size check
+        dataURL: cloudUrl,
         guestName: state.guestName,
         guestId: state.guestId
       });
       console.log('[Photo] Emitted to server');
     } else {
-      console.warn('[Photo] Socket not connected!');
+      console.warn('[Photo] Socket not connected — photo queued for reconnect');
     }
   });
 }
