@@ -15,6 +15,6 @@ const EventLogSchema = new mongoose.Schema({
 // TTL: auto-delete after 30 days
 EventLogSchema.index({ ts: 1 }, { expireAfterSeconds: 30 * 24 * 3600 });
 // Efficient query by party + date range
-EventLogSchema.index({ partyCode: 1, ts: 1 });
+EventLogSchema.index({ partyCode: 1, ts: -1 });
 
 export const EventLog = mongoose.model('EventLog', EventLogSchema);
