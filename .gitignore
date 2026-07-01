@@ -14,3 +14,4 @@ list_parties.js
 # Local backups (do not commit)
 backups/
 *.bak.*
+test-photo.js
