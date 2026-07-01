@@ -15,6 +15,7 @@ import Friendship from './models/Friendship.js';
 import Track from './models/Track.js';
 import HostPreference from './models/HostPreference.js';
 import { Photo } from './models/Photo.js';
+import { EventLog } from './models/EventLog.js'; // ★ A3c — Structured audit trail
 import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRESS_METRICS=1
 import { uploadPhoto } from './services/cloudinaryService.js';
 import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
@@ -1653,6 +1654,40 @@ app.get('/api/party/:code/photos', async (req, res) => {
   }
 });
 
+// ★ A3c — GET /api/party/:code/audit — EventLog post-mortem (host only, JWT)
+app.get('/api/party/:code/audit', async (req, res) => {
+  const code = (req.params.code || '').toUpperCase();
+  const { from, to, eventType, hostSecret } = req.query;
+
+  // Auth: hostSecret must match party in MongoDB
+  if (!hostSecret) return res.status(401).json({ error: 'hostSecret required' });
+  try {
+    const dbParty = await Party.findOne({ code, endedAt: null }).select('hostSecret').lean();
+    const activeParty = parties.get(code);
+    const secret = dbParty?.hostSecret || activeParty?.hostSecret;
+    if (!secret || secret !== hostSecret) return res.status(403).json({ error: 'Unauthorized' });
+
+    const filter = { partyCode: code };
+    if (eventType) filter.eventType = eventType;
+    if (from || to) {
+      filter.ts = {};
+      if (from) filter.ts.$gte = new Date(from);
+      if (to) filter.ts.$lte = new Date(new Date(to).setHours(23, 59, 59, 999));
+    }
+
+    const events = await EventLog.find(filter)
+      .sort({ ts: 1 })
+      .limit(10000)
+      .lean()
+      .select('-__v');
+
+    res.json({ ok: true, partyCode: code, count: events.length, events });
+  } catch (err) {
+    console.error('[Audit GET] error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.get('/api/party/:code/meta', async (req, res) => {
   const code = (req.params.code || '').toUpperCase();
   let party = parties.get(code);
@@ -3030,6 +3065,7 @@ io.on('connection', (socket) => {
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
     if (isDuplicate) {
       console.log(`[${party.code}] ♻️  guest:vote DUPLICATE eventId=${data.eventId}`);
+      logEvent({ partyCode: party.code, eventType: 'vote', eventId: data.eventId, guestId: data.guestId, decision: 'duplicate' });
       return cb({ ok: true, duplicate: true, eventId: data.eventId });
     }
     updateActivity(party);
@@ -3066,6 +3102,7 @@ io.on('connection', (socket) => {
       else if (data.type === 'meh') entry.bof++;
     }
     cb({ ok: true, eventId: data.eventId });
+    logEvent({ partyCode: party.code, eventType: 'vote', eventId: data.eventId, guestId: data.guestId, decision: 'accepted' });
   });
 
   socket.on('guest:genreVote', (data, callback) => {
@@ -3076,6 +3113,7 @@ io.on('connection', (socket) => {
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
     if (isDuplicate) {
       console.log(`[${party.code}] ♻️  guest:genreVote DUPLICATE eventId=${data.eventId}`);
+      logEvent({ partyCode: party.code, eventType: 'genreVote', eventId: data.eventId, guestId: data.guestId, decision: 'duplicate' });
       return cb({ ok: true, duplicate: true, eventId: data.eventId });
     }
     updateActivity(party);
@@ -3102,6 +3140,7 @@ io.on('connection', (socket) => {
     io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: totals });
     io.to(`host:${party.code}`).emit('votes:update', { genreVotes: totals });
     cb({ ok: true, eventId: data.eventId });
+    logEvent({ partyCode: party.code, eventType: 'genreVote', eventId: data.eventId, guestId: data.guestId, decision: 'accepted' });
   });
 
   // Phase adjacency — a track is OK if its phase OR phaseAlternate is in this list
@@ -3123,6 +3162,7 @@ io.on('connection', (socket) => {
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
     if (isDuplicate) {
       console.log(`[${party.code}] ♻️  guest:suggest DUPLICATE eventId=${data.eventId}`);
+      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'duplicate' });
       return cb({ ok: true, duplicate: true, eventId: data.eventId });
     }
     const title    = data.title  || data.query || '';
@@ -3244,6 +3284,7 @@ io.on('connection', (socket) => {
     const hostSockets = io.sockets.adapter.rooms.get(hostRoom);
     console.log(`[${party.code}] SUGGEST: "${title}" by ${data.guestName || '?'} -> host has ${hostSockets ? hostSockets.size : 0} socket(s)`);
     cb({ ok: true, eventId: data.eventId });
+    logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'accepted' });
   });
 
   // FIX FAILLE 3 — Host self-suggestion sync to MongoDB
@@ -3546,6 +3587,7 @@ io.on('connection', (socket) => {
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
     if (isDuplicate) {
       console.log(`[${party.code}] ♻️  guest:photo DUPLICATE eventId=${data.eventId}`);
+      logEvent({ partyCode: party.code, eventType: 'photo', eventId: data.eventId, guestId: data.guestId, decision: 'duplicate' });
       return cb({ ok: true, duplicate: true, eventId: data.eventId });
     }
     // Payload size guard — reject > 500KB base64 (~375KB raw)
@@ -3627,6 +3669,7 @@ io.on('connection', (socket) => {
       socket.emit('photo:error', { error: 'UPLOAD_FAILED', message: '📸 Échec du téléchargement de la photo.' });
     }
     cb({ ok: true, eventId: data.eventId });
+    logEvent({ partyCode: party.code, eventType: 'photo', eventId: data.eventId, guestId: data.guestId, decision: 'accepted' });
   });
 
   socket.on('guest:deletePhoto', (data) => {
@@ -3929,6 +3972,30 @@ async function boot() {
 
   // 4. Start flush loop
   startFlushLoop(parties);
+
+  // ★ A3c — EventLog batch flush (toutes les 2s pour ne pas écrire à chaque event)
+  const eventLogBuffer = [];
+  async function flushEventLogs() {
+    if (eventLogBuffer.length === 0) return;
+    const batch = eventLogBuffer.splice(0, eventLogBuffer.length);
+    try {
+      await EventLog.insertMany(batch, { ordered: false });
+    } catch (err) {
+      if (err.code !== 11000) console.error('[EventLog] flush error:', err.message);
+    }
+  }
+  setInterval(flushEventLogs, 2000);
+
+  function logEvent({ partyCode, eventType, eventId, guestId, decision }) {
+    eventLogBuffer.push({
+      ts: new Date(),
+      partyCode: (partyCode || '').toUpperCase(),
+      eventType,
+      eventId: eventId ? String(eventId).toLowerCase() : undefined,
+      guestId: guestId || undefined,
+      decision
+    });
+  }
 
   // ★ Phase 3: Start debounced rating flush (every 10 seconds)
   setInterval(async () => {
