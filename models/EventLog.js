@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 // ★ A3c — EventLog: structured audit trail per socket event
 // TTL 30 days via MongoDB TTL index on ts field
 const EventLogSchema = new mongoose.Schema({
-  ts:        { type: Date, default: Date.now, index: true },
+  ts:        { type: Date, default: Date.now },
   partyCode: { type: String, required: true, index: true },
   eventType: { type: String, required: true },       // 'vote' | 'suggest' | 'photo' | 'genreVote'
   eventId:   { type: String },                       // UUID from client (may be absent for legacy)
