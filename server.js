@@ -2286,7 +2286,9 @@ function stripSecret(obj) {
 // 2. Caps trackHistory to the last 20 entries
 // 3. Strips participants' profile photos (keep just name, emoji, id)
 // 4. Removes internal server fields
-function buildLightState(party) {
+// ★ A7-1: isHost=true → send full trackHistory (cap 500, all played tracks)
+//          isHost=false → keep slice(-20) to protect guest network payload
+function buildLightState(party, isHost = false) {
   // Lightweight participants
   const lightParticipants = (party.participants || []).map(p => ({
     id: p.id,
@@ -2299,8 +2301,9 @@ function buildLightState(party) {
     photo: p.photo
   }));
 
-  // Cap track history to last 20
-  const recentHistory = (party.trackHistory || []).slice(-20);
+  // Cap track history: full for host (AfterGlow), last 20 for guests (network safety)
+  const historyCap = isHost ? -500 : -20;
+  const recentHistory = (party.trackHistory || []).slice(historyCap);
 
   const light = {
     code: party.code,
@@ -2471,8 +2474,8 @@ io.on('connection', (socket) => {
       const guestCount = existing.participants.filter(p => !p.isHost).length;
       console.log(`🔄 Party RESUMED: ${code} (host: "${hostName}", secret: ****${lastFour}, guests: ${guestCount}, tracks: ${existing.trackHistory.length})`);
 
-      // Re-send lightweight state to host (no base64 photos)
-      socket.emit('party:state', buildLightState(existing));
+      // Re-send full state to host (isHost=true → slice(-500) trackHistory)
+      socket.emit('party:state', buildLightState(existing, true));
 
       // Notify guests the host is back
       io.to(`guest:${code}`).emit('party:started', { code, profile: existing.hostProfile });
@@ -2539,7 +2542,7 @@ io.on('connection', (socket) => {
           const guestCount = restoredParty.participants.filter(p => !p.isHost).length;
           console.log(`🔄 Party RECOVERED from MongoDB: ${code} (host: "${hostName}", tracks: ${restoredParty.trackHistory.length}, guests: ${guestCount})`);
 
-          socket.emit('party:state', buildLightState(restoredParty));
+          socket.emit('party:state', buildLightState(restoredParty, true)); // isHost: full trackHistory
           io.to(`guest:${code}`).emit('party:started', { code, profile: restoredParty.hostProfile });
           io.to(`guest:${code}`).emit('participants:update', restoredParty.participants);
           return;
@@ -3089,8 +3092,8 @@ io.on('connection', (socket) => {
 
   socket.on('host:requestState', (data) => {
     const party = getParty(socket); if (!party) return;
-    socket.emit('party:state', buildLightState(party));
-    console.log(`🔄 [${party.code}] Host requested state resync`);
+    socket.emit('party:state', buildLightState(party, true)); // isHost: full trackHistory
+    console.log(`🔄 [${party.code}] Host requested state resync (full trackHistory)`);
   });
 
   socket.on('guest:vote', (data, callback) => {
