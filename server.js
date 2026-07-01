@@ -14,6 +14,7 @@ import Party from './models/Party.js';
 import Friendship from './models/Friendship.js';
 import Track from './models/Track.js';
 import HostPreference from './models/HostPreference.js';
+import { Photo } from './models/Photo.js';
 import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRESS_METRICS=1
 import { uploadPhoto } from './services/cloudinaryService.js';
 import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
@@ -1613,6 +1614,24 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   const boostLabel = isHostBoost ? '🎧 Host-boost' : '🔥 Boost';
   console.log(`[${code}] ${boostLabel}: "${sugg.title}" → ${sugg.boostCount} boost(s) par ${guestName}`);
   res.json({ ok: true, boostCount: sugg.boostCount, suggId });
+});
+
+app.get('/api/party/:code/photos', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const photos = await Photo.find({ 
+      partyCode: code.toUpperCase(),
+      deletedAt: null
+    })
+    .sort({ sentAt: -1 })
+    .limit(500)
+    .lean();
+    
+    res.json({ success: true, count: photos.length, photos });
+  } catch (err) {
+    console.error('[Photos GET] error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 app.get('/api/party/:code/meta', async (req, res) => {
@@ -3480,8 +3499,32 @@ io.on('connection', (socket) => {
         sentAt: new Date().toISOString() 
       };
       
+      // ★ A2 fix: PERSIST en collection Photo
+      try {
+        const photoDoc = await Photo.create({
+          partyCode: party.code,
+          guestName: photo.guestName,
+          guestId: photo.guestId,
+          guestEmoji: data.guestEmoji || '',
+          url: photo.url,
+          publicId: photo.publicId || '',
+          width: photo.width || 0,
+          height: photo.height || 0,
+          sizeKB: Math.round((data.dataURL?.length || 0) / 1024) || 0,
+          caption: photo.caption || '',
+          uploadSource: data.source || 'live',
+        });
+        console.log(`📸 [${party.code}] Photo persisted to MongoDB: ${photoDoc._id}`);
+      } catch (err) {
+        console.error(`📸 [${party.code}] ❌ Photo persist failed:`, err.message);
+      }
+      
       // 2. Add to party (using cappedPush)
       party.photos = cappedPush(party.photos, photo, 200);
+      
+      // ★ A2 fix: Increment photoCount + mark dirty pour flush
+      party.photoCount = (party.photoCount || 0) + 1;
+      party.isDirty = true;
       
       const hostRoom = `host:${party.code}`;
       const hostSockets = io.sockets.adapter.rooms.get(hostRoom);
