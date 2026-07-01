@@ -2565,13 +2565,31 @@ io.on('connection', (socket) => {
     if (track && track.currentPhase && track.currentPhase !== party.currentPhase) {
       const newPhase = track.currentPhase.toLowerCase();
       const VALID_PHASES = ['arrival','ambiance','takeoff','groove','party','closing'];
+      const PHASE_RANKS = { arrival: 0, ambiance: 1, takeoff: 2, groove: 3, party: 4, closing: 5 };
+      
       if (VALID_PHASES.includes(newPhase)) {
-        party.currentPhase = newPhase;
-        party.isDirty = true;
-        const phaseState = buildLightState(party);
-        io.to(`guest:${party.code}`).emit('party:state', phaseState);
-        io.to(`host:${party.code}`).emit('party:state', phaseState);
-        console.log(`[${party.code}] 🎯 Phase auto-sync DJBrain -> ${newPhase}`);
+        const currentRank = PHASE_RANKS[party.currentPhase] ?? -1;
+        const newRank = PHASE_RANKS[newPhase] ?? -1;
+        
+        let allowed = true;
+        if (newRank < currentRank) {
+            allowed = false;
+            // Doctrine exception: bidirectional party <-> closing
+            if (party.currentPhase === 'closing' && newPhase === 'party') {
+                allowed = true;
+            }
+        }
+        
+        if (allowed) {
+            party.currentPhase = newPhase;
+            party.isDirty = true;
+            const phaseState = buildLightState(party);
+            io.to(`guest:${party.code}`).emit('party:state', phaseState);
+            io.to(`host:${party.code}`).emit('party:state', phaseState);
+            console.log(`[${party.code}] 🎯 Phase auto-sync DJBrain -> ${newPhase}`);
+        } else {
+            console.log(`[${party.code}] ⛔ Phase auto-sync REJECTED (anti-regression): ${party.currentPhase} -> ${newPhase}`);
+        }
       }
     }
 
@@ -2671,13 +2689,32 @@ io.on('connection', (socket) => {
   // Phase update from host — fired when DJ changes phase in CockpitView
   socket.on('host:phaseUpdate', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    party.currentPhase = data.phase || 'arrival';
-    party.isDirty = true;
-    console.log(`[${party.code}] Phase -> ${party.currentPhase}`);
-    // ★ Fix 2 — broadcaster party:state aux guests + host pour sync widget phase indicator
-    const phaseState = buildLightState(party);
-    io.to(`guest:${party.code}`).emit('party:state', phaseState);
-    io.to(`host:${party.code}`).emit('party:state', phaseState);
+    const newPhase = (data.phase || 'arrival').toLowerCase();
+    
+    const PHASE_RANKS = { arrival: 0, ambiance: 1, takeoff: 2, groove: 3, party: 4, closing: 5 };
+    const currentRank = PHASE_RANKS[party.currentPhase] ?? -1;
+    const newRank = PHASE_RANKS[newPhase] ?? -1;
+    
+    let allowed = true;
+    if (newRank < currentRank) {
+        allowed = false;
+        // Doctrine exception: bidirectional party <-> closing
+        if (party.currentPhase === 'closing' && newPhase === 'party') {
+            allowed = true;
+        }
+    }
+    
+    if (allowed) {
+        party.currentPhase = newPhase;
+        party.isDirty = true;
+        console.log(`[${party.code}] Phase -> ${party.currentPhase}`);
+        // ★ Fix 2 — broadcaster party:state aux guests + host pour sync widget phase indicator
+        const phaseState = buildLightState(party);
+        io.to(`guest:${party.code}`).emit('party:state', phaseState);
+        io.to(`host:${party.code}`).emit('party:state', phaseState);
+    } else {
+        console.log(`[${party.code}] ⛔ Phase update REJECTED (anti-regression): ${party.currentPhase} -> ${newPhase}`);
+    }
   });
 
   socket.on('host:genreVote', (data) => {
