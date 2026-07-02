@@ -2349,6 +2349,60 @@ function buildLightState(party, isHost = false) {
 
 
 
+// ─── ★ fix(critical): logEvent + logAudioEvent hoisted to MODULE SCOPE ──────
+// Root cause MRRNG7: these were declared inside async main() AFTER io.on closing
+// brace. Handlers inside io.on('connection') called logEvent at runtime but the
+// function lived in a different scope → ReferenceError → server crash (12+ times).
+// Buffers and functions must be at module scope so io.on closure can resolve them.
+// setInterval calls remain in main() (require MongoDB connection to be ready).
+
+// ★ A3c — EventLog batch buffer
+const eventLogBuffer = [];
+async function flushEventLogs() {
+  if (eventLogBuffer.length === 0) return;
+  const batch = eventLogBuffer.splice(0, eventLogBuffer.length);
+  try {
+    await EventLog.insertMany(batch, { ordered: false });
+  } catch (err) {
+    if (err.code !== 11000) console.error('[EventLog] flush error:', err.message);
+  }
+}
+
+function logEvent({ partyCode, eventType, eventId, guestId, decision }) {
+  eventLogBuffer.push({
+    ts: new Date(),
+    partyCode: (partyCode || '').toUpperCase(),
+    eventType,
+    eventId: eventId ? String(eventId).toLowerCase() : undefined,
+    guestId: guestId || undefined,
+    decision
+  });
+}
+
+// ★ A6a — AudioEvent batch buffer
+const audioEventBuffer = [];
+const seenAudioEventIds = new Set(); // In-memory dedup (cap 2000)
+async function flushAudioEvents() {
+  if (audioEventBuffer.length === 0) return;
+  const batch = audioEventBuffer.splice(0, audioEventBuffer.length);
+  try {
+    await AudioEvent.insertMany(batch, { ordered: false });
+  } catch (err) {
+    if (err.code !== 11000) console.error('[AudioEvent] flush error:', err.message);
+  }
+}
+
+function logAudioEvent({ partyCode, hostId, eventType, eventId, meta }) {
+  audioEventBuffer.push({
+    ts: new Date(),
+    partyCode: (partyCode || '').toUpperCase(),
+    hostId: hostId || undefined,
+    eventType: eventType || 'other',
+    eventId: eventId ? String(eventId).toLowerCase() : undefined,
+    meta: meta || {}
+  });
+}
+
 // ─── Socket.IO Connection Handling ──────────────────────────────────
 io.on('connection', (socket) => {
   console.log(`🔌 Connected: ${socket.id}`);
@@ -4068,54 +4122,11 @@ async function boot() {
   // 4. Start flush loop
   startFlushLoop(parties);
 
-  // ★ A3c — EventLog batch flush (toutes les 2s pour ne pas écrire à chaque event)
-  const eventLogBuffer = [];
-  async function flushEventLogs() {
-    if (eventLogBuffer.length === 0) return;
-    const batch = eventLogBuffer.splice(0, eventLogBuffer.length);
-    try {
-      await EventLog.insertMany(batch, { ordered: false });
-    } catch (err) {
-      if (err.code !== 11000) console.error('[EventLog] flush error:', err.message);
-    }
-  }
+  // ★ A3c — EventLog flush loop (2s) — must start AFTER MongoDB connect
   setInterval(flushEventLogs, 2000);
 
-  // ★ A6a — AudioEvent buffer + flush (batch 2s, pattern A3c)
-  const audioEventBuffer = [];
-  const seenAudioEventIds = new Set(); // In-memory dedup (cap 2000)
-  async function flushAudioEvents() {
-    if (audioEventBuffer.length === 0) return;
-    const batch = audioEventBuffer.splice(0, audioEventBuffer.length);
-    try {
-      await AudioEvent.insertMany(batch, { ordered: false });
-    } catch (err) {
-      if (err.code !== 11000) console.error('[AudioEvent] flush error:', err.message);
-    }
-  }
+  // ★ A6a — AudioEvent flush loop (2s) — must start AFTER MongoDB connect
   setInterval(flushAudioEvents, 2000);
-
-  function logAudioEvent({ partyCode, hostId, eventType, eventId, meta }) {
-    audioEventBuffer.push({
-      ts: new Date(),
-      partyCode: (partyCode || '').toUpperCase(),
-      hostId: hostId || undefined,
-      eventType: eventType || 'other',
-      eventId: eventId ? String(eventId).toLowerCase() : undefined,
-      meta: meta || {}
-    });
-  }
-
-  function logEvent({ partyCode, eventType, eventId, guestId, decision }) {
-    eventLogBuffer.push({
-      ts: new Date(),
-      partyCode: (partyCode || '').toUpperCase(),
-      eventType,
-      eventId: eventId ? String(eventId).toLowerCase() : undefined,
-      guestId: guestId || undefined,
-      decision
-    });
-  }
 
   // ★ Phase 3: Start debounced rating flush (every 10 seconds)
   setInterval(async () => {
