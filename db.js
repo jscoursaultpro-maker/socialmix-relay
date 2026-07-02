@@ -44,6 +44,7 @@ function partyToDoc(party) {
     hostSecret: party.hostSecret || '',
     partyType: party.partyType || 'hosted',
     mode: party.mode,
+    currentPhase: party.currentPhase || 'arrival',  // ★ fix(critical) — was missing, caused undefined in DB
     currentTrack: party.currentTrack,
     nextTrack: party.nextTrack,
     trackHistory: party.trackHistory,
@@ -70,6 +71,7 @@ function partyToDoc(party) {
 function docToPartyState(doc) {
   const party = createPartyState(doc.code);
   party.mode = doc.mode || 'appMix';
+  party.currentPhase = doc.currentPhase || 'arrival';  // ★ fix(critical) — restore phase on reload/recovery
   party.currentTrack = doc.currentTrack || null;
   party.nextTrack = doc.nextTrack || null;
   party.trackHistory = doc.trackHistory || [];
