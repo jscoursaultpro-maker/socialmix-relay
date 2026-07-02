@@ -5,6 +5,7 @@ const PartySchema = new mongoose.Schema({
   hostSecret:       { type: String, default: '' },
   partyType:        { type: String, enum: ['hosted', 'guested', 'clubbed'], default: 'hosted' },
   mode:             { type: String, enum: ['appMix', 'djLive'], default: 'appMix' },
+  currentPhase:     { type: String, enum: ['arrival', 'ambiance', 'takeoff', 'groove', 'party', 'closing'], default: 'arrival' },  // ★ fix(critical) — was missing, strict:true stripped it from all writes
   currentTrack:     { type: mongoose.Schema.Types.Mixed, default: null },
   nextTrack:        { type: mongoose.Schema.Types.Mixed, default: null },
   trackHistory:     [mongoose.Schema.Types.Mixed],
