@@ -2648,6 +2648,29 @@ io.on('connection', (socket) => {
       const normTitle = (t) => (t || '').toLowerCase().replace(/^[^-]+ - /, '').trim();
       const isNewTrack = !party.trackHistory.length ||
         normTitle(party.trackHistory[0]?.title) !== normTitle(track.title);
+
+      // ★ fix(mrrng7-bug2): Z11 global replay guard
+      // isNewTrack only checks against the LAST track (consecutive dedup).
+      // This guard checks the full history to block host replaying an already-played track,
+      // unless the host explicitly confirmed via confirmReplay:true.
+      if (isNewTrack && !track.confirmReplay) {
+        const previousEntry = party.trackHistory.find(t =>
+          normTitle(t.title) === normTitle(track.title)
+        );
+        if (previousEntry) {
+          console.log(`[${party.code}] ⛔ Z11: '${track.title}' already in history (${previousEntry.playedAt}) — awaiting confirmReplay`);
+          socket.emit('z11:replayDetected', {
+            title: track.title,
+            artist: track.artist,
+            previousPlayedAt: previousEntry.playedAt
+          });
+          return;
+        }
+      }
+      if (isNewTrack && track.confirmReplay) {
+        console.log(`[${party.code}] ✅ Z11: replay confirmed by host for '${track.title}'`);
+      }
+
       if (isNewTrack) {
       // ★ P0-3 — Attribution : qui a demandé ce titre ?
       // (requestedBy déclaré au-dessus — pas de re-déclaration avec let ici)
