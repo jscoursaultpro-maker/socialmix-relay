@@ -287,6 +287,15 @@ app.get('/status', (req, res) => {
   });
 });
 
+// ─── Sentry smoke test endpoint ─────────────────────────────────────────────
+// Throws an intentional error to validate Sentry integration end-to-end.
+// Usage: curl https://socialmix-relay.onrender.com/debug-sentry
+// Expected: HTTP 500 + Sentry issue visible in dashboard within ~30s.
+// Can be removed after validation via commit.
+app.get('/debug-sentry', function debugSentryHandler(req, res) {
+  throw new Error('Test Sentry — intentional error from /debug-sentry (safe to ignore)');
+});
+
 // GET /api/tracks/snapshot — DJ Brain cache (utilisé au démarrage de soirée)
 // Règle : réponse < 3s garantie par timeout côté iOS. Si Mongo KO → fallback JSON.
 app.get('/api/tracks/snapshot', async (req, res) => {
