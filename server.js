@@ -1,3 +1,4 @@
+import './instrument.js'; // ★ feat(sentry): MUST be first import — instruments Node builtins before any other module loads
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
@@ -21,6 +22,7 @@ import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRES
 import { uploadPhoto } from './services/cloudinaryService.js';
 import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
 import adminUsersRouter from './routes/admin/users.js';
+import * as Sentry from '@sentry/node'; // ★ feat(sentry): Express error handler
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -4195,6 +4197,16 @@ async function boot() {
       if (count > 0) console.log(`[RatingFlush] ✅ Flushed ${count} track ratings for party ${partyCode}`);
     }
   }, 10000);
+
+  // ─── Sentry Express error handler ─────────────────────────────────────────
+  // Must be AFTER all routes, BEFORE server.listen.
+  // Captures errors thrown in Express route handlers (not socket.io — those are
+  // captured via uncaughtException / Sentry.captureException directly).
+  Sentry.setupExpressErrorHandler(app);
+  // Generic fallthrough error handler (Sentry attaches eventId to res.sentry)
+  app.use(function onError(err, req, res, _next) { // eslint-disable-line no-unused-vars
+    res.status(500).json({ error: 'Internal server error', sentryId: res.sentry || null });
+  });
 
   // 4. Start HTTP server
   server.listen(PORT, '0.0.0.0', () => {
