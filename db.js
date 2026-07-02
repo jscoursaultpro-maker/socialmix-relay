@@ -62,6 +62,7 @@ function partyToDoc(party) {
     participantScores: party.participantScores,
     guestGenreVotes: party.guestGenreVotes,
     sessionTokens: party.sessionTokens || {},  // Persist for guest reconnection after server restart
+    playedKeys: Array.isArray(party.playedKeys) ? party.playedKeys : [],  // ★ fix(schema-audit): was missing — Z11 anti-replay lost on crash
     createdAt: party.createdAt,
     endedAt: party.endedAt || null
   };
@@ -90,6 +91,7 @@ function docToPartyState(doc) {
   party.hostSecret = doc.hostSecret || '';
   party.partyType = doc.partyType || 'hosted';
   party.sessionTokens = doc.sessionTokens || {};  // Restore guest reconnection tokens
+  party.playedKeys = Array.isArray(doc.playedKeys) ? doc.playedKeys : [];  // ★ fix(schema-audit): restore Z11 anti-replay index after crash
   party.createdAt = doc.createdAt ? new Date(doc.createdAt).toISOString() : party.createdAt;
 
   // Rebuild runtime Sets from persisted data
