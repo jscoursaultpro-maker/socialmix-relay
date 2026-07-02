@@ -179,6 +179,10 @@ const io = new Server(server, {
     credentials: true,
     methods: ['GET', 'POST']
   },
+  transports: ['websocket'],  // ★ chore(socketio): WebSocket only — no polling fallback
+                              // iOS clients already force websocket on their side.
+                              // Server-side enforcement eliminates polling→upgrade race
+                              // and removes sticky-session requirement if Render scales.
   maxHttpBufferSize: 10e6,
   pingTimeout: 120000,     // 2 min — tolerate iOS background/network hiccups
   pingInterval: 25000,     // 25s — keep-alive heartbeat
