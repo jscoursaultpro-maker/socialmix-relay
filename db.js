@@ -50,7 +50,14 @@ function partyToDoc(party) {
     trackHistory: party.trackHistory,
     genreVotes: party.genreVotes,
     vibeScore: party.vibeScore,
-    participants: party.participants,
+    // ★ fix(E1-participants): dedup isHost entries before flush — defense-in-depth against
+    // double-host accumulation during overnight socket reconnections (observed in EG2MMT).
+    // Keeps the first isHost entry; all guests are kept as-is.
+    participants: (() => {
+      const hosts = party.participants.filter(p => p.isHost);
+      const guests = party.participants.filter(p => !p.isHost);
+      return hosts.length > 1 ? [hosts[0], ...guests] : party.participants;
+    })(),
     guestVotes: party.guestVotes,
     suggestions: party.suggestions,
     hostProfile: party.hostProfile,
@@ -80,6 +87,13 @@ function docToPartyState(doc) {
   party.genreVotes = doc.genreVotes || {};
   party.vibeScore = doc.vibeScore || 0;
   party.participants = doc.participants || [];
+  // ★ fix(E1-participants): self-heal any persisted duplicate isHost entries on restore.
+  // Mirrors the partyToDoc guard — both paths needed for defense-in-depth.
+  if (party.participants.filter(p => p.isHost).length > 1) {
+    const hosts = party.participants.filter(p => p.isHost);
+    const guests = party.participants.filter(p => !p.isHost);
+    party.participants = [hosts[0], ...guests];
+  }
   party.guestVotes = doc.guestVotes || {};
   party.suggestions = doc.suggestions || [];
   party.hostProfile = doc.hostProfile || null;
