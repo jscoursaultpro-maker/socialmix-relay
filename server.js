@@ -2349,7 +2349,9 @@ function buildLightState(party, isHost = false) {
     // ★ Phase 4A — Phase Indicator: expose current phase + energy to web guest
     currentPhase: party.currentPhase || null,
     vibeScore: party.vibeScore || 5,
-    nextTrack: party.nextTrack || null   // ★ Phase 4: next track preview
+    nextTrack: party.nextTrack || null,   // ★ Phase 4: next track preview
+    // ★ Host decisions — persisted for reconnect restore (isPhaseLocked + sessionModeOverride)
+    hostDecisions: party.hostDecisions || { isPhaseLocked: false, sessionModeOverride: 'auto' }
   };
 
   const sizeKB = Math.round(JSON.stringify(light).length / 1024);
@@ -3075,6 +3077,26 @@ io.on('connection', (socket) => {
     }));
     party.trackHistory = enriched;
     io.to(`guest:${party.code}`).emit('history:update', enriched);
+  });
+
+  // ─── host:phaseLockChanged — persist LOCK/AUTO state for reconnect (VOLET B) ─
+  socket.on('host:phaseLockChanged', (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    const isLocked = !!data?.isLocked;
+    if (!party.hostDecisions) party.hostDecisions = { isPhaseLocked: false, sessionModeOverride: 'auto' };
+    party.hostDecisions.isPhaseLocked = isLocked;
+    party.isDirty = true;
+    console.log(`[${party.code}] 🔒 Phase lock persisted: ${isLocked}`);
+  });
+
+  // ─── host:sessionModeOverrideChanged — persist sessionModeOverride for reconnect (VOLET C) ─
+  socket.on('host:sessionModeOverrideChanged', (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    const overrideRaw = data?.overrideRaw || 'auto';
+    if (!party.hostDecisions) party.hostDecisions = { isPhaseLocked: false, sessionModeOverride: 'auto' };
+    party.hostDecisions.sessionModeOverride = overrideRaw;
+    party.isDirty = true;
+    console.log(`[${party.code}] 🎼 SessionModeOverride persisted: ${overrideRaw}`);
   });
 
   socket.on('host:nextTrack', (track) => {

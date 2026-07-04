@@ -22,6 +22,13 @@ export function createPartyState(code) {
     suggestions: [],           // [{query, guestName, sentAt}]
     currentPhase: 'arrival',   // Phase en cours: arrival|ambiance|takeoff|groove|party|closing
     hostProfile: null,         // {name, emoji}
+    // ★ Host decisions — persisted for reconnect restore (doctrine L55-113)
+    // isPhaseLocked: matches DJBrain.isPhaseLocked (LOCK/AUTO button in CockpitView)
+    // sessionModeOverride: matches DJBrain.SessionModeOverride rawValue
+    hostDecisions: {
+      isPhaseLocked: false,
+      sessionModeOverride: 'auto'
+    },
     photos: [],                // [{dataURL, guestName, sentAt}]
     photoHashes: new Set(),
     costumeEntries: [],        // [{guestId, guestName, emoji, photo, votes}]
