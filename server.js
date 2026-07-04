@@ -2727,6 +2727,15 @@ io.on('connection', (socket) => {
           // We will use dj_brain_auto as default fallback
       }
 
+      // ★ B3 fix — Debug log du payload brut reçu (24h — à retirer après validation empirique)
+      // Permet de vérifier les noms exacts des champs envoyés par iOS (provider vs source vs requestedBy.source)
+      console.log('[DEBUG host:trackUpdate payload]', JSON.stringify({
+        title: track.title, artist: track.artist,
+        provider: track.provider, source: track.source,
+        suggestedBy: track.suggestedBy, fromSuggestion: track.fromSuggestion,
+        requestedBy: track.requestedBy
+      }));
+
       // ★ A9-7 — Snapshot vote counts at the moment the track is archived
       // guestVotes: { guestId: { trackTitle: 'fire'|'like'|'meh' } }
       // Aggregate votes for the PREVIOUS current track (track.title = the one now being archived)
@@ -2739,20 +2748,87 @@ io.on('connection', (socket) => {
         else if (voteType === 'meh') voteSnapshot.mehCount++;
       }
 
-      party.trackHistory = cappedUnshift(party.trackHistory, {
-        ...track,
-        playedAt: new Date().toISOString(),
+      // ★ B4 fix (SECURITY) — Canonical trackDoc whitelist — strips hostSecret + all internal fields.
+      // Root cause: { ...track } spread included track.hostSecret (iOS auth field leaked into DB).
+      // Only canonical audit fields are persisted. Raw track object is NOT spread.
+      // ★ B3 fix — provider mapped from historySource (dj_brain_auto / guest_suggestion_fulfilled),
+      // NOT from track.provider (iOS sends "unknown" — field name mismatch confirmed in audit 3QLMQ8).
+      const trackDoc = {
+        title:            track.title            || '',
+        artist:           track.artist           || '',
+        genre:            track.genre            || '',
+        bpm:              track.bpm              || 0,
+        energy:           track.energy           ?? track.energyLevel ?? null,
+        phase:            party.currentPhase     || 'unknown',   // ★ Bug 6 fix — persist phase for audit
+        provider:         historySource,                         // ★ B3: canonical value, NOT track.provider
+        source:           historySource,                         // keep for legacy compat
+        suggestedBy:      requestedBy.guestName  || null,
+        suggestedByName:  requestedBy.guestName  || null,
         requestedBy,
-        source: historySource,
-        phase: party.currentPhase || 'unknown',  // ★ Bug 6 fix — persist phase for audit
-        ...voteSnapshot                           // ★ A9-7 — persist vote snapshot
-      }, 500);
+        playedAt:         new Date().toISOString(),
+        trackId:          track.trackId          || track.id     || null,
+        deezerId:         track.deezerID         || track.deezerId || null,
+        spotifyId:        track.spotifyId        || null,
+        appleMusicId:     track.appleMusicId     || null,
+        isrc:             track.isrc             || null,
+        duration:         track.duration         || null,
+        albumTitle:       track.albumTitle       || null,
+        albumArtworkURL:  track.albumArtworkURL  || track.artworkURL || null,
+        reasoning:        track.reasoning        || null,
+        djBrainScore:     track.djBrainScore     || null,
+        isGuessed:        track.isGuessed        ?? false,
+        confirmReplay:    track.confirmReplay    ?? false,
+        // Vote snapshot at archive time (★ A9-7)
+        ...voteSnapshot
+        // hostSecret, socketId, hostProfile, internal fields: intentionally excluded
+      };
+
+      party.trackHistory = cappedUnshift(party.trackHistory, trackDoc, 500);
       addPoints(party, 'host', 'DJ', 15, 'nouveau titre : ' + track.title);
+
+      // ★ B1 fix — Persist suggestion status "played" directly in MongoDB.
+      // In-memory matchedSugg.status = 'played' is already done above but it only reaches
+      // MongoDB when the dirty flush fires (up to FLUSH_INTERVAL seconds later).
+      // This explicit updateOne ensures the status is persisted immediately, independently.
+      if (requestedBy.source === 'suggestion' && (requestedBy.guestName || requestedBy.guestId)) {
+        const suggTitle  = (track.title  || '').toLowerCase();
+        const suggArtist = (track.artist || '').toLowerCase();
+        Party.findOneAndUpdate(
+          {
+            code: party.code,
+            suggestions: {
+              $elemMatch: {
+                $or: [
+                  { title: { $regex: new RegExp(`^${suggTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+                ],
+                status: { $in: ['queued', 'next', 'pending'] }
+              }
+            }
+          },
+          {
+            $set: {
+              'suggestions.$[elem].status': 'played',
+              'suggestions.$[elem].playedAt': new Date()
+            }
+          },
+          {
+            arrayFilters: [{
+              'elem.status': { $in: ['queued', 'next', 'pending'] },
+              $or: [
+                { 'elem.title': { $regex: new RegExp(`^${suggTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+              ]
+            }],
+            new: false
+          }
+        ).catch(err => console.error(`[B1] Suggestion status persist failed for "${track.title}": ${err.message}`));
+        console.log(`[B1] Persisting suggestion status → played: "${track.title}" by ${requestedBy.guestName || requestedBy.guestId}`);
+      }
 
       // Si c'est une suggestion acceptée, bonus de points au guest
       if (requestedBy.source === 'suggestion' && requestedBy.guestId) {
         addPoints(party, requestedBy.guestId, requestedBy.guestName || 'Guest', 20, `suggestion jouée: ${track.title}`);
       }
+
     } // end if (isNewTrack)
     } // end if (track)
 
