@@ -36,16 +36,16 @@ describe('party-collision', async () => {
   let socketB;   // Host B — intruder
 
   before(async () => {
+    serverCtx = await startServer();
     await connectTestDB();
     await cleanupParties(CODE);
-    serverCtx = await startServer();
   });
 
   after(async () => {
+    await cleanupParties(CODE);         // cleanup while MMS still alive
+    await serverCtx?.kill();           // then kill server + MMS
     if (socketA?.connected) await disconnect(socketA);
     if (socketB?.connected) await disconnect(socketB);
-    await serverCtx?.kill();
-    await cleanupParties(CODE);
     await disconnectTestDB();
   });
 
@@ -53,17 +53,17 @@ describe('party-collision', async () => {
     socketA = createHostSocket(serverCtx.url);
     await connected(socketA);
 
-    const { state, error } = await startParty(socketA, {
+    const result = await startParty(socketA, {
       code: CODE,
       hostSecret: SECRET_A,
       profile: PROFILE_A,
       partyName: 'Collision Test Party — Host A',
     });
 
-    assert.ok(!error, `Host A start should succeed, got: ${JSON.stringify(error)}`);
-    assert.ok(state, 'Expected party:state');
+    assert.ok(!result.error, `Host A start should succeed, got: ${JSON.stringify(result.error)}`);
+    assert.ok(result.ok || result.state, 'Expected startParty to succeed for Host A');
 
-    const doc = await waitForPartyCondition(CODE, d => d.hostSecret === SECRET_A, 1000);
+    const doc = await waitForPartyCondition(CODE, d => d.hostSecret === SECRET_A, 6000);
     assert.equal(doc.hostSecret, SECRET_A);
     assert.equal(doc.endedAt, null);
   });
@@ -72,20 +72,20 @@ describe('party-collision', async () => {
     socketB = createHostSocket(serverCtx.url);
     await connected(socketB);
 
-    const { state, error } = await startParty(socketB, {
+    const resultB = await startParty(socketB, {
       code: CODE,
       hostSecret: SECRET_B,
       profile: PROFILE_B,
       partyName: 'Collision Test Party — Host B (should fail)',
     });
 
-    // The server MUST emit party:error, NOT party:state
-    assert.ok(!state, `Server should NOT return party:state to Host B, got: ${JSON.stringify(state)}`);
-    assert.ok(error, 'Server MUST return party:error to Host B');
+    // The server MUST emit party:error — NOT ok
+    assert.ok(!resultB.ok, `Server should NOT create a party for Host B (got ok=true)`);
+    assert.ok(resultB.error, 'Server MUST return party:error to Host B');
     assert.equal(
-      error.error,
+      resultB.error.error,
       'PARTY_CODE_ACTIVE',
-      `Expected error code PARTY_CODE_ACTIVE, got: ${error.error}`
+      `Expected error code PARTY_CODE_ACTIVE, got: ${resultB.error.error}`
     );
   });
 

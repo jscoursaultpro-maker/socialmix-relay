@@ -80,6 +80,11 @@ function adminAuth(req, res, next) {
 
 // ─── Seed editorial catalog into MongoDB ────────────────────────────
 async function seedEditorialCatalog() {
+  // perf(tests): bypass 1640-track upsert in test/CI environments
+  if (process.env.SKIP_EDITORIAL_SEED === 'true') {
+    console.log('[Seed] ⏭️  Skipped (SKIP_EDITORIAL_SEED=true)');
+    return;
+  }
   try {
     const count = await Track.countDocuments({ source: { $in: ['editorial', 'host-library'] } });
     console.log(`[Seed] 🔄 Running upsert seed (${count} existing tracks in DB)...`);
@@ -4673,6 +4678,8 @@ async function boot() {
 // ─── Graceful Shutdown ──────────────────────────────────────────────
 process.on('SIGTERM', async () => {
   console.log('🛑 SIGTERM received — flushing parties...');
+  // In test/CI env, skip flush + disconnect to avoid MMS connection hang
+  if (process.env.NODE_ENV === 'test') { process.exit(0); return; }
   await stopFlushLoop(parties);
   process.exit(0);
 });

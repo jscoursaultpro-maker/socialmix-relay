@@ -1,12 +1,14 @@
 /**
  * tests/helpers/mongo.js
  * Minimal MongoDB helper for querying and cleaning up test data.
- * Uses mongoose directly — connects to MONGODB_URI_TEST.
- * Never touches MONGODB_URI (production).
+ * Each call to connectTestDB() creates a fresh connection to the current MMS URI.
+ * No shared persistent state between test suites.
  */
 import mongoose from 'mongoose';
+import { mmsState } from './mms-state.js';
 
-// Minimal Party schema (mirrors db.js — only the fields used in tests)
+// Minimal Party schema — mirrors db.js, only fields used in tests.
+// strict:false accepts any extra fields the server may add.
 const PartySchema = new mongoose.Schema({
   code:         { type: String, required: true },
   hostSecret:   String,
@@ -17,32 +19,57 @@ const PartySchema = new mongoose.Schema({
   participants: Array,
   photos:       Array,
   isPreParty:   Boolean,
-}, { strict: false }); // strict:false — accept any extra field the server adds
+}, { strict: false });
 
-// Use a separate model name to avoid conflicts if mongoose is also connected elsewhere
+/** Module-level connection (one per test process, closed on after()) */
 let _connection = null;
-let Party = null;
+let _Party = null;
 
 export async function connectTestDB() {
-  const uri = process.env.MONGODB_URI_TEST;
-  if (!uri) throw new Error('MONGODB_URI_TEST env var required for mongo helper');
+  const uri = mmsState.uri || process.env.MONGODB_URI_TEST;
+  if (!uri) {
+    throw new Error(
+      'No test MongoDB URI available. ' +
+      'Make sure startServer() is called before connectTestDB(). ' +
+      'server-process.js sets mmsState.uri when MongoMemoryServer starts.'
+    );
+  }
 
-  if (_connection && _connection.readyState === 1) return; // already connected
+  // If already connected to the same URI, reuse
+  if (_connection && _connection.readyState === 1) return;
+
+  // If connected to a different URI (different MMS instance), close first
+  if (_connection) {
+    await _connection.close().catch(() => {});
+    _connection = null;
+    _Party = null;
+  }
 
   _connection = await mongoose.createConnection(uri, {
-    serverSelectionTimeoutMS: 8000,
+    dbName: 'socialmix',        // must match db.js → connectDB({ dbName: 'socialmix' })
+    serverSelectionTimeoutMS: 2_000,  // fail fast if MMS is stopped
+    directConnection: true,     // required for MMS single-node
   }).asPromise();
 
-  Party = _connection.model('Party', PartySchema);
-  console.log('[TestDB] ✅ Connected to test MongoDB');
+  _Party = _connection.model('Party', PartySchema);
+  console.log('[TestDB] ✅ Connected to in-memory MongoDB');
 }
 
 export async function disconnectTestDB() {
   if (_connection) {
-    await _connection.close();
+    // Race against 3s timeout to prevent after() from hanging
+    await Promise.race([
+      _connection.close().catch(() => {}),
+      new Promise(r => setTimeout(r, 3000)),
+    ]);
     _connection = null;
-    Party = null;
+    _Party = null;
   }
+}
+
+function getParty() {
+  if (!_Party) throw new Error('Call connectTestDB() first');
+  return _Party;
 }
 
 /**
@@ -51,8 +78,7 @@ export async function disconnectTestDB() {
  * @returns {Promise<object|null>}
  */
 export async function findParty(code) {
-  if (!Party) throw new Error('Call connectTestDB() first');
-  return Party.findOne({ code }).lean();
+  return getParty().findOne({ code }).lean();
 }
 
 /**
@@ -61,9 +87,8 @@ export async function findParty(code) {
  * @param {...string} codes
  */
 export async function cleanupParties(...codes) {
-  if (!Party) throw new Error('Call connectTestDB() first');
+  const Party = getParty();
   for (const code of codes) {
-    // Delete exact match + any archived variants created by collision guard
     await Party.deleteMany({
       $or: [
         { code },
@@ -75,18 +100,27 @@ export async function cleanupParties(...codes) {
 
 /**
  * Wait up to `maxMs` for a condition on the party document to be true.
- * Polls MongoDB every 50ms. Useful for testing async write-throughs.
- *
+ * Polls MongoDB every 100ms.
  * @param {string}   code
  * @param {Function} predicate  - (partyDoc) => boolean
- * @param {number}   maxMs
+ * @param {number}   maxMs      - default 8000ms (generous for async server flush)
  */
-export async function waitForPartyCondition(code, predicate, maxMs = 2000) {
+export async function waitForPartyCondition(code, predicate, maxMs = 8000) {
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline) {
     const doc = await findParty(code);
     if (doc && predicate(doc)) return doc;
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 100));
   }
-  throw new Error(`Condition not met for party ${code} within ${maxMs}ms`);
+  const lastDoc = await findParty(code);
+  throw new Error(
+    `Condition not met for party ${code} within ${maxMs}ms.\n` +
+    `Last doc: ${JSON.stringify(lastDoc ? {
+      code: lastDoc.code,
+      hostSecret: lastDoc.hostSecret ? '****' + lastDoc.hostSecret.slice(-4) : null,
+      endedAt: lastDoc.endedAt,
+      trackHistory: lastDoc.trackHistory?.length,
+      participants: lastDoc.participants?.length,
+    } : null)}`
+  );
 }

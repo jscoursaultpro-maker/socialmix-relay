@@ -1,20 +1,24 @@
 /**
  * tests/helpers/server-process.js
- * Spawns relay-server as a child process on a random port using MONGODB_URI_TEST.
- * Returns { url, kill } to the caller.
+ * Spawns relay-server as a child process on a random port.
+ * Starts a MongoMemoryServer (in-process) and injects its URI into the
+ * child server's MONGODB_URI env — zero external Atlas dependency.
  *
- * Strategy: we can't import server.js (it calls boot() immediately on load),
- * so we spawn it as a subprocess with overridden env vars and wait for the
- * "SOCIAL MIX" startup banner before resolving.
+ * Key optimizations:
+ *   - SKIP_EDITORIAL_SEED=true → bypasses 1640-track MongoDB upsert (~8s saved)
+ *   - Ready detection waits for banner OR the skip-seed log line
+ *   - Each test suite gets its own isolated MMS instance
  */
 import { spawn } from 'node:child_process';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import { mmsState } from './mms-state.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SERVER_JS = path.resolve(__dirname, '../../server.js');
-const START_TIMEOUT_MS = 12_000;
+const START_TIMEOUT_MS = 30_000; // 30s: much faster now that seed is skipped
 
 /** Find a free TCP port on 127.0.0.1 */
 function getFreePort() {
@@ -29,72 +33,135 @@ function getFreePort() {
 }
 
 /**
- * Start the relay server as a child process.
- * @returns {{ url: string, kill: () => Promise<void> }}
+ * Start the relay server as a child process backed by a fresh MongoMemoryServer.
+ * @returns {{ url: string, port: number, kill: () => Promise<void> }}
  */
 export async function startServer() {
-  const mongoUri = process.env.MONGODB_URI_TEST;
-  if (!mongoUri) {
-    throw new Error(
-      'MONGODB_URI_TEST is required for integration tests. ' +
-      'Set it to a dedicated test Atlas cluster URI.\n' +
-      'Example: MONGODB_URI_TEST=mongodb+srv://... npm run test:integration'
-    );
-  }
+  // ── 1. Start a fresh MongoMemoryServer for this test suite ───────────────
+  console.log('[TestSetup] Starting MongoMemoryServer...');
+  const mongoServer = await MongoMemoryServer.create({
+    binary: { version: '7.0.14' }, // LTS stable, available on all CDNs incl. macOS ARM64
+    instance: { storageEngine: 'wiredTiger' },
+  });
+  const mongoUri = mongoServer.getUri();
 
+  // Expose URI for mongo.js (connectTestDB reads mmsState.uri)
+  mmsState.uri = mongoUri;
+  mmsState.server = mongoServer;
+
+  console.log('[TestSetup] MongoMemoryServer ready');
+
+  // ── 2. Find a free port ───────────────────────────────────────────────────
   const port = await getFreePort();
   const url = `http://127.0.0.1:${port}`;
 
-  // Inherit current env but override critical vars
+  // ── 3. Spawn server.js ────────────────────────────────────────────────────
   const env = {
     ...process.env,
     PORT: String(port),
-    MONGODB_URI: mongoUri,   // Server reads MONGODB_URI — we feed it the TEST URI
+    MONGODB_URI: mongoUri,
+    MONGODB_URI_TEST: mongoUri,
     NODE_ENV: 'test',
-    // Disable Sentry in tests (avoids noise + rate-limit)
+    // perf: skip 1640-track editorial seed (~8s per server boot)
+    SKIP_EDITORIAL_SEED: 'true',
+    // Disable external services in tests
     SENTRY_DSN: '',
-    // Disable Cloudinary in tests
     CLOUDINARY_API_KEY: '',
+    CLOUDINARY_API_SECRET: '',
+    SENDGRID_API_KEY: '',
   };
 
+  let stdout = '';
+  let stderr = '';
   const child = spawn('node', [SERVER_JS], {
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-
-  // Collect stderr for diagnostics on failure
-  let stderr = '';
+  child.stdout.on('data', d => { stdout += d.toString(); });
   child.stderr.on('data', d => { stderr += d.toString(); });
 
+  // ── 4. Wait for server ready ──────────────────────────────────────────────
+  // With SKIP_EDITORIAL_SEED=true, the server is ready right after the banner.
+  // We also accept the "[Seed] ⏭️  Skipped" line as a ready signal.
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       child.kill('SIGKILL');
-      reject(new Error(`Server did not start within ${START_TIMEOUT_MS}ms.\nStderr: ${stderr}`));
+      reject(new Error(
+        `Server did not start within ${START_TIMEOUT_MS}ms.\n` +
+        `stdout: ${stdout.slice(-500)}\n` +
+        `stderr: ${stderr.slice(-300)}`
+      ));
     }, START_TIMEOUT_MS);
+
+    let resolved = false;
+    const tryResolve = (delay = 200) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
+      setTimeout(resolve, delay);
+    };
 
     child.stdout.on('data', (chunk) => {
       const text = chunk.toString();
-      // Wait for the "Local: http://localhost:PORT" line
+      // Ready when banner + seed skipped (or banner alone if seed was already skipped)
+      if (
+        text.includes('Skipped (SKIP_EDITORIAL_SEED') ||
+        text.includes('[Seed] ⏭') ||
+        (text.includes(`localhost:${port}`) && stdout.includes('SKIP_EDITORIAL_SEED'))
+      ) {
+        tryResolve(200);
+      }
+      // Fallback: banner seen and 500ms elapsed (covers edge cases)
       if (text.includes(`localhost:${port}`) || text.includes('SOCIAL MIX')) {
-        clearTimeout(timer);
-        // Give the server 200ms to finish binding all routes/sockets
-        setTimeout(resolve, 200);
+        setTimeout(() => tryResolve(0), 500);
       }
     });
 
-    child.on('exit', (code) => {
+    child.on('exit', (code, signal) => {
       clearTimeout(timer);
-      reject(new Error(`Server exited prematurely (code ${code}).\nStderr: ${stderr}`));
+      if (!resolved && signal !== 'SIGTERM' && signal !== 'SIGKILL') {
+        reject(new Error(
+          `Server exited prematurely (code=${code}, signal=${signal}).\n` +
+          `stderr: ${stderr.slice(-500)}`
+        ));
+      }
     });
   });
 
-  const kill = () =>
-    new Promise((resolve) => {
-      child.once('exit', resolve);
-      child.kill('SIGTERM');
-      // Force kill after 3s if graceful shutdown hangs
-      setTimeout(() => { try { child.kill('SIGKILL'); } catch {} }, 3000);
-    });
+  console.log(`[TestSetup] Server ready at ${url}`);
+
+  // ── 5. Return kill handle ─────────────────────────────────────────────────
+  // kill() must resolve quickly — after() hooks in node:test have a hard timeout.
+  // We fire SIGTERM + SIGKILL backup, then race MMS stop against a 3s wall clock.
+  const kill = () => {
+    // Send signals
+    try { child.kill('SIGTERM'); } catch {}
+    const sigkillTimer = setTimeout(() => {
+      try { child.kill('SIGKILL'); } catch {}
+    }, 1000);
+
+    // Race: wait for child exit + MMS stop, but give up after 3s regardless
+    return Promise.race([
+      new Promise((resolve) => {
+        child.once('exit', async () => {
+          clearTimeout(sigkillTimer);
+          try { await mongoServer.stop(); } catch {}
+          mmsState.uri = null;
+          mmsState.server = null;
+          resolve();
+        });
+      }),
+      new Promise((resolve) => setTimeout(async () => {
+        clearTimeout(sigkillTimer);
+        try { child.kill('SIGKILL'); } catch {}
+        try { await mongoServer.stop(); } catch {}
+        mmsState.uri = null;
+        mmsState.server = null;
+        resolve();
+      }, 3000)),
+    ]);
+  };
+
 
   return { url, port, kill };
 }

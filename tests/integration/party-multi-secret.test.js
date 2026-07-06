@@ -38,17 +38,17 @@ describe('party-multi-secret', async () => {
   let sockets = [];
 
   before(async () => {
+    serverCtx = await startServer();
     await connectTestDB();
     await cleanupParties(...CODES);
-    serverCtx = await startServer();
   });
 
   after(async () => {
+    await cleanupParties(...CODES);     // cleanup while MMS still alive
+    await serverCtx?.kill();           // then kill server + MMS
     for (const s of sockets) {
       if (s?.connected) await disconnect(s);
     }
-    await serverCtx?.kill();
-    await cleanupParties(...CODES);
     await disconnectTestDB();
   });
 
@@ -58,15 +58,15 @@ describe('party-multi-secret', async () => {
       await connected(sock);
       sockets.push(sock);
 
-      const { state, error } = await startParty(sock, {
+      const result = await startParty(sock, {
         code: CODES[i],
         hostSecret: SECRETS[i],
         profile: PROFILE,
         partyName: `Multi-Secret Party ${i + 1}`,
       });
 
-      assert.ok(!error, `Party ${CODES[i]} creation failed: ${JSON.stringify(error)}`);
-      assert.ok(state, `Expected party:state for ${CODES[i]}`);
+      assert.ok(!result.error, `Party ${CODES[i]} creation failed: ${JSON.stringify(result.error)}`);
+      assert.ok(result.ok || result.state, `Expected startParty to succeed for ${CODES[i]}`);
     }
 
     // Ensure all 3 are persisted in DB before querying HTTP endpoint

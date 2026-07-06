@@ -65,29 +65,66 @@ export function connected(socket) {
 }
 
 /**
- * Disconnect socket and wait for 'disconnect'.
+/**
+ * Disconnect socket and wait for 'disconnect' (max 500ms).
  * @param {Socket} socket
  */
 export function disconnect(socket) {
   return new Promise((resolve) => {
     if (!socket.connected) return resolve();
-    socket.once('disconnect', resolve);
+    const t = setTimeout(resolve, 500); // don't block if server already gone
+    socket.once('disconnect', () => { clearTimeout(t); resolve(); });
     socket.disconnect();
   });
 }
 
 /**
- * Emit host:startParty and wait for party:state (success) or party:error.
- * @returns {{ state?: any, error?: any }}
+ * Emit host:startParty and wait for the server's response.
+ *
+ * Server behavior (from server.js):
+ *   NEW party    → emits nothing to the host socket directly
+ *                  (only broadcasts party:started to guest:CODE room)
+ *   RESUME/RECOVER → emits 'party:state' directly to the calling socket
+ *   COLLISION    → emits 'party:error' { error: 'PARTY_CODE_ACTIVE' }
+ *
+ * Returns: { ok: true, state? } on success, { error } on failure.
+ * For tests: after emitting, we wait briefly and check for party:error.
+ * Absence of error within SETTLE_MS = success (new party created in RAM).
  */
 export async function startParty(socket, payload) {
-  const race = Promise.race([
-    waitFor(socket, 'party:state').then(state => ({ state })),
-    waitFor(socket, 'party:error').then(error => ({ error })),
-  ]);
-  socket.emit('host:startParty', payload);
-  return race;
+  const SETTLE_MS  = 500;   // time for server to process + potentially emit party:error
+  const ERROR_MS   = 4000;  // race: if party:error arrives within this window it's a failure
+  const RESUME_MS  = 4000;  // race: if party:state arrives the host is resuming
+
+  return new Promise((resolve) => {
+    const errorTimer = setTimeout(() => {
+      // No error arrived in ERROR_MS → new party created successfully
+      resolve({ ok: true });
+    }, SETTLE_MS);
+
+    // party:error = collision / invalid / missing code
+    const onError = (err) => {
+      clearTimeout(errorTimer);
+      socket.off('party:state', onState);
+      resolve({ error: err });
+    };
+
+    // party:state = resume/recover path
+    const onState = (state) => {
+      clearTimeout(errorTimer);
+      socket.off('party:error', onError);
+      resolve({ ok: true, state });
+    };
+
+    socket.once('party:error', onError);
+    socket.once('party:state', onState);
+
+    socket.emit('host:startParty', payload);
+  });
 }
+
+
+
 
 /**
  * HTTP GET helper using native fetch (Node 18+).
