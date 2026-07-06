@@ -355,7 +355,7 @@ app.get('/api/tracks/snapshot', async (req, res) => {
     const tracks = await Track.find(filter)
       .sort({ adminQualified: -1, 'performance.feuRatio': -1, 'performance.totalPlays': -1 })
       .limit(limit)
-      .select('isrc fallbackHash title artist genre bpm energy coverArtURL providers source adminQualified tags partyMoment suggestCount performance.totalPlays performance.feuRatio performance.avgVibeAtPlay performance.genreContexts performance.hourBuckets')
+      .select('isrc fallbackHash title artist genre bpm energy coverArtURL providers availableOn source adminQualified tags partyMoment suggestCount performance.totalPlays performance.feuRatio performance.avgVibeAtPlay performance.genreContexts performance.hourBuckets')
       .lean();
 
     console.log(`[API] 📊 Snapshot: ${tracks.length} tracks (genres: ${genres.join(',') || 'all'}, adminOnly: ${adminOnly})`);
@@ -363,6 +363,39 @@ app.get('/api/tracks/snapshot', async (req, res) => {
   } catch (err) {
     console.error('[API] ❌ Snapshot error:', err.message);
     res.status(500).json({ error: 'Failed to fetch snapshot' });
+  }
+});
+
+// ─── Provider IDs API ──────────────────────────────────────────────────────────
+// GET /api/tracks/:id/providers — retourne les IDs plateforme résolus pour un track.
+// Utilisé par iOS pour récupérer l'Apple Music ID si non inclus dans le snapshot.
+// Public (pas d'auth requise). :id = MongoDB ObjectId ou Deezer trackId numérique.
+app.get('/api/tracks/:id/providers', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = mongoose.Types.ObjectId.isValid(id)
+      ? { _id: id }
+      : { 'providers.deezer.trackId': Number(id) };
+
+    const track = await Track.findOne(query)
+      .select('isrc providers availableOn providerIdsResolvedAt providerIdsResolvedVersion')
+      .lean();
+
+    if (!track) {
+      return res.status(404).json({ error: 'Track not found' });
+    }
+
+    return res.json({
+      id:                         track._id,
+      isrc:                       track.isrc ?? null,
+      providers:                  track.providers ?? {},
+      availableOn:                track.availableOn ?? [],
+      providerIdsResolvedAt:      track.providerIdsResolvedAt ?? null,
+      providerIdsResolvedVersion: track.providerIdsResolvedVersion ?? null,
+    });
+  } catch (err) {
+    console.error('[/api/tracks/:id/providers] Error:', err.message);
+    return res.status(500).json({ error: 'Internal error' });
   }
 });
 
