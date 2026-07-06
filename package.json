@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node --env-file=.env server.js",
     "dev": "node --env-file=.env server.js",
-    "sync-ios": "node --env-file=.env scripts/sync-ios.mjs"
+    "sync-ios": "node --env-file=.env scripts/sync-ios.mjs",
+    "test:integration": "node --test tests/integration/party-lifecycle.test.js tests/integration/party-collision.test.js tests/integration/party-multi-secret.test.js tests/integration/write-through.test.js"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",

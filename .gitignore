@@ -15,3 +15,6 @@ list_parties.js
 backups/
 *.bak.*
 test-photo.js
+
+# Test environment secrets
+.env.test
