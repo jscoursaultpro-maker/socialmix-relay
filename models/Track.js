@@ -97,7 +97,7 @@ const TrackSchema = new mongoose.Schema({
   // Plateformes sur lesquelles ce track a été résolu avec succès via ISRC.
   // Signal rapide pour DJBrain.strictProviderFilter sans avoir à inspecter providers.*
   // Valeurs: 'appleMusic' | 'spotify' | 'deezer'
-  availableOn: { type: [String], default: [], index: true },
+  availableOn: { type: [String], default: [] },
 
   // Métadonnées de résolution (idempotence backfill — skip si < 30j)
   providerIdsResolvedAt:      { type: Date, default: null },
