@@ -8,7 +8,7 @@
     "start": "node --env-file=.env server.js",
     "dev": "node --env-file=.env server.js",
     "sync-ios": "node --env-file=.env scripts/sync-ios.mjs",
-    "test:integration": "node --test --test-timeout=30000 --test-concurrency=1 tests/integration/party-lifecycle.test.js tests/integration/party-collision.test.js tests/integration/party-multi-secret.test.js tests/integration/write-through.test.js"
+    "test:integration": "node --test --test-timeout=30000 --test-concurrency=1 tests/integration/party-lifecycle.test.js tests/integration/party-collision.test.js tests/integration/party-multi-secret.test.js tests/integration/write-through.test.js tests/integration/auth.test.js"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
@@ -17,6 +17,7 @@
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "google-auth-library": "^10.7.0",
+    "jose": "^6.2.3",
     "jsdom": "^29.1.1",
     "jsonwebtoken": "^9.0.3",
     "jwks-rsa": "^4.1.0",

@@ -3,16 +3,23 @@ const { Schema } = mongoose
 
 const userSchema = new Schema({
   // === IDENTITÉ AUTH ===
+  // supabaseUserId: Supabase UUID (sub claim from JWT). Primary auth key for V1+ users.
+  // Sparse + unique: V0 legacy users can exist without it during migration period.
+  supabaseUserId: {
+    type: String,
+    unique: true,
+    sparse: true,   // allows multiple docs with supabaseUserId=undefined
+    index: true
+  },
   authProvider: { 
     type: String, 
     enum: ['apple', 'google', 'email'], 
-    required: true,
+    default: null,  // null for legacy V0 users migrating progressively
     index: true
   },
   providerId: { 
     type: String, 
-    required: true, 
-    index: true 
+    index: true   // not required: V1 users use supabaseUserId instead
   },
   // EMAIL EST LA CLEF UNIQUE STRICTE
   email: { 

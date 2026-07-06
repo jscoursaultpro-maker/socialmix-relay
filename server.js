@@ -23,6 +23,9 @@ import { uploadPhoto } from './services/cloudinaryService.js';
 import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
 import adminUsersRouter from './routes/admin/users.js';
 import * as Sentry from '@sentry/node'; // ★ feat(sentry): Express error handler
+import { socketAuth } from './middleware/socketAuth.js'; // ★ Supabase auth middleware
+import { verifySupabaseJWT } from './lib/supabaseAuth.js';  // ★ for HTTP routes
+import { findOrCreateFromSupabase } from './services/userService.js'; // ★
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -193,6 +196,11 @@ const io = new Server(server, {
   allowEIO3: false         // EIO4 only (matches iOS client)
 });
 
+// ─── Socket.IO Auth Middleware (Supabase JWT) ───────────────────────
+// Must be registered BEFORE io.on('connection', ...) handlers.
+// V0 clients without token: socket.user = null (backward compat preserved).
+io.use(socketAuth);
+
 // ─── Multi-Party State ──────────────────────────────────────────────
 const parties = new Map();           // code → PartyState
 const partyCleanupTimers = new Map(); // code → setTimeout ID
@@ -267,6 +275,41 @@ app.get('/admin/setup', (req, res) => res.sendFile(join(__dirname, 'admin', 'set
 app.get('/admin/hub', (req, res) => res.sendFile(join(__dirname, 'admin', 'hub.html')));
 app.get('/admin', (req, res) => res.sendFile(join(__dirname, 'admin', 'index.html')));
 app.get('/admin/*', (req, res) => res.sendFile(join(__dirname, 'admin', 'index.html')));
+
+// ─── Supabase Auth — GET /api/me ────────────────────────────────────
+// Validates Bearer JWT from Authorization header, returns Mongo User doc.
+// Used by iOS app to bootstrap user profile after Supabase sign-in.
+app.get('/api/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'AUTH_MISSING', message: 'Authorization: Bearer <token> required' });
+    }
+    const token   = authHeader.slice(7);
+    const payload = await verifySupabaseJWT(token);
+    const user    = await findOrCreateFromSupabase(payload);
+    return res.json({
+      id:            user._id,
+      supabaseUserId: user.supabaseUserId,
+      email:         user.email,
+      emailVerified: user.emailVerified,
+      authProvider:  user.authProvider,
+      profile:       user.profile,
+      stats:         user.stats,
+      isBanned:      user.isBanned,
+      isDeleted:     user.isDeleted,
+      createdAt:     user.createdAt,
+      lastSeenAt:    user.lastSeenAt,
+    });
+  } catch (err) {
+    if (err.name === 'AuthError') {
+      const status = err.code === 'TOKEN_EXPIRED' ? 401 : 401;
+      return res.status(status).json({ error: err.code, message: err.message });
+    }
+    console.error('[/api/me] Unexpected error:', err.message);
+    return res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+});
 
 // ─── Health check ───────────────────────────────────────────────────
 app.get('/api/status', (req, res) => {

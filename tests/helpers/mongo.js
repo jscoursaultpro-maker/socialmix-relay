@@ -21,9 +21,24 @@ const PartySchema = new mongoose.Schema({
   isPreParty:   Boolean,
 }, { strict: false });
 
+// Minimal User schema for auth tests — mirrors models/User.js relevant fields.
+const UserSchema = new mongoose.Schema({
+  supabaseUserId: { type: String, sparse: true },
+  email:          { type: String, lowercase: true, trim: true },
+  authProvider:   String,
+  providerId:     String,
+  emailVerified:  { type: Boolean, default: false },
+  profile:        { firstName: String, emoji: String },
+  isBanned:       { type: Boolean, default: false },
+  isDeleted:      { type: Boolean, default: false },
+  createdAt:      { type: Date, default: Date.now },
+  lastSeenAt:     { type: Date, default: Date.now },
+}, { strict: false });
+
 /** Module-level connection (one per test process, closed on after()) */
 let _connection = null;
 let _Party = null;
+let _User  = null;
 
 export async function connectTestDB() {
   const uri = mmsState.uri || process.env.MONGODB_URI_TEST;
@@ -52,6 +67,7 @@ export async function connectTestDB() {
   }).asPromise();
 
   _Party = _connection.model('Party', PartySchema);
+  _User  = _connection.model('User',  UserSchema);
   console.log('[TestDB] ✅ Connected to in-memory MongoDB');
 }
 
@@ -64,12 +80,19 @@ export async function disconnectTestDB() {
     ]);
     _connection = null;
     _Party = null;
+    _User  = null;
   }
 }
 
 function getParty() {
   if (!_Party) throw new Error('Call connectTestDB() first');
   return _Party;
+}
+
+/** Returns a User model bound to the test DB connection. */
+export function getTestUserModel() {
+  if (!_User) throw new Error('Call connectTestDB() first');
+  return _User;
 }
 
 /**
@@ -123,4 +146,15 @@ export async function waitForPartyCondition(code, predicate, maxMs = 8000) {
       participants: lastDoc.participants?.length,
     } : null)}`
   );
+}
+
+/**
+ * Delete all test User documents matching the given emails or supabaseUserIds.
+ * @param {...string} emails
+ */
+export async function cleanupUsers(...emails) {
+  const User = getTestUserModel();
+  for (const email of emails) {
+    await User.deleteMany({ email }).catch(() => {});
+  }
 }
