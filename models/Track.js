@@ -94,6 +94,15 @@ const TrackSchema = new mongoose.Schema({
     appleMusic: { trackId: String }
   },
 
+  // Plateformes sur lesquelles ce track a été résolu avec succès via ISRC.
+  // Signal rapide pour DJBrain.strictProviderFilter sans avoir à inspecter providers.*
+  // Valeurs: 'appleMusic' | 'spotify' | 'deezer'
+  availableOn: { type: [String], default: [], index: true },
+
+  // Métadonnées de résolution (idempotence backfill — skip si < 30j)
+  providerIdsResolvedAt:      { type: Date, default: null },
+  providerIdsResolvedVersion: { type: String, default: null }, // ex: 'v1-2026-07'
+
   // Qualification manuelle par un admin via le back-office
   adminQualified:  { type: Boolean, default: false },
   isGuessed:       { type: Boolean, default: false },
@@ -158,6 +167,11 @@ TrackSchema.index({ 'performance.totalPlays': -1 });
 TrackSchema.index({ source: 1 });
 TrackSchema.index({ adminQualified: 1, energy: -1 });
 TrackSchema.index({ suggestCount: -1 });
+// ─── Provider ID indexes (ISRC resolution backfill + DJBrain provider filter) ───
+TrackSchema.index({ 'providers.appleMusic.trackId': 1 }, { sparse: true });
+TrackSchema.index({ 'providers.spotify.trackId':    1 }, { sparse: true });
+TrackSchema.index({ availableOn: 1 });
+TrackSchema.index({ providerIdsResolvedAt: 1 }, { sparse: true }); // backfill idempotence query
 
 TrackSchema.pre('save', function(next) {
   let q = "vide";
