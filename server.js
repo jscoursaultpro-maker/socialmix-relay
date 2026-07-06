@@ -2101,6 +2101,42 @@ app.delete('/api/friends/:id', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── GET /api/host/parties — List active (non-ended, non-archived) parties for a host ──
+// Auth: hostSecret query param (mandatory). Returns parties the host can manage.
+// Used by MyPartiesListView on iOS home screen.
+app.get('/api/host/parties', async (req, res) => {
+  const { hostSecret } = req.query;
+  if (!hostSecret || hostSecret.trim().length < 4) {
+    return res.status(401).json({ error: 'MISSING_HOST_SECRET', message: 'hostSecret is required' });
+  }
+  try {
+    const parties = await Party.find({
+      hostSecret,
+      endedAt: null,
+      code: { $not: /_archived_/ }
+    })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .select('code partyName createdAt participants trackHistory photos hostProfile')
+      .lean();
+
+    const result = parties.map(p => ({
+      code: p.code,
+      partyName: p.partyName || '',
+      createdAt: p.createdAt,
+      participantCount: (p.participants || []).filter(x => !x.isHost).length,
+      trackCount: (p.trackHistory || []).length,
+      photoCount: (p.photos || []).length,
+      hostProfile: p.hostProfile ? { name: p.hostProfile.name, emoji: p.hostProfile.emoji } : null
+    }));
+
+    res.json({ ok: true, parties: result, count: result.length });
+  } catch (err) {
+    console.error('[API] ❌ /api/host/parties error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Helper: find user profile from active parties
 function findUserProfile(userId) {
   for (const party of parties.values()) {
@@ -2500,6 +2536,211 @@ io.on('connection', (socket) => {
     }
     
     socket.emit('party:scheduled', { code, success: true });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // A2 — host:resumeParty — Reprendre une soirée existante
+  // Searches RAM first, then MongoDB (including archived versions).
+  // Reattaches the socket without wiping any data.
+  // ══════════════════════════════════════════════════════════════════
+  socket.on('host:resumeParty', async (data) => {
+    const code = (data.code || '').toUpperCase();
+    if (!code) return socket.emit('party:error', { error: 'MISSING_CODE', message: 'code requis' });
+
+    const hostName = data.profile?.name || 'Hôte';
+    const hostEmoji = data.profile?.emoji || '🎧';
+
+    // 1. Check RAM first (party still live)
+    const ramParty = parties.get(code);
+    if (ramParty) {
+      // Auth check
+      if (data.hostSecret && ramParty.hostSecret && data.hostSecret !== ramParty.hostSecret) {
+        return socket.emit('party:error', { error: 'INVALID_SECRET', message: 'Clé hôte invalide' });
+      }
+      ramParty.hostSocketId = socket.id;
+      ramParty.isDirty = true;
+      socket.partyCode = code;
+      socket.join(`host:${code}`);
+      cancelCleanup(code);
+      const hostIdx = ramParty.participants.findIndex(p => p.isHost);
+      if (hostIdx >= 0) { ramParty.participants[hostIdx].id = socket.id; ramParty.participants[hostIdx].connected = true; }
+      socket.emit('party:resumed', { code, state: buildLightState(ramParty, true) });
+      io.to(`guest:${code}`).emit('participants:update', ramParty.participants);
+      const gc = ramParty.participants.filter(p => !p.isHost).length;
+      console.log(`[${code}] 🎧 Party resumed by host (RAM) — ${ramParty.trackHistory.length} tracks, ${gc} participants, ${(ramParty.photos||[]).length} photos`);
+      return;
+    }
+
+    // 2. Not in RAM — search MongoDB
+    try {
+      let dbParty = await Party.findOne({ code, hostSecret: data.hostSecret, endedAt: null }).lean();
+      let wasArchived = false;
+
+      // 2b. Try archived version if not found live
+      if (!dbParty) {
+        const archived = await Party.findOne({
+          code: { $regex: `^${code}_archived_` },
+          hostSecret: data.hostSecret
+        }).sort({ createdAt: -1 }).lean();
+        if (archived) {
+          // Rename archived → live code
+          await Party.findOneAndUpdate({ _id: archived._id }, { $set: { code, endedAt: null } });
+          dbParty = { ...archived, code, endedAt: null };
+          wasArchived = true;
+          console.log(`[${code}] 📦 Unarchived party → live`);
+        }
+      }
+
+      if (!dbParty) {
+        return socket.emit('party:error', { error: 'PARTY_NOT_FOUND', message: `Aucune soirée trouvée pour le code ${code}` });
+      }
+
+      // Restore RAM
+      const restored = createPartyState(code);
+      Object.assign(restored, {
+        hostSecret: dbParty.hostSecret,
+        hostProfile: data.profile || dbParty.hostProfile || null,
+        trackHistory: dbParty.trackHistory || [],
+        participants: dbParty.participants || [],
+        suggestions: dbParty.suggestions || [],
+        photos: dbParty.photos || [],
+        participantScores: dbParty.participantScores || {},
+        guestVotes: dbParty.guestVotes || {},
+        currentPhase: dbParty.currentPhase || 'arrival',
+        hostSocketId: socket.id,
+        isPreParty: false,
+        isDirty: false
+      });
+      const hostIdx = restored.participants.findIndex(p => p.isHost);
+      if (hostIdx >= 0) { restored.participants[hostIdx].id = socket.id; restored.participants[hostIdx].connected = true; }
+      else {
+        restored.participants.unshift({ id: socket.id, name: hostName, emoji: hostEmoji, partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true });
+      }
+      parties.set(code, restored);
+      socket.partyCode = code;
+      socket.join(`host:${code}`);
+      cancelCleanup(code);
+
+      socket.emit('party:resumed', { code, state: buildLightState(restored, true) });
+      io.to(`guest:${code}`).emit('party:started', { code, profile: restored.hostProfile });
+      io.to(`guest:${code}`).emit('participants:update', restored.participants);
+      const gc2 = restored.participants.filter(p => !p.isHost).length;
+      console.log(`[${code}] 🎧 Party resumed by host (DB${wasArchived?' unarchived':''}) — ${restored.trackHistory.length} tracks, ${gc2} participants, ${(restored.photos||[]).length} photos`);
+    } catch (err) {
+      console.error(`[${code}] ❌ resumeParty error: ${err.message}`);
+      socket.emit('party:error', { error: 'RESUME_FAILED', message: err.message });
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // A3 — host:initializeParty — Full Restart (wipe data, keep code+secret)
+  // ══════════════════════════════════════════════════════════════════
+  socket.on('host:initializeParty', async (data) => {
+    const code = (data.code || '').toUpperCase();
+    if (!code) return socket.emit('party:error', { error: 'MISSING_CODE', message: 'code requis' });
+
+    // Auth
+    const ramParty = parties.get(code);
+    if (ramParty && data.hostSecret !== ramParty.hostSecret) {
+      return socket.emit('party:error', { error: 'INVALID_SECRET', message: 'Clé hôte invalide' });
+    }
+
+    const hostProfile = (ramParty?.hostProfile) || data.profile || null;
+    const hostSecret  = ramParty?.hostSecret || data.hostSecret;
+    const partyName   = ramParty?.partyName  || data.partyName || '';
+    const createdAt   = ramParty?.createdAt  || new Date().toISOString();
+    const hostParticipant = (ramParty?.participants || []).find(p => p.isHost) || null;
+
+    // Rebuild clean RAM state
+    const fresh = createPartyState(code);
+    fresh.hostSecret = hostSecret;
+    fresh.hostProfile = hostProfile;
+    fresh.partyName = partyName;
+    fresh.createdAt = createdAt;
+    fresh.hostSocketId = socket.id;
+    fresh.isPreParty = false;
+    fresh.isDirty = true;
+    if (hostParticipant) {
+      hostParticipant.id = socket.id;
+      hostParticipant.connected = true;
+      fresh.participants = [hostParticipant];
+    } else {
+      const name = data.profile?.name || 'Hôte';
+      const emoji = data.profile?.emoji || '🎧';
+      fresh.participants = [{ id: socket.id, name, emoji, partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true }];
+    }
+    parties.set(code, fresh);
+    socket.partyCode = code;
+    socket.join(`host:${code}`);
+    cancelCleanup(code);
+
+    // Write-through — reset in MongoDB
+    Party.findOneAndUpdate(
+      { code },
+      { $set: {
+          trackHistory: [], photos: [], messages: [], suggestions: [],
+          participantScores: {}, guestVotes: {}, costumeEntries: [],
+          participants: fresh.participants,
+          currentPhase: 'arrival',
+          isPreParty: false
+        }
+      },
+      { upsert: false }
+    ).catch(err => console.error(`[${code}] ⚠️ Write-through (initializeParty) failed: ${err.message}`));
+
+    // Delete any archived versions of this code to keep AfterGlow clean
+    Party.deleteMany({ code: { $regex: `^${code}_archived_` } })
+      .then(r => { if (r.deletedCount > 0) console.log(`[${code}] 🗑️ Purged ${r.deletedCount} archived version(s)`); })
+      .catch(err => console.error(`[${code}] ⚠️ Archive purge failed: ${err.message}`));
+
+    // Notify guests (kick them back to join screen)
+    io.to(`guest:${code}`).emit('party:reset', { code, message: 'La soirée a été relancée ! Reconnecte-toi.' });
+    socket.emit('party:reset', { code, state: buildLightState(fresh, true) });
+    console.log(`[${code}] 🎛️ Full Restart — party reset, archives purged`);
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // A4 — host:sendToAfterglow — Clap de fin (archive AfterGlow)
+  // Same behavior as host:endParty but callable from MyPartiesListView
+  // ══════════════════════════════════════════════════════════════════
+  socket.on('host:sendToAfterglow', async (data) => {
+    const code = (data.code || '').toUpperCase();
+    if (!code) return socket.emit('party:error', { error: 'MISSING_CODE', message: 'code requis' });
+
+    // Auth — check RAM first, then DB
+    let party = parties.get(code);
+    if (!party) {
+      try {
+        const dbParty = await Party.findOne({ code, hostSecret: data.hostSecret, endedAt: null }).lean();
+        if (!dbParty) return socket.emit('party:error', { error: 'PARTY_NOT_FOUND', message: `Aucune soirée active pour ${code}` });
+        // Minimal RAM restore for flush
+        party = createPartyState(code);
+        Object.assign(party, { hostSecret: dbParty.hostSecret, trackHistory: dbParty.trackHistory || [], participants: dbParty.participants || [], photos: dbParty.photos || [], participantScores: dbParty.participantScores || {}, suggestions: dbParty.suggestions || [] });
+        parties.set(code, party);
+      } catch (err) {
+        return socket.emit('party:error', { error: 'DB_ERROR', message: err.message });
+      }
+    }
+    if (data.hostSecret && party.hostSecret && data.hostSecret !== party.hostSecret) {
+      return socket.emit('party:error', { error: 'INVALID_SECRET', message: 'Clé hôte invalide' });
+    }
+
+    party.lifecycle.status = 'ended';
+    party.lifecycle.endedBy = 'host';
+    party.lifecycle.lastActivityAt = new Date().toISOString();
+    party.endedAt = new Date().toISOString();
+
+    // Immediate endedAt write-through
+    Party.findOneAndUpdate({ code }, { $set: { endedAt: party.endedAt, 'lifecycle.status': 'ended', 'lifecycle.endedBy': 'host' } }, { upsert: false })
+      .catch(err => console.error(`[${code}] ⚠️ Write-through (sendToAfterglow endedAt) failed: ${err.message}`));
+
+    io.to(`guest:${code}`).emit('party:ended', { reason: 'La soirée est terminée ! Merci d\'avoir participé 🎉', scores: party.participantScores, trackHistory: party.trackHistory, photos: party.photos });
+    socket.emit('party:sentToAfterglow', { code, endedAt: party.endedAt });
+    console.log(`[${code}] 🎬 Party sent to AfterGlow by host`);
+
+    await flushEndedParty(party);
+    parties.delete(code);
+    cancelCleanup(code);
   });
 
   socket.on('host:startParty', async (data) => {
