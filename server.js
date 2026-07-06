@@ -2620,6 +2620,36 @@ io.on('connection', (socket) => {
       }
     }
 
+    // ── TASK 1 (#69): Guard against code collision — archive or reject before creating new party ──
+    // At this point: no RAM party matched (no secret match) + no DB party matched.
+    // But there may be a DB party with the SAME code and a DIFFERENT hostSecret (collision).
+    try {
+      const collision = await Party.findOne({ code }).lean();
+      if (collision) {
+        if (!collision.endedAt) {
+          // Active party with different secret → refuse creation to protect ongoing party
+          console.warn(`[${code}] ⛔ PARTY_CODE_ACTIVE: code in use by ongoing party (different secret). Refusing creation.`);
+          socket.emit('party:error', {
+            error: 'PARTY_CODE_ACTIVE',
+            message: `Ce code est déjà utilisé par une soirée en cours. Arrête la soirée existante ou utilise un autre code.`
+          });
+          return;
+        } else {
+          // Ended party with same code → archive it so the new party gets a clean slate
+          const archiveCode = `${code}_archived_${Date.now()}`;
+          await Party.findOneAndUpdate(
+            { code, endedAt: { $ne: null } },
+            { $set: { code: archiveCode } },
+            { upsert: false }
+          );
+          console.log(`[${code}] 📦 Archived ended party → ${archiveCode} (new party will reuse code)`);
+        }
+      }
+    } catch (guardErr) {
+      // Non-fatal: log and continue — worst case is the old upsert behavior
+      console.error(`[${code}] ⚠️ Collision guard failed (non-fatal): ${guardErr.message}`);
+    }
+
     // ── NEW party (no existing in RAM, no matching DB record, or recovery failed) ──
     const party = createPartyState(code);
     party.hostSocketId = socket.id;
@@ -2642,6 +2672,26 @@ io.on('connection', (socket) => {
       phone: data.profile?.phone || '', email: data.profile?.email || '', instagram: data.profile?.instagram || '',
       partyCode: code, joinedAt: new Date().toISOString(), isHost: true
     });
+
+    // ── TASK 3 (#WT): Write-through host + partyName to MongoDB immediately on party creation ──
+    // Guards against Render crash before first dirty-flush. Non-blocking fire-and-forget.
+    const partyName = data.partyName || data.welcomeText || '';
+    Party.findOneAndUpdate(
+      { code },
+      { $setOnInsert: {
+          code,
+          createdAt: new Date(),
+          hostSecret: party.hostSecret,
+          partyName: partyName,
+          hostProfile: party.hostProfile,
+          trackHistory: [],
+          participants: party.participants,
+          suggestions: [],
+          lifecycle: party.lifecycle
+        }
+      },
+      { upsert: true }
+    ).catch(err => console.error(`[${code}] ⚠️ Write-through (startParty) failed: ${err.message}`));
 
     console.log(`🎉 Party started: ${code} (host: "${hostName}", secret: ****${lastFour}, active parties: ${parties.size})`);
     // Never send hostSecret to guests — only party:started with public data
@@ -3195,6 +3245,21 @@ io.on('connection', (socket) => {
         addPoints(party, socket.id, guest.name, 25, 'profile complete');
       }
     }
+    // ── TASK 3 (#WT): Write-through guest join to MongoDB ──
+    // Guards against Render crash losing guest join between dirty-flushes.
+    Party.findOneAndUpdate(
+      { code },
+      { $addToSet: { participants: { $each: [] } }, // ensure field exists
+        $set: { [`sessionTokens.${sessionToken}`]: guestName }
+      },
+      { upsert: false }
+    ).then(() =>
+      Party.findOneAndUpdate(
+        { code, 'participants.name': { $ne: guest.name } },
+        { $push: { participants: { name: guest.name, emoji: guest.emoji, joinedAt: guest.joinedAt, userId: guest.userId, isHost: false } } },
+        { upsert: false }
+      )
+    ).catch(err => console.error(`[${code}] ⚠️ Write-through (guest:join) failed: ${err.message}`));
     console.log(`👤 [${code}] Guest joined: ${guest.emoji} ${guest.name} (token: ${sessionToken.substring(0, 8)}...) — Total participants: ${party.participants.length}`)
     console.log(`👤 [${code}] Participant list: ${party.participants.map(p => `${p.name}${p.isHost ? ' [HOST]' : ''}`).join(', ')}`);
 
@@ -3462,6 +3527,14 @@ io.on('connection', (socket) => {
     party.suggestions = cappedPush(party.suggestions, suggestion, 200);
     const hostRoom = `host:${party.code}`;
     io.to(hostRoom).emit('guest:suggested', suggestion);
+    // ── TASK 3 (#WT): Write-through suggestion to MongoDB ──
+    Party.findOneAndUpdate(
+      { code: party.code },
+      { $push: { suggestions: { id: suggestion.id, title: suggestion.title, artist: suggestion.artist,
+          guestName: suggestion.guestName, guestId: suggestion.guestId, status: 'pending',
+          sentAt: suggestion.sentAt, boostCount: 0 } } },
+      { upsert: false }
+    ).catch(err => console.error(`[${party.code}] ⚠️ Write-through (guest:suggest) failed: ${err.message}`));
     
     // ★ Fix Z3: broadcast to other guests so they see cross-guest suggestions in real-time
     // Exclude the suggester (they get suggestion:confirmed) and the host (gets guest:suggested)
@@ -3739,21 +3812,24 @@ io.on('connection', (socket) => {
 
   socket.on('host:suggestionPlayed', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    if (data.guestName) {
-      const guestId = data.guestId || data.guestName;
-      if (guestId !== 'host') {
-          addPoints(party, guestId, data.guestName, 10, `suggestion played: ${data.trackTitle || 'Unknown'}`);
-      }
-      addPoints(party, 'host', 'DJ', 5, `handled suggestion: ${data.trackTitle || 'Unknown'}`);
-    }
-    // Update suggestion status and notify the guest
+
+    // ── TASK 2 (#70): Idempotence guard — triple-fire protection ──
+    // Root cause: host app had 3 active sockets (grace period + reconnects) → handler fired 3×.
+    // Fix: find the suggestion first, check if already scored (scoredAt exists), bail if so.
     const match = party.suggestions.find(s =>
       (s.title || '').toLowerCase() === (data.trackTitle || '').toLowerCase() &&
       s.guestName === data.guestName
     );
     if (match) {
+      // Idempotence check — if already marked played+scored, this is a duplicate fire
+      if (match.status === 'played' && match.scoredAt) {
+        console.log(`[${party.code}] ♻️  host:suggestionPlayed DUPLICATE (already scored): "${data.trackTitle}" — skipping points re-credit`);
+        return;
+      }
+      // First fire: mark played + stamp scoredAt atomically in RAM
       match.status = 'played';
-      match.playedAt = new Date().toISOString();
+      match.playedAt = match.playedAt || new Date().toISOString();
+      match.scoredAt = new Date().toISOString(); // ← idempotence sentinel
       // Notify the originating guest
       const guestRoom = `guest:${party.code}`;
       io.to(guestRoom).emit('suggestion:status', {
@@ -3763,6 +3839,21 @@ io.on('connection', (socket) => {
         status: 'played',
         message: `🎉 Bien joué ! "${match.title || match.query}" a été jouée ! +10 pts`
       });
+      // Write-through: persist scoredAt to MongoDB atomically — prevents re-fire on server restart
+      Party.findOneAndUpdate(
+        { code: party.code, 'suggestions.id': match.id, 'suggestions.scoredAt': { $exists: false } },
+        { $set: { 'suggestions.$.status': 'played', 'suggestions.$.scoredAt': match.scoredAt, 'suggestions.$.playedAt': match.playedAt } },
+        { upsert: false }
+      ).catch(err => console.error(`[${party.code}] ⚠️ Write-through (suggestionPlayed) failed: ${err.message}`));
+    }
+
+    // Credit points only if match found (and not duplicate — guard above returns early)
+    if (data.guestName) {
+      const guestId = data.guestId || data.guestName;
+      if (guestId !== 'host') {
+        addPoints(party, guestId, data.guestName, 10, `suggestion played: ${data.trackTitle || 'Unknown'}`);
+      }
+      addPoints(party, 'host', 'DJ', 5, `handled suggestion: ${data.trackTitle || 'Unknown'}`);
     }
     console.log(`🎵 [${party.code}] SUGGESTION PLAYED: "${data.trackTitle}" suggested by ${data.guestName}`);
   });
@@ -4140,6 +4231,14 @@ io.on('connection', (socket) => {
     party.lifecycle.endedBy = 'host';
     party.lifecycle.lastActivityAt = new Date().toISOString();
     party.endedAt = new Date().toISOString();
+
+    // ── TASK 3 (#WT): Write-through endedAt immediately before flushEndedParty ──
+    // Ensures endedAt is persisted even if flushEndedParty throws.
+    Party.findOneAndUpdate(
+      { code: party.code },
+      { $set: { endedAt: party.endedAt, 'lifecycle.status': 'ended', 'lifecycle.endedBy': 'host' } },
+      { upsert: false }
+    ).catch(err => console.error(`[${party.code}] ⚠️ Write-through (endedAt) failed: ${err.message}`));
 
     io.to(`guest:${party.code}`).emit('party:ended', {
       reason: 'La soirée est terminée ! Merci d\'avoir participé 🎉',
