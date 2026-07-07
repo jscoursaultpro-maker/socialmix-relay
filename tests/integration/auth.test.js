@@ -22,6 +22,7 @@ import { io as ioClient } from 'socket.io-client';
 import { startServer }                    from '../helpers/server-process.js';
 import { connectTestDB, disconnectTestDB,
          getTestUserModel, cleanupUsers } from '../helpers/mongo.js';
+import { verifySupabaseJWT }              from '../../lib/supabaseAuth.js';
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 /** Encode a Supabase-like payload into a cross-process test token. */
@@ -105,6 +106,21 @@ describe('Supabase auth — socket + /api/me', () => {
     await cleanupUsers(USER_A.email, USER_B.email, LEGACY_EMAIL);
     await serverCtx?.kill();
     await disconnectTestDB();
+  });
+
+  // ── Fail-safe Unit Test ───────────────────────────────────────────────────
+  it('rejects test:* tokens when NODE_ENV is not test', async () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      await verifySupabaseJWT('test:user123');
+      assert.fail('Should have thrown AuthError');
+    } catch (err) {
+      assert.equal(err.code, 'TOKEN_INVALID');
+      assert.equal(err.message, 'test_token_in_production');
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+    }
   });
 
   // ── Case 1: No token → V0 backward compat ─────────────────────────────────
