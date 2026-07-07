@@ -65,7 +65,7 @@ async function run() {
     }
 
     try {
-      const response = await fetch(`https://itunes.apple.com/lookup?isrc=${isrc}&country=FR`);
+      const response = await fetch(`https://itunes.apple.com/lookup?isrc=${isrc}`);
       const data = await response.json();
 
       let suggestedArtist = "";
