@@ -2812,7 +2812,10 @@ io.on('connection', (socket) => {
     party.endedAt = new Date().toISOString();
 
     // Immediate endedAt write-through
-    Party.findOneAndUpdate({ code }, { $set: { endedAt: party.endedAt, 'lifecycle.status': 'ended', 'lifecycle.endedBy': 'host' } }, { upsert: false })
+    Party.findOneAndUpdate({ code, endedAt: null, hostSecret: party.hostSecret }, { $set: { endedAt: party.endedAt, 'lifecycle.status': 'ended', 'lifecycle.endedBy': 'host' } }, { upsert: false })
+      .then(doc => {
+        if (!doc) console.warn('sendToAfterglow: no active party matched for code', { code });
+      })
       .catch(err => console.error(`[${code}] ⚠️ Write-through (sendToAfterglow endedAt) failed: ${err.message}`));
 
     io.to(`guest:${code}`).emit('party:ended', { reason: 'La soirée est terminée ! Merci d\'avoir participé 🎉', scores: party.participantScores, trackHistory: party.trackHistory, photos: party.photos });

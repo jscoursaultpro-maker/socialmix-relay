@@ -89,6 +89,10 @@ function getParty() {
   return _Party;
 }
 
+export function getTestPartyModel() {
+  return getParty();
+}
+
 /** Returns a User model bound to the test DB connection. */
 export function getTestUserModel() {
   if (!_User) throw new Error('Call connectTestDB() first');
