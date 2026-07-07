@@ -2459,6 +2459,8 @@ function buildLightState(party, isHost = false) {
     photosCount: (party.photos || []).length,
     playedKeys: party.playedKeys || [],  // ★ Phase 3: anti-replay keys
     createdAt: party.createdAt,          // ★ Phase 4: restore DJBrain session start date
+    phaseStartedAt: party.phaseStartedAt, // ★ Full Restart Refactor
+
     scheduledFor: party.scheduledFor,    // ★ MVP Pre-Party
     welcomeText: party.welcomeText,      // ★ MVP Pre-Party
     coverPhoto: party.coverPhoto,        // ★ MVP Pre-Party
@@ -2552,8 +2554,8 @@ io.on('connection', (socket) => {
     if (event.startsWith('host:')) {
       return origOn(event, (...args) => {
         ensureHostRoom();
-        // host:startParty, host:scheduleParty, and host:initializeParty handle their own auth
-        if (event === 'host:startParty' || event === 'host:scheduleParty' || event === 'host:initializeParty') {
+        // startParty, scheduleParty, deleteParty, resumeParty, sendToAfterglow handle their own auth or need DB access
+        if (['host:startParty', 'host:scheduleParty', 'host:deleteParty', 'host:resumeParty', 'host:sendToAfterglow'].includes(event)) {
           handler(...args);
           return;
         }
@@ -2713,133 +2715,40 @@ io.on('connection', (socket) => {
     }
   });
 
+
   // ══════════════════════════════════════════════════════════════════
-  // A3 — host:initializeParty — Full Restart (wipe data, keep code+secret)
+  // A3 — host:deleteParty — Supprimer la soirée (remplace Full Restart)
   // ══════════════════════════════════════════════════════════════════
-  socket.on('host:initializeParty', async (data) => {
-    console.log('--- host:initializeParty called with data:', data);
+  socket.on('host:deleteParty', async (data) => {
     const code = (data.code || '').toUpperCase();
     if (!code) return socket.emit('party:error', { error: 'MISSING_CODE', message: 'code requis' });
 
-    // Auth
     let ramParty = parties.get(code);
     if (ramParty && data.hostSecret && data.hostSecret !== ramParty.hostSecret) {
       return socket.emit('party:error', { error: 'INVALID_SECRET', message: 'Clé hôte invalide' });
     }
 
     try {
-      // Lookup existing active party in DB
-      const dbParty = await Party.findOne({ code, hostSecret: data.hostSecret || (ramParty ? ramParty.hostSecret : ''), endedAt: null }).lean();
-
-      let fresh;
-      if (dbParty) {
-        // MODE RESET: preserve settings, qrCode, hostProfile, but wipe dynamic state
-        fresh = createPartyState(code);
-        fresh.hostSecret = dbParty.hostSecret;
-        fresh.partyName = dbParty.partyName || '';
-        fresh.createdAt = dbParty.createdAt || new Date().toISOString();
-        fresh.hostProfile = {
-          name: dbParty.hostDisplayName || data.profile?.name || 'Hôte',
-          emoji: dbParty.hostEmoji || data.profile?.emoji || '🎧'
-        };
-        // Preserve DB specific fields in RAM (even if flush doesn't persist them, 
-        // iOS app needs them in state broadcast or other parts of server logic)
-        fresh.settings = dbParty.settings || {};
-        
-        fresh.hostSocketId = socket.id;
-        fresh.isPreParty = false;
-        fresh.isDirty = true;
-        
-        // Re-inject host participant
-        fresh.participants = [{ 
-          id: socket.id, 
-          name: fresh.hostProfile.name, 
-          emoji: fresh.hostProfile.emoji, 
-          partyCode: code, 
-          joinedAt: new Date().toISOString(), 
-          isHost: true, 
-          connected: true 
-        }];
-
-        parties.set(code, fresh);
-        socket.partyCode = code;
-        socket.join(`host:${code}`);
-        cancelCleanup(code);
-
-        // Update DB
-        await Party.updateOne(
-          { _id: dbParty._id },
-          { $set: {
-              trackHistory: [], photos: [], messages: [], suggestions: [],
-              participantScores: {}, guestVotes: {}, costumeEntries: [],
-              participants: fresh.participants,
-              currentPhase: 'arrival',
-              isPreParty: false
-            }
-          }
-        );
-      } else {
-        // MODE CREATE: full initialization from scratch
-        const hostProfile = (ramParty?.hostProfile) || data.profile || null;
-        const hostSecret  = ramParty?.hostSecret || data.hostSecret;
-        const partyName   = ramParty?.partyName  || data.partyName || '';
-        const createdAt   = ramParty?.createdAt  || new Date().toISOString();
-        const hostParticipant = (ramParty?.participants || []).find(p => p.isHost) || null;
-
-        fresh = createPartyState(code);
-        fresh.hostSecret = hostSecret;
-        fresh.hostProfile = hostProfile;
-        fresh.partyName = partyName;
-        fresh.createdAt = createdAt;
-        fresh.hostSocketId = socket.id;
-        fresh.isPreParty = false;
-        fresh.isDirty = true;
-        if (hostParticipant) {
-          hostParticipant.id = socket.id;
-          hostParticipant.connected = true;
-          fresh.participants = [hostParticipant];
-        } else {
-          const name = data.profile?.name || 'Hôte';
-          const emoji = data.profile?.emoji || '🎧';
-          fresh.participants = [{ id: socket.id, name, emoji, partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true }];
-        }
-        parties.set(code, fresh);
-        socket.partyCode = code;
-        socket.join(`host:${code}`);
-        cancelCleanup(code);
-
-        // Write-through — reset in MongoDB
-        await Party.findOneAndUpdate(
-          { code },
-          { $set: {
-              trackHistory: [], photos: [], messages: [], suggestions: [],
-              participantScores: {}, guestVotes: {}, costumeEntries: [],
-              participants: fresh.participants,
-              currentPhase: 'arrival',
-              isPreParty: false
-            }
-          },
-          { upsert: false }
-        );
+      // Validate hostSecret against DB just in case it's not in RAM
+      const dbParty = await Party.findOne({ code, hostSecret: data.hostSecret || (ramParty ? ramParty.hostSecret : '') }).lean();
+      if (!dbParty) {
+        return socket.emit('party:error', { error: 'NOT_FOUND', message: 'Soirée introuvable ou clé invalide' });
       }
 
-      // Delete any archived versions of this code to keep AfterGlow clean
-      Party.deleteMany({ code: { $regex: `^${code}_archived_` } })
-        .then(r => { if (r.deletedCount > 0) console.log(`[${code}] 🗑️ Purged ${r.deletedCount} archived version(s)`); })
-        .catch(err => console.error(`[${code}] ⚠️ Archive purge failed: ${err.message}`));
+      await Party.deleteOne({ _id: dbParty._id });
+      await Party.deleteMany({ code: { $regex: `^${code}_archived_` } });
 
-      // Notify guests
-      io.to(`guest:${code}`).emit('party:reset', { 
-        code, 
-        message: 'La soirée a été relancée !',
-        timestamp: new Date().toISOString(),
-        hostDisplayName: fresh.participants[0]?.name || fresh.hostProfile?.name || 'Hôte'
-      });
-      socket.emit('party:reset', { code, state: buildLightState(fresh, true) });
-      console.log(`[${code}] 🎛️ Full Restart — party reset, archives purged`);
+      parties.delete(code);
+      cancelCleanup(code);
+
+      // Notify host and guests
+      io.to(`guest:${code}`).emit('party:error', { error: 'PARTY_DELETED', message: 'La soirée a été supprimée' });
+      socket.emit('party:deleted', { code });
+      
+      console.log(`[${code}] 🗑️ Party DELETED by host (including archives)`);
     } catch (err) {
-      console.error(`[${code}] ⚠️ Initialize Party failed:`, err);
-      socket.emit('party:error', { error: 'INITIALIZE_FAILED', message: 'Erreur lors de l\'initialisation' });
+      console.error(`[${code}] ❌ deleteParty error: ${err.message}`);
+      socket.emit('party:error', { error: 'DELETE_FAILED', message: 'Erreur lors de la suppression' });
     }
   });
 
@@ -3417,30 +3326,23 @@ io.on('connection', (socket) => {
     const party = getMutableParty(socket); if (!party) return;
     const newPhase = (data.phase || 'arrival').toLowerCase();
     
-    const PHASE_RANKS = { arrival: 0, ambiance: 1, takeoff: 2, groove: 3, party: 4, closing: 5 };
-    const currentRank = PHASE_RANKS[party.currentPhase] ?? -1;
-    const newRank = PHASE_RANKS[newPhase] ?? -1;
+    // Feature 1: Manual phase regression is ALWAYS allowed now.
+    party.currentPhase = newPhase;
+    party.phaseStartedAt = new Date().toISOString();
+    // Immediate write-through for critical state
+    party.isDirty = true;
+    Party.updateOne({ code: party.code, endedAt: null }, { $set: { currentPhase: party.currentPhase, phaseStartedAt: party.phaseStartedAt } }).catch(console.error);
+
+    console.log(`[${party.code}] Phase -> ${party.currentPhase} (startedAt reset)`);
     
-    let allowed = true;
-    if (newRank < currentRank) {
-        allowed = false;
-        // Doctrine exception: bidirectional party <-> closing
-        if (party.currentPhase === 'closing' && newPhase === 'party') {
-            allowed = true;
-        }
-    }
-    
-    if (allowed) {
-        party.currentPhase = newPhase;
-        party.isDirty = true;
-        console.log(`[${party.code}] Phase -> ${party.currentPhase}`);
-        // ★ Fix 2 — broadcaster party:state aux guests + host pour sync widget phase indicator
-        const phaseState = buildLightState(party);
-        io.to(`guest:${party.code}`).emit('party:state', phaseState);
-        io.to(`host:${party.code}`).emit('party:state', phaseState);
-    } else {
-        console.log(`[${party.code}] ⛔ Phase update REJECTED (anti-regression): ${party.currentPhase} -> ${newPhase}`);
-    }
+    // Broadcast state for phase indicator
+    const phaseState = buildLightState(party);
+    io.to(`guest:${party.code}`).emit('party:state', phaseState);
+    io.to(`host:${party.code}`).emit('party:state', phaseState);
+
+    // Broadcast specific phaseUpdated event for DJBrain resync
+    io.to(`guest:${party.code}`).emit('party:phaseUpdated', { code: party.code, phase: newPhase, phaseStartedAt: party.phaseStartedAt });
+    io.to(`host:${party.code}`).emit('party:phaseUpdated', { code: party.code, phase: newPhase, phaseStartedAt: party.phaseStartedAt });
   });
 
   socket.on('host:genreVote', (data) => {

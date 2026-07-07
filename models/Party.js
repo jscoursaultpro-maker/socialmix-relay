@@ -29,6 +29,7 @@ const PartySchema = new mongoose.Schema({
   welcomeText:      { type: String, default: '' },     // ★ MVP Pre-Party
   coverPhoto:       { type: String, default: null },   // ★ MVP Pre-Party (Base64)
   isPreParty:       { type: Boolean, default: false }, // ★ MVP Pre-Party
+  phaseStartedAt:   { type: Date, default: null, index: true }, // ★ Full Restart Refactor: decouple phase from createdAt
   createdAt:        { type: Date, default: Date.now },
   endedAt:          { type: Date, default: null },
   lifecycle: {

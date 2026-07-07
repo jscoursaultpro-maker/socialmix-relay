@@ -164,44 +164,74 @@ describe('party-lifecycle', async () => {
     assert.equal(new Date(oldDoc.endedAt).toISOString(), new Date(oldDate).toISOString(), 'Old party endedAt should NOT be modified');
   });
 
-  // ── Test 6: Full Restart preserves settings and code ──────────
-  it('Full Restart preserves code, qrCode, settings but resets state', async () => {
+  // ── Test 6: host:phaseUpdate allows manual regression and sets phaseStartedAt ──────────
+  it('host:phaseUpdate allows manual regression and sets phaseStartedAt', async () => {
     const { getTestPartyModel } = await import('../helpers/mongo.js');
     const Party = getTestPartyModel();
     
     // Setup
-    const TEST_CODE = 'FULLRST';
+    const TEST_CODE = 'PHASE';
     const TEST_SECRET = 'abc';
     await Party.create({
       code: TEST_CODE,
       hostSecret: TEST_SECRET,
-      qrCode: 'qr123',
-      settings: { dramaturgy: 'wave', provider: 'appleMusic' },
-      hostDisplayName: 'Jean',
-      hostEmoji: '🦄',
-      trackHistory: [{ title: 'Track 1', artist: 'Artist 1' }, { title: 'Track 2', artist: 'Artist 2' }],
-      participantScores: { Alice: { name: 'Alice', score: 15 } }
+      currentPhase: 'peak',
+      phaseStartedAt: new Date(Date.now() - 1000000)
     });
 
-    // Action: simulate host:initializeParty
-    socket.emit('host:initializeParty', { code: TEST_CODE, hostSecret: TEST_SECRET });
+    // Simulate connection + mock getMutableParty by just joining the host room so standard middleware works
+    // Or we rely on the host:* events logic.
+    // Wait, getMutableParty requires the socket to be joined to host room and party in RAM.
+    socket.emit('host:initializeParty', { code: TEST_CODE, hostSecret: TEST_SECRET }); // Wait, initializeParty is gone! 
+    // We must use standard connect flow or mock it properly if needed, but in integration tests, we usually just emit.
+    // Let's create it in RAM first via host:resumeParty
+    socket.emit('host:resumeParty', { code: TEST_CODE, hostSecret: TEST_SECRET });
+    
+    await new Promise(r => setTimeout(r, 500));
+
+    // Action: regress to arrival
+    socket.emit('host:phaseUpdate', { code: TEST_CODE, hostSecret: TEST_SECRET, phase: 'arrival' });
 
     // Wait for DB to be updated
     let updatedDoc;
     for (let i = 0; i < 40; i++) {
       updatedDoc = await Party.findOne({ code: TEST_CODE, hostSecret: TEST_SECRET }).lean();
-      if (updatedDoc && updatedDoc.trackHistory && updatedDoc.trackHistory.length === 0) break;
+      if (updatedDoc && updatedDoc.currentPhase === 'arrival') break;
       await new Promise(r => setTimeout(r, 100));
     }
 
     // Assert
     assert.ok(updatedDoc, 'Active party should be found');
-    assert.equal(updatedDoc.code, TEST_CODE);
-    assert.equal(updatedDoc.qrCode, 'qr123');
-    assert.equal(updatedDoc.settings?.dramaturgy, 'wave');
-    assert.equal(updatedDoc.hostDisplayName, 'Jean');
-    assert.equal(updatedDoc.trackHistory.length, 0);
-    assert.deepEqual(updatedDoc.participantScores, {});
+    assert.equal(updatedDoc.currentPhase, 'arrival', 'Phase regression should be allowed');
+    assert.ok(updatedDoc.phaseStartedAt, 'phaseStartedAt should be set');
+    assert.ok(Date.now() - updatedDoc.phaseStartedAt.getTime() < 5000, 'phaseStartedAt should be recent');
+  });
+
+  // ── Test 7: host:deleteParty removes party from DB ──────────
+  it('host:deleteParty removes party and archives from DB', async () => {
+    const { getTestPartyModel } = await import('../helpers/mongo.js');
+    const Party = getTestPartyModel();
+    
+    // Setup
+    const TEST_CODE = 'DELPARTY';
+    const TEST_SECRET = 'xyz';
+    await Party.create({ code: TEST_CODE, hostSecret: TEST_SECRET });
+    await Party.create({ code: `${TEST_CODE}_archived_123`, hostSecret: TEST_SECRET });
+
+    socket.emit('host:resumeParty', { code: TEST_CODE, hostSecret: TEST_SECRET });
+    await new Promise(r => setTimeout(r, 500));
+
+    // Action
+    socket.emit('host:deleteParty', { code: TEST_CODE, hostSecret: TEST_SECRET });
+
+    // Wait for DB to be updated
+    await new Promise(r => setTimeout(r, 500));
+
+    // Assert
+    const activeDoc = await Party.findOne({ code: TEST_CODE }).lean();
+    const archivedDoc = await Party.findOne({ code: `${TEST_CODE}_archived_123` }).lean();
+    
+    assert.ok(!activeDoc, 'Active party should be deleted');
+    assert.ok(!archivedDoc, 'Archived party should be deleted');
   });
 });
-
