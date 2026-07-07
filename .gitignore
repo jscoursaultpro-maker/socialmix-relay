@@ -18,3 +18,9 @@ test-photo.js
 
 # Test environment secrets
 .env.test
+
+# Scripts exceptions
+!scripts/*.mjs
+
+# Bogus artists CSV export
+bogus_artists.csv
