@@ -2459,6 +2459,8 @@ function buildLightState(party, isHost = false) {
     photosCount: (party.photos || []).length,
     playedKeys: party.playedKeys || [],  // ★ Phase 3: anti-replay keys
     createdAt: party.createdAt,          // ★ Phase 4: restore DJBrain session start date
+    phaseStartedAt: party.phaseStartedAt, // ★ Full Restart Refactor
+
     scheduledFor: party.scheduledFor,    // ★ MVP Pre-Party
     welcomeText: party.welcomeText,      // ★ MVP Pre-Party
     coverPhoto: party.coverPhoto,        // ★ MVP Pre-Party
@@ -2552,8 +2554,8 @@ io.on('connection', (socket) => {
     if (event.startsWith('host:')) {
       return origOn(event, (...args) => {
         ensureHostRoom();
-        // host:startParty, host:scheduleParty, and host:initializeParty handle their own auth
-        if (event === 'host:startParty' || event === 'host:scheduleParty' || event === 'host:initializeParty') {
+        // startParty, scheduleParty, deleteParty, resumeParty, sendToAfterglow handle their own auth or need DB access
+        if (['host:startParty', 'host:scheduleParty', 'host:deleteParty', 'host:resumeParty', 'host:sendToAfterglow'].includes(event)) {
           handler(...args);
           return;
         }
@@ -2714,6 +2716,41 @@ io.on('connection', (socket) => {
   });
 
 
+  // ══════════════════════════════════════════════════════════════════
+  // A3 — host:deleteParty — Supprimer la soirée (remplace Full Restart)
+  // ══════════════════════════════════════════════════════════════════
+  socket.on('host:deleteParty', async (data) => {
+    const code = (data.code || '').toUpperCase();
+    if (!code) return socket.emit('party:error', { error: 'MISSING_CODE', message: 'code requis' });
+
+    let ramParty = parties.get(code);
+    if (ramParty && data.hostSecret && data.hostSecret !== ramParty.hostSecret) {
+      return socket.emit('party:error', { error: 'INVALID_SECRET', message: 'Clé hôte invalide' });
+    }
+
+    try {
+      // Validate hostSecret against DB just in case it's not in RAM
+      const dbParty = await Party.findOne({ code, hostSecret: data.hostSecret || (ramParty ? ramParty.hostSecret : '') }).lean();
+      if (!dbParty) {
+        return socket.emit('party:error', { error: 'NOT_FOUND', message: 'Soirée introuvable ou clé invalide' });
+      }
+
+      await Party.deleteOne({ _id: dbParty._id });
+      await Party.deleteMany({ code: { $regex: `^${code}_archived_` } });
+
+      parties.delete(code);
+      cancelCleanup(code);
+
+      // Notify host and guests
+      io.to(`guest:${code}`).emit('party:error', { error: 'PARTY_DELETED', message: 'La soirée a été supprimée' });
+      socket.emit('party:deleted', { code });
+      
+      console.log(`[${code}] 🗑️ Party DELETED by host (including archives)`);
+    } catch (err) {
+      console.error(`[${code}] ❌ deleteParty error: ${err.message}`);
+      socket.emit('party:error', { error: 'DELETE_FAILED', message: 'Erreur lors de la suppression' });
+    }
+  });
 
   // ══════════════════════════════════════════════════════════════════
   // A4 — host:sendToAfterglow — Clap de fin (archive AfterGlow)
@@ -3292,7 +3329,10 @@ io.on('connection', (socket) => {
     // Feature 1: Manual phase regression is ALWAYS allowed now.
     party.currentPhase = newPhase;
     party.phaseStartedAt = new Date().toISOString();
+    // Immediate write-through for critical state
     party.isDirty = true;
+    Party.updateOne({ code: party.code, endedAt: null }, { $set: { currentPhase: party.currentPhase, phaseStartedAt: party.phaseStartedAt } }).catch(console.error);
+
     console.log(`[${party.code}] Phase -> ${party.currentPhase} (startedAt reset)`);
     
     // Broadcast state for phase indicator
