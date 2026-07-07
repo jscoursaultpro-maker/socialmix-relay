@@ -129,5 +129,39 @@ describe('party-lifecycle', async () => {
       'New party should NOT inherit old trackHistory'
     );
   });
+
+  // ── Test 5: sendToAfterglow scoped to active party by hostSecret ──────────
+  it('sendToAfterglow scoped to active party by hostSecret', async () => {
+    // Setup: create 2 parties with the SAME code but different hostSecrets
+    const { getTestPartyModel } = await import('../helpers/mongo.js');
+    const Party = getTestPartyModel();
+    
+    // Drop the unique index to allow simulating historical duplicate data
+    await Party.collection.dropIndex('code_1').catch(() => {});
+    
+    const oldDate = new Date(Date.now() - 10000).toISOString();
+    await Party.create({
+      code: CODE, // Same code as the active one
+      hostSecret: 'test-secret-lifecycle-c',
+      endedAt: oldDate,
+      lifecycle: { status: 'ended', endedBy: 'host' }
+    });
+
+    // Action: host:sendToAfterglow from the active party
+    socket.emit('host:sendToAfterglow', { code: CODE, hostSecret: SECRET_B });
+
+    // Wait for the active party to be ended
+    let activeDoc;
+    for (let i = 0; i < 20; i++) {
+      activeDoc = await Party.findOne({ code: CODE, hostSecret: SECRET_B }).lean();
+      if (activeDoc && activeDoc.endedAt) break;
+      await new Promise(r => setTimeout(r, 100));
+    }
+    assert.ok(activeDoc.endedAt, 'Active party should be ended');
+
+    // Assert: the old party is untouched
+    const oldDoc = await Party.findOne({ code: CODE, hostSecret: 'test-secret-lifecycle-c' }).lean();
+    assert.equal(new Date(oldDoc.endedAt).toISOString(), new Date(oldDate).toISOString(), 'Old party endedAt should NOT be modified');
+  });
 });
 
