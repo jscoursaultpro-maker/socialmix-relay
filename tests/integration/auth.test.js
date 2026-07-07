@@ -22,6 +22,7 @@ import { io as ioClient } from 'socket.io-client';
 import { startServer }                    from '../helpers/server-process.js';
 import { connectTestDB, disconnectTestDB,
          getTestUserModel, cleanupUsers } from '../helpers/mongo.js';
+import { verifySupabaseJWT }              from '../../lib/supabaseAuth.js';
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 /** Encode a Supabase-like payload into a cross-process test token. */
@@ -105,6 +106,55 @@ describe('Supabase auth — socket + /api/me', () => {
     await cleanupUsers(USER_A.email, USER_B.email, LEGACY_EMAIL);
     await serverCtx?.kill();
     await disconnectTestDB();
+  });
+
+  // ── Edge Case Tests ────────────────────────────────────────────────────────
+  it('rejects token with expired exp claim', async () => {
+    const expiredToken = makeTestToken({
+        sub: 'user-123',
+        exp: Math.floor(Date.now() / 1000) - 3600,
+        aud: 'authenticated',
+        iss: process.env.SUPABASE_URL || 'https://socialmix.supabase.co/auth/v1'
+    });
+    const s = createSocket(serverCtx.url, expiredToken);
+    sockets.push(s);
+    const err = await expectConnectError(s);
+    assert.ok(err, 'Should receive connect_error');
+    assert.equal(err.message, 'AUTH_INVALID_TOKEN');
+    assert.equal(err.data?.code, 'TOKEN_EXPIRED');
+    assert.match(String(err.data?.reason), /expired/i);
+  });
+
+  it('rejects token with wrong audience', async () => {
+    const wrongAudToken = makeTestToken({
+        sub: 'user-123',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        aud: 'wrong-audience',
+        iss: process.env.SUPABASE_URL || 'https://socialmix.supabase.co/auth/v1'
+    });
+    const s = createSocket(serverCtx.url, wrongAudToken);
+    sockets.push(s);
+    const err = await expectConnectError(s);
+    assert.ok(err, 'Should receive connect_error');
+    assert.equal(err.message, 'AUTH_INVALID_TOKEN');
+    assert.equal(err.data?.code, 'TOKEN_AUDIENCE');
+    assert.match(String(err.data?.reason), /audience/i);
+  });
+
+  it('rejects token with wrong issuer', async () => {
+    const wrongIssToken = makeTestToken({
+        sub: 'user-123',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        aud: 'authenticated',
+        iss: 'https://fake-supabase.com'
+    });
+    const s = createSocket(serverCtx.url, wrongIssToken);
+    sockets.push(s);
+    const err = await expectConnectError(s);
+    assert.ok(err, 'Should receive connect_error');
+    assert.equal(err.message, 'AUTH_INVALID_TOKEN');
+    assert.equal(err.data?.code, 'TOKEN_INVALID');
+    assert.match(String(err.data?.reason), /issuer/i);
   });
 
   // ── Case 1: No token → V0 backward compat ─────────────────────────────────
