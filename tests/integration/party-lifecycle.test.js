@@ -163,5 +163,45 @@ describe('party-lifecycle', async () => {
     const oldDoc = await Party.findOne({ code: CODE, hostSecret: 'test-secret-lifecycle-c' }).lean();
     assert.equal(new Date(oldDoc.endedAt).toISOString(), new Date(oldDate).toISOString(), 'Old party endedAt should NOT be modified');
   });
+
+  // ── Test 6: Full Restart preserves settings and code ──────────
+  it('Full Restart preserves code, qrCode, settings but resets state', async () => {
+    const { getTestPartyModel } = await import('../helpers/mongo.js');
+    const Party = getTestPartyModel();
+    
+    // Setup
+    const TEST_CODE = 'FULLRST';
+    const TEST_SECRET = 'abc';
+    await Party.create({
+      code: TEST_CODE,
+      hostSecret: TEST_SECRET,
+      qrCode: 'qr123',
+      settings: { dramaturgy: 'wave', provider: 'appleMusic' },
+      hostDisplayName: 'Jean',
+      hostEmoji: '🦄',
+      trackHistory: [{ title: 'Track 1', artist: 'Artist 1' }, { title: 'Track 2', artist: 'Artist 2' }],
+      participantScores: { Alice: { name: 'Alice', score: 15 } }
+    });
+
+    // Action: simulate host:initializeParty
+    socket.emit('host:initializeParty', { code: TEST_CODE, hostSecret: TEST_SECRET });
+
+    // Wait for DB to be updated
+    let updatedDoc;
+    for (let i = 0; i < 40; i++) {
+      updatedDoc = await Party.findOne({ code: TEST_CODE, hostSecret: TEST_SECRET }).lean();
+      if (updatedDoc && updatedDoc.trackHistory && updatedDoc.trackHistory.length === 0) break;
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    // Assert
+    assert.ok(updatedDoc, 'Active party should be found');
+    assert.equal(updatedDoc.code, TEST_CODE);
+    assert.equal(updatedDoc.qrCode, 'qr123');
+    assert.equal(updatedDoc.settings?.dramaturgy, 'wave');
+    assert.equal(updatedDoc.hostDisplayName, 'Jean');
+    assert.equal(updatedDoc.trackHistory.length, 0);
+    assert.deepEqual(updatedDoc.participantScores, {});
+  });
 });
 
