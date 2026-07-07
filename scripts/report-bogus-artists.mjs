@@ -6,11 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure we don't accidentally load dotenv if it overrides a production environment,
-// but we allow it for local testing if needed.
-import dotenv from 'dotenv';
-dotenv.config();
-
+// Node 20+ handles .env natively via --env-file=.env, no dotenv needed.
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
