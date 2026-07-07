@@ -3417,30 +3417,20 @@ io.on('connection', (socket) => {
     const party = getMutableParty(socket); if (!party) return;
     const newPhase = (data.phase || 'arrival').toLowerCase();
     
-    const PHASE_RANKS = { arrival: 0, ambiance: 1, takeoff: 2, groove: 3, party: 4, closing: 5 };
-    const currentRank = PHASE_RANKS[party.currentPhase] ?? -1;
-    const newRank = PHASE_RANKS[newPhase] ?? -1;
+    // Feature 1: Manual phase regression is ALWAYS allowed now.
+    party.currentPhase = newPhase;
+    party.phaseStartedAt = new Date().toISOString();
+    party.isDirty = true;
+    console.log(`[${party.code}] Phase -> ${party.currentPhase} (startedAt reset)`);
     
-    let allowed = true;
-    if (newRank < currentRank) {
-        allowed = false;
-        // Doctrine exception: bidirectional party <-> closing
-        if (party.currentPhase === 'closing' && newPhase === 'party') {
-            allowed = true;
-        }
-    }
-    
-    if (allowed) {
-        party.currentPhase = newPhase;
-        party.isDirty = true;
-        console.log(`[${party.code}] Phase -> ${party.currentPhase}`);
-        // ★ Fix 2 — broadcaster party:state aux guests + host pour sync widget phase indicator
-        const phaseState = buildLightState(party);
-        io.to(`guest:${party.code}`).emit('party:state', phaseState);
-        io.to(`host:${party.code}`).emit('party:state', phaseState);
-    } else {
-        console.log(`[${party.code}] ⛔ Phase update REJECTED (anti-regression): ${party.currentPhase} -> ${newPhase}`);
-    }
+    // Broadcast state for phase indicator
+    const phaseState = buildLightState(party);
+    io.to(`guest:${party.code}`).emit('party:state', phaseState);
+    io.to(`host:${party.code}`).emit('party:state', phaseState);
+
+    // Broadcast specific phaseUpdated event for DJBrain resync
+    io.to(`guest:${party.code}`).emit('party:phaseUpdated', { code: party.code, phase: newPhase, phaseStartedAt: party.phaseStartedAt });
+    io.to(`host:${party.code}`).emit('party:phaseUpdated', { code: party.code, phase: newPhase, phaseStartedAt: party.phaseStartedAt });
   });
 
   socket.on('host:genreVote', (data) => {
