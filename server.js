@@ -2552,8 +2552,8 @@ io.on('connection', (socket) => {
     if (event.startsWith('host:')) {
       return origOn(event, (...args) => {
         ensureHostRoom();
-        // host:startParty and host:scheduleParty set the secret — skip validation
-        if (event === 'host:startParty' || event === 'host:scheduleParty') {
+        // host:startParty, host:scheduleParty, and host:initializeParty handle their own auth
+        if (event === 'host:startParty' || event === 'host:scheduleParty' || event === 'host:initializeParty') {
           handler(...args);
           return;
         }
@@ -2717,67 +2717,130 @@ io.on('connection', (socket) => {
   // A3 — host:initializeParty — Full Restart (wipe data, keep code+secret)
   // ══════════════════════════════════════════════════════════════════
   socket.on('host:initializeParty', async (data) => {
+    console.log('--- host:initializeParty called with data:', data);
     const code = (data.code || '').toUpperCase();
     if (!code) return socket.emit('party:error', { error: 'MISSING_CODE', message: 'code requis' });
 
     // Auth
-    const ramParty = parties.get(code);
-    if (ramParty && data.hostSecret !== ramParty.hostSecret) {
+    let ramParty = parties.get(code);
+    if (ramParty && data.hostSecret && data.hostSecret !== ramParty.hostSecret) {
       return socket.emit('party:error', { error: 'INVALID_SECRET', message: 'Clé hôte invalide' });
     }
 
-    const hostProfile = (ramParty?.hostProfile) || data.profile || null;
-    const hostSecret  = ramParty?.hostSecret || data.hostSecret;
-    const partyName   = ramParty?.partyName  || data.partyName || '';
-    const createdAt   = ramParty?.createdAt  || new Date().toISOString();
-    const hostParticipant = (ramParty?.participants || []).find(p => p.isHost) || null;
+    try {
+      // Lookup existing active party in DB
+      const dbParty = await Party.findOne({ code, hostSecret: data.hostSecret || (ramParty ? ramParty.hostSecret : ''), endedAt: null }).lean();
 
-    // Rebuild clean RAM state
-    const fresh = createPartyState(code);
-    fresh.hostSecret = hostSecret;
-    fresh.hostProfile = hostProfile;
-    fresh.partyName = partyName;
-    fresh.createdAt = createdAt;
-    fresh.hostSocketId = socket.id;
-    fresh.isPreParty = false;
-    fresh.isDirty = true;
-    if (hostParticipant) {
-      hostParticipant.id = socket.id;
-      hostParticipant.connected = true;
-      fresh.participants = [hostParticipant];
-    } else {
-      const name = data.profile?.name || 'Hôte';
-      const emoji = data.profile?.emoji || '🎧';
-      fresh.participants = [{ id: socket.id, name, emoji, partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true }];
-    }
-    parties.set(code, fresh);
-    socket.partyCode = code;
-    socket.join(`host:${code}`);
-    cancelCleanup(code);
+      let fresh;
+      if (dbParty) {
+        // MODE RESET: preserve settings, qrCode, hostProfile, but wipe dynamic state
+        fresh = createPartyState(code);
+        fresh.hostSecret = dbParty.hostSecret;
+        fresh.partyName = dbParty.partyName || '';
+        fresh.createdAt = dbParty.createdAt || new Date().toISOString();
+        fresh.hostProfile = {
+          name: dbParty.hostDisplayName || data.profile?.name || 'Hôte',
+          emoji: dbParty.hostEmoji || data.profile?.emoji || '🎧'
+        };
+        // Preserve DB specific fields in RAM (even if flush doesn't persist them, 
+        // iOS app needs them in state broadcast or other parts of server logic)
+        fresh.settings = dbParty.settings || {};
+        
+        fresh.hostSocketId = socket.id;
+        fresh.isPreParty = false;
+        fresh.isDirty = true;
+        
+        // Re-inject host participant
+        fresh.participants = [{ 
+          id: socket.id, 
+          name: fresh.hostProfile.name, 
+          emoji: fresh.hostProfile.emoji, 
+          partyCode: code, 
+          joinedAt: new Date().toISOString(), 
+          isHost: true, 
+          connected: true 
+        }];
 
-    // Write-through — reset in MongoDB
-    Party.findOneAndUpdate(
-      { code },
-      { $set: {
-          trackHistory: [], photos: [], messages: [], suggestions: [],
-          participantScores: {}, guestVotes: {}, costumeEntries: [],
-          participants: fresh.participants,
-          currentPhase: 'arrival',
-          isPreParty: false
+        parties.set(code, fresh);
+        socket.partyCode = code;
+        socket.join(`host:${code}`);
+        cancelCleanup(code);
+
+        // Update DB
+        await Party.updateOne(
+          { _id: dbParty._id },
+          { $set: {
+              trackHistory: [], photos: [], messages: [], suggestions: [],
+              participantScores: {}, guestVotes: {}, costumeEntries: [],
+              participants: fresh.participants,
+              currentPhase: 'arrival',
+              isPreParty: false
+            }
+          }
+        );
+      } else {
+        // MODE CREATE: full initialization from scratch
+        const hostProfile = (ramParty?.hostProfile) || data.profile || null;
+        const hostSecret  = ramParty?.hostSecret || data.hostSecret;
+        const partyName   = ramParty?.partyName  || data.partyName || '';
+        const createdAt   = ramParty?.createdAt  || new Date().toISOString();
+        const hostParticipant = (ramParty?.participants || []).find(p => p.isHost) || null;
+
+        fresh = createPartyState(code);
+        fresh.hostSecret = hostSecret;
+        fresh.hostProfile = hostProfile;
+        fresh.partyName = partyName;
+        fresh.createdAt = createdAt;
+        fresh.hostSocketId = socket.id;
+        fresh.isPreParty = false;
+        fresh.isDirty = true;
+        if (hostParticipant) {
+          hostParticipant.id = socket.id;
+          hostParticipant.connected = true;
+          fresh.participants = [hostParticipant];
+        } else {
+          const name = data.profile?.name || 'Hôte';
+          const emoji = data.profile?.emoji || '🎧';
+          fresh.participants = [{ id: socket.id, name, emoji, partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true }];
         }
-      },
-      { upsert: false }
-    ).catch(err => console.error(`[${code}] ⚠️ Write-through (initializeParty) failed: ${err.message}`));
+        parties.set(code, fresh);
+        socket.partyCode = code;
+        socket.join(`host:${code}`);
+        cancelCleanup(code);
 
-    // Delete any archived versions of this code to keep AfterGlow clean
-    Party.deleteMany({ code: { $regex: `^${code}_archived_` } })
-      .then(r => { if (r.deletedCount > 0) console.log(`[${code}] 🗑️ Purged ${r.deletedCount} archived version(s)`); })
-      .catch(err => console.error(`[${code}] ⚠️ Archive purge failed: ${err.message}`));
+        // Write-through — reset in MongoDB
+        await Party.findOneAndUpdate(
+          { code },
+          { $set: {
+              trackHistory: [], photos: [], messages: [], suggestions: [],
+              participantScores: {}, guestVotes: {}, costumeEntries: [],
+              participants: fresh.participants,
+              currentPhase: 'arrival',
+              isPreParty: false
+            }
+          },
+          { upsert: false }
+        );
+      }
 
-    // Notify guests (kick them back to join screen)
-    io.to(`guest:${code}`).emit('party:reset', { code, message: 'La soirée a été relancée ! Reconnecte-toi.' });
-    socket.emit('party:reset', { code, state: buildLightState(fresh, true) });
-    console.log(`[${code}] 🎛️ Full Restart — party reset, archives purged`);
+      // Delete any archived versions of this code to keep AfterGlow clean
+      Party.deleteMany({ code: { $regex: `^${code}_archived_` } })
+        .then(r => { if (r.deletedCount > 0) console.log(`[${code}] 🗑️ Purged ${r.deletedCount} archived version(s)`); })
+        .catch(err => console.error(`[${code}] ⚠️ Archive purge failed: ${err.message}`));
+
+      // Notify guests
+      io.to(`guest:${code}`).emit('party:reset', { 
+        code, 
+        message: 'La soirée a été relancée !',
+        timestamp: new Date().toISOString(),
+        hostDisplayName: fresh.participants[0]?.name || fresh.hostProfile?.name || 'Hôte'
+      });
+      socket.emit('party:reset', { code, state: buildLightState(fresh, true) });
+      console.log(`[${code}] 🎛️ Full Restart — party reset, archives purged`);
+    } catch (err) {
+      console.error(`[${code}] ⚠️ Initialize Party failed:`, err);
+      socket.emit('party:error', { error: 'INITIALIZE_FAILED', message: 'Erreur lors de l\'initialisation' });
+    }
   });
 
   // ══════════════════════════════════════════════════════════════════
