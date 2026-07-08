@@ -24,3 +24,7 @@ test-photo.js
 
 # Bogus artists CSV export
 bogus_artists.csv
+
+# Apple SIWA signing keys — NEVER commit
+*.p8
+AuthKey_*.p8
