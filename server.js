@@ -1702,6 +1702,19 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
     return res.status(409).json({ error: 'Tu as déjà boosté cette suggestion' });
   }
 
+  const isHostBoost = (guestId || '').startsWith('host:') || guestId === 'host';
+
+  // Guard 4: Max 3 host boosts actifs
+  if (isHostBoost) {
+    const activeHostBoosts = (party.suggestions || []).filter(s => 
+      s.boostedByHost === true && ['pending', 'queued', 'next'].includes(s.status)
+    ).length;
+    if (activeHostBoosts >= 3) {
+      return res.status(429).json({ error: "Max 3 suggestions boostées simultanément. Attends qu'une soit jouée." });
+    }
+    sugg.boostedByHost = true;
+  }
+
   // Appliquer le boost
   sugg.boostCount = (sugg.boostCount || 0) + 1;
   sugg.boostedBy.push(guestId);
@@ -1710,7 +1723,6 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   // Gamification :
   // - Guest boost  → +3 pts au boosteur, +1 pt au suggéreur
   // ★ Z7: Host boost → 0 pts au host (DJ), +3 pts au suggéreur (validation DJ = signal fort)
-  const isHostBoost = (guestId || '').startsWith('host:') || guestId === 'host';
   if (!isHostBoost) {
     addPoints(party, guestId, guestName, 3, `boost: ${sugg.title}`);
   }
