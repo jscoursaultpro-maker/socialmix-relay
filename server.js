@@ -19,6 +19,7 @@ import { Photo } from './models/Photo.js';
 import { EventLog } from './models/EventLog.js'; // ★ A3c — Structured audit trail
 import { AudioEvent } from './models/AudioEvent.js'; // ★ A6a — Audio pipeline audit
 import GuestSession from './models/GuestSession.js'; // ★ fix(#21 RGPD) — consent + droit à l'oubli
+import { marked } from 'marked'; // ★ fix(#21) — CGU/Privacy markdown rendering
 import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRESS_METRICS=1
 import { uploadPhoto } from './services/cloudinaryService.js';
 import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
@@ -272,6 +273,25 @@ app.use(express.static(join(__dirname, 'public')));
 // Servi depuis /relay-server/admin/ — auth gérée par le SPA via token
 app.use('/admin', express.static(join(__dirname, 'admin')));
 app.get('/admin/classify-prelive', (req, res) => res.sendFile(join(__dirname, 'admin', 'classify.html')));
+
+// ─── GET /cgu + /privacy — Textes légaux RGPD (markdown → HTML) ─────────────────────
+function renderLegal(mdPath, title, res) {
+  try {
+    const md  = readFileSync(mdPath, 'utf8');
+    const body = marked(md);
+    res.send(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title} — AhOuai !</title>
+<style>*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:#111;max-width:800px;margin:0 auto;padding:24px 20px 60px}h1,h2,h3{color:#111;margin-top:2em}h1{font-size:1.6rem}h2{font-size:1.2rem;border-bottom:1px solid #eee;padding-bottom:.3em}a{color:#00e0c4;text-decoration:none}a:hover{text-decoration:underline}p,li{line-height:1.7;font-size:.95rem}ul{padding-left:1.4em}blockquote{background:#fff8e6;border-left:4px solid #f5a623;padding:10px 16px;border-radius:4px;margin:1em 0}code{background:#f4f4f4;padding:2px 6px;border-radius:3px;font-size:.9em}.back{display:inline-block;margin-bottom:1.5em;font-size:.85rem;color:#666;text-decoration:none}← Retour</style></head>
+<body><a href="javascript:history.back()" class="back"></a>
+${body}
+</body></html>`);
+  } catch (e) {
+    res.status(500).send('Fichier légal non trouvé. Contacter contact@ahouai.com');
+  }
+}
+
+app.get('/cgu',     (req, res) => renderLegal(join(__dirname, 'public/legal/CGU_AhOuai_V1.md'),          'Conditions Générales d\'Utilisation', res));
+app.get('/privacy', (req, res) => renderLegal(join(__dirname, 'public/legal/PrivacyPolicy_AhOuai_V1.md'), 'Politique de confidentialité',            res));
 app.get('/admin/setup', (req, res) => res.sendFile(join(__dirname, 'admin', 'setup.html')));
 app.get('/admin/hub', (req, res) => res.sendFile(join(__dirname, 'admin', 'hub.html')));
 app.get('/admin', (req, res) => res.sendFile(join(__dirname, 'admin', 'index.html')));
