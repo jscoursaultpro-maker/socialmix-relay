@@ -143,4 +143,57 @@ describe('host-boost limits', async () => {
     
     assert.equal(successBoostRes.status, 200, '4th host boost should succeed after slot is freed');
   });
+
+  it('guest boost respects max 3 pending guard (returns 429 on 4th)', async () => {
+    const suggIds = serverCtx.suggIds;
+    
+    // Add a 5th suggestion so we have enough active suggestions to test the guest limit
+    guestSocket.emit('guest:suggest', {
+      code: CODE,
+      title: 'Track 5',
+      artist: 'Artist',
+      coverURL: '',
+      deezerID: 1005,
+      guestId: 'guest-5',
+      guestName: 'Guest 5',
+      eventId: 'evt-5'
+    });
+    await waitFor(socket, 'guest:suggested');
+    
+    socket.emit('host:requestState', { code: CODE, hostSecret: SECRET });
+    const party = await waitFor(socket, 'party:state');
+    const allSuggIds = party.suggestions.map(s => s.id);
+    
+    // Test guest boosts 3 suggestions (indices 1, 2, 3 since 0 is 'played')
+    for (let i = 1; i <= 3; i++) {
+      const boostRes = await fetch(`${serverCtx.url}/api/party/${CODE}/suggestion/${allSuggIds[i]}/boost`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guestId: 'test-guest', guestName: 'Test Guest' })
+      });
+      assert.equal(boostRes.status, 200, `Guest boost ${i} should succeed`);
+    }
+
+    // 4th guest boost should fail with 429
+    const failedBoostRes = await fetch(`${serverCtx.url}/api/party/${CODE}/suggestion/${allSuggIds[4]}/boost`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guestId: 'test-guest', guestName: 'Test Guest' })
+    });
+    assert.equal(failedBoostRes.status, 429, '4th guest boost should fail with 429');
+    const errJson = await failedBoostRes.json();
+    assert.match(errJson.error, /3 boosts actifs/);
+  });
+
+  it('guest cap and host cap are independent (guest can still boost when host is at max)', async () => {
+    const suggIds = serverCtx.suggIds;
+    // Host is currently at 3 active boosts (Track 2, 3, 4).
+    // Let's verify a DIFFERENT guest can still boost Track 2.
+    const boostRes = await fetch(`${serverCtx.url}/api/party/${CODE}/suggestion/${suggIds[1]}/boost`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guestId: 'another-guest', guestName: 'Another Guest' })
+    });
+    assert.equal(boostRes.status, 200, 'Guest should be able to boost even if host is at max');
+  });
 });
