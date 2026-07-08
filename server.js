@@ -1696,13 +1696,26 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
     return res.status(409).json({ error: 'Tu ne peux pas booster ta propre suggestion' });
   }
 
+  const isHostBoost = (guestId || '').startsWith('host:') || guestId === 'host';
+
+  // Guard 2.5 : max 3 pending guest boosts par guest
+  if (!isHostBoost) {
+    const pendingGuestBoosts = (party.suggestions || []).filter(s => 
+      s.boostedBy && s.boostedBy.includes(guestId) && 
+      ['pending', 'queued', 'next'].includes(s.status)
+    ).length;
+    if (pendingGuestBoosts >= 3) {
+      return res.status(429).json({ 
+        error: 'Tu as deja 3 boosts actifs. Attends qu\'une de tes tracks boostees passe.' 
+      });
+    }
+  }
+
   // Guard 3 : anti-double-boost
   if (!sugg.boostedBy) sugg.boostedBy = [];
   if (sugg.boostedBy.includes(guestId)) {
     return res.status(409).json({ error: 'Tu as déjà boosté cette suggestion' });
   }
-
-  const isHostBoost = (guestId || '').startsWith('host:') || guestId === 'host';
 
   // Guard 4: Max 3 host boosts actifs
   if (isHostBoost) {
