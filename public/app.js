@@ -1928,15 +1928,25 @@ function renderGuestSuggestions() {
     ['pending','queued','next'].includes(s.status) &&
     s.guestId !== myId &&
     s.guestName !== myName &&
-    !s.isHost &&
     !myTitles.has((s.title || '').toLowerCase().trim()) // ★ anti-auto-boost visuel par titre
   ).sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt)); // plus anciennes en premier
 
   if (others.length === 0) return;
 
+  const activeBoosts = allSuggs.filter(s => 
+    s.boostedBy && s.boostedBy.includes(myId) && 
+    ['pending', 'queued', 'next'].includes(s.status)
+  ).length;
+
   const sectionHeader = document.createElement('div');
   sectionHeader.style.cssText = 'font-size:9px;font-weight:800;color:rgba(255,255,255,0.35);letter-spacing:0.5px;margin:10px 0 6px;display:flex;align-items:center;justify-content:space-between;';
-  sectionHeader.innerHTML = `<span>💬 EN ATTENTE (${others.length})</span>`;
+  
+  let headerHtml = `<span>💬 EN ATTENTE (${others.length})</span>`;
+  if (activeBoosts > 0) {
+    const color = activeBoosts >= 3 ? '#ef4444' : '#ff6b35';
+    headerHtml += `<span style="color:${color};">🔥 ${activeBoosts}/3 boosts actifs</span>`;
+  }
+  sectionHeader.innerHTML = headerHtml;
   list.appendChild(sectionHeader);
 
   const PREVIEW_COUNT = 3;
@@ -1964,9 +1974,20 @@ function renderGuestSuggestions() {
         const label = boostCount > 1 ? `🔥✓ Boostée · ${boostCount}` : '🔥✓ Boostée';
         boostBtn = `<button disabled style="font-size:9px;font-weight:800;color:#14B8A6;background:rgba(20,184,166,0.15);border:1.5px solid rgba(20,184,166,0.4);border-radius:20px;padding:3px 9px;cursor:default;white-space:nowrap;letter-spacing:0.2px;">${label}</button>`;
       } else {
-        // Bouton Booster actif : orange CTA
-        const label = boostCount > 0 ? `🔥 ${boostCount}` : '🔥 Booster';
-        boostBtn = `<button id="boost-btn-${escapeAttr(sugg.id)}" onclick="boostSuggestion('${escapeAttr(sugg.id)}','${escapeAttr(sugg.title)}')" style="font-size:9px;font-weight:800;color:#ff6b35;background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.2);border-radius:20px;padding:3px 9px;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,107,53,0.2)';this.style.borderColor='rgba(255,107,53,0.5)'" onmouseout="this.style.background='rgba(255,107,53,0.08)';this.style.borderColor='rgba(255,107,53,0.2)'">${label}</button>`;
+        // Bouton Booster actif : orange CTA ou grisé si limite atteinte
+        const limitReached = activeBoosts >= 3;
+        const label = limitReached ? 'Max Boosts' : (boostCount > 0 ? `🔥 ${boostCount}` : '🔥 Booster');
+        const color = limitReached ? 'rgba(255,255,255,0.2)' : '#ff6b35';
+        const bg = limitReached ? 'rgba(255,255,255,0.04)' : 'rgba(255,107,53,0.08)';
+        const border = limitReached ? 'rgba(255,255,255,0.1)' : 'rgba(255,107,53,0.2)';
+        const cursor = limitReached ? 'default' : 'pointer';
+        
+        boostBtn = `<button id="boost-btn-${escapeAttr(sugg.id)}" ${limitReached ? 'disabled' : `onclick="boostSuggestion('${escapeAttr(sugg.id)}','${escapeAttr(sugg.title)}')" `}style="font-size:9px;font-weight:800;color:${color};background:${bg};border:1px solid ${border};border-radius:20px;padding:3px 9px;cursor:${cursor};transition:all 0.2s;white-space:nowrap;" ${limitReached ? '' : `onmouseover="this.style.background='rgba(255,107,53,0.2)';this.style.borderColor='rgba(255,107,53,0.5)'" onmouseout="this.style.background='rgba(255,107,53,0.08)';this.style.borderColor='rgba(255,107,53,0.2)'"`}>${label}</button>`;
+      }
+
+      let djBadge = '';
+      if (sugg.boostedByHost) {
+        djBadge = `<span style="font-size:8px;font-weight:800;color:#ff6b35;background:rgba(255,107,53,0.15);border-radius:12px;padding:2px 6px;margin-right:6px;border:1px solid rgba(255,107,53,0.3);white-space:nowrap;">🎧 Boostée par DJ</span>`;
       }
 
       const c = configs[sugg.status] || configs.pending;
@@ -1980,6 +2001,7 @@ function renderGuestSuggestions() {
             ${escapeHtml(sugg.artist || '')} · <span style="color:rgba(255,255,255,0.3);">par ${escapeHtml(sugg.guestName || 'Guest')}</span>
           </div>
         </div>
+        ${djBadge}
         ${boostBtn}`;
       list.appendChild(item);
     });
