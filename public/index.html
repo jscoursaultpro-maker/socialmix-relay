@@ -96,7 +96,7 @@
                     <li>Si vous figurez sur une photo et souhaitez son retrait, vous pouvez le signaler à l'organisateur.</li>
                 </ul>
 
-                <p class="consent-policy">En cochant la case ci-dessous, vous acceptez ces conditions et notre <a href="https://ahouai.com/privacy" target="_blank" rel="noopener" class="consent-link">Politique de confidentialité</a>.</p>
+                <p class="consent-policy">En cochant la case ci-dessous, vous acceptez ces conditions, nos <a href='/cgu' target='_blank' rel='noopener' class='consent-link'>Conditions Générales d'Utilisation</a> et notre <a href='/privacy' target='_blank' rel='noopener' class='consent-link'>Politique de confidentialité</a>.</p>
 
                 <label class="consent-checkbox-label" id="consent-checkbox-label">
                     <input type="checkbox" id="consent-checkbox">
@@ -163,19 +163,21 @@
                 </div>
             </div>
 
-            <!-- Contact -->
+                <!-- Contact -->
             <div class="form-card">
                 <div class="form-card-header">
                     <span>📱</span> CONTACT
                 </div>
                 <p class="form-hint">Partage tes infos pour rester en contact après la soirée</p>
                 <div class="form-field">
-                    <label>TÉLÉPHONE</label>
-                    <input type="tel" id="profile-phone" name="tel" placeholder="06 12 34 56 78" autocomplete="tel">
+                    <label>EMAIL <span style="color:#00e0c4">*</span></label>
+                    <input type="email" id="profile-email" name="email" placeholder="marie@example.com" autocomplete="email" required>
+                    <p id="email-error" style="display:none;color:#ff4d4d;font-size:11px;margin:4px 0 0;font-weight:600;">Un email valide est requis pour rejoindre la soirée</p>
+                    <p class="form-hint" style="margin-top:4px;font-size:10px;opacity:0.7;">Nécessaire pour recevoir le récap de la soirée et pour la conformité RGPD</p>
                 </div>
                 <div class="form-field" style="margin-top: 10px">
-                    <label>EMAIL</label>
-                    <input type="email" id="profile-email" name="email" placeholder="marie@example.com" autocomplete="email">
+                    <label>TÉLÉPHONE</label>
+                    <input type="tel" id="profile-phone" name="tel" placeholder="06 12 34 56 78" autocomplete="tel">
                 </div>
                 <div class="form-field" style="margin-top: 10px">
                     <label>INSTAGRAM</label>

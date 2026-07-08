@@ -510,11 +510,12 @@ function setupConsent() {
   
   btn.addEventListener('click', () => {
     if (!checkbox.checked) return;
-    // Store consent
+    // Store consent with ISO timestamp (RGPD art. 7 — preuve du consentement)
     const consent = {
       version: '1.0',
       timestamp: Date.now(),
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      acceptedAt: new Date().toISOString()   // ★ fix(#21 RGPD) : timestamp ISO
     };
     localStorage.setItem(CONSENT_KEY, JSON.stringify(consent));
     showScreen('profile');
@@ -599,6 +600,16 @@ function setupProfile() {
       alert("Veuillez remplir au moins votre Prénom et Nom pour valider votre profil.");
       return;
     }
+
+    // ★ fix(#21 RGPD) : email obligatoire + validation format
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailError = $('email-error');
+    if (!em || !emailPattern.test(em)) {
+      if (emailError) emailError.style.display = 'block';
+      $('profile-email').focus();
+      return;
+    }
+    if (emailError) emailError.style.display = 'none';
 
     state.guestName = fn;
     state.guestLastName = ln;
@@ -868,7 +879,8 @@ function connectToRelay() {
       instagram: state.guestInsta,
       partyCode: state.partyCode,
       consentVersion: consent?.version || '1.0',
-      consentTimestamp: consent?.timestamp || Date.now()
+      consentTimestamp: consent?.timestamp || Date.now(),
+      consentAcceptedAt: consent?.acceptedAt || consent?.date || new Date().toISOString()  // ★ fix(#21 RGPD)
     });
   }
 
