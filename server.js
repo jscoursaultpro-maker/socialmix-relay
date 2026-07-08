@@ -18,6 +18,7 @@ import HostPreference from './models/HostPreference.js';
 import { Photo } from './models/Photo.js';
 import { EventLog } from './models/EventLog.js'; // ★ A3c — Structured audit trail
 import { AudioEvent } from './models/AudioEvent.js'; // ★ A6a — Audio pipeline audit
+import GuestSession from './models/GuestSession.js'; // ★ fix(#21 RGPD) — consent + droit à l'oubli
 import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRESS_METRICS=1
 import { uploadPhoto } from './services/cloudinaryService.js';
 import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
@@ -2206,6 +2207,71 @@ app.delete('/api/friends/:id', authMiddleware, (req, res) => {
   console.log(`👥 [Friends] ${req.guestName} removed friendship ${req.params.id}`);
   res.json({ ok: true });
 });
+// ─── DELETE /api/guest/data — Droit à l'oubli RGPD art. 17 ─────────────────
+// Body: { email, partyCode }
+// Anonymise dans Party + supprime les GuestSession correspondants
+app.delete('/api/guest/data', async (req, res) => {
+  const { email, partyCode } = req.body || {};
+  if (!email || !partyCode) {
+    return res.status(400).json({ error: 'MISSING_PARAMS', message: 'email et partyCode sont requis' });
+  }
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(email)) {
+    return res.status(400).json({ error: 'INVALID_EMAIL', message: 'Format email invalide' });
+  }
+
+  try {
+    // 1. Trouver les GuestSession concernées (pour récupérer les userIds)
+    const sessions = await GuestSession.find({ email: email.trim(), partyCode: partyCode.toUpperCase() }).lean();
+    const userIds  = [...new Set(sessions.map(s => s.userId).filter(Boolean))];
+    const names    = [...new Set(sessions.map(s => s.guestName).filter(Boolean))];
+    const ANON     = '[Utilisateur supprimé]';
+    const ANON_ID  = 'deleted_user';
+
+    // 2. Anonymiser dans Party documents
+    const party = await Party.findOne({ code: partyCode.toUpperCase() });
+    if (party) {
+      // Anonymiser guestVotes
+      for (const uid of userIds) {
+        if (party.guestVotes?.[uid]) {
+          party.guestVotes[ANON_ID] = party.guestVotes[uid];
+          delete party.guestVotes[uid];
+        }
+      }
+      // Anonymiser suggestions
+      if (Array.isArray(party.suggestions)) {
+        party.suggestions = party.suggestions.map(s => {
+          if (userIds.includes(s.guestId) || names.includes(s.guestName)) {
+            return { ...s, guestName: ANON, guestId: ANON_ID, email: '' };
+          }
+          return s;
+        });
+      }
+      // Anonymiser participants
+      if (Array.isArray(party.participants)) {
+        party.participants = party.participants.map(p => {
+          if (userIds.includes(p.userId) || names.includes(p.name)) {
+            return { ...p, name: ANON, email: '', phone: '', instagram: '' };
+          }
+          return p;
+        });
+      }
+      party.markModified('guestVotes');
+      party.markModified('suggestions');
+      party.markModified('participants');
+      await party.save();
+    }
+
+    // 3. Supprimer les GuestSession
+    const del = await GuestSession.deleteMany({ email: email.trim(), partyCode: partyCode.toUpperCase() });
+
+    console.log(`[RGPD] 🗑️ Droit à l'oubli exercé — partyCode:${partyCode} email:[REDACTED] sessions:${del.deletedCount} userIds:${userIds.length}`);
+    return res.json({ ok: true, deletedSessions: del.deletedCount, anonymizedParty: !!party });
+  } catch (err) {
+    console.error('[RGPD] ❌ Erreur droit à l\'oubli:', err.message);
+    return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
+  }
+});
 
 // ─── GET /api/host/parties — List active (non-ended, non-archived) parties for a host ──
 // Auth: hostSecret query param (mandatory). Returns parties the host can manage.
@@ -3477,6 +3543,15 @@ io.on('connection', (socket) => {
   socket.on('guest:join', async (data) => {
     const code = (data.partyCode || '').toUpperCase();
     let party = parties.get(code);
+
+    // ★ fix(#21 RGPD) — Validation email obligatoire
+    const emailRaw = (data.email || '').trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRaw || !emailPattern.test(emailRaw)) {
+      socket.emit('error:validation', { field: 'email', message: 'Un email valide est requis pour rejoindre la soirée.' });
+      console.warn(`[${code}] ⚠️ guest:join rejected — missing or invalid email`);
+      return;
+    }
     
     if (!party) {
       // MVP Pre-Party: Try loading from MongoDB
@@ -3575,6 +3650,27 @@ io.on('connection', (socket) => {
         { upsert: false }
       )
     ).catch(err => console.error(`[${code}] ⚠️ Write-through (guest:join) failed: ${err.message}`));
+
+    // ★ fix(#21 RGPD) — Créer GuestSession pour audit + droit à l'oubli
+    const consentAcceptedAt = data.consentAcceptedAt ? new Date(data.consentAcceptedAt) : new Date();
+    GuestSession.create({
+      partyCode: code,
+      guestName,
+      lastName:   data.lastName  || '',
+      alias:      data.alias     || '',
+      guestEmoji: guest.emoji,
+      guestPhoto: data.photo     || null,
+      phone:      data.phone     || '',
+      email:      emailRaw,
+      instagram:  data.instagram || '',
+      consentVersion:    data.consentVersion    || '1.0',
+      consentAcceptedAt,
+      ipAddress:  socket.handshake?.headers?.['x-forwarded-for'] || socket.handshake?.address || null,
+      userAgent:  socket.handshake?.headers?.['user-agent'] || null,
+      socketId:   socket.id,
+      userId:     guest.userId,
+      sessionToken
+    }).catch(err => console.error(`[${code}] ⚠️ GuestSession create failed: ${err.message}`));
     console.log(`👤 [${code}] Guest joined: ${guest.emoji} ${guest.name} (token: ${sessionToken.substring(0, 8)}...) — Total participants: ${party.participants.length}`)
     console.log(`👤 [${code}] Participant list: ${party.participants.map(p => `${p.name}${p.isHost ? ' [HOST]' : ''}`).join(', ')}`);
 
