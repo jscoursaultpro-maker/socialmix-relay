@@ -8,7 +8,7 @@
     "start": "node --env-file=.env server.js",
     "dev": "node --env-file=.env server.js",
     "sync-ios": "node --env-file=.env scripts/sync-ios.mjs",
-    "test:integration": "node --test --test-timeout=30000 --test-concurrency=1 tests/integration/party-lifecycle.test.js tests/integration/party-collision.test.js tests/integration/party-multi-secret.test.js tests/integration/write-through.test.js tests/integration/auth.test.js tests/integration/provider-ids.test.js tests/integration/host-boost.test.js"
+    "test:integration": "node --test --test-timeout=30000 --test-concurrency=1 tests/integration/party-lifecycle.test.js tests/integration/party-collision.test.js tests/integration/party-multi-secret.test.js tests/integration/write-through.test.js tests/integration/auth.test.js tests/integration/provider-ids.test.js tests/integration/host-boost.test.js tests/integration/guest-rgpd.test.js"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
