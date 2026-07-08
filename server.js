@@ -332,6 +332,65 @@ app.get('/api/me', async (req, res) => {
   }
 });
 
+// ─── Supabase Auth — DELETE /api/me ─────────────────────────────────
+// Validates Bearer JWT, supprime User Mongo + Supabase Auth account.
+// Appelé par iOS SettingsView.deleteAccount() — RGPD droit à l'effacement.
+app.delete('/api/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'AUTH_MISSING', message: 'Authorization: Bearer <token> required' });
+    }
+    const token   = authHeader.slice(7);
+    const payload = await verifySupabaseJWT(token);
+    const { sub: supabaseUserId } = payload;
+
+    // 1. Trouver + supprimer l'utilisateur Mongo
+    const { default: User } = await import('./models/User.js');
+    const user = await User.findOneAndDelete({ supabaseUserId });
+    if (!user) {
+      return res.status(404).json({ error: 'USER_NOT_FOUND', message: 'Utilisateur non trouvé' });
+    }
+
+    // 2. Anonymiser les parties associées
+    const ANON = '[Compte supprimé]';
+    await Party.updateMany(
+      { 'participants.userId': user._id.toString() },
+      { $set: { 'participants.$[elem].name': ANON, 'participants.$[elem].email': '' } },
+      { arrayFilters: [{ 'elem.userId': user._id.toString() }] }
+    );
+
+    // 3. Supprimer le compte Supabase Auth via Admin API
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl    = process.env.SUPABASE_URL;
+    if (serviceRoleKey && supabaseUrl) {
+      try {
+        const adminRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${supabaseUserId}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey':        serviceRoleKey,
+            'Authorization': `Bearer ${serviceRoleKey}`
+          }
+        });
+        if (!adminRes.ok) console.warn(`[/api/me DELETE] Supabase Admin warn: ${adminRes.status}`);
+      } catch (adminErr) {
+        console.warn('[/api/me DELETE] Supabase Admin API unreachable:', adminErr.message);
+      }
+    } else {
+      console.warn('[/api/me DELETE] ⚠️ SUPABASE_SERVICE_ROLE_KEY not set');
+    }
+
+    console.log(`[/api/me DELETE] ✅ Account deleted — supabaseUserId:${supabaseUserId}`);
+    return res.json({ ok: true });
+  } catch (err) {
+    if (err.name === 'AuthError') {
+      return res.status(401).json({ error: err.code, message: err.message });
+    }
+    console.error('[/api/me DELETE] Unexpected error:', err.message);
+    return res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+});
+
 // ─── Health check ───────────────────────────────────────────────────
 app.get('/api/status', (req, res) => {
   const codes = [...parties.keys()];
