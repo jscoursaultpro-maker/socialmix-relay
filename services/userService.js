@@ -91,19 +91,29 @@ export async function findOrCreateFromSupabase(payload) {
     // Backfill profile fields from OAuth metadata if missing (first login after schema update)
     const updates = { lastSeenAt: new Date() };
     if (emailVerified && !user.emailVerified) updates.emailVerified = true;
+
+    const metaFirstName = extractFirstName(payload);
+    const metaLastName  = extractLastName(payload);
+    const metaAvatar    = extractAvatarUrl(payload);
+
+    // Backfill firstName: re-split if current value contains spaces (pre-fix full_name dump)
+    const currentFirst = user.profile?.firstName || '';
+    if (currentFirst.includes(' ') && metaFirstName && !metaFirstName.includes(' ')) {
+      updates['profile.firstName'] = metaFirstName;
+    }
     // Backfill lastName if never set
-    const lastName = extractLastName(payload);
-    if (lastName && !user.profile?.lastName) {
-      updates['profile.lastName'] = lastName;
+    if (metaLastName && !user.profile?.lastName) {
+      updates['profile.lastName'] = metaLastName;
     }
     // Backfill photoURL (avatar) if never set
-    const avatarUrl = extractAvatarUrl(payload);
-    if (avatarUrl && !user.profile?.photoURL) {
-      updates['profile.photoURL'] = avatarUrl;
+    if (metaAvatar && !user.profile?.photoURL) {
+      updates['profile.photoURL'] = metaAvatar;
     }
+
+    const hasProfileUpdates = updates['profile.firstName'] || updates['profile.lastName'] || updates['profile.photoURL'];
     await User.updateOne({ _id: user._id }, { $set: updates });
-    // Re-read to return fresh data
-    if (updates['profile.lastName'] || updates['profile.photoURL']) {
+    // Re-read to return fresh data if profile changed
+    if (hasProfileUpdates) {
       user = await User.findById(user._id);
     }
     return user;
