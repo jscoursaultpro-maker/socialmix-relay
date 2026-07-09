@@ -101,6 +101,11 @@ export async function findOrCreateFromSupabase(payload) {
     if (structuredFirst && currentFirst.includes(' ')) {
       // Current firstName is a wrong-split full_name → replace with structured data
       updates['profile.firstName'] = structuredFirst.slice(0, 40);
+    } else if (structuredFirst && currentFirst !== structuredFirst && !user.profile?.lastName) {
+      // firstName was previously split/truncated (e.g. "Jean" from "Jean Sebastien Coursault")
+      // but structured given_name is better (e.g. "Jean-Sébastien") — safe to overwrite
+      // because empty lastName signals profile was never manually edited
+      updates['profile.firstName'] = structuredFirst.slice(0, 40);
     }
     if (structuredLast && !user.profile?.lastName) {
       updates['profile.lastName'] = structuredLast.slice(0, 40);
