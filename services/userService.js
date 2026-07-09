@@ -93,6 +93,9 @@ export async function findOrCreateFromSupabase(payload) {
     if (emailVerified && !user.emailVerified) updates.emailVerified = true;
 
     const meta = payload.user_metadata || {};
+    // TEMP diagnostic: log metadata keys + value lengths (no PII)
+    const metaDigest = Object.entries(meta).map(([k, v]) => `${k}:${typeof v === 'string' ? v.length + 'c' : typeof v}`).join(', ');
+    console.log(`[userService] 🔍 Path A backfill — meta keys: [${metaDigest}]`);
     // Priority 1: structured given_name/family_name directly from OAuth provider
     const structuredFirst = meta.given_name || meta.first_name || null;
     const structuredLast  = meta.family_name || meta.last_name || null;
