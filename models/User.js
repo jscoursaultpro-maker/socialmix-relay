@@ -35,6 +35,7 @@ const userSchema = new Schema({
   // === PROFIL PUBLIC ===
   profile: {
     firstName: { type: String, required: true, trim: true, maxlength: 40 },
+    lastName:  { type: String, trim: true, maxlength: 40 },
     emoji: { type: String, default: '🎉' },
     photoURL: String,
     handle: { 

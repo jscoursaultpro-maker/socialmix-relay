@@ -29,6 +29,32 @@ function extractFirstName(payload) {
 }
 
 /**
+ * Extract last name from JWT payload user_metadata.
+ * @param {object} payload
+ * @returns {string|null}
+ */
+function extractLastName(payload) {
+  const meta = payload.user_metadata || payload.app_metadata || {};
+  const lastName = meta.family_name || meta.last_name || null;
+  if (lastName) return lastName.slice(0, 40);
+  // Try splitting full_name or name
+  const fullName = meta.full_name || meta.name || '';
+  const parts = fullName.trim().split(/\s+/);
+  return parts.length > 1 ? parts.slice(1).join(' ').slice(0, 40) : null;
+}
+
+/**
+ * Extract avatar URL from JWT payload user_metadata.
+ * Google: picture or avatar_url. Apple: rarely available.
+ * @param {object} payload
+ * @returns {string|null}
+ */
+function extractAvatarUrl(payload) {
+  const meta = payload.user_metadata || {};
+  return meta.avatar_url || meta.picture || null;
+}
+
+/**
  * Extract auth provider from Supabase JWT.
  * Supabase stores provider in app_metadata.provider or app_metadata.providers[0].
  * @param {object} payload
@@ -63,13 +89,23 @@ export async function findOrCreateFromSupabase(payload) {
   // ── Path A: returning V1 user ────────────────────────────────────────────
   let user = await User.findOne({ supabaseUserId });
   if (user) {
-    // Refresh emailVerified in case it changed
-    if (emailVerified && !user.emailVerified) {
-      user.emailVerified = true;
-      user.lastSeenAt = new Date();
-      await user.save();
-    } else {
-      await User.updateOne({ _id: user._id }, { $set: { lastSeenAt: new Date() } });
+    // Backfill profile fields from OAuth metadata if missing (first login after schema update)
+    const updates = { lastSeenAt: new Date() };
+    if (emailVerified && !user.emailVerified) updates.emailVerified = true;
+    // Backfill lastName if never set
+    const lastName = extractLastName(payload);
+    if (lastName && !user.profile?.lastName) {
+      updates['profile.lastName'] = lastName;
+    }
+    // Backfill photoURL (avatar) if never set
+    const avatarUrl = extractAvatarUrl(payload);
+    if (avatarUrl && !user.profile?.photoURL) {
+      updates['profile.photoURL'] = avatarUrl;
+    }
+    await User.updateOne({ _id: user._id }, { $set: updates });
+    // Re-read to return fresh data
+    if (updates['profile.lastName'] || updates['profile.photoURL']) {
+      user = await User.findById(user._id);
     }
     return user;
   }
@@ -92,17 +128,23 @@ export async function findOrCreateFromSupabase(payload) {
   }
 
   // ── Path C: create new V1 user ───────────────────────────────────────────
-  const firstName = extractFirstName(payload);
+  const firstName  = extractFirstName(payload);
+  const lastName   = extractLastName(payload);
+  const avatarUrl  = extractAvatarUrl(payload);
+  const profileData = {
+    firstName,
+    emoji: '\ud83c\udf89',
+  };
+  if (lastName)  profileData.lastName = lastName;
+  if (avatarUrl) profileData.photoURL = avatarUrl;
+
   const newUser = new User({
     supabaseUserId,
     email: email || `${supabaseUserId}@noemail.local`, // fallback for Apple hide-email
     authProvider: provider,
     providerId:   supabaseUserId, // V1: providerId = Supabase UUID
     emailVerified,
-    profile: {
-      firstName,
-      emoji: '🎉',
-    },
+    profile: profileData,
     createdAt:  new Date(),
     lastSeenAt: new Date(),
     schemaVersion: '2.0',
