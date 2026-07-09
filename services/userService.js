@@ -19,13 +19,12 @@ import User from '../models/User.js';
  */
 function extractFirstName(payload) {
   const meta = payload.user_metadata || payload.app_metadata || {};
-  return (
-    meta.full_name?.split(' ')[0] ||
-    meta.name?.split(' ')[0] ||
-    meta.given_name ||
-    meta.first_name ||
-    (payload.email ? payload.email.split('@')[0] : 'Guest')
-  ).slice(0, 40);
+  // Priority: structured fields first, then split unstructured name
+  if (meta.given_name)  return meta.given_name.slice(0, 40);
+  if (meta.first_name)  return meta.first_name.slice(0, 40);
+  const fullName = meta.full_name || meta.name || '';
+  if (fullName.trim()) return fullName.trim().split(/\s+/)[0].slice(0, 40);
+  return (payload.email ? payload.email.split('@')[0] : 'Guest').slice(0, 40);
 }
 
 /**
