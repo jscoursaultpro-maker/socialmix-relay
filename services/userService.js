@@ -88,31 +88,39 @@ export async function findOrCreateFromSupabase(payload) {
   // ── Path A: returning V1 user ────────────────────────────────────────────
   let user = await User.findOne({ supabaseUserId });
   if (user) {
-    // Backfill profile fields from OAuth metadata if missing (first login after schema update)
+    // Backfill profile fields from OAuth metadata if missing or incorrect
     const updates = { lastSeenAt: new Date() };
     if (emailVerified && !user.emailVerified) updates.emailVerified = true;
 
-    const metaFirstName = extractFirstName(payload);
-    const metaLastName  = extractLastName(payload);
-    const metaAvatar    = extractAvatarUrl(payload);
+    const meta = payload.user_metadata || {};
+    // Priority 1: structured given_name/family_name directly from OAuth provider
+    const structuredFirst = meta.given_name || meta.first_name || null;
+    const structuredLast  = meta.family_name || meta.last_name || null;
+    const currentFirst    = user.profile?.firstName || '';
 
-    // Backfill firstName: re-split if current value contains spaces (pre-fix full_name dump)
-    const currentFirst = user.profile?.firstName || '';
-    if (currentFirst.includes(' ') && metaFirstName && !metaFirstName.includes(' ')) {
-      updates['profile.firstName'] = metaFirstName;
+    if (structuredFirst && currentFirst.includes(' ')) {
+      // Current firstName is a wrong-split full_name → replace with structured data
+      updates['profile.firstName'] = structuredFirst.slice(0, 40);
     }
-    // Backfill lastName if never set
-    if (metaLastName && !user.profile?.lastName) {
-      updates['profile.lastName'] = metaLastName;
+    if (structuredLast && !user.profile?.lastName) {
+      updates['profile.lastName'] = structuredLast.slice(0, 40);
     }
+
+    // Priority 2: fallback split if no structured data but firstName has spaces
+    if (!structuredFirst && !structuredLast && currentFirst.includes(' ') && !user.profile?.lastName) {
+      const parts = currentFirst.trim().split(/\s+/);
+      updates['profile.firstName'] = parts[0];
+      updates['profile.lastName'] = parts.slice(1).join(' ').slice(0, 40);
+    }
+
     // Backfill photoURL (avatar) if never set
+    const metaAvatar = extractAvatarUrl(payload);
     if (metaAvatar && !user.profile?.photoURL) {
       updates['profile.photoURL'] = metaAvatar;
     }
 
     const hasProfileUpdates = updates['profile.firstName'] || updates['profile.lastName'] || updates['profile.photoURL'];
     await User.updateOne({ _id: user._id }, { $set: updates });
-    // Re-read to return fresh data if profile changed
     if (hasProfileUpdates) {
       user = await User.findById(user._id);
     }
