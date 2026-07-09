@@ -109,10 +109,17 @@ export async function findOrCreateFromSupabase(payload) {
     }
     if (structuredLast && !user.profile?.lastName) {
       updates['profile.lastName'] = structuredLast.slice(0, 40);
+    } else if (!structuredLast && !user.profile?.lastName) {
+      // No structured family_name (common for personal Google accounts)
+      // Fall back to splitting full_name/name via extractLastName helper
+      const fallbackLast = extractLastName(payload);
+      if (fallbackLast) {
+        updates['profile.lastName'] = fallbackLast;
+      }
     }
 
-    // Priority 2: fallback split if no structured data but firstName has spaces
-    if (!structuredFirst && !structuredLast && currentFirst.includes(' ') && !user.profile?.lastName) {
+    // Priority 2: fallback split if no structured data AND firstName still has spaces
+    if (!structuredFirst && !structuredLast && currentFirst.includes(' ') && !user.profile?.lastName && !updates['profile.lastName']) {
       const parts = currentFirst.trim().split(/\s+/);
       updates['profile.firstName'] = parts[0];
       updates['profile.lastName'] = parts.slice(1).join(' ').slice(0, 40);
