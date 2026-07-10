@@ -16,6 +16,8 @@ import { startServer }                    from '../helpers/server-process.js';
 import { connectTestDB, disconnectTestDB } from '../helpers/mongo.js';
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
+// NOTE: Do NOT set `iss` in test tokens — ISSUER is null in test env (no SUPABASE_URL).
+// The verifySupabaseJWT test path skips ISS check when payload.iss is absent.
 function makeTestToken(payload) {
   return 'test:' + Buffer.from(JSON.stringify(payload)).toString('base64');
 }
@@ -36,21 +38,19 @@ describe('Security P0 — STOP-SHIP fixes', () => {
   // ═══ P0.1 — RCE endpoints removed ═══
   it('POST /api/admin/sync-ios → 404 (endpoint removed)', async () => {
     const res = await fetch(`${serverUrl}/api/admin/sync-ios`, { method: 'POST' });
-    assert.equal(res.status, 404, 'sync-ios should be removed');
+    assert.equal(res.status, 404, 'sync-ios should return 404');
   });
 
   it('POST /api/admin/export/rebuild → 404 (endpoint removed)', async () => {
     const res = await fetch(`${serverUrl}/api/admin/export/rebuild`, { method: 'POST' });
-    assert.equal(res.status, 404, 'export/rebuild should be removed');
+    assert.equal(res.status, 404, 'export/rebuild should return 404');
   });
 
   // ═══ P0.2 — GET /api/state does not leak secrets ═══
   it('GET /api/state → response does not contain hostSecret, sessionTokens, or email', async () => {
-    // Create a party via socket first
     const jwt = makeTestToken({
       sub: 'sec-test-host-001',
       email: 'sectest@example.com',
-      iss: `https://test.supabase.co/auth/v1`,
       aud: 'authenticated',
     });
     const socket = ioClient(serverUrl, { auth: { token: jwt } });
@@ -59,7 +59,6 @@ describe('Security P0 — STOP-SHIP fixes', () => {
       socket.on('connect_error', reject);
     });
 
-    // Create party
     const partyCode = await new Promise((resolve) => {
       socket.emit('host:create-party', { djMode: 'djAuto' }, (response) => {
         resolve(response?.code || response?.party?.code);
@@ -73,7 +72,6 @@ describe('Security P0 — STOP-SHIP fixes', () => {
       assert.ok(!text.includes('sessionTokens'), 'Response should NOT contain sessionTokens');
       assert.ok(!text.includes('sectest@example.com'), 'Response should NOT contain email');
     }
-
     socket.disconnect();
   });
 
@@ -82,7 +80,7 @@ describe('Security P0 — STOP-SHIP fixes', () => {
     const res = await fetch(`${serverUrl}/api/guest/data`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'victim@example.com' }),
+      body: JSON.stringify({ email: 'victim@example.com', partyCode: 'TESTXX' }),
     });
     assert.equal(res.status, 401, 'Unauthenticated delete should be rejected');
   });
@@ -91,7 +89,6 @@ describe('Security P0 — STOP-SHIP fixes', () => {
     const jwt = makeTestToken({
       sub: 'sec-test-user-002',
       email: 'attacker@example.com',
-      iss: `https://test.supabase.co/auth/v1`,
       aud: 'authenticated',
     });
     const res = await fetch(`${serverUrl}/api/guest/data`, {
@@ -100,7 +97,7 @@ describe('Security P0 — STOP-SHIP fixes', () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${jwt}`,
       },
-      body: JSON.stringify({ email: 'victim@example.com' }),
+      body: JSON.stringify({ email: 'victim@example.com', partyCode: 'TESTXX' }),
     });
     assert.equal(res.status, 403, 'Cross-email delete should be forbidden');
   });
@@ -110,8 +107,7 @@ describe('Security P0 — STOP-SHIP fixes', () => {
     // Host creates party
     const hostJwt = makeTestToken({
       sub: 'sec-test-host-003',
-      email: 'host@test.com',
-      iss: 'https://test.supabase.co/auth/v1',
+      email: 'host3@test.com',
       aud: 'authenticated',
     });
     const hostSocket = ioClient(serverUrl, { auth: { token: hostJwt } });
@@ -123,36 +119,47 @@ describe('Security P0 — STOP-SHIP fixes', () => {
 
     if (!code) {
       hostSocket.disconnect();
-      return; // Skip if party creation failed
+      return;
     }
 
-    // Guest A joins
+    // Guest A joins (unauthenticated — no JWT → V0 compat)
     const guestA = ioClient(serverUrl);
     await new Promise((r, e) => { guestA.on('connect', r); guestA.on('connect_error', e); });
     await new Promise(r => {
-      guestA.emit('guest:join', { code, name: 'Alice', emoji: '🅰️' }, r);
+      guestA.emit('guest:join', { code, name: 'Alice', emoji: '🅰️', email: 'a@t.com' }, r);
     });
 
-    // Guest B joins
+    // Guest B joins (unauthenticated — no JWT → V0 compat)
     const guestB = ioClient(serverUrl);
     await new Promise((r, e) => { guestB.on('connect', r); guestB.on('connect_error', e); });
     await new Promise(r => {
-      guestB.emit('guest:join', { code, name: 'Bob', emoji: '🅱️' }, r);
+      guestB.emit('guest:join', { code, name: 'Bob', emoji: '🅱️', email: 'b@t.com' }, r);
     });
 
-    // Guest B attempts to vote as Guest A (impersonation)
-    const voteResult = await new Promise(r => {
-      guestB.emit('guest:vote', {
-        code,
-        guestId: guestA.id,  // ← malicious: trying to impersonate A
-        trackId: 'track-123',
-        voteType: 'like',
-      }, r);
+    // Capture the voted event on host side
+    const votedPromise = new Promise(r => {
+      hostSocket.once('guest:voted', (voteData) => r(voteData));
+      setTimeout(() => r(null), 3000);
     });
 
-    // The vote should be recorded for B, not A — verification depends on
-    // implementation; at minimum, the system should not crash
-    assert.ok(voteResult !== undefined || voteResult === undefined, 'Vote handler should not crash on spoofed guestId');
+    // Guest B attempts to vote as Guest A (impersonation via client guestId)
+    guestB.emit('guest:vote', {
+      code,
+      guestId: guestA.id,  // ← malicious: trying to impersonate A
+      guestName: 'Bob',
+      trackId: 'track-123',
+      type: 'like',
+      eventId: 'evt-sec-001',
+    });
+
+    const voteData = await votedPromise;
+    if (voteData) {
+      // The guestId in the voted event should be Guest B's socket.id, NOT Guest A's
+      assert.notEqual(voteData.guestId, guestA.id,
+        'Vote should NOT be recorded under Guest A (impersonated) ID');
+      assert.equal(voteData.guestId, guestB.id,
+        'Vote should be recorded under Guest B (actual sender) ID');
+    }
 
     hostSocket.disconnect();
     guestA.disconnect();
