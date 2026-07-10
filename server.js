@@ -3677,8 +3677,8 @@ io.on('connection', (socket) => {
       delete party.disconnectTimers[guestName];
     }
 
-    // Generate or reuse stable userId
-    const userId = data.userId || 'user_' + randomUUID().replace(/-/g, '').substring(0, 16);
+    // ★ P0.4: Server-side userId — NEVER trust client-sent data.userId
+    const userId = socket.user?._id?.toString() || 'user_' + randomUUID().replace(/-/g, '').substring(0, 16);
 
     const guest = {
       id: socket.id, userId, name: guestName, emoji: data.emoji || '🎉',
@@ -3698,7 +3698,7 @@ io.on('connection', (socket) => {
       // Host is joining as guest (e.g. GuestExperienceView opened from host app) — skip duplicate
       console.log(`[${code}] Host joining as guest (${guestName}) — skipping duplicate participant`);
       socket.emit('party:state', buildLightState(party));
-      socket.emit('session:token', { sessionToken: randomUUID(), partyCode: code, userId: data.userId || socket.id });
+      socket.emit('session:token', { sessionToken: randomUUID(), partyCode: code, userId });
       return;
     }
     party.participants = party.participants.filter(p => {
@@ -3877,19 +3877,23 @@ io.on('connection', (socket) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     
+    // ★ P0.4: Server-side guestId — NEVER trust client-sent data.guestId
+    const guestId = socket.user?._id?.toString() || socket.id;
+    
     // ★ A3a — Idempotence guard
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
     if (isDuplicate) {
       console.log(`[${party.code}] ♻️  guest:vote DUPLICATE eventId=${data.eventId}`);
-      logEvent({ partyCode: party.code, eventType: 'vote', eventId: data.eventId, guestId: data.guestId, decision: 'duplicate' });
+      logEvent({ partyCode: party.code, eventType: 'vote', eventId: data.eventId, guestId, decision: 'duplicate' });
       return cb({ ok: true, duplicate: true, eventId: data.eventId });
     }
     updateActivity(party);
-    if (!party.guestVotes[data.guestId]) party.guestVotes[data.guestId] = {};
-    party.guestVotes[data.guestId][data.trackId || 'current'] = data.type;
-    io.to(`host:${party.code}`).emit('guest:voted', data);
-    io.to(`guest:${party.code}`).emit('guest:voted', data);
-    if (data.guestId) addPoints(party, data.guestId, data.guestName || 'Guest', 10, `vote ${data.type}`);
+    if (!party.guestVotes[guestId]) party.guestVotes[guestId] = {};
+    party.guestVotes[guestId][data.trackId || 'current'] = data.type;
+    const safeData = { ...data, guestId }; // override client guestId
+    io.to(`host:${party.code}`).emit('guest:voted', safeData);
+    io.to(`guest:${party.code}`).emit('guest:voted', safeData);
+    if (guestId) addPoints(party, guestId, data.guestName || 'Guest', 10, `vote ${data.type}`);
     
     // ★ Bug 7 fix — persist vote counters directly in trackHistory
     if (data.trackTitle) {
@@ -3918,22 +3922,25 @@ io.on('connection', (socket) => {
       else if (data.type === 'meh') entry.bof++;
     }
     cb({ ok: true, eventId: data.eventId });
-    logEvent({ partyCode: party.code, eventType: 'vote', eventId: data.eventId, guestId: data.guestId, decision: 'accepted' });
+    logEvent({ partyCode: party.code, eventType: 'vote', eventId: data.eventId, guestId, decision: 'accepted' });
   });
 
   socket.on('guest:genreVote', (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     
+    // ★ P0.4: Server-side guestId
+    const guestId = socket.user?._id?.toString() || socket.id;
+    
     // ★ A3a — Idempotence guard
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
     if (isDuplicate) {
       console.log(`[${party.code}] ♻️  guest:genreVote DUPLICATE eventId=${data.eventId}`);
-      logEvent({ partyCode: party.code, eventType: 'genreVote', eventId: data.eventId, guestId: data.guestId, decision: 'duplicate' });
+      logEvent({ partyCode: party.code, eventType: 'genreVote', eventId: data.eventId, guestId, decision: 'duplicate' });
       return cb({ ok: true, duplicate: true, eventId: data.eventId });
     }
     updateActivity(party);
-    const voterKey = data.guestName || data.guestId || socket.id;
+    const voterKey = data.guestName || guestId;
     const genre = data.genre;
     if (!party.guestGenreVoteExpiry) party.guestGenreVoteExpiry = {};
     if (genre) {
@@ -3942,7 +3949,7 @@ io.on('connection', (socket) => {
       party.guestGenreVoteExpiry[voterKey] = Date.now() + GENRE_VOTE_TTL_MS;
       if (!party._genreVotedOnce[voterKey]) {
         party._genreVotedOnce[voterKey] = true;
-        addPoints(party, data.guestId || socket.id, data.guestName || voterKey, 15, 'genre vote');
+        addPoints(party, guestId, data.guestName || voterKey, 15, 'genre vote');
       }
     } else {
       delete party.guestGenreVotes[voterKey];
@@ -3951,12 +3958,13 @@ io.on('connection', (socket) => {
     const totals = recomputeGenreVotes(party);
     io.to(`host:${party.code}`).emit('guest:genreVoted', {
       ...data,
+      guestId, // override client guestId
       expiresAt: party.guestGenreVoteExpiry[voterKey] || null
     });
     io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: totals });
     io.to(`host:${party.code}`).emit('votes:update', { genreVotes: totals });
     cb({ ok: true, eventId: data.eventId });
-    logEvent({ partyCode: party.code, eventType: 'genreVote', eventId: data.eventId, guestId: data.guestId, decision: 'accepted' });
+    logEvent({ partyCode: party.code, eventType: 'genreVote', eventId: data.eventId, guestId, decision: 'accepted' });
   });
 
   // Phase adjacency — a track is OK if its phase OR phaseAlternate is in this list
@@ -3974,11 +3982,14 @@ io.on('connection', (socket) => {
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     updateActivity(party);
     
+    // ★ P0.4: Server-side guestId for logging
+    const guestId = socket.user?._id?.toString() || socket.id;
+    
     // ★ A3a — Idempotence guard
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
     if (isDuplicate) {
       console.log(`[${party.code}] ♻️  guest:suggest DUPLICATE eventId=${data.eventId}`);
-      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'duplicate' });
+      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId, decision: 'duplicate' });
       return cb({ ok: true, duplicate: true, eventId: data.eventId });
     }
     const title    = data.title  || data.query || '';
@@ -3993,7 +4004,7 @@ io.on('connection', (socket) => {
       (t.title || '').toLowerCase() === title.toLowerCase()
     );
     if (alreadyPlayed) {
-      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'rejected' });
+      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId, decision: 'rejected' });
       return cb({ ok: false, error: 'already_played', reason: 'Cette track a déjà été jouée ce soir' });
     }
 
@@ -4003,7 +4014,7 @@ io.on('connection', (socket) => {
       ['pending', 'queued', 'next'].includes(s.status)
     );
     if (alreadyQueued) {
-      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'rejected' });
+      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId, decision: 'rejected' });
       return cb({
         ok: false,
         error: 'already_suggested',
