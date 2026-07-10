@@ -44,7 +44,7 @@ describe('DELETE /api/me — account deletion', async () => {
   after(async () => {
     await cleanupUsers(USER_DELETE.email);
     await disconnectTestDB();
-    await serverCtx?.kill();
+    if (serverCtx?.proc) serverCtx.proc.kill();
   });
 
   // ── 1. Sans token → 401 ─────────────────────────────────────────────────
