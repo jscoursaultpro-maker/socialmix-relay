@@ -9,7 +9,7 @@ import { dirname, join } from 'path';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { createPartyState, isValidPartyCode } from './partyState.js';
 import { connectDB, restoreParties, startFlushLoop, stopFlushLoop, flushEndedParty } from './db.js';
-import { randomUUID } from 'crypto';
+import crypto, { randomUUID } from 'crypto';
 import mongoose from 'mongoose';
 import Party from './models/Party.js';
 import Friendship from './models/Friendship.js';
@@ -69,7 +69,8 @@ const GENRE_MAP = {
 function normalizeGenre(g) { return GENRE_MAP[g] || g || 'Electro'; }
 
 // ─── Admin auth middleware ───────────────────────────────────────────
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'socialmix-admin-2026';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) console.warn('[WARN] ADMIN_PASSWORD env var not set — admin API disabled');
 const ADMIN_TOKENS   = new Set(); // In-memory tokens (restart invalidates — acceptable)
 
 function adminAuth(req, res, next) {
@@ -485,8 +486,15 @@ app.use('/api/admin/users', adminAuth, adminUsersRouter);
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
   const { password } = req.body || {};
-  if (password !== ADMIN_PASSWORD)
+  if (!ADMIN_PASSWORD || !password) {
     return res.status(403).json({ error: 'Invalid password' });
+  }
+  // Timing-safe comparison to prevent timing attacks
+  const a = Buffer.from(password);
+  const b = Buffer.from(ADMIN_PASSWORD);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return res.status(403).json({ error: 'Invalid password' });
+  }
   const token = randomUUID();
   ADMIN_TOKENS.add(token);
   // Tokens expirent après 24h
@@ -949,28 +957,10 @@ app.post('/api/admin/classify/suggest', adminAuth, async (req, res) => {
   }
 });
 
-// POST /api/admin/sync-ios — run sync-ios script from Monitor button
-app.post('/api/admin/sync-ios', adminAuth, async (req, res) => {
-  const { exec } = await import('child_process');
-  exec('node --env-file=.env scripts/sync-ios.mjs', { cwd: __dirname, timeout: 30000 }, (error, stdout, stderr) => {
-    if (error) {
-      console.error('[Sync iOS] ❌', error.message);
-      return res.status(500).json({ error: error.message, stdout, stderr });
-    }
-    console.log('[Sync iOS] ✅', stdout);
-    res.json({ success: true, message: "Sync iOS terminée !", stdout, stderr });
-  });
-});
-
-app.post('/api/admin/export/rebuild', adminAuth, (req, res) => {
-  const { exec } = require('child_process');
-  exec('node scripts/rebuild-metadata.mjs', { cwd: __dirname }, (error, stdout, stderr) => {
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-    res.json({ message: "Export réussi.", stdout, stderr });
-  });
-});
+// ★ REMOVED (security P0.1): /api/admin/sync-ios and /api/admin/export/rebuild
+// These endpoints used child_process.exec (RCE vector). Run scripts locally:
+//   node --env-file=.env scripts/sync-ios.mjs
+//   node scripts/rebuild-metadata.mjs
 
 
 
@@ -2089,10 +2079,10 @@ app.get('/api/party/:code/explore', async (req, res) => {
 
 app.get('/api/state', (req, res) => {
   const code = req.query.code;
-  if (code && parties.has(code)) return res.json(parties.get(code));
+  if (code && parties.has(code)) return res.json(buildLightState(parties.get(code)));
   // Legacy: return first party or empty
   const first = parties.values().next().value;
-  res.json(first || { code: null, participants: [] });
+  res.json(first ? buildLightState(first) : { code: null, participants: [] });
 });
 
 // ─── Auth Middleware (session token) ────────────────────────────────
@@ -2288,11 +2278,29 @@ app.delete('/api/friends/:id', authMiddleware, (req, res) => {
 });
 // ─── DELETE /api/guest/data — Droit à l'oubli RGPD art. 17 ─────────────────
 // Body: { email, partyCode }
+// ★ P0.3: Requires Supabase JWT — verified email must match body.email
 // Anonymise dans Party + supprime les GuestSession correspondants
 app.delete('/api/guest/data', async (req, res) => {
+  // ── Auth: require Supabase JWT ──
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'AUTH_MISSING', message: 'Authorization: Bearer <token> required' });
+  }
+  let jwtPayload;
+  try {
+    jwtPayload = await verifySupabaseJWT(authHeader.slice(7));
+  } catch (err) {
+    return res.status(401).json({ error: 'TOKEN_INVALID', message: err.message });
+  }
+
   const { email, partyCode } = req.body || {};
   if (!email || !partyCode) {
     return res.status(400).json({ error: 'MISSING_PARAMS', message: 'email et partyCode sont requis' });
+  }
+
+  // ── Email match: JWT email must equal requested deletion email ──
+  if ((jwtPayload.email || '').toLowerCase().trim() !== email.toLowerCase().trim()) {
+    return res.status(403).json({ error: 'EMAIL_MISMATCH', message: 'Vous ne pouvez supprimer que vos propres données' });
   }
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailPattern.test(email)) {
@@ -2609,7 +2617,7 @@ function buildLightState(party, isHost = false) {
     participants: lightParticipants,
     suggestions: party.suggestions || [],
     trackHistory: recentHistory,
-    currentTrack: party.currentTrack || null,
+    currentTrack: stripSecret(party.currentTrack || null),
     genreVotes: party.genreVotes || {},
     guestGenreVotes: party.guestGenreVotes || {},
     guestVotes: party.guestVotes || {},
@@ -2638,7 +2646,7 @@ function buildLightState(party, isHost = false) {
     // ★ Phase 4A — Phase Indicator: expose current phase + energy to web guest
     currentPhase: party.currentPhase || null,
     vibeScore: party.vibeScore || 5,
-    nextTrack: party.nextTrack || null,   // ★ Phase 4: next track preview
+    nextTrack: stripSecret(party.nextTrack || null),   // ★ Phase 4: next track preview
     // ★ Host decisions — persisted for reconnect restore (isPhaseLocked + sessionModeOverride)
     hostDecisions: party.hostDecisions || { isPhaseLocked: false, sessionModeOverride: 'auto' }
   };
@@ -3669,8 +3677,8 @@ io.on('connection', (socket) => {
       delete party.disconnectTimers[guestName];
     }
 
-    // Generate or reuse stable userId
-    const userId = data.userId || 'user_' + randomUUID().replace(/-/g, '').substring(0, 16);
+    // ★ P0.4: Server-side userId — NEVER trust client-sent data.userId
+    const userId = socket.user?._id?.toString() || 'user_' + randomUUID().replace(/-/g, '').substring(0, 16);
 
     const guest = {
       id: socket.id, userId, name: guestName, emoji: data.emoji || '🎉',
@@ -3690,7 +3698,7 @@ io.on('connection', (socket) => {
       // Host is joining as guest (e.g. GuestExperienceView opened from host app) — skip duplicate
       console.log(`[${code}] Host joining as guest (${guestName}) — skipping duplicate participant`);
       socket.emit('party:state', buildLightState(party));
-      socket.emit('session:token', { sessionToken: randomUUID(), partyCode: code, userId: data.userId || socket.id });
+      socket.emit('session:token', { sessionToken: randomUUID(), partyCode: code, userId });
       return;
     }
     party.participants = party.participants.filter(p => {
@@ -3869,19 +3877,23 @@ io.on('connection', (socket) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     
+    // ★ P0.4: Server-side guestId — NEVER trust client-sent data.guestId
+    const guestId = socket.user?._id?.toString() || socket.id;
+    
     // ★ A3a — Idempotence guard
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
     if (isDuplicate) {
       console.log(`[${party.code}] ♻️  guest:vote DUPLICATE eventId=${data.eventId}`);
-      logEvent({ partyCode: party.code, eventType: 'vote', eventId: data.eventId, guestId: data.guestId, decision: 'duplicate' });
+      logEvent({ partyCode: party.code, eventType: 'vote', eventId: data.eventId, guestId, decision: 'duplicate' });
       return cb({ ok: true, duplicate: true, eventId: data.eventId });
     }
     updateActivity(party);
-    if (!party.guestVotes[data.guestId]) party.guestVotes[data.guestId] = {};
-    party.guestVotes[data.guestId][data.trackId || 'current'] = data.type;
-    io.to(`host:${party.code}`).emit('guest:voted', data);
-    io.to(`guest:${party.code}`).emit('guest:voted', data);
-    if (data.guestId) addPoints(party, data.guestId, data.guestName || 'Guest', 10, `vote ${data.type}`);
+    if (!party.guestVotes[guestId]) party.guestVotes[guestId] = {};
+    party.guestVotes[guestId][data.trackId || 'current'] = data.type;
+    const safeData = { ...data, guestId }; // override client guestId
+    io.to(`host:${party.code}`).emit('guest:voted', safeData);
+    io.to(`guest:${party.code}`).emit('guest:voted', safeData);
+    if (guestId) addPoints(party, guestId, data.guestName || 'Guest', 10, `vote ${data.type}`);
     
     // ★ Bug 7 fix — persist vote counters directly in trackHistory
     if (data.trackTitle) {
@@ -3910,22 +3922,25 @@ io.on('connection', (socket) => {
       else if (data.type === 'meh') entry.bof++;
     }
     cb({ ok: true, eventId: data.eventId });
-    logEvent({ partyCode: party.code, eventType: 'vote', eventId: data.eventId, guestId: data.guestId, decision: 'accepted' });
+    logEvent({ partyCode: party.code, eventType: 'vote', eventId: data.eventId, guestId, decision: 'accepted' });
   });
 
   socket.on('guest:genreVote', (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     
+    // ★ P0.4: Server-side guestId
+    const guestId = socket.user?._id?.toString() || socket.id;
+    
     // ★ A3a — Idempotence guard
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
     if (isDuplicate) {
       console.log(`[${party.code}] ♻️  guest:genreVote DUPLICATE eventId=${data.eventId}`);
-      logEvent({ partyCode: party.code, eventType: 'genreVote', eventId: data.eventId, guestId: data.guestId, decision: 'duplicate' });
+      logEvent({ partyCode: party.code, eventType: 'genreVote', eventId: data.eventId, guestId, decision: 'duplicate' });
       return cb({ ok: true, duplicate: true, eventId: data.eventId });
     }
     updateActivity(party);
-    const voterKey = data.guestName || data.guestId || socket.id;
+    const voterKey = data.guestName || guestId;
     const genre = data.genre;
     if (!party.guestGenreVoteExpiry) party.guestGenreVoteExpiry = {};
     if (genre) {
@@ -3934,7 +3949,7 @@ io.on('connection', (socket) => {
       party.guestGenreVoteExpiry[voterKey] = Date.now() + GENRE_VOTE_TTL_MS;
       if (!party._genreVotedOnce[voterKey]) {
         party._genreVotedOnce[voterKey] = true;
-        addPoints(party, data.guestId || socket.id, data.guestName || voterKey, 15, 'genre vote');
+        addPoints(party, guestId, data.guestName || voterKey, 15, 'genre vote');
       }
     } else {
       delete party.guestGenreVotes[voterKey];
@@ -3943,12 +3958,13 @@ io.on('connection', (socket) => {
     const totals = recomputeGenreVotes(party);
     io.to(`host:${party.code}`).emit('guest:genreVoted', {
       ...data,
+      guestId, // override client guestId
       expiresAt: party.guestGenreVoteExpiry[voterKey] || null
     });
     io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: totals });
     io.to(`host:${party.code}`).emit('votes:update', { genreVotes: totals });
     cb({ ok: true, eventId: data.eventId });
-    logEvent({ partyCode: party.code, eventType: 'genreVote', eventId: data.eventId, guestId: data.guestId, decision: 'accepted' });
+    logEvent({ partyCode: party.code, eventType: 'genreVote', eventId: data.eventId, guestId, decision: 'accepted' });
   });
 
   // Phase adjacency — a track is OK if its phase OR phaseAlternate is in this list
@@ -3966,11 +3982,14 @@ io.on('connection', (socket) => {
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     updateActivity(party);
     
+    // ★ P0.4: Server-side guestId for logging
+    const guestId = socket.user?._id?.toString() || socket.id;
+    
     // ★ A3a — Idempotence guard
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
     if (isDuplicate) {
       console.log(`[${party.code}] ♻️  guest:suggest DUPLICATE eventId=${data.eventId}`);
-      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'duplicate' });
+      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId, decision: 'duplicate' });
       return cb({ ok: true, duplicate: true, eventId: data.eventId });
     }
     const title    = data.title  || data.query || '';
@@ -3985,7 +4004,7 @@ io.on('connection', (socket) => {
       (t.title || '').toLowerCase() === title.toLowerCase()
     );
     if (alreadyPlayed) {
-      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'rejected' });
+      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId, decision: 'rejected' });
       return cb({ ok: false, error: 'already_played', reason: 'Cette track a déjà été jouée ce soir' });
     }
 
@@ -3995,7 +4014,7 @@ io.on('connection', (socket) => {
       ['pending', 'queued', 'next'].includes(s.status)
     );
     if (alreadyQueued) {
-      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'rejected' });
+      logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId, decision: 'rejected' });
       return cb({
         ok: false,
         error: 'already_suggested',
