@@ -2278,11 +2278,29 @@ app.delete('/api/friends/:id', authMiddleware, (req, res) => {
 });
 // ─── DELETE /api/guest/data — Droit à l'oubli RGPD art. 17 ─────────────────
 // Body: { email, partyCode }
+// ★ P0.3: Requires Supabase JWT — verified email must match body.email
 // Anonymise dans Party + supprime les GuestSession correspondants
 app.delete('/api/guest/data', async (req, res) => {
+  // ── Auth: require Supabase JWT ──
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'AUTH_MISSING', message: 'Authorization: Bearer <token> required' });
+  }
+  let jwtPayload;
+  try {
+    jwtPayload = await verifySupabaseJWT(authHeader.slice(7));
+  } catch (err) {
+    return res.status(401).json({ error: 'TOKEN_INVALID', message: err.message });
+  }
+
   const { email, partyCode } = req.body || {};
   if (!email || !partyCode) {
     return res.status(400).json({ error: 'MISSING_PARAMS', message: 'email et partyCode sont requis' });
+  }
+
+  // ── Email match: JWT email must equal requested deletion email ──
+  if ((jwtPayload.email || '').toLowerCase().trim() !== email.toLowerCase().trim()) {
+    return res.status(403).json({ error: 'EMAIL_MISMATCH', message: 'Vous ne pouvez supprimer que vos propres données' });
   }
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailPattern.test(email)) {
