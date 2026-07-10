@@ -9,7 +9,7 @@ import { dirname, join } from 'path';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { createPartyState, isValidPartyCode } from './partyState.js';
 import { connectDB, restoreParties, startFlushLoop, stopFlushLoop, flushEndedParty } from './db.js';
-import { randomUUID } from 'crypto';
+import crypto, { randomUUID } from 'crypto';
 import mongoose from 'mongoose';
 import Party from './models/Party.js';
 import Friendship from './models/Friendship.js';
@@ -69,7 +69,8 @@ const GENRE_MAP = {
 function normalizeGenre(g) { return GENRE_MAP[g] || g || 'Electro'; }
 
 // ─── Admin auth middleware ───────────────────────────────────────────
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'socialmix-admin-2026';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) console.warn('[WARN] ADMIN_PASSWORD env var not set — admin API disabled');
 const ADMIN_TOKENS   = new Set(); // In-memory tokens (restart invalidates — acceptable)
 
 function adminAuth(req, res, next) {
@@ -485,8 +486,15 @@ app.use('/api/admin/users', adminAuth, adminUsersRouter);
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
   const { password } = req.body || {};
-  if (password !== ADMIN_PASSWORD)
+  if (!ADMIN_PASSWORD || !password) {
     return res.status(403).json({ error: 'Invalid password' });
+  }
+  // Timing-safe comparison to prevent timing attacks
+  const a = Buffer.from(password);
+  const b = Buffer.from(ADMIN_PASSWORD);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return res.status(403).json({ error: 'Invalid password' });
+  }
   const token = randomUUID();
   ADMIN_TOKENS.add(token);
   // Tokens expirent après 24h
@@ -949,28 +957,10 @@ app.post('/api/admin/classify/suggest', adminAuth, async (req, res) => {
   }
 });
 
-// POST /api/admin/sync-ios — run sync-ios script from Monitor button
-app.post('/api/admin/sync-ios', adminAuth, async (req, res) => {
-  const { exec } = await import('child_process');
-  exec('node --env-file=.env scripts/sync-ios.mjs', { cwd: __dirname, timeout: 30000 }, (error, stdout, stderr) => {
-    if (error) {
-      console.error('[Sync iOS] ❌', error.message);
-      return res.status(500).json({ error: error.message, stdout, stderr });
-    }
-    console.log('[Sync iOS] ✅', stdout);
-    res.json({ success: true, message: "Sync iOS terminée !", stdout, stderr });
-  });
-});
-
-app.post('/api/admin/export/rebuild', adminAuth, (req, res) => {
-  const { exec } = require('child_process');
-  exec('node scripts/rebuild-metadata.mjs', { cwd: __dirname }, (error, stdout, stderr) => {
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-    res.json({ message: "Export réussi.", stdout, stderr });
-  });
-});
+// ★ REMOVED (security P0.1): /api/admin/sync-ios and /api/admin/export/rebuild
+// These endpoints used child_process.exec (RCE vector). Run scripts locally:
+//   node --env-file=.env scripts/sync-ios.mjs
+//   node scripts/rebuild-metadata.mjs
 
 
 
