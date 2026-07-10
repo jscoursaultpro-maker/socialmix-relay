@@ -2099,10 +2099,10 @@ app.get('/api/party/:code/explore', async (req, res) => {
 
 app.get('/api/state', (req, res) => {
   const code = req.query.code;
-  if (code && parties.has(code)) return res.json(parties.get(code));
+  if (code && parties.has(code)) return res.json(buildLightState(parties.get(code)));
   // Legacy: return first party or empty
   const first = parties.values().next().value;
-  res.json(first || { code: null, participants: [] });
+  res.json(first ? buildLightState(first) : { code: null, participants: [] });
 });
 
 // ─── Auth Middleware (session token) ────────────────────────────────
@@ -2619,7 +2619,7 @@ function buildLightState(party, isHost = false) {
     participants: lightParticipants,
     suggestions: party.suggestions || [],
     trackHistory: recentHistory,
-    currentTrack: party.currentTrack || null,
+    currentTrack: stripSecret(party.currentTrack || null),
     genreVotes: party.genreVotes || {},
     guestGenreVotes: party.guestGenreVotes || {},
     guestVotes: party.guestVotes || {},
@@ -2648,7 +2648,7 @@ function buildLightState(party, isHost = false) {
     // ★ Phase 4A — Phase Indicator: expose current phase + energy to web guest
     currentPhase: party.currentPhase || null,
     vibeScore: party.vibeScore || 5,
-    nextTrack: party.nextTrack || null,   // ★ Phase 4: next track preview
+    nextTrack: stripSecret(party.nextTrack || null),   // ★ Phase 4: next track preview
     // ★ Host decisions — persisted for reconnect restore (isPhaseLocked + sessionModeOverride)
     hostDecisions: party.hostDecisions || { isPhaseLocked: false, sessionModeOverride: 'auto' }
   };
