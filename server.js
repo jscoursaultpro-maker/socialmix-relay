@@ -297,6 +297,26 @@ app.get('/admin/hub', (req, res) => res.sendFile(join(__dirname, 'admin', 'hub.h
 app.get('/admin', (req, res) => res.sendFile(join(__dirname, 'admin', 'index.html')));
 app.get('/admin/*', (req, res) => res.sendFile(join(__dirname, 'admin', 'index.html')));
 
+app.get('/legal/:doc', (req, res) => {
+  const docMap = {
+    cgu: 'CGU_AhOuai_V1.md',
+    privacy: 'PrivacyPolicy_AhOuai_V1.md'
+  };
+  const filename = docMap[req.params.doc];
+  if (!filename) return res.status(404).send('Not found');
+  try {
+    const filePath = join(__dirname, 'public/legal', filename);
+    const md = readFileSync(filePath, 'utf8');
+    const html = marked.parse(md);
+    const title = req.params.doc === 'cgu' ? 'Conditions Générales' : 'Politique de Confidentialité';
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title} — AhOuai</title><style>*{box-sizing:border-box}body{background:#0a1220;color:#e4e8f5;font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:20px;max-width:800px;margin:0 auto;line-height:1.6;font-size:15px}h1,h2,h3{color:#22d3ee}h1{border-bottom:1px solid #22d3ee44;padding-bottom:8px;margin-top:32px}h2{margin-top:24px}table{border-collapse:collapse;width:100%;margin:12px 0}th,td{border:1px solid #22d3ee44;padding:8px;text-align:left}th{background:#22d3ee22}code{background:#1a2438;padding:2px 6px;border-radius:3px;font-size:13px}hr{border:0;border-top:1px solid #22d3ee44;margin:24px 0}a{color:#22d3ee}ul{padding-left:20px}</style></head><body>${html}</body></html>`);
+  } catch (err) {
+    console.error('[/legal] error:', err.message);
+    res.status(500).send('Internal error');
+  }
+});
+
 // ─── Supabase Auth — GET /api/me ────────────────────────────────────
 // Validates Bearer JWT from Authorization header, returns Mongo User doc.
 // Used by iOS app to bootstrap user profile after Supabase sign-in.
