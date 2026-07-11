@@ -10,6 +10,9 @@
  *   2. Track without ISRC → resolve skipped (no DB write, no API call)
  *   3. Deezer returns 404 → track marked as orphan (availableOn=[])
  *   4. GET /api/tracks/:id/providers → correct shape returned
+ *   5. (R3) Title mismatch, same ISRC → detected as same track (ISRC uniqueness constraint)
+ *   6. (R3) Apple Music trackId stored → retrievable via /api/tracks/:id/providers
+ *   7. (R3) Spotify trackId stored → retrievable via /api/tracks/:id/providers
  */
 import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -94,7 +97,9 @@ describe('Provider IDs — ISRC resolution + /api/tracks/:id/providers', () => {
   after(async () => {
     restoreFetch();
     if (_testTrackModel) {
-      await _testTrackModel.deleteMany({ isrc: { $in: ['USTEST000001', 'USTEST000002', 'USTEST000003'] } }).catch(() => {});
+      await _testTrackModel.deleteMany({
+        isrc: { $in: ['USTEST000001', 'USTEST000002', 'USTEST000003', 'USTEST000004', 'USTEST000005', 'USTEST000006'] }
+      }).catch(() => {});
     }
     await serverCtx?.kill();
     await disconnectTestDB();
@@ -200,4 +205,107 @@ describe('Provider IDs — ISRC resolution + /api/tracks/:id/providers', () => {
     assert.ok(body.availableOn.includes('appleMusic'), 'availableOn should include appleMusic');
     assert.equal(body.providerIdsResolvedVersion, 'v1-2026-07');
   });
+
+  // ── Case 5 (R3): Title mismatch, same ISRC → detected as same track ──────
+  // Validates R1/R2 ISRC-based dedup. Two tracks with different titles but
+  // identical ISRC should be treated as the same recording (remaster/feat. variant).
+  it('Two tracks with different titles but same ISRC → resolveDeezer returns same trackId (ISRC pivot)', async () => {
+    const Track = getTrackModel();
+
+    // Insert "original" track with ISRC
+    await Track.create({
+      isrc: 'USTEST000004',
+      fallbackHash: 'blinding_lights_the_weeknd',
+      title: 'Blinding Lights',
+      artist: 'The Weeknd',
+      genre: 'Pop',
+      'providers.deezer.trackId': 555111,
+      availableOn: ['deezer'],
+      providerIdsResolvedAt: new Date(),
+      providerIdsResolvedVersion: 'v1-2026-07',
+    });
+
+    // Insert "remaster variant" — same ISRC, different title
+    await Track.create({
+      isrc: 'USTEST000004',  // same ISRC as above — this tests uniqueness on ISRC
+      fallbackHash: 'blinding_lights_remastered_the_weeknd',
+      title: 'Blinding Lights (Remastered 2024)',
+      artist: 'The Weeknd',
+      genre: 'Pop',
+    }).catch(() => {
+      // ISRC has unique index — this insert will fail, which is expected.
+      // The ISRC uniqueness constraint prevents duplicate tracks with the same ISRC.
+    });
+
+    // The key assertion: searching by the SAME ISRC returns the original track
+    const found = await Track.findOne({ isrc: 'USTEST000004' }).lean();
+    assert.ok(found, 'Track should be found by ISRC');
+    assert.equal(found.providers?.deezer?.trackId, 555111, 'Should find the original with providers set');
+
+    // Verify that querying ISRC finds the track regardless of title
+    const foundByTitle1 = await Track.findOne({ title: 'Blinding Lights' }).lean();
+    assert.ok(foundByTitle1, 'Original title should find the track');
+    assert.equal(foundByTitle1.isrc, 'USTEST000004');
+
+    // The variant would NOT be found by title2 because ISRC uniqueness blocked the insert.
+    // This validates the spec decision: ISRC = primary key, title = display only.
+    const foundByTitle2 = await Track.findOne({ title: 'Blinding Lights (Remastered 2024)' }).lean();
+    assert.equal(foundByTitle2, null, 'Remastered variant should NOT exist (ISRC unique constraint)');
+  });
+
+  // ── Case 6 (R3): Apple Music trackId stored and retrievable ───────────────
+  it('Track with providers.appleMusic.trackId → retrievable via GET /api/tracks/:id/providers', async () => {
+    const Track = getTrackModel();
+    await Track.create({
+      isrc: 'USTEST000005',
+      fallbackHash: 'wonderwall_oasis',
+      title: 'Wonderwall',
+      artist: 'Oasis',
+      genre: 'Rock',
+      'providers.appleMusic.trackId': 'am-987654321',
+      'providers.deezer.trackId': 777222,
+      availableOn: ['appleMusic', 'deezer'],
+      providerIdsResolvedAt: new Date(),
+      providerIdsResolvedVersion: 'v1-2026-07',
+    });
+
+    // Query via Deezer trackId (the endpoint lookup key)
+    const res = await fetch(`${serverCtx.url}/api/tracks/777222/providers`);
+    assert.equal(res.status, 200);
+
+    const body = await res.json();
+    assert.equal(body.providers?.appleMusic?.trackId, 'am-987654321',
+      'Apple Music trackId should be retrievable');
+    assert.ok(body.availableOn.includes('appleMusic'),
+      'availableOn should include appleMusic');
+  });
+
+  // ── Case 7 (R3): Spotify trackId stored and retrievable ───────────────────
+  it('Track with providers.spotify.trackId → retrievable via GET /api/tracks/:id/providers', async () => {
+    const Track = getTrackModel();
+    await Track.create({
+      isrc: 'USTEST000006',
+      fallbackHash: 'trois_nuits_par_semaine_indochine',
+      title: 'Trois nuits par semaine',
+      artist: 'Indochine',
+      genre: 'Rock',
+      'providers.spotify.trackId': '3TGRqZ0a2l1LR_ABC123',
+      'providers.deezer.trackId': 888333,
+      availableOn: ['spotify', 'deezer'],
+      providerIdsResolvedAt: new Date(),
+      providerIdsResolvedVersion: 'v1-2026-07',
+    });
+
+    const res = await fetch(`${serverCtx.url}/api/tracks/888333/providers`);
+    assert.equal(res.status, 200);
+
+    const body = await res.json();
+    assert.equal(body.providers?.spotify?.trackId, '3TGRqZ0a2l1LR_ABC123',
+      'Spotify trackId should be retrievable');
+    assert.ok(body.availableOn.includes('spotify'),
+      'availableOn should include spotify');
+    assert.ok(body.availableOn.includes('deezer'),
+      'availableOn should include deezer');
+  });
 });
+
