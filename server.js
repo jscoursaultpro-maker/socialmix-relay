@@ -3203,12 +3203,16 @@ io.on('connection', (socket) => {
       // isNewTrack only checks against the LAST track (consecutive dedup).
       // This guard checks the full history to block host replaying an already-played track,
       // unless the host explicitly confirmed via confirmReplay:true.
+      // ★ R1 — ISRC-based dedup: catches remaster/feat. variants with different titles but same ISRC.
       if (isNewTrack && !track.confirmReplay) {
         const previousEntry = party.trackHistory.find(t =>
-          normTitle(t.title) === normTitle(track.title)
+          normTitle(t.title) === normTitle(track.title) ||
+          (track.isrc && t.isrc && track.isrc === t.isrc)
         );
         if (previousEntry) {
-          console.log(`[${party.code}] ⛔ Z11: '${track.title}' already in history (${previousEntry.playedAt}) — awaiting confirmReplay`);
+          const matchType = (track.isrc && previousEntry.isrc && track.isrc === previousEntry.isrc)
+            ? `ISRC:${track.isrc}` : 'title';
+          console.log(`[${party.code}] ⛔ Z11: '${track.title}' already in history via ${matchType} (${previousEntry.playedAt}) — awaiting confirmReplay`);
           socket.emit('z11:replayDetected', {
             title: track.title,
             artist: track.artist,
