@@ -4000,13 +4000,15 @@ io.on('connection', (socket) => {
     const title    = data.title  || data.query || '';
     const artist   = data.artist || '';
     const deezerID = data.deezerID || 0;
+    const isrc     = data.isrc   || null;   // ★ R2 — ISRC for cross-title dedup
 
     // ★ A4 — Z11 dedup niveau 1: déjà joué ce soir ?
-    // Check via playedKeys (deezerID) ET title (fallback sans deezerID)
+    // Check via playedKeys (deezerID), title, AND ISRC (★ R2 — cross-title variant dedup)
     const alreadyPlayed = (party.playedKeys || []).some(k =>
       deezerID > 0 && k === String(deezerID)
     ) || party.trackHistory.some(t =>
-      (t.title || '').toLowerCase() === title.toLowerCase()
+      (t.title || '').toLowerCase() === title.toLowerCase() ||
+      (isrc && t.isrc && isrc === t.isrc)
     );
     if (alreadyPlayed) {
       logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'rejected' });
@@ -4014,9 +4016,11 @@ io.on('connection', (socket) => {
     }
 
     // ★ A4 — Z11 dedup niveau 2: déjà en attente dans la queue ?
+    // ★ R2 — Also match by ISRC to catch remaster/feat. variants
     const alreadyQueued = party.suggestions.find(s =>
-      (s.title || '').toLowerCase() === title.toLowerCase() &&
-      ['pending', 'queued', 'next'].includes(s.status)
+      ['pending', 'queued', 'next'].includes(s.status) &&
+      ((s.title || '').toLowerCase() === title.toLowerCase() ||
+       (isrc && s.isrc && isrc === s.isrc))
     );
     if (alreadyQueued) {
       logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'rejected' });
