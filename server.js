@@ -490,11 +490,24 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
       }
     ]);
 
+    // Fetch tracks to get deezerID
+    const trackIds = history.map(item => item._id);
+    const tracks = await Track.find({ _id: { $in: trackIds } }).select('providers.deezer.trackId').lean();
+    const deezerIdMap = {};
+    tracks.forEach(t => {
+      if (t.providers?.deezer?.trackId) {
+        deezerIdMap[t._id.toString()] = t.providers.deezer.trackId.toString();
+      }
+    });
+
     const scores = {};
     const msInDay = 24 * 3600 * 1000;
 
     history.forEach(item => {
       const trackId = item._id.toString();
+      const deezerId = deezerIdMap[trackId];
+      if (!deezerId) return; // Skip if no deezer ID mapped
+      
       const daysAgo = (now - new Date(item.lastPlayedAt).getTime()) / msInDay;
       
       let score = 0;
@@ -507,7 +520,7 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
         score += FRESHNESS_WEIGHTS.PLAYED_IN_LAST_3_PARTIES;
       }
 
-      scores[trackId] = score;
+      scores[deezerId] = score;
     });
 
     const responseData = {
