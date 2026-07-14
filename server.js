@@ -463,6 +463,13 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
       return res.json(cached.data);
     }
 
+    const hostUser = await User.findById(hostUserId).select('settings').lean();
+    const isEnabled = hostUser?.settings?.antiRepetition !== false;
+
+    if (!isEnabled) {
+      return res.json({ hostUserId, generatedAt: new Date().toISOString(), cacheTTL: 300, isEnabled: false, scores: {} });
+    }
+
     // 1. Fetch last 3 parties for this host
     const last3Parties = await Party.find({ hostUserId })
       .sort({ createdAt: -1 })
@@ -3255,6 +3262,16 @@ io.on('connection', (socket) => {
       partyCode: code, joinedAt: new Date().toISOString(), isHost: true
     });
 
+    // ★ V2.2 fix: resolve hostUserId at party creation for Fresh Rotation
+    try {
+      if (party.hostProfile && party.hostProfile.email) {
+        const hostUser = await User.findOne({ email: party.hostProfile.email }).lean();
+        if (hostUser) party.hostUserId = hostUser._id;
+      }
+    } catch (e) {
+      console.warn('hostUserId lookup failed at party creation', e);
+    }
+
     // ── TASK 3 (#WT): Write-through host + partyName to MongoDB immediately on party creation ──
     // Guards against Render crash before first dirty-flush. Non-blocking fire-and-forget.
     const partyName = data.partyName || data.welcomeText || '';
@@ -3266,6 +3283,7 @@ io.on('connection', (socket) => {
           hostSecret: party.hostSecret,
           partyName: partyName,
           hostProfile: party.hostProfile,
+          hostUserId: party.hostUserId || null,
           trackHistory: [],
           participants: party.participants,
           suggestions: [],
