@@ -28,3 +28,7 @@ bogus_artists.csv
 # Apple SIWA signing keys — NEVER commit
 *.p8
 AuthKey_*.p8
+
+# Diagnostic scripts (hardening)
+_*.mjs
+_*.js
