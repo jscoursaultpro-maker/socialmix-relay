@@ -3424,6 +3424,21 @@ io.on('connection', (socket) => {
       party.trackHistory = cappedUnshift(party.trackHistory, trackDoc, 500);
       addPoints(party, 'host', 'DJ', 15, 'nouveau titre : ' + track.title);
 
+      // ★ Fresh Rotation — record playback for this host
+      if (party.hostUserId && trackDoc.trackId) {
+        HostPlaybackHistory.create({
+          hostUserId: party.hostUserId,
+          trackId: trackDoc.trackId,
+          partyId: party._id || party.id,
+          playedAt: new Date(),
+          phase: party.currentPhase || trackDoc.phase,
+          wasSuggestedByGuest: !!trackDoc.suggestedBy
+        }).catch(e => {
+          if (e.code === 11000) return; // Silent dedup
+          console.error('[FreshRotation] ⚠️ HostPlaybackHistory create failed:', e.message);
+        });
+      }
+
       // ★ B1 fix — Persist suggestion status "played" directly in MongoDB.
       // In-memory matchedSugg.status = 'played' is already done above but it only reaches
       // MongoDB when the dirty flush fires (up to FLUSH_INTERVAL seconds later).
