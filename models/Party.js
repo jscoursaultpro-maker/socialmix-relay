@@ -15,6 +15,7 @@ const PartySchema = new mongoose.Schema({
   guestVotes:       { type: mongoose.Schema.Types.Mixed, default: {} },
   suggestions:      [mongoose.Schema.Types.Mixed],
   hostProfile:      { type: mongoose.Schema.Types.Mixed, default: null },
+  hostUserId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true, default: null },
   photos:           [mongoose.Schema.Types.Mixed],
   photoCount:       { type: Number, default: 0 },
   costumeEntries:   [mongoose.Schema.Types.Mixed],
