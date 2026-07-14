@@ -19,6 +19,7 @@ import { Photo } from './models/Photo.js';
 import { EventLog } from './models/EventLog.js'; // ★ A3c — Structured audit trail
 import { AudioEvent } from './models/AudioEvent.js'; // ★ A6a — Audio pipeline audit
 import GuestSession from './models/GuestSession.js'; // ★ fix(#21 RGPD) — consent + droit à l'oubli
+import HostPlaybackHistory from './models/HostPlaybackHistory.js'; // ★ Fresh Rotation
 import { marked } from 'marked'; // ★ fix(#21) — CGU/Privacy markdown rendering
 import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRESS_METRICS=1
 import { uploadPhoto } from './services/cloudinaryService.js';
@@ -437,6 +438,90 @@ app.get('/status', (req, res) => {
 // Usage: curl https://socialmix-relay.onrender.com/debug-sentry
 // Expected: HTTP 500 + Sentry issue visible in dashboard within ~30s.
 // Can be removed after validation via commit.
+// ─── Fresh Rotation API ────────────────────────────────────────────────────────
+const FRESHNESS_WEIGHTS = {
+  NEVER_PLAYED_BY_HOST: 50,
+  PLAYED_OVER_30D_AGO: 30,
+  PLAYED_15_TO_30D_AGO: 10,
+  PLAYED_UNDER_15D_AGO: -100,
+  PLAYED_IN_LAST_3_PARTIES: -80
+};
+
+const freshnessCache = new Map();
+
+app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
+  try {
+    const { hostUserId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(hostUserId)) {
+      return res.status(400).json({ error: 'Invalid hostUserId' });
+    }
+
+    // Check Cache (5 min TTL)
+    const now = Date.now();
+    const cached = freshnessCache.get(hostUserId);
+    if (cached && cached.expiresAt > now) {
+      return res.json(cached.data);
+    }
+
+    // 1. Fetch last 3 parties for this host
+    const last3Parties = await Party.find({ hostUserId })
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .select('_id')
+      .lean();
+    const last3PartyIds = last3Parties.map(p => p._id.toString());
+
+    // 2. Aggregate history
+    const history = await HostPlaybackHistory.aggregate([
+      { $match: { hostUserId: new mongoose.Types.ObjectId(hostUserId) } },
+      {
+        $group: {
+          _id: "$trackId",
+          lastPlayedAt: { $max: "$playedAt" },
+          partiesPlayedIn: { $addToSet: "$partyId" }
+        }
+      }
+    ]);
+
+    const scores = {};
+    const msInDay = 24 * 3600 * 1000;
+
+    history.forEach(item => {
+      const trackId = item._id.toString();
+      const daysAgo = (now - new Date(item.lastPlayedAt).getTime()) / msInDay;
+      
+      let score = 0;
+      if (daysAgo < 15) score += FRESHNESS_WEIGHTS.PLAYED_UNDER_15D_AGO;
+      else if (daysAgo <= 30) score += FRESHNESS_WEIGHTS.PLAYED_15_TO_30D_AGO;
+      else score += FRESHNESS_WEIGHTS.PLAYED_OVER_30D_AGO;
+
+      const inLast3 = item.partiesPlayedIn.some(pid => last3PartyIds.includes(pid.toString()));
+      if (inLast3) {
+        score += FRESHNESS_WEIGHTS.PLAYED_IN_LAST_3_PARTIES;
+      }
+
+      scores[trackId] = score;
+    });
+
+    const responseData = {
+      hostUserId,
+      generatedAt: new Date().toISOString(),
+      cacheTTL: 300,
+      scores
+    };
+
+    freshnessCache.set(hostUserId, {
+      expiresAt: now + 300 * 1000,
+      data: responseData
+    });
+
+    res.json(responseData);
+  } catch (err) {
+    console.error('[API] ❌ Freshness error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch freshness' });
+  }
+});
+
 app.get('/debug-sentry', function debugSentryHandler(req, res) {
   throw new Error('Test Sentry — intentional error from /debug-sentry (safe to ignore)');
 });
@@ -2036,6 +2121,7 @@ app.get('/api/party/:code/explore', async (req, res) => {
         const rawCurrent = await Track.find({
           $or: [{ phase: currentPhase }, { phaseAlternate: currentPhase }],
           isBlocked: { $ne: true },
+          suggestable: { $ne: false },
           adminQualified: true,
           'providers.deezer.trackId': { $gt: 0 },
           energy: { $gte: Math.max(1, currentEnergy - 2), $lte: Math.min(10, currentEnergy + 2) }
@@ -2048,6 +2134,7 @@ app.get('/api/party/:code/explore', async (req, res) => {
           const rawNeighbor = await Track.find({
             $or: [{ phase: neighborPhase }, { phaseAlternate: neighborPhase }],
             isBlocked: { $ne: true },
+            suggestable: { $ne: false },
             adminQualified: true,
             'providers.deezer.trackId': { $gt: 0 }
           }).limit(25).lean();

@@ -108,6 +108,11 @@ const userSchema = new Schema({
     showInLeaderboard: { type: Boolean, default: true }
   },
   
+  // === SETTINGS ===
+  settings: {
+    antiRepetition: { type: Boolean, default: true }
+  },
+  
   // === DEVICES (capture iOS IDFV pour futures sessions) ===
   devices: [{
     deviceId: String,        // IDFV iOS
