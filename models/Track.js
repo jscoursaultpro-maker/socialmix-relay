@@ -21,6 +21,8 @@ const TrackSchema = new mongoose.Schema({
   album:        String,
   genre:        { type: String, required: true },                   // Genre normalisé SocialMix
   bpm:          { type: Number, default: 0 },
+  bpmSource:    { type: String },
+  bpm_confidence: { type: String, enum: ['estimated', 'deezer_api', 'manual'], default: 'estimated' },
   energy:       { type: Number, default: 0, min: 0, max: 10 },    // 0 = non qualifié, 1-10 = qualifié
   releaseYear:  Number,
   coverArtURL:  String,                                             // URL Deezer (stable, gratuit)
@@ -36,13 +38,18 @@ const TrackSchema = new mongoose.Schema({
   phase: { type: String, default: null },
   uiCategoryPrimary: { 
     type: String, 
-    enum: ["Chill", "Pop", "Rock", "Rap", "Latin", "Old school", "Urban Groove", "Dance", "Électro", null],
+    enum: [
+      "Chill", "Pop", "Rock", "Rap", "Latin", "Old school", "Urban Groove", "Dance", "Électro",
+      "House", "Tech House", "Deep House", "Afro House", "Melodic House",  // ★ V2 electronic sub-genres
+      "Techno", "Amapiano", "Disco", "Afro", "COCOVARIET",                // ★ V2 extended taxonomy
+      null
+    ],
     default: null
   },
   uiCategoriesSecondary: { 
     type: [String], 
     default: [],
-    validate: { validator: (arr) => arr.length <= 2, message: "Max 2 catégories secondaires" }
+    validate: { validator: (arr) => arr.length <= 4, message: "Max 4 catégories secondaires" }  // ★ was 2, V2 batches send up to 4
   },
   phaseAlternate: { type: String, default: null },
 
@@ -50,6 +57,8 @@ const TrackSchema = new mongoose.Schema({
   danceability: { type: Number, min: 0, max: 1, default: null },
 
   // Niveau 5 — Tags orthogonaux
+  confidence: { type: String, enum: ['high', 'medium', 'low', null], default: null },
+  confidence_notes: { type: String, default: null },
   isBanger: { type: Boolean, default: false },
   isSingalong: { type: Boolean, default: false },
   isEmotional: { type: Boolean, default: false },
@@ -64,6 +73,7 @@ const TrackSchema = new mongoose.Schema({
   },
   hasLyrics: { type: Boolean, default: true },
   explicit: { type: Boolean, default: false },
+  suggestable: { type: Boolean, default: true },  // false = jamais montré aux guests dans suggestions (covers redondantes). Peut être joué en background par DJBrain si manque de tracks.
 
   // Gamification & Quality
   qualityLevel: { type: String, enum: ["vide", "partielle", "complete", "platine"], default: "vide" },
@@ -126,6 +136,14 @@ const TrackSchema = new mongoose.Schema({
   // Niveau 8 — Metadata
   schemaVersion: { type: String, default: "2.0" },
 
+  appleMusicMetadata: {
+    genreNames: { type: [String], default: [] },
+    releaseDate: { type: String, default: null },
+    previewUrl: { type: String, default: null },
+    artworkUrl: { type: String, default: null },
+    durationInMillis: { type: Number, default: 0 }
+  },
+
   // ─── Performance (le data moat — apprend dans le temps) ───────────
   performance: {
     totalPlays:    { type: Number, default: 0 },
@@ -172,6 +190,8 @@ TrackSchema.index({ 'providers.appleMusic.trackId': 1 }, { sparse: true });
 TrackSchema.index({ 'providers.spotify.trackId':    1 }, { sparse: true });
 TrackSchema.index({ availableOn: 1 });
 TrackSchema.index({ providerIdsResolvedAt: 1 }, { sparse: true }); // backfill idempotence query
+TrackSchema.index({ suggestable: 1, phase: 1 });
+TrackSchema.index({ confidence: 1, classifiedBy: 1 });
 
 TrackSchema.pre('save', function(next) {
   let q = "vide";
@@ -183,7 +203,14 @@ TrackSchema.pre('save', function(next) {
     q = "partielle";
   }
   
-  if (this.gptSuggestion != null || this.needs_review) {
+  const isFullyClassified = !!(
+    this.genre && this.uiCategoryPrimary && this.phase &&
+    this.bpm > 0 && this.energy > 0 && this.danceability != null &&
+    this.era && this.mood && this.language
+  );
+  const isClaudeBatchClassified = typeof this.classifiedBy === 'string' && this.classifiedBy.startsWith('claude_batch');
+  
+  if (isFullyClassified || isClaudeBatchClassified || this.gptSuggestion != null || this.needs_review) {
     q = "complete";
   }
   
