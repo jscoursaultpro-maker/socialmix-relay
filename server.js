@@ -11,6 +11,7 @@ import { createPartyState, isValidPartyCode } from './partyState.js';
 import { connectDB, restoreParties, startFlushLoop, stopFlushLoop, flushEndedParty } from './db.js';
 import crypto, { randomUUID } from 'crypto';
 import mongoose from 'mongoose';
+import User from './models/User.js';
 import Party from './models/Party.js';
 import Friendship from './models/Friendship.js';
 import Track from './models/Track.js';
