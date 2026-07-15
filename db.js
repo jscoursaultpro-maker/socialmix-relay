@@ -63,6 +63,7 @@ function partyToDoc(party) {
     hostProfile: party.hostProfile,
     photos: photos,
     photoCount: party.photos.length,
+    messages: party.messages || [],          // ★ fix(messages): was missing — messages lost on flush/restart
     costumeEntries: party.costumeEntries,
     costumeOpen: party.costumeOpen,
     costumeVoters: party.costumeVoters,
@@ -98,6 +99,7 @@ function docToPartyState(doc) {
   party.suggestions = doc.suggestions || [];
   party.hostProfile = doc.hostProfile || null;
   party.photos = doc.photos || [];
+  party.messages = doc.messages || [];          // ★ fix(messages): was missing — restore messages on reload
   party.costumeEntries = doc.costumeEntries || [];
   party.costumeOpen = doc.costumeOpen !== false;
   party.costumeVoters = doc.costumeVoters || {};

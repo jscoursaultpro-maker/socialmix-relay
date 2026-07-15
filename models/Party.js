@@ -17,6 +17,7 @@ const PartySchema = new mongoose.Schema({
   hostProfile:      { type: mongoose.Schema.Types.Mixed, default: null },
   hostUserId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true, default: null },
   photos:           [mongoose.Schema.Types.Mixed],
+  messages:         [mongoose.Schema.Types.Mixed],  // ★ fix(messages): was missing from schema — stripped by strict mode
   photoCount:       { type: Number, default: 0 },
   costumeEntries:   [mongoose.Schema.Types.Mixed],
   costumeOpen:      { type: Boolean, default: true },
