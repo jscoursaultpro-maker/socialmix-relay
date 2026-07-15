@@ -3457,18 +3457,39 @@ io.on('connection', (socket) => {
       addPoints(party, 'host', 'DJ', 15, 'nouveau titre : ' + track.title);
 
       // ★ Fresh Rotation — record playback for this host
-      if (party.hostUserId && trackDoc.trackId) {
-        HostPlaybackHistory.create({
-          hostUserId: party.hostUserId,
-          trackId: trackDoc.trackId,
-          partyId: party._id || party.id,
-          playedAt: new Date(),
-          phase: party.currentPhase || trackDoc.phase,
-          wasSuggestedByGuest: !!trackDoc.suggestedBy
-        }).catch(e => {
-          if (e.code === 11000) return; // Silent dedup
-          console.error('[FreshRotation] ⚠️ HostPlaybackHistory create failed:', e.message);
-        });
+      // Fix: iOS sends deezerID (integer), NOT a MongoDB ObjectId.
+      // We must resolve deezerID → Track._id before writing to HostPlaybackHistory.
+      // Fallback: title+artist lookup if no deezerID (AppMix mode or old iOS builds).
+      if (party.hostUserId) {
+        const deezerId = trackDoc.deezerId || trackDoc.trackId;
+        const lookupPromise = deezerId
+          ? Track.findOne({ 'providers.deezer.trackId': Number(deezerId) }).select('_id').lean()
+          : (trackDoc.title
+              ? Track.findOne({
+                  title: { $regex: new RegExp(`^${(trackDoc.title || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+                  artist: { $regex: new RegExp((trackDoc.artist || '').split(/[,&]/)[0].trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') || '.', 'i') }
+                }).select('_id').lean()
+              : Promise.resolve(null));
+
+        lookupPromise
+          .then(resolvedTrack => {
+            if (!resolvedTrack) {
+              console.warn(`[FreshRotation] ⚠️ Track lookup failed for "${trackDoc.title}" (deezerId=${deezerId || 'none'})`);
+              return;
+            }
+            return HostPlaybackHistory.create({
+              hostUserId: party.hostUserId,
+              trackId: resolvedTrack._id,
+              partyId: party._id || party.id,
+              playedAt: new Date(),
+              phase: party.currentPhase || trackDoc.phase,
+              wasSuggestedByGuest: !!trackDoc.suggestedBy
+            });
+          })
+          .catch(e => {
+            if (e.code === 11000) return; // Silent dedup
+            console.error('[FreshRotation] ⚠️ HostPlaybackHistory create failed:', e.message);
+          });
       }
 
       // ★ B1 fix — Persist suggestion status "played" directly in MongoDB.
