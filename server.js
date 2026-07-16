@@ -3499,51 +3499,58 @@ io.on('connection', (socket) => {
 
       // ★ Fresh Rotation — record playback for this host
       // Fix(Task #44) 2026-07-16: fallback élargi — HPH toujours créé.
-      // Avant : lookup deezerID only → early return si null → HPH jamais créé (Bug A).
+      // Avant : lookup deezerID only → early return si null → HPH jamais créé (Bug A root cause).
       // Après : (1) lookup deezerID, (2) fallback title+artist si null, (3) HPH créé même sans match.
+      // Note: IIFE async car socket handler n'est pas async — comportement non-bloquant conservé.
       if (party.hostUserId) {
-        const _esc = s => (s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const deezerId = trackDoc.deezerId || trackDoc.trackId;
+        const _capturedDoc     = trackDoc;
+        const _capturedParty   = { hostUserId: party.hostUserId, _id: party._id, id: party.id, currentPhase: party.currentPhase };
+        (async () => {
+          const _esc = s => (s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const deezerId = _capturedDoc.deezerId || _capturedDoc.trackId;
 
-        // Étape 1 : lookup via deezerID (chemin principal)
-        let resolvedTrack = null;
-        if (deezerId) {
-          resolvedTrack = await Track.findOne({ 'providers.deezer.trackId': Number(deezerId) })
-            .select('_id').lean().catch(() => null);
-        }
-
-        // Étape 2 : fallback title+artist si deezerID lookup fail OU absent
-        if (!resolvedTrack && trackDoc.title) {
-          const titleRegex  = new RegExp('^' + _esc(trackDoc.title.trim()) + '$', 'i');
-          const artistFirst = (trackDoc.artist || '').split(/[,&]/)[0].trim();
-          const artistRegex = artistFirst ? new RegExp(_esc(artistFirst), 'i') : null;
-          const fallbackQ   = { title: titleRegex };
-          if (artistRegex) fallbackQ.artist = artistRegex;
-          resolvedTrack = await Track.findOne(fallbackQ).select('_id').lean().catch(() => null);
-          if (!resolvedTrack) {
-            console.warn(`[FreshRotation] ⚠️ Track not in catalogue: "${trackDoc.title}" (deezerId=${deezerId || 'none'}) — HPH logged with trackId=null`);
+          // Étape 1 : lookup via deezerID (chemin principal)
+          let resolvedTrack = null;
+          if (deezerId) {
+            resolvedTrack = await Track.findOne({ 'providers.deezer.trackId': Number(deezerId) })
+              .select('_id').lean().catch(() => null);
           }
-        }
 
-        // Étape 3 : créer HPH — toujours, même si trackId=null (deezerTrackId+title assurent la traçabilité)
-        try {
-          await HostPlaybackHistory.create({
-            hostUserId:          party.hostUserId,
-            trackId:             resolvedTrack?._id || null,
-            partyId:             party._id || party.id,
-            deezerTrackId:       deezerId ? Number(deezerId) : null,
-            title:               trackDoc.title   || null,
-            artist:              trackDoc.artist  || null,
-            playedAt:            new Date(),
-            phase:               party.currentPhase || trackDoc.phase,
-            wasSuggestedByGuest: !!trackDoc.suggestedBy
-          });
-        } catch (e) {
-          if (e.code === 11000) { /* silent dedup — même track même soirée */ } // intentionnel
-          else console.error('[FreshRotation] ⚠️ HostPlaybackHistory create failed:', e.message,
-            { title: trackDoc.title, deezerId, hasResolvedTrack: !!resolvedTrack });
-        }
+          // Étape 2 : fallback title+artist si deezerID lookup fail OU absent
+          if (!resolvedTrack && _capturedDoc.title) {
+            const titleRegex  = new RegExp('^' + _esc(_capturedDoc.title.trim()) + '$', 'i');
+            const artistFirst = (_capturedDoc.artist || '').split(/[,&]/)[0].trim();
+            const artistRegex = artistFirst ? new RegExp(_esc(artistFirst), 'i') : null;
+            const fallbackQ   = { title: titleRegex };
+            if (artistRegex) fallbackQ.artist = artistRegex;
+            resolvedTrack = await Track.findOne(fallbackQ).select('_id').lean().catch(() => null);
+            if (!resolvedTrack) {
+              console.warn(`[FreshRotation] ⚠️ Track not in catalogue: "${_capturedDoc.title}" (deezerId=${deezerId || 'none'}) — HPH logged with trackId=null`);
+            }
+          }
+
+          // Étape 3 : créer HPH — toujours, même si trackId=null
+          try {
+            await HostPlaybackHistory.create({
+              hostUserId:          _capturedParty.hostUserId,
+              trackId:             resolvedTrack?._id || null,
+              partyId:             _capturedParty._id || _capturedParty.id,
+              deezerTrackId:       deezerId ? Number(deezerId) : null,
+              title:               _capturedDoc.title  || null,
+              artist:              _capturedDoc.artist || null,
+              playedAt:            new Date(),
+              phase:               _capturedParty.currentPhase || _capturedDoc.phase,
+              wasSuggestedByGuest: !!_capturedDoc.suggestedBy
+            });
+          } catch (e) {
+            if (e.code !== 11000) {
+              console.error('[FreshRotation] ⚠️ HostPlaybackHistory create failed:', e.message,
+                { title: _capturedDoc.title, deezerId, hasResolvedTrack: !!resolvedTrack });
+            }
+          }
+        })();
       }
+
 
       // ★ B1 fix — Persist suggestion status "played" directly in MongoDB.
       // In-memory matchedSugg.status = 'played' is already done above but it only reaches
