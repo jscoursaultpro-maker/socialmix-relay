@@ -3499,13 +3499,32 @@ io.on('connection', (socket) => {
 
       // ★ Fresh Rotation — record playback for this host
       // Fix(Task #44) 2026-07-16: fallback élargi — HPH toujours créé.
-      // Avant : lookup deezerID only → early return si null → HPH jamais créé (Bug A root cause).
-      // Après : (1) lookup deezerID, (2) fallback title+artist si null, (3) HPH créé même sans match.
+      // Fix(Task #44-bis) 2026-07-16 hotfix: partyId était undefined car createPartyState() est un
+      // objet JS pur sans _id MongoDB. Fix: résolution lazy via Party.findOne({code}).select('_id'),
+      // résultat caché sur party._mongoId pour éviter le re-query à chaque track.
       // Note: IIFE async car socket handler n'est pas async — comportement non-bloquant conservé.
       if (party.hostUserId) {
-        const _capturedDoc     = trackDoc;
-        const _capturedParty   = { hostUserId: party.hostUserId, _id: party._id, id: party.id, currentPhase: party.currentPhase };
+        const _capturedDoc   = trackDoc;
+        const _capturedCode  = party.code;
+        const _capturedPhase = party.currentPhase;
+        const _capturedUID   = party.hostUserId;
+        // Cache _mongoId pour cette soirée (évite re-query par track)
+        if (!party._mongoId) {
+          party._mongoId = Party.findOne({ code: _capturedCode }).select('_id').lean()
+            .then(p => { if (p) party._mongoId = p._id; return p?._id || null; })
+            .catch(() => null);
+        }
         (async () => {
+          // Résoudre le _mongoId (Promise ou valeur déjà résolue)
+          const partyMongoId = (party._mongoId instanceof Promise)
+            ? await party._mongoId
+            : party._mongoId;
+
+          if (!partyMongoId) {
+            console.warn(`[FreshRotation] ⚠️ partyId non résolvable pour soirée ${_capturedCode} — HPH skipped`);
+            return;
+          }
+
           const _esc = s => (s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const deezerId = _capturedDoc.deezerId || _capturedDoc.trackId;
 
@@ -3532,16 +3551,17 @@ io.on('connection', (socket) => {
           // Étape 3 : créer HPH — toujours, même si trackId=null
           try {
             await HostPlaybackHistory.create({
-              hostUserId:          _capturedParty.hostUserId,
+              hostUserId:          _capturedUID,
               trackId:             resolvedTrack?._id || null,
-              partyId:             _capturedParty._id || _capturedParty.id,
+              partyId:             partyMongoId,
               deezerTrackId:       deezerId ? Number(deezerId) : null,
               title:               _capturedDoc.title  || null,
               artist:              _capturedDoc.artist || null,
               playedAt:            new Date(),
-              phase:               _capturedParty.currentPhase || _capturedDoc.phase,
+              phase:               _capturedPhase || _capturedDoc.phase,
               wasSuggestedByGuest: !!_capturedDoc.suggestedBy
             });
+            console.log(`[FreshRotation] ✅ HPH créé: "${_capturedDoc.title}" partyId=${partyMongoId} trackId=${resolvedTrack?._id || 'null'}`);
           } catch (e) {
             if (e.code !== 11000) {
               console.error('[FreshRotation] ⚠️ HostPlaybackHistory create failed:', e.message,
@@ -3550,6 +3570,7 @@ io.on('connection', (socket) => {
           }
         })();
       }
+
 
 
       // ★ B1 fix — Persist suggestion status "played" directly in MongoDB.
