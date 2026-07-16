@@ -1142,11 +1142,41 @@ function connectToRelay() {
     state.participantScores = scores;
   });
 
+  // ★ fix(Task #65) — Validation error handler (email manquant/invalide)
+  // Le serveur émet error:validation quand email absent ou invalide dans guest:join.
+  // Avant ce fix : aucun handler → guest bloqué silencieusement (Sam incident 16/07).
+  // Après : toast visible + retour écran profil + focus email.
+  socket.on('error:validation', (data) => {
+    const msg = data?.message || 'Un email valide est requis pour rejoindre la soirée.';
+    showToast(`⚠️ ${msg}`, 6000);
+    console.warn('[Join] ❌ error:validation:', msg);
+    // Retour au formulaire profil avec le champ email visible
+    showScreen('profile');
+    setTimeout(() => {
+      const emailField = document.getElementById('profile-email');
+      if (emailField) {
+        emailField.focus();
+        emailField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        emailField.style.borderColor = '#ff4444';
+        emailField.style.boxShadow = '0 0 0 2px rgba(255,68,68,0.3)';
+        // Reset border après 3s
+        setTimeout(() => {
+          emailField.style.borderColor = '';
+          emailField.style.boxShadow = '';
+        }, 3000);
+      }
+      const emailError = document.getElementById('email-error');
+      if (emailError) emailError.style.display = 'block';
+    }, 300);
+  });
+
   // Wrong party code
   socket.on('party:wrongCode', (data) => {
     alert(`⛔ ${data?.message || 'Code de soirée incorrect. Vérifie le QR code.'}`);
     showScreen('landing');
   });
+
+
 
   socket.on('track:update', (track) => {
     const isNew = state.currentTrack?.title !== track?.title;
