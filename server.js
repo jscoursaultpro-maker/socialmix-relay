@@ -581,8 +581,7 @@ app.get('/api/tracks/snapshot', async (req, res) => {
 
 // ─── Provider IDs API ──────────────────────────────────────────────────────────
 // GET /api/tracks/firstTrackCandidates — First Track Doctrine (Task #61)
-// Pool : arrival + isEmotional + BPM ≤ 110 + suggestable + non-bloqué
-// Seuil 110 validé 2026-07-16 : BPM≤85 → 0 tracks avec suggestable=true, BPM≤110 → 71 tracks
+// Pool : arrival + isEmotional + BPM ≤ 85 + suggestable + non-bloqué
 // Sort : deezerRank DESC (populaire = premier — convention validée 2026-07-16)
 // iOS sélectionne au hasard parmi les 20 retournés.
 app.get('/api/tracks/firstTrackCandidates', async (req, res) => {
@@ -591,7 +590,7 @@ app.get('/api/tracks/firstTrackCandidates', async (req, res) => {
     const candidates = await Track.find({
       phase:      'arrival',
       isEmotional: true,
-      bpm:        { $gt: 0, $lte: 110 },
+      bpm:        { $gt: 0, $lte: 85 },
       suggestable: { $ne: false },
       isBlocked:   { $ne: true },
       'providers.deezer.trackId': { $gt: 0 }  // deezerID requis pour la lecture
@@ -601,11 +600,11 @@ app.get('/api/tracks/firstTrackCandidates', async (req, res) => {
       .select('title artist bpm deezerRank mood era providers.deezer.trackId')
       .lean();
 
-    console.log(`[API] 🎵 firstTrackCandidates: ${candidates.length} candidats retournés (BPM≤110)`);
+    console.log(`[API] 🎵 firstTrackCandidates: ${candidates.length} candidats retournés`);
     res.json({
       candidates,
       count: candidates.length,
-      pool:  'arrival+emotional+BPM≤110',
+      pool:  'arrival+emotional+BPM≤85',
       sort:  'deezerRank DESC',
       generatedAt: new Date().toISOString()
     });
