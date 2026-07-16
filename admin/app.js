@@ -6,7 +6,8 @@
 
 // ─── State ─────────────────────────────────────────────────────────
 const State = {
-  token: localStorage.getItem('sm_admin_token') || null,
+  // SSO : sm_admin_token OU adminToken (clé universelle hub)
+  token: localStorage.getItem('sm_admin_token') || localStorage.getItem('adminToken') || null,
   currentPage: 'dashboard',
   tracks: { data: [], total: 0, page: 1, pages: 1 },
   filters: { genre: 'all', status: 'unqualified', sort: 'energy_asc', search: '', page: 1 },
@@ -58,13 +59,16 @@ async function login(password) {
   if (!res.ok) { showLoginError('Mot de passe incorrect'); return; }
   const { token } = await res.json();
   State.token = token;
+  // SSO : stocker sous les deux clés
   localStorage.setItem('sm_admin_token', token);
+  localStorage.setItem('adminToken',     token);
   showApp();
 }
 
 function logout() {
   State.token = null;
   localStorage.removeItem('sm_admin_token');
+  localStorage.removeItem('adminToken');
   document.getElementById('app').classList.remove('active');
   document.getElementById('login-screen').classList.add('active');
 }

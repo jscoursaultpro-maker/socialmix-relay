@@ -128,10 +128,15 @@
     let currentPage = 1;
     let currentLimit = 20;
     
-    // Auth check
-    const adminToken = localStorage.getItem('socialmix_admin_token');
+    // Auth check — SSO : lit adminToken (hub) en fallback de socialmix_admin_token
+    const adminToken = localStorage.getItem('socialmix_admin_token') || localStorage.getItem('adminToken');
     if (!adminToken) {
-      window.location.href = '/admin/index.html';
+      window.location.href = '/admin/hub';
+    }
+    // Synchroniser pour les prochains appels
+    if (adminToken) {
+      localStorage.setItem('socialmix_admin_token', adminToken);
+      localStorage.setItem('adminToken', adminToken);
     }
     
     const headers = {

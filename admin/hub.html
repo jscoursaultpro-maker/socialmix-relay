@@ -6,45 +6,58 @@
   <title>AhOuai — Hub Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <!-- ★ SSO Login screen — hub entry point -->
   <style>
-    body { font-family: 'Inter', sans-serif; background: #0f0f13; color: #fff; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-    .hub-container { max-width: 900px; width: 100%; padding: 40px; }
-    h1 { text-align: center; font-size: 2.5rem; margin-bottom: 10px; }
-    p.subtitle { text-align: center; color: #9ca3af; margin-bottom: 40px; font-size: 1.1rem; }
-    
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px; }
-    
-    .card {
-      background: #1f2937;
-      border: 1px solid #374151;
-      border-radius: 16px;
-      padding: 30px;
-      text-decoration: none;
-      color: white;
-      transition: all 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
+    #hub-login {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; flex-direction: column; gap: 24px;
     }
-    .card:hover {
-      transform: translateY(-5px);
-      border-color: #3b82f6;
-      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15);
-      background: #232f3e;
+    #hub-login .login-box {
+      background: #1f2937; border: 1px solid #374151; border-radius: 20px;
+      padding: 40px 48px; width: 100%; max-width: 380px; text-align: center;
     }
-    
-    .card-icon { font-size: 2.5rem; }
-    .card-title { font-size: 1.4rem; font-weight: 700; }
-    .card-desc { color: #9ca3af; font-size: 0.95rem; line-height: 1.5; }
-    
-    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-    .badge-blue { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
-    .badge-green { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-    .badge-purple { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
-    .badge-orange { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    #hub-login .login-box h2 { font-size: 1.6rem; font-weight: 800; margin: 12px 0 4px; }
+    #hub-login .login-box p  { color: #9ca3af; margin-bottom: 28px; font-size: 0.95rem; }
+    #hub-login input {
+      width: 100%; padding: 14px 18px; border-radius: 12px;
+      border: 1px solid #374151; background: #111827; color: #fff;
+      font-size: 1rem; outline: none; margin-bottom: 14px; box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    #hub-login input:focus { border-color: #3b82f6; }
+    #hub-login button {
+      width: 100%; padding: 14px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff;
+      font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s;
+    }
+    #hub-login button:hover { opacity: 0.88; }
+    #hub-login .err { color: #f87171; font-size: 0.88rem; margin-top: 8px; display: none; }
+    #hub-header { display: flex; justify-content: flex-end; padding: 16px 40px 0; width: 100%; box-sizing: border-box; }
+    #hub-header button {
+      background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171; border-radius: 8px; padding: 6px 14px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 600; transition: background 0.2s;
+    }
+    #hub-header button:hover { background: rgba(239,68,68,0.25); }
   </style>
 </head>
 <body>
+  <!-- Login overlay -->
+  <div id="hub-login">
+    <div class="login-box">
+      <div style="font-size:2.8rem">🎧</div>
+      <h2>AhOuai Admin</h2>
+      <p>Accès réservé — Hub de gestion</p>
+      <input type="password" id="hub-pwd" placeholder="Mot de passe admin" autocomplete="current-password" />
+      <button onclick="hubLogin()">Connexion →</button>
+      <div class="err" id="hub-err">Mot de passe incorrect</div>
+    </div>
+  </div>
+
+  <!-- Hub header (logout) -->
+  <div id="hub-header" style="display:none">
+    <button onclick="hubLogout()">⎋ Déconnexion</button>
+  </div>
   <div class="hub-container">
     <h1>🎧 AhOuai Admin Hub</h1>
     <p class="subtitle">Portail central des outils de gestion et de curation</p>
@@ -132,6 +145,53 @@
       </a>
 
     </div>
-  </div>
+  </div><!-- end hub-container -->
+
+  <script>
+    const HUB_TOKEN_KEY = 'adminToken'; // clé universelle SSO
+
+    function hubShowApp() {
+      document.getElementById('hub-login').style.display  = 'none';
+      document.getElementById('hub-header').style.display = 'flex';
+      document.querySelector('.hub-container').style.display = 'flex';
+    }
+
+    // Si token déjà présent → afficher directement
+    if (localStorage.getItem(HUB_TOKEN_KEY)) {
+      hubShowApp();
+    } else {
+      // Masquer le hub tant que non connecté
+      document.querySelector('.hub-container').style.display = 'none';
+    }
+
+    async function hubLogin() {
+      const pwd = document.getElementById('hub-pwd').value;
+      if (!pwd) return;
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+      });
+      if (!res.ok) {
+        document.getElementById('hub-err').style.display = 'block';
+        return;
+      }
+      const { token } = await res.json();
+      // Stocker sous TOUTES les clés utilisées par les sous-pages
+      localStorage.setItem('adminToken',            token);
+      localStorage.setItem('sm_admin_token',         token);
+      localStorage.setItem('monitor_token',          token);
+      localStorage.setItem('socialmix_admin_token',  token);
+      hubShowApp();
+    }
+
+    function hubLogout() {
+      ['adminToken','sm_admin_token','monitor_token','socialmix_admin_token'].forEach(k => localStorage.removeItem(k));
+      location.reload();
+    }
+
+    // Enter key sur le champ mot de passe
+    document.getElementById('hub-pwd').addEventListener('keydown', e => { if (e.key === 'Enter') hubLogin(); });
+  </script>
 </body>
 </html>

@@ -59,7 +59,8 @@ const audioEl = new Audio();
 audioEl.preload = 'none';
 
 window.addEventListener('load', async () => {
-  const saved = localStorage.getItem('monitor_token');
+  // SSO : monitor_token OU adminToken (clé universelle hub)
+  const saved = localStorage.getItem('monitor_token') || localStorage.getItem('adminToken');
   if (saved) {
     adminToken = saved;
     const r = await fetch('/api/monitor/live-stats', { headers: { 'x-admin-token': adminToken } });
@@ -73,6 +74,7 @@ window.addEventListener('load', async () => {
       return;
     }
     localStorage.removeItem('monitor_token');
+    localStorage.removeItem('adminToken');
   }
   document.getElementById('auth-input').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
   
@@ -93,7 +95,9 @@ async function login() {
   }
   const { token } = await r.json();
   adminToken = token;
+  // SSO : sauvegarder sous les deux clés pour que le hub reconnaisse la session
   localStorage.setItem('monitor_token', token);
+  localStorage.setItem('adminToken',    token);
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   updateStats();
