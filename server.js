@@ -558,6 +558,12 @@ app.get('/api/tracks/snapshot', async (req, res) => {
     const filter = {};
     if (genres.length > 0) filter.genre = { $in: genres };
     if (adminOnly) filter.adminQualified = true;
+    // ★ Fix(Task #60) 2026-07-16 — Exclure tracks bloquées + non-suggestable du snapshot iOS.
+    // Doctrine: BDD prime. isBlocked=true = contenu bloqué par admin (covers/remakes/content-farm).
+    // Ces tracks ne doivent JAMAIS atteindre le DJ Brain client.
+    filter.isBlocked  = { $ne: true };
+    filter.suggestable = { $ne: false };
+
 
     const tracks = await Track.find(filter)
       .sort({ adminQualified: -1, 'performance.feuRatio': -1, 'performance.totalPlays': -1 })
@@ -574,9 +580,44 @@ app.get('/api/tracks/snapshot', async (req, res) => {
 });
 
 // ─── Provider IDs API ──────────────────────────────────────────────────────────
+// GET /api/tracks/firstTrackCandidates — First Track Doctrine (Task #61)
+// Pool : arrival + isEmotional + BPM ≤ 85 + suggestable + non-bloqué
+// Sort : deezerRank DESC (populaire = premier — convention validée 2026-07-16)
+// iOS sélectionne au hasard parmi les 20 retournés.
+app.get('/api/tracks/firstTrackCandidates', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const candidates = await Track.find({
+      phase:      'arrival',
+      isEmotional: true,
+      bpm:        { $gt: 0, $lte: 85 },
+      suggestable: { $ne: false },
+      isBlocked:   { $ne: true },
+      'providers.deezer.trackId': { $gt: 0 }  // deezerID requis pour la lecture
+    })
+      .sort({ deezerRank: -1 })   // DESC = plus populaire d'abord
+      .limit(limit)
+      .select('title artist bpm deezerRank mood era providers.deezer.trackId')
+      .lean();
+
+    console.log(`[API] 🎵 firstTrackCandidates: ${candidates.length} candidats retournés`);
+    res.json({
+      candidates,
+      count: candidates.length,
+      pool:  'arrival+emotional+BPM≤85',
+      sort:  'deezerRank DESC',
+      generatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[API] ❌ firstTrackCandidates error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch first track candidates' });
+  }
+});
+
 // GET /api/tracks/:id/providers — retourne les IDs plateforme résolus pour un track.
 // Utilisé par iOS pour récupérer l'Apple Music ID si non inclus dans le snapshot.
 // Public (pas d'auth requise). :id = MongoDB ObjectId ou Deezer trackId numérique.
+
 app.get('/api/tracks/:id/providers', async (req, res) => {
   try {
     const { id } = req.params;
@@ -3457,39 +3498,51 @@ io.on('connection', (socket) => {
       addPoints(party, 'host', 'DJ', 15, 'nouveau titre : ' + track.title);
 
       // ★ Fresh Rotation — record playback for this host
-      // Fix: iOS sends deezerID (integer), NOT a MongoDB ObjectId.
-      // We must resolve deezerID → Track._id before writing to HostPlaybackHistory.
-      // Fallback: title+artist lookup if no deezerID (AppMix mode or old iOS builds).
+      // Fix(Task #44) 2026-07-16: fallback élargi — HPH toujours créé.
+      // Avant : lookup deezerID only → early return si null → HPH jamais créé (Bug A).
+      // Après : (1) lookup deezerID, (2) fallback title+artist si null, (3) HPH créé même sans match.
       if (party.hostUserId) {
+        const _esc = s => (s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const deezerId = trackDoc.deezerId || trackDoc.trackId;
-        const lookupPromise = deezerId
-          ? Track.findOne({ 'providers.deezer.trackId': Number(deezerId) }).select('_id').lean()
-          : (trackDoc.title
-              ? Track.findOne({
-                  title: { $regex: new RegExp(`^${(trackDoc.title || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
-                  artist: { $regex: new RegExp((trackDoc.artist || '').split(/[,&]/)[0].trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') || '.', 'i') }
-                }).select('_id').lean()
-              : Promise.resolve(null));
 
-        lookupPromise
-          .then(resolvedTrack => {
-            if (!resolvedTrack) {
-              console.warn(`[FreshRotation] ⚠️ Track lookup failed for "${trackDoc.title}" (deezerId=${deezerId || 'none'})`);
-              return;
-            }
-            return HostPlaybackHistory.create({
-              hostUserId: party.hostUserId,
-              trackId: resolvedTrack._id,
-              partyId: party._id || party.id,
-              playedAt: new Date(),
-              phase: party.currentPhase || trackDoc.phase,
-              wasSuggestedByGuest: !!trackDoc.suggestedBy
-            });
-          })
-          .catch(e => {
-            if (e.code === 11000) return; // Silent dedup
-            console.error('[FreshRotation] ⚠️ HostPlaybackHistory create failed:', e.message);
+        // Étape 1 : lookup via deezerID (chemin principal)
+        let resolvedTrack = null;
+        if (deezerId) {
+          resolvedTrack = await Track.findOne({ 'providers.deezer.trackId': Number(deezerId) })
+            .select('_id').lean().catch(() => null);
+        }
+
+        // Étape 2 : fallback title+artist si deezerID lookup fail OU absent
+        if (!resolvedTrack && trackDoc.title) {
+          const titleRegex  = new RegExp('^' + _esc(trackDoc.title.trim()) + '$', 'i');
+          const artistFirst = (trackDoc.artist || '').split(/[,&]/)[0].trim();
+          const artistRegex = artistFirst ? new RegExp(_esc(artistFirst), 'i') : null;
+          const fallbackQ   = { title: titleRegex };
+          if (artistRegex) fallbackQ.artist = artistRegex;
+          resolvedTrack = await Track.findOne(fallbackQ).select('_id').lean().catch(() => null);
+          if (!resolvedTrack) {
+            console.warn(`[FreshRotation] ⚠️ Track not in catalogue: "${trackDoc.title}" (deezerId=${deezerId || 'none'}) — HPH logged with trackId=null`);
+          }
+        }
+
+        // Étape 3 : créer HPH — toujours, même si trackId=null (deezerTrackId+title assurent la traçabilité)
+        try {
+          await HostPlaybackHistory.create({
+            hostUserId:          party.hostUserId,
+            trackId:             resolvedTrack?._id || null,
+            partyId:             party._id || party.id,
+            deezerTrackId:       deezerId ? Number(deezerId) : null,
+            title:               trackDoc.title   || null,
+            artist:              trackDoc.artist  || null,
+            playedAt:            new Date(),
+            phase:               party.currentPhase || trackDoc.phase,
+            wasSuggestedByGuest: !!trackDoc.suggestedBy
           });
+        } catch (e) {
+          if (e.code === 11000) { /* silent dedup — même track même soirée */ } // intentionnel
+          else console.error('[FreshRotation] ⚠️ HostPlaybackHistory create failed:', e.message,
+            { title: trackDoc.title, deezerId, hasResolvedTrack: !!resolvedTrack });
+        }
       }
 
       // ★ B1 fix — Persist suggestion status "played" directly in MongoDB.
