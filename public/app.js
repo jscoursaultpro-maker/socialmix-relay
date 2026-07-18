@@ -1718,21 +1718,22 @@ function setupSuggest() {
     }
   });
 
-  // ★ Spotify paste detection — auto-parse URL or "Title · Artist" text
+  // ★ Streaming paste detection — auto-parse URL or "Title · Artist" text
+  // Supports: Deezer, Apple Music, Spotify URLs + shared text format
   input.addEventListener('paste', (event) => {
     const pastedText = (event.clipboardData || window.clipboardData).getData('text');
     if (!pastedText || pastedText.trim().length < 3) return;
 
-    // Async parse — don't block the paste event for non-Spotify text
+    // Async parse — don't block the paste event for non-streaming text
     const text = pastedText.trim();
-    parseSpotifyPaste(text).then(parsed => {
+    parseStreamingPaste(text).then(parsed => {
       if (parsed) {
         const searchQuery = `${parsed.title} ${parsed.artist}`;
         input.value = searchQuery;
         searchBtn.style.display = 'block';
         const hint = $('suggest-hint');
         if (hint) hint.style.display = 'none';
-        showDetectionBadge(parsed.source || 'Spotify');
+        showDetectionBadge(parsed.source || 'Musique', parsed.color);
         // Trigger Deezer search immediately with parsed title+artist
         clearTimeout(_suggestDebounce);
         searchDeezerSuggestions();
@@ -1742,33 +1743,104 @@ function setupSuggest() {
   });
 }
 
-// ★ Parse Spotify URL, URI, or "Title · Artist" shared text
-async function parseSpotifyPaste(text) {
-  // Format A — Spotify URL or URI
-  const urlMatch = text.match(/(?:open\.spotify\.com\/(?:intl-[a-z]+\/)?track\/|spotify:track:)([a-zA-Z0-9]{22})/);
-  if (urlMatch) {
-    const trackId = urlMatch[1];
+// ★ Parse streaming service URL/URI or "Title · Artist" shared text
+// Detection order: Deezer → Apple Music → Spotify → text fallback
+async function parseStreamingPaste(text) {
+
+  // ── Deezer URL or URI ──────────────────────────────
+  const deezerMatch = text.match(/(?:www\.)?deezer\.com\/(?:[a-z]{2}\/)?track\/(\d+)/)
+                   || text.match(/deezer:\/\/track\/(\d+)/);
+  if (deezerMatch) {
+    const trackId = deezerMatch[1];
+    try {
+      const res = await fetch(`https://api.deezer.com/track/${trackId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.title && data.artist) {
+          return {
+            title: data.title,
+            artist: data.artist.name || '',
+            source: 'Deezer',
+            color: '#EF5466'
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('[Suggest] Deezer API fetch failed:', e);
+    }
+    return null;
+  }
+
+  // ── Deezer shortlink (link.deezer.com/s/xxx) ──────
+  // CORS may block — try fetch, fallback gracefully
+  const shortMatch = text.match(/link\.deezer\.com\/s\/([a-zA-Z0-9]+)/);
+  if (shortMatch) {
+    try {
+      // Attempt to follow redirect — may fail due to CORS
+      const res = await fetch(text.match(/https?:\/\/link\.deezer\.com\/s\/[a-zA-Z0-9]+/)[0], {
+        method: 'GET', redirect: 'follow', mode: 'cors'
+      });
+      const finalUrl = res.url || '';
+      const resolvedMatch = finalUrl.match(/deezer\.com\/(?:[a-z]{2}\/)?track\/(\d+)/);
+      if (resolvedMatch) {
+        return await parseStreamingPaste(finalUrl);
+      }
+    } catch (e) {
+      console.warn('[Suggest] Deezer shortlink CORS blocked — fallback to normal paste');
+    }
+    return null;
+  }
+
+  // ── Apple Music URL ────────────────────────────────
+  // Format: music.apple.com/fr/album/album-name/12345?i=67890
+  //      or music.apple.com/fr/song/song-name/67890
+  const appleMatch = text.match(/music\.apple\.com\/[a-z]{2}\/(?:album\/[^\/]+\/\d+\?i=|song\/[^\/]+\/)(\d+)/);
+  if (appleMatch) {
+    const trackId = appleMatch[1];
+    try {
+      const res = await fetch(`https://itunes.apple.com/lookup?id=${trackId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const track = data.results && data.results[0];
+        if (track && track.trackName) {
+          return {
+            title: track.trackName,
+            artist: track.artistName || '',
+            source: 'Apple Music',
+            color: '#FA243C'
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('[Suggest] iTunes lookup failed:', e);
+    }
+    return null;
+  }
+
+  // ── Spotify URL or URI ─────────────────────────────
+  const spotifyMatch = text.match(/(?:open\.spotify\.com\/(?:intl-[a-z]+\/)?track\/|spotify:track:)([a-zA-Z0-9]{22})/);
+  if (spotifyMatch) {
+    const trackId = spotifyMatch[1];
     try {
       const oembedUrl = `https://open.spotify.com/oembed?url=https://open.spotify.com/track/${trackId}`;
       const res = await fetch(oembedUrl);
       if (res.ok) {
         const data = await res.json();
-        // oEmbed: title = track name, author_name = artist
         return {
           title: data.title || '',
           artist: data.author_name || '',
-          source: 'Spotify'
+          source: 'Spotify',
+          color: '#1DB954'
         };
       }
     } catch (e) {
       console.warn('[Suggest] Spotify oEmbed fetch failed:', e);
     }
-    // oEmbed failed but we know it's a Spotify URL — return null, let paste proceed normally
     return null;
   }
 
-  // Format B — Shared text "Title · Artist" (iOS/Android share sheet)
-  // Also handle Apple Music "Title — Artist" and generic "Title - Artist"
+  // ── Shared text "Title · Artist" (iOS/Android share sheet) ──
+  // Also handles "Title — Artist", "Title – Artist", "Title - Artist"
   const separators = [' · ', ' — ', ' – ', ' - '];
   for (const sep of separators) {
     if (text.includes(sep)) {
@@ -1780,7 +1852,8 @@ async function parseSpotifyPaste(text) {
           return {
             title: parts[0].trim(),
             artist: artist,
-            source: sep === ' · ' ? 'Spotify' : 'Partage'
+            source: sep === ' · ' ? 'Spotify' : 'Partage',
+            color: sep === ' · ' ? '#1DB954' : '#00d2ff'
           };
         }
       }
@@ -1790,18 +1863,19 @@ async function parseSpotifyPaste(text) {
   return null;
 }
 
-// ★ Visual feedback badge for auto-detection
-function showDetectionBadge(source) {
+// ★ Visual feedback badge for auto-detection (multi-color per source)
+function showDetectionBadge(source, color = '#1DB954') {
   // Find or create badge next to suggest input
   let badge = document.getElementById('detection-badge');
   if (!badge) {
     badge = document.createElement('div');
     badge.id = 'detection-badge';
-    badge.style.cssText = 'font-size:11px;font-weight:700;color:#1DB954;padding:4px 0 0 2px;transition:opacity 0.3s;';
+    badge.style.cssText = 'font-size:11px;font-weight:700;padding:4px 0 0 2px;transition:opacity 0.3s;';
     const row = document.querySelector('.suggest-input-row');
     if (row) row.parentNode.insertBefore(badge, row.nextSibling);
   }
   badge.textContent = `✓ Détecté depuis ${source}`;
+  badge.style.color = color;
   badge.style.opacity = '1';
   badge.style.display = 'block';
   setTimeout(() => {
