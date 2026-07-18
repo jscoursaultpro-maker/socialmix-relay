@@ -1991,6 +1991,33 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   res.json({ ok: true, boostCount: sugg.boostCount, suggId });
 });
 
+// ★ Shortlink resolver proxy — resolves Deezer/Apple Music shortlinks server-side (CORS bypass)
+app.get('/api/resolve-shortlink', async (req, res) => {
+  const url = req.query.url;
+  if (!url) return res.status(400).json({ error: 'Missing url param' });
+  
+  // Whitelist: only resolve known music service shortlinks
+  const allowed = ['link.deezer.com', 'deezer.page.link', 'dzr.page.link'];
+  try {
+    const parsed = new URL(url);
+    if (!allowed.some(d => parsed.hostname.endsWith(d))) {
+      return res.status(403).json({ error: 'Domain not whitelisted' });
+    }
+  } catch {
+    return res.status(400).json({ error: 'Invalid URL' });
+  }
+  
+  try {
+    // Follow redirects and return final URL
+    const resp = await fetch(url, { method: 'GET', redirect: 'follow' });
+    const finalUrl = resp.url || url;
+    console.log(`[Shortlink] ${url} → ${finalUrl}`);
+    res.json({ resolvedUrl: finalUrl });
+  } catch (e) {
+    console.warn('[Shortlink] Resolve failed:', e.message);
+    res.status(502).json({ error: 'Failed to resolve shortlink' });
+  }
+});
 app.get('/api/party/:code/photos', async (req, res) => {
   try {
     const { code } = req.params;

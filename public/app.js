@@ -1771,22 +1771,24 @@ async function parseStreamingPaste(text) {
     return null;
   }
 
-  // ── Deezer shortlink (link.deezer.com/s/xxx) ──────
-  // CORS may block — try fetch, fallback gracefully
-  const shortMatch = text.match(/link\.deezer\.com\/s\/([a-zA-Z0-9]+)/);
+  // ── Deezer shortlink (link.deezer.com/s/xxx, deezer.page.link, dzr.page.link) ──
+  const shortMatch = text.match(/(?:link\.deezer\.com\/s\/|deezer\.page\.link\/|dzr\.page\.link\/)([a-zA-Z0-9]+)/);
   if (shortMatch) {
-    try {
-      // Attempt to follow redirect — may fail due to CORS
-      const res = await fetch(text.match(/https?:\/\/link\.deezer\.com\/s\/[a-zA-Z0-9]+/)[0], {
-        method: 'GET', redirect: 'follow', mode: 'cors'
-      });
-      const finalUrl = res.url || '';
-      const resolvedMatch = finalUrl.match(/deezer\.com\/(?:[a-z]{2}\/)?track\/(\d+)/);
-      if (resolvedMatch) {
-        return await parseStreamingPaste(finalUrl);
+    const shortUrl = text.match(/https?:\/\/(?:link\.deezer\.com\/s\/|deezer\.page\.link\/|dzr\.page\.link\/)[^\s]+/);
+    if (shortUrl) {
+      try {
+        // Use server-side proxy to resolve (CORS blocks direct browser requests)
+        const res = await fetch(`/api/resolve-shortlink?url=${encodeURIComponent(shortUrl[0])}`);
+        if (res.ok) {
+          const data = await res.json();
+          const resolvedMatch = data.resolvedUrl?.match(/deezer\.com\/(?:[a-z]{2}\/)?track\/(\d+)/);
+          if (resolvedMatch) {
+            return await parseStreamingPaste(data.resolvedUrl);
+          }
+        }
+      } catch (e) {
+        console.warn('[Suggest] Deezer shortlink resolve failed:', e);
       }
-    } catch (e) {
-      console.warn('[Suggest] Deezer shortlink CORS blocked — fallback to normal paste');
     }
     return null;
   }
