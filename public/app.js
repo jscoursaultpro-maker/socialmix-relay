@@ -306,7 +306,42 @@ function showScreen(name) {
     refreshAllPhotos();
     renderCostumeEntries();
   }
+
+  // ★ Fix popstate — Push history state when navigating away from cockpit
+  // so browser back button returns to cockpit instead of leaving the app
+  if (name !== 'cockpit' && name !== 'landing' && name !== 'profile') {
+    if (window.history && window.history.pushState) {
+      window.history.pushState(
+        { view: name, ts: Date.now() },
+        '',
+        window.location.pathname + window.location.search
+      );
+    }
+  }
 }
+
+// ★ Fix popstate — Intercept browser back button to return to cockpit
+// instead of leaving the guest session (which forces QR rescan)
+if (!window._ahouai_popstate_bound) {
+  window.addEventListener('popstate', (event) => {
+    // If we're on a sub-screen (hub, end, etc.), go back to cockpit
+    if (currentScreen && currentScreen !== 'cockpit' && currentScreen !== 'landing' && currentScreen !== 'profile') {
+      // Prevent the default back navigation
+      event.preventDefault && event.preventDefault();
+      showScreen('cockpit');
+      console.log('[Navigation] ← Browser back intercepted → cockpit (was: ' + currentScreen + ')');
+    }
+  });
+  window._ahouai_popstate_bound = true;
+}
+
+// ★ Fix beforeunload — Do NOT explicitly disconnect Socket.IO on page unload
+// The natural browser disconnect leaves the server in a reconcilable state
+// (guest can rejoin within reconnection window)
+window.addEventListener('beforeunload', () => {
+  // Intentionally empty — prevent any disconnect() calls from firing
+  return undefined;
+});
 
 function updatePrePartyTrombinoscope(guests, hostProfile) {
   const container = $('pre-party-trombi');
