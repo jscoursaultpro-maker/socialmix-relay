@@ -1717,6 +1717,97 @@ function setupSuggest() {
       loadTrendingSuggestions();
     }
   });
+
+  // ★ Spotify paste detection — auto-parse URL or "Title · Artist" text
+  input.addEventListener('paste', (event) => {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    if (!pastedText || pastedText.trim().length < 3) return;
+
+    // Async parse — don't block the paste event for non-Spotify text
+    const text = pastedText.trim();
+    parseSpotifyPaste(text).then(parsed => {
+      if (parsed) {
+        const searchQuery = `${parsed.title} ${parsed.artist}`;
+        input.value = searchQuery;
+        searchBtn.style.display = 'block';
+        const hint = $('suggest-hint');
+        if (hint) hint.style.display = 'none';
+        showDetectionBadge(parsed.source || 'Spotify');
+        // Trigger Deezer search immediately with parsed title+artist
+        clearTimeout(_suggestDebounce);
+        searchDeezerSuggestions();
+        console.log(`[Suggest] ✅ Parsed from ${parsed.source}: "${parsed.title}" — ${parsed.artist}`);
+      }
+    });
+  });
+}
+
+// ★ Parse Spotify URL, URI, or "Title · Artist" shared text
+async function parseSpotifyPaste(text) {
+  // Format A — Spotify URL or URI
+  const urlMatch = text.match(/(?:open\.spotify\.com\/(?:intl-[a-z]+\/)?track\/|spotify:track:)([a-zA-Z0-9]{22})/);
+  if (urlMatch) {
+    const trackId = urlMatch[1];
+    try {
+      const oembedUrl = `https://open.spotify.com/oembed?url=https://open.spotify.com/track/${trackId}`;
+      const res = await fetch(oembedUrl);
+      if (res.ok) {
+        const data = await res.json();
+        // oEmbed: title = track name, author_name = artist
+        return {
+          title: data.title || '',
+          artist: data.author_name || '',
+          source: 'Spotify'
+        };
+      }
+    } catch (e) {
+      console.warn('[Suggest] Spotify oEmbed fetch failed:', e);
+    }
+    // oEmbed failed but we know it's a Spotify URL — return null, let paste proceed normally
+    return null;
+  }
+
+  // Format B — Shared text "Title · Artist" (iOS/Android share sheet)
+  // Also handle Apple Music "Title — Artist" and generic "Title - Artist"
+  const separators = [' · ', ' — ', ' – ', ' - '];
+  for (const sep of separators) {
+    if (text.includes(sep)) {
+      const parts = text.split(sep);
+      if (parts.length >= 2 && parts[0].trim().length > 0 && parts[1].trim().length > 0) {
+        // Filter out URLs that might be appended after the text
+        const artist = parts[1].trim().split('\n')[0].split('http')[0].trim();
+        if (artist.length > 0) {
+          return {
+            title: parts[0].trim(),
+            artist: artist,
+            source: sep === ' · ' ? 'Spotify' : 'Partage'
+          };
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+// ★ Visual feedback badge for auto-detection
+function showDetectionBadge(source) {
+  // Find or create badge next to suggest input
+  let badge = document.getElementById('detection-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'detection-badge';
+    badge.style.cssText = 'font-size:11px;font-weight:700;color:#1DB954;padding:4px 0 0 2px;transition:opacity 0.3s;';
+    const row = document.querySelector('.suggest-input-row');
+    if (row) row.parentNode.insertBefore(badge, row.nextSibling);
+  }
+  badge.textContent = `✓ Détecté depuis ${source}`;
+  badge.style.opacity = '1';
+  badge.style.display = 'block';
+  setTimeout(() => {
+    badge.style.opacity = '0';
+    setTimeout(() => { badge.style.display = 'none'; }, 300);
+  }, 3000);
 }
 
 function searchDeezerSuggestions() {
