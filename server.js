@@ -480,8 +480,10 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
     const last3PartyIds = last3Parties.map(p => p._id.toString());
 
     // 2. Aggregate history
+    // ★ Fix(Task #82): filter out null trackIds — Task #44 made trackId nullable,
+    // causing $group to produce _id: null → .toString() crash (500 in prod since July)
     const history = await HostPlaybackHistory.aggregate([
-      { $match: { hostUserId: new mongoose.Types.ObjectId(hostUserId) } },
+      { $match: { hostUserId: new mongoose.Types.ObjectId(hostUserId), trackId: { $ne: null } } },
       {
         $group: {
           _id: "$trackId",
@@ -492,7 +494,7 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
     ]);
 
     // Fetch tracks to get deezerID
-    const trackIds = history.map(item => item._id);
+    const trackIds = history.map(item => item._id).filter(Boolean);
     const tracks = await Track.find({ _id: { $in: trackIds } }).select('providers.deezer.trackId').lean();
     const deezerIdMap = {};
     tracks.forEach(t => {
@@ -505,6 +507,7 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
     const msInDay = 24 * 3600 * 1000;
 
     history.forEach(item => {
+      if (!item._id) return; // ★ Safety: skip null trackIds
       const trackId = item._id.toString();
       const deezerId = deezerIdMap[trackId];
       if (!deezerId) return; // Skip if no deezer ID mapped
@@ -516,7 +519,7 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
       else if (daysAgo <= 30) score += FRESHNESS_WEIGHTS.PLAYED_15_TO_30D_AGO;
       else score += FRESHNESS_WEIGHTS.PLAYED_OVER_30D_AGO;
 
-      const inLast3 = item.partiesPlayedIn.some(pid => last3PartyIds.includes(pid.toString()));
+      const inLast3 = item.partiesPlayedIn.some(pid => pid && last3PartyIds.includes(pid.toString()));
       if (inLast3) {
         score += FRESHNESS_WEIGHTS.PLAYED_IN_LAST_3_PARTIES;
       }
