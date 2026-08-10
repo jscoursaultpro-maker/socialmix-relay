@@ -794,6 +794,64 @@ app.get('/api/admin/parties', adminAuth, async (req, res) => {
   }
 });
 
+// ★ Task #67: POST /api/admin/auto-end-ghosts — auto-end parties with endedAt: null
+// Uses lifecycle.lastActivityAt (or createdAt as fallback) to determine inactivity.
+// Sets endedAt to estimated end time: last track played + 5min, or createdAt + 30min.
+app.post('/api/admin/auto-end-ghosts', adminAuth, async (req, res) => {
+  const hoursThreshold = Math.max(1, parseInt(req.query.hoursThreshold) || 6);
+  const dryRun = req.query.dryRun === 'true';
+  const cutoff = new Date(Date.now() - hoursThreshold * 60 * 60 * 1000);
+  
+  try {
+    // Find ghost parties: endedAt null AND inactive for > threshold
+    const ghosts = await Party.find({
+      endedAt: null,
+      $or: [
+        { 'lifecycle.lastActivityAt': { $lt: cutoff } },
+        { 'lifecycle.lastActivityAt': null, createdAt: { $lt: cutoff } }
+      ]
+    }).select('code createdAt lifecycle.lastActivityAt').lean();
+    
+    if (dryRun) {
+      return res.json({
+        dryRun: true,
+        ghostsFound: ghosts.length,
+        hoursThreshold,
+        cutoff,
+        codes: ghosts.map(p => p.code)
+      });
+    }
+    
+    let ended = 0;
+    for (const ghost of ghosts) {
+      // Estimate real end time from last played track
+      const lastTrack = await HostPlaybackHistory.findOne(
+        { partyCode: ghost.code }
+      ).sort({ playedAt: -1 }).select('playedAt').lean();
+      
+      const endedAt = lastTrack?.playedAt
+        ? new Date(new Date(lastTrack.playedAt).getTime() + 5 * 60 * 1000)  // +5 min post last track
+        : new Date(new Date(ghost.createdAt).getTime() + 30 * 60 * 1000);   // +30 min if no tracks
+      
+      await Party.updateOne(
+        { code: ghost.code, endedAt: null },
+        { $set: {
+          endedAt,
+          'lifecycle.status': 'ended',
+          'lifecycle.endedBy': 'auto_timeout'
+        }}
+      );
+      ended++;
+    }
+    
+    console.log(`[GhostCleanup] Admin trigger: auto-ended ${ended}/${ghosts.length} ghosts (threshold: ${hoursThreshold}h)`);
+    res.json({ ghostsFound: ghosts.length, ended, hoursThreshold });
+  } catch (err) {
+    console.error('[GhostCleanup] ❌ Admin auto-end error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/admin/analytics — performance globale
 app.get('/api/admin/analytics', adminAuth, async (req, res) => {
   try {
@@ -5309,7 +5367,7 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000); // Toutes les 5 minutes
 
-// Auto-end after 12h of inactivity
+// Auto-end after 12h of inactivity (RAM parties only)
 setInterval(() => {
   const now = Date.now();
   for (const party of parties.values()) {
@@ -5329,4 +5387,35 @@ setInterval(() => {
   }
 }, 30 * 60 * 1000); // Check every 30 minutes
 
-
+// ★ Task #67: Auto-end ghost parties in MongoDB (not just RAM)
+// Catches parties that were flushed to DB but host never tapped "End Party".
+// Audit v2 (10/08): 497/545 = 91% of all-time parties were ghosts.
+setInterval(async () => {
+  try {
+    const GHOST_THRESHOLD_HOURS = 6;
+    const cutoff = new Date(Date.now() - GHOST_THRESHOLD_HOURS * 60 * 60 * 1000);
+    
+    const result = await Party.updateMany(
+      {
+        endedAt: null,
+        $or: [
+          { 'lifecycle.lastActivityAt': { $lt: cutoff } },
+          { 'lifecycle.lastActivityAt': null, createdAt: { $lt: cutoff } }
+        ]
+      },
+      {
+        $set: {
+          endedAt: new Date(),
+          'lifecycle.status': 'ended',
+          'lifecycle.endedBy': 'auto_timeout'
+        }
+      }
+    );
+    
+    if (result.modifiedCount > 0) {
+      console.log(`[GhostCleanup] ✅ Auto-ended ${result.modifiedCount} ghost parties (>${GHOST_THRESHOLD_HOURS}h inactive)`);
+    }
+  } catch (err) {
+    console.error('[GhostCleanup] ❌ Cron error:', err.message);
+  }
+}, 60 * 60 * 1000); // Every 60 minutes
