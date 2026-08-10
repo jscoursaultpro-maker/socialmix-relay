@@ -1753,7 +1753,8 @@ async function parseStreamingPaste(text) {
   if (deezerMatch) {
     const trackId = deezerMatch[1];
     try {
-      const res = await fetch(`https://api.deezer.com/track/${trackId}`);
+      // ★ Fix(Deezer CORS): use backend proxy — api.deezer.com blocks browser CORS
+      const res = await fetch(`/api/deezer/track/${trackId}`);
       if (res.ok) {
         const data = await res.json();
         if (data.title && data.artist) {
@@ -1777,13 +1778,14 @@ async function parseStreamingPaste(text) {
     const shortUrl = text.match(/https?:\/\/(?:link\.deezer\.com\/s\/|deezer\.page\.link\/|dzr\.page\.link\/)[^\s]+/);
     if (shortUrl) {
       try {
-        // Use server-side proxy to resolve (CORS blocks direct browser requests)
+        // ★ Step 1: resolve shortlink via backend proxy (CORS blocks direct browser requests)
         const res = await fetch(`/api/resolve-shortlink?url=${encodeURIComponent(shortUrl[0])}`);
         if (res.ok) {
           const data = await res.json();
           const resolvedMatch = data.resolvedUrl?.match(/deezer\.com\/(?:[a-z]{2}\/)?track\/(\d+)/);
           if (resolvedMatch) {
-            return await parseStreamingPaste(data.resolvedUrl);
+            // ★ Step 2: lookup track via backend proxy (CORS blocks api.deezer.com too)
+            return await parseStreamingPaste(`https://deezer.com/track/${resolvedMatch[1]}`);
           }
         }
       } catch (e) {

@@ -1863,6 +1863,22 @@ app.get('/api/deezer/chart', async (req, res) => {
   catch (err) { console.error('[Deezer] Chart error:', err.message); res.status(500).json({ error: 'Deezer chart failed' }); }
 });
 
+// ★ Fix(Deezer CORS): proxy /api/deezer/track/:id — browser cannot call api.deezer.com directly
+// (no Access-Control-Allow-Origin header from Deezer API)
+app.get('/api/deezer/track/:trackId', async (req, res) => {
+  const { trackId } = req.params;
+  if (!/^\d+$/.test(trackId)) return res.status(400).json({ error: 'Invalid trackId' });
+  try {
+    const r = await fetch(`https://api.deezer.com/track/${trackId}`);
+    const json = await r.json();
+    if (json.error) return res.status(404).json({ error: 'Track not found', details: json.error });
+    res.json(json);
+  } catch (err) {
+    console.error('[Deezer] Track lookup error:', err.message);
+    res.status(502).json({ error: 'Deezer API unreachable' });
+  }
+});
+
 app.post('/api/party/schedule', express.json({limit: '5mb'}), async (req, res) => {
   const { code, hostSecret, scheduledFor, welcomeText, coverPhoto, profile } = req.body;
   if (!code || !hostSecret) return res.status(400).json({ error: 'Missing code or hostSecret' });
