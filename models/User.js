@@ -97,7 +97,20 @@ const userSchema = new Schema({
     suggestionsPlayedCount: { type: Number, default: 0 },
     photosUploadedCount: { type: Number, default: 0 },
     totalPoints: { type: Number, default: 0 },
-    feuVotesCount: { type: Number, default: 0 }
+    feuVotesCount: { type: Number, default: 0 },
+    // ★ Task #81: Afterglow user enrichment
+    topGenres: [{ genre: String, count: Number }],     // top 5, recalculé post-soirée
+    uniqueGuestsHosted: { type: Number, default: 0 },  // guests uniques across all parties
+    currentStreak: { type: Number, default: 0 },        // soirées consécutives (1/semaine min)
+    longestStreak: { type: Number, default: 0 }
+  },
+  
+  // ★ Task #81: Founders rank (Task #25 dependency — 2500 slots, opt-in)
+  foundersRank: {
+    type: Number,
+    unique: true,
+    sparse: true,    // null pour non-founders
+    index: true
   },
   
   // === PRÉFÉRENCES & RGPD ===
