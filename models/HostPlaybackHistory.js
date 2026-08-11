@@ -12,7 +12,18 @@ const HostPlaybackHistorySchema = new mongoose.Schema({
   artist:        { type: String,  default: null },   // ★ Task #44 — audit traçabilité
   playedAt:      { type: Date,    default: Date.now, index: true },
   phase:         { type: String,  enum: ['arrival','ambiance','takeoff','groove','party','closing'] },
-  wasSuggestedByGuest: { type: Boolean, default: false }
+  wasSuggestedByGuest: { type: Boolean, default: false },
+  // ★ Task #81: Afterglow stats + Learning BDD foundation (Task #78)
+  partyCode:     { type: String,  index: true },         // dénormalisé pour queries cross-party
+  voteScore: {
+    feu:  { type: Number, default: 0 },
+    cool: { type: Number, default: 0 },
+    bof:  { type: Number, default: 0 }
+  },
+  wasHostOverride: { type: Boolean, default: false },
+  suggestedBy:   { type: String,  default: null },       // guestId ou null
+  skipReason:    { type: String,  enum: [null, 'host_skip', 'auto_next', 'guest_skip'],
+                   default: null }
 });
 
 // Compound dedup guard: même track, même host, même soirée — interdit le double-log
