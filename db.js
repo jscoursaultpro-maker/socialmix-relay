@@ -73,13 +73,14 @@ function partyToDoc(party) {
     playedKeys: Array.isArray(party.playedKeys) ? party.playedKeys : [],  // ★ fix(schema-audit): was missing — Z11 anti-replay lost on crash
     guestGenreVoteExpiry: party.guestGenreVoteExpiry || {},  // ★ fix(schema-audit): was missing — genre vote TTL lost on crash
     createdAt: party.createdAt,
-    endedAt: party.endedAt || null
+    endedAt: party.endedAt || null,
+    streamingProvider: party.streamingProvider || null  // ★ Task #81
   };
 }
 
 // ─── Mongo document → in-memory party state ─────────────────────────
 function docToPartyState(doc) {
-  const party = createPartyState(doc.code);
+  const party = createPartyState(doc.code, doc._id);  // ★ Task #81: propagate _id for safe flush
   party.mode = doc.mode || 'appMix';
   party.currentPhase = doc.currentPhase || 'arrival';  // ★ fix(critical) — restore phase on reload/recovery
   party.currentTrack = doc.currentTrack || null;
@@ -137,13 +138,24 @@ function docToPartyState(doc) {
 // ─── Flush a single party to MongoDB ────────────────────────────────────────────────────────────
 // ⚠️ FIX FAILLE 6 : Ne JAMAIS écraser trackHistory ou participants si la RAM est vide
 // et que MongoDB possède déjà des données (cas de reconnexion post-crash ou post-restart).
+// ★ Task #81: Use party._id as discriminant (not code) to prevent QDK4RF data loss on code reuse.
 async function flushParty(party) {
   if (!connected) return;
   try {
     const doc = partyToDoc(party);
 
-    // Fetch the existing MongoDB document to compare arrays before overwriting
-    const existingDoc = await Party.findOne({ code: party.code }).lean();
+    // ★ Task #81: Discriminate by _id when available (safe, immutable).
+    // Fallback to code for legacy parties without _id (backward-compat).
+    let existingDoc;
+    let updateQuery;
+    if (party._id) {
+      existingDoc = await Party.findById(party._id).lean();
+      updateQuery = { _id: party._id };
+    } else {
+      existingDoc = await Party.findOne({ code: party.code, endedAt: null }).lean();
+      updateQuery = existingDoc ? { _id: existingDoc._id } : { code: party.code };
+    }
+
     const safeUpdate = { ...doc };
 
     if (existingDoc) {
@@ -161,11 +173,31 @@ async function flushParty(party) {
       }
     }
 
-    await Party.findOneAndUpdate(
-      { code: party.code },
+    // ★ Task #81: Write resumeState snapshot for live parties (crash resume)
+    if (!party.endedAt && party.currentTrack) {
+      safeUpdate.resumeState = {
+        currentTrack: party.currentTrack,
+        nextTrack: party.nextTrack || null,
+        currentPhase: party.currentPhase || 'arrival',
+        hostDecisions: party.hostDecisions || {},
+        queueSnapshot: (party.trackHistory || []).slice(-4),
+        savedAt: new Date(),
+        deviceId: party.hostDeviceId || null
+      };
+    }
+
+    const result = await Party.findOneAndUpdate(
+      updateQuery,
       { $set: safeUpdate },
       { upsert: true, new: true }
     );
+
+    // ★ Task #81: Capture _id after first INSERT (new party)
+    if (!party._id && result?._id) {
+      party._id = result._id;
+      console.log(`[${party.code}] 🆔 Party _id captured: ${result._id}`);
+    }
+
     party.isDirty = false;
     party.lastFlushed = Date.now();
   } catch (err) {
