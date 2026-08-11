@@ -45,6 +45,30 @@ const PartySchema = new mongoose.Schema({
     archivedAt: Date,
     endedBy: { type: String, enum: ['host', 'auto_timeout', 'admin'] },
     lastActivityAt: { type: Date, default: Date.now }
+  },
+  // ★ Task #81: Persistance & Afterglow V1
+  streamingProvider: {
+    type: String,
+    enum: ['appleMusic', 'spotify', 'deezer'],
+    default: null
+  },
+  moments: [{
+    type: {
+      type: String,
+      enum: ['peak_votes', 'guest_mvp', 'track_hall_of_fame',
+             'first_guest', 'best_photo']
+    },
+    ts: Date,
+    meta: mongoose.Schema.Types.Mixed
+  }],
+  resumeState: {
+    currentTrack: mongoose.Schema.Types.Mixed,
+    nextTrack: mongoose.Schema.Types.Mixed,
+    currentPhase: String,
+    hostDecisions: mongoose.Schema.Types.Mixed,
+    queueSnapshot: [mongoose.Schema.Types.Mixed],
+    savedAt: { type: Date, default: null },
+    deviceId: String
   }
 }, {
   timestamps: false,
