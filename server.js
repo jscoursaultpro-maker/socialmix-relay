@@ -2113,6 +2113,51 @@ app.get('/api/party/:code/photos', async (req, res) => {
   }
 });
 
+// ★ Task #81: POST /api/party/:code/resume — crash recovery endpoint
+app.post('/api/party/:code/resume', async (req, res) => {
+  try {
+    const code = (req.params.code || '').toUpperCase();
+    const { hostSecret, deviceId } = req.body || {};
+
+    if (!hostSecret) {
+      return res.status(400).json({ error: 'MISSING_SECRET', message: 'hostSecret requis' });
+    }
+
+    const party = await Party.findOne({ code, endedAt: null }).lean();
+    if (!party) {
+      return res.status(404).json({ error: 'PARTY_NOT_FOUND', message: `Aucune soirée active pour ${code}` });
+    }
+    if (party.hostSecret !== hostSecret) {
+      return res.status(403).json({ error: 'INVALID_SECRET', message: 'Clé hôte invalide' });
+    }
+
+    if (!party.resumeState?.savedAt) {
+      return res.status(410).json({ error: 'NO_RESUME_STATE', message: 'Aucun état de reprise disponible' });
+    }
+
+    const staleMs = Date.now() - new Date(party.resumeState.savedAt).getTime();
+    if (staleMs > 24 * 3600 * 1000) {
+      return res.status(410).json({
+        error: 'RESUME_EXPIRED',
+        staleSeconds: Math.round(staleMs / 1000),
+        message: 'État de reprise expiré (>24h)'
+      });
+    }
+
+    console.log(`[${code}] 🔄 Resume state requested (stale: ${Math.round(staleMs / 1000)}s, device: ${deviceId || 'unknown'})`);
+
+    res.json({
+      success: true,
+      partyId: party._id.toString(),
+      resumeState: party.resumeState,
+      staleSince: Math.round(staleMs / 1000)
+    });
+  } catch (err) {
+    console.error('[Resume] error:', err);
+    res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
+  }
+});
+
 // ★ A3c — GET /api/party/:code/audit — EventLog post-mortem (host only, JWT)
 app.get('/api/party/:code/audit', async (req, res) => {
   const code = (req.params.code || '').toUpperCase();
@@ -3309,7 +3354,7 @@ io.on('connection', (socket) => {
         if (dbParty && dbParty.hostSecret === data.hostSecret) {
           // ✅ Found matching party in DB — restore it to RAM and resume
           // createPartyState is already imported at top of file
-          const restoredParty = createPartyState(code);
+          const restoredParty = createPartyState(code, dbParty._id);  // ★ Task #81: propagate _id
           restoredParty.mode = dbParty.mode || 'appMix';
           restoredParty.currentTrack = dbParty.currentTrack || null;
           restoredParty.nextTrack = dbParty.nextTrack || null;
@@ -3399,10 +3444,12 @@ io.on('connection', (socket) => {
     }
 
     // ── NEW party (no existing in RAM, no matching DB record, or recovery failed) ──
-    const party = createPartyState(code);
+    const party = createPartyState(code);  // _id = null, captured on first flush
     party.hostSocketId = socket.id;
     party.hostProfile = data.profile || null;
     party.isPreParty = false;
+    party.streamingProvider = data.streamingProvider || null;  // ★ Task #81: from iOS payload
+    party.hostDeviceId = data.deviceId || null;                // ★ Task #81: for resumeState
     // ★ A1 fix: persist isPreParty=false en BDD IMMÉDIATEMENT (NEW party)
     Party.findOneAndUpdate({ code }, { isPreParty: false }, { upsert: false })
       .catch(err => console.error(`[${code}] ⚠️ Persist isPreParty (NEW) failed:`, err.message));
@@ -3443,14 +3490,21 @@ io.on('connection', (socket) => {
           partyName: partyName,
           hostProfile: party.hostProfile,
           hostUserId: party.hostUserId || null,
+          streamingProvider: party.streamingProvider || null,  // ★ Task #81
           trackHistory: [],
           participants: party.participants,
           suggestions: [],
           lifecycle: party.lifecycle
         }
       },
-      { upsert: true }
-    ).catch(err => console.error(`[${code}] ⚠️ Write-through (startParty) failed: ${err.message}`));
+      { upsert: true, new: true }
+    ).then(result => {
+      // ★ Task #81: Capture _id from write-through for safe flush
+      if (!party._id && result?._id) {
+        party._id = result._id;
+        console.log(`[${code}] 🆔 Party _id captured (write-through): ${result._id}`);
+      }
+    }).catch(err => console.error(`[${code}] ⚠️ Write-through (startParty) failed: ${err.message}`));
 
     console.log(`🎉 Party started: ${code} (host: "${hostName}", secret: ****${lastFour}, active parties: ${parties.size})`);
     // Never send hostSecret to guests — only party:started with public data
