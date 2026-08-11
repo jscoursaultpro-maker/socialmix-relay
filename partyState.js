@@ -5,9 +5,12 @@
 /**
  * Create a fresh party state for a given code.
  * Structure mirrors the original global partyState exactly.
+ * @param {string} code - The party code (human-visible identifier)
+ * @param {import('mongoose').Types.ObjectId|null} _id - MongoDB ObjectId (null for new parties, set on first flush)
  */
-export function createPartyState(code) {
+export function createPartyState(code, _id = null) {
   return {
+    _id,                       // ★ Task #81: Mongo ObjectId — null until first flush, then immutable
     code,
     mode: 'appMix',           // 'appMix' | 'djLive'
     currentTrack: null,        // {title, artist, genre, bpm, artworkURL}
