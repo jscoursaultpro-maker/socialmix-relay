@@ -32,6 +32,7 @@ import { verifySupabaseJWT } from './lib/supabaseAuth.js';  // ★ for HTTP rout
 import { findOrCreateFromSupabase } from './services/userService.js'; // ★
 import { encodeObjectId, decodeToObjectId } from './utils/base62.js'; // ★ Task #81: afterglow URLs
 import { computeMoments } from './services/moments.js'; // ★ Task #81: post-party moments
+import { computeUserStats } from './services/userStats.js'; // ★ Task #81 B2: post-party user stats
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -3396,6 +3397,13 @@ io.on('connection', (socket) => {
       );
     }
 
+    // ★ Task #81 B2: Compute user stats fire-and-forget
+    if (party.hostUserId) {
+      computeUserStats(party.hostUserId).catch(err =>
+        console.error(`[${code}] ⚠️ computeUserStats failed:`, err.message)
+      );
+    }
+
     parties.delete(code);
     cancelCleanup(code);
   });
@@ -5288,6 +5296,13 @@ io.on('connection', (socket) => {
     if (party._id) {
       computeMoments(party._id).catch(err =>
         console.error(`[${party.code}] ⚠️ computeMoments failed:`, err.message)
+      );
+    }
+
+    // ★ Task #81 B2: Compute user stats fire-and-forget
+    if (party.hostUserId) {
+      computeUserStats(party.hostUserId).catch(err =>
+        console.error(`[${party.code}] ⚠️ computeUserStats failed:`, err.message)
       );
     }
 
