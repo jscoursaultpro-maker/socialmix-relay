@@ -442,14 +442,12 @@ app.get('/status', (req, res) => {
 // Usage: curl https://socialmix-relay.onrender.com/debug-sentry
 // Expected: HTTP 500 + Sentry issue visible in dashboard within ~30s.
 // Can be removed after validation via commit.
-// ─── Fresh Rotation API ────────────────────────────────────────────────────────
-const FRESHNESS_WEIGHTS = {
-  NEVER_PLAYED_BY_HOST: 50,
-  PLAYED_OVER_30D_AGO: 30,
-  PLAYED_15_TO_30D_AGO: 10,
-  PLAYED_UNDER_15D_AGO: -100,
-  PLAYED_IN_LAST_3_PARTIES: -80
-};
+// ─── Fresh Rotation API (V2 — Task #44) ────────────────────────────────────────
+// V1 FRESHNESS_WEIGHTS removed — replaced by continuous exponential decay.
+// Legacy iOS compat: without ?v=2, returns scalar tier values (30/10/-100).
+// ⚠️ Legacy mode loses PLAYED_IN_LAST_3_PARTIES penalty (-80) — acceptable
+//    because Prompt B iOS migration follows quickly and will use ?v=2.
+import { computeFreshnessScore, toLegacyScore, NEVER_PLAYED_SCORE } from './services/freshnessScoring.js';
 
 const freshnessCache = new Map();
 
@@ -460,9 +458,12 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
       return res.status(400).json({ error: 'Invalid hostUserId' });
     }
 
-    // Check Cache (5 min TTL)
+    const isV2 = req.query.v === '2';
+
+    // Check Cache (5 min TTL) — keyed by hostUserId + version
+    const cacheKey = `${hostUserId}:${isV2 ? 'v2' : 'v1'}`;
     const now = Date.now();
-    const cached = freshnessCache.get(hostUserId);
+    const cached = freshnessCache.get(cacheKey);
     if (cached && cached.expiresAt > now) {
       return res.json(cached.data);
     }
@@ -471,34 +472,34 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
     const isEnabled = hostUser?.settings?.antiRepetition !== false;
 
     if (!isEnabled) {
-      return res.json({ hostUserId, generatedAt: new Date().toISOString(), cacheTTL: 300, isEnabled: false, scores: {} });
+      return res.json({
+        hostUserId,
+        generatedAt: new Date().toISOString(),
+        cacheTTL: 300,
+        isEnabled: false,
+        algo: 'v2_adaptive_pool_phase',
+        scores: {}
+      });
     }
 
-    // 1. Fetch last 3 parties for this host
-    const last3Parties = await Party.find({ hostUserId })
-      .sort({ createdAt: -1 })
-      .limit(3)
-      .select('_id')
-      .lean();
-    const last3PartyIds = last3Parties.map(p => p._id.toString());
-
-    // 2. Aggregate history
-    // ★ Fix(Task #82): filter out null trackIds — Task #44 made trackId nullable,
-    // causing $group to produce _id: null → .toString() crash (500 in prod since July)
+    // Aggregation: sort-first pattern → $first gives correct lastPlayedPhase
     const history = await HostPlaybackHistory.aggregate([
       { $match: { hostUserId: new mongoose.Types.ObjectId(hostUserId), trackId: { $ne: null } } },
+      { $sort: { playedAt: -1 } },
       {
         $group: {
           _id: "$trackId",
-          lastPlayedAt: { $max: "$playedAt" },
-          partiesPlayedIn: { $addToSet: "$partyId" }
+          lastPlayedAt: { $first: "$playedAt" },
+          lastPlayedPhase: { $first: "$phase" },
+          playedInPartyCodes: { $addToSet: "$partyCode" }
         }
       }
     ]);
 
-    // Fetch tracks to get deezerID
+    // Fetch tracks to get deezerId (payload keyed by deezerId for iOS compat)
     const trackIds = history.map(item => item._id).filter(Boolean);
-    const tracks = await Track.find({ _id: { $in: trackIds } }).select('providers.deezer.trackId').lean();
+    const tracks = await Track.find({ _id: { $in: trackIds } })
+      .select('providers.deezer.trackId').lean();
     const deezerIdMap = {};
     tracks.forEach(t => {
       if (t.providers?.deezer?.trackId) {
@@ -510,38 +511,38 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
     const msInDay = 24 * 3600 * 1000;
 
     history.forEach(item => {
-      if (!item._id) return; // ★ Safety: skip null trackIds
+      if (!item._id) return;
       const trackId = item._id.toString();
       const deezerId = deezerIdMap[trackId];
-      if (!deezerId) return; // Skip if no deezer ID mapped
-      
+      if (!deezerId) return;
+
       const daysAgo = (now - new Date(item.lastPlayedAt).getTime()) / msInDay;
-      
-      let score = 0;
-      if (daysAgo < 15) score += FRESHNESS_WEIGHTS.PLAYED_UNDER_15D_AGO;
-      else if (daysAgo <= 30) score += FRESHNESS_WEIGHTS.PLAYED_15_TO_30D_AGO;
-      else score += FRESHNESS_WEIGHTS.PLAYED_OVER_30D_AGO;
+      const freshnessScore = computeFreshnessScore(daysAgo);
 
-      const inLast3 = item.partiesPlayedIn.some(pid => pid && last3PartyIds.includes(pid.toString()));
-      if (inLast3) {
-        score += FRESHNESS_WEIGHTS.PLAYED_IN_LAST_3_PARTIES;
+      if (isV2) {
+        // V2 payload: rich object per track
+        const partyCodes = (item.playedInPartyCodes || []).filter(Boolean).slice(0, 5);
+        scores[deezerId] = {
+          freshnessScore,
+          lastPlayedAt: new Date(item.lastPlayedAt).toISOString(),
+          lastPlayedPhase: item.lastPlayedPhase || null,
+          playedInPartyCodes: partyCodes
+        };
+      } else {
+        // Legacy payload: scalar tier value for backward compat
+        scores[deezerId] = toLegacyScore(freshnessScore);
       }
-
-      scores[deezerId] = score;
     });
 
     const responseData = {
       hostUserId,
       generatedAt: new Date().toISOString(),
       cacheTTL: 300,
+      algo: 'v2_adaptive_pool_phase',
       scores
     };
 
-    freshnessCache.set(hostUserId, {
-      expiresAt: now + 300 * 1000,
-      data: responseData
-    });
-
+    freshnessCache.set(cacheKey, { expiresAt: now + 300 * 1000, data: responseData });
     res.json(responseData);
   } catch (err) {
     console.error('[API] ❌ Freshness error:', err.message);
