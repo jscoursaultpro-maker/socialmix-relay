@@ -1,7 +1,7 @@
 # Politique de Confidentialité — AhOuai
 
 **Version 1.0**
-**Date d'entrée en vigueur : [À COMPLÉTER avant publication]**
+**Date d'entrée en vigueur : 1er septembre 2026**
 
 ---
 
@@ -25,7 +25,7 @@ Le responsable du traitement des données personnelles collectées via l'Applica
 
 - **Nom** : Jean-Sébastien Coursault
 - **Statut** : Personne physique
-- **Adresse postale** : [À COMPLÉTER avant publication]
+- **Adresse postale** : 8 allée des Sapins, 95230 Soisy-sous-Montmorency, France
 - **Email de contact** : `contact@ahouai.com`
 
 En Version 1.0, aucun Délégué à la Protection des Données (DPO) n'est désigné, l'Éditeur ne réunissant pas les seuils rendant obligatoire cette désignation (art. 37 RGPD). Pour toute demande relative à la protection de vos données, contactez directement `contact@ahouai.com`.
@@ -38,8 +38,9 @@ En Version 1.0, aucun Délégué à la Protection des Données (DPO) n'est dési
 
 Lorsque vous utilisez AhOuai en tant qu'hôte de soirée, les données suivantes sont collectées :
 
-- **Identité déclarative** : prénom, emoji choisi, photo de profil (facultative)
-- **Données d'authentification (à partir de la Version 1.0)** : adresse email, identifiant Apple (via Sign in with Apple), identifiant Google, mot de passe haché
+- **Identité déclarative** : prénom (fourni par vous ou pré-rempli depuis le service d'authentification tiers si celui-ci le transmet), nom (facultatif), pseudonyme scénique facultatif (par exemple « DJ Flash »), emoji choisi, photo de profil facultative (soit prise depuis l'Application, soit transmise par le service d'authentification tiers)
+- **Coordonnées de contact facultatives** partagées au sein de vos soirées : numéro de téléphone ou WhatsApp, identifiant Instagram. Ces champs sont strictement optionnels et destinés à faciliter la reprise de contact entre participants après la soirée
+- **Données d'authentification (à partir de la Version 1.0)** : adresse email, identifiant unique fourni par Apple (claim « sub » Apple ID, technique et opaque, ne permettant pas de reconstituer votre Apple ID complet), identifiant unique fourni par Google (claim « sub » Google, technique et opaque), et — pour l'authentification par email et mot de passe — le mot de passe stocké de manière sécurisée par notre prestataire d'authentification Supabase Inc. (voir section 4.2 et section 9.1)
 - **Données de soirée** : nom de la soirée, code de la soirée, historique des tracks jouées, choix musicaux, décisions dramaturgiques (mode de dramaturgie, verrouillage de phase)
 - **Choix de service musical** : Apple Music, Spotify, Deezer, ou aucun
 
@@ -113,20 +114,22 @@ AhOuai s'appuie sur les sous-traitants suivants, tous soumis à des obligations 
 
 | Prestataire | Rôle | Pays d'hébergement | Encadrement des transferts |
 |-------------|------|---------------------|----------------------------|
+| **Supabase Inc.** | Service d'authentification (Sign in with Apple, Sign in with Google, email/mot de passe), gestion des sessions et des jetons JWT, stockage sécurisé des mots de passe hachés | UE (Frankfurt, région AWS eu-central-1) | Traitement UE ; Data Privacy Framework + Clauses Contractuelles Types pour les transferts occasionnels vers les États-Unis |
 | **Render Services, Inc.** | Hébergement du serveur relais (relay-server) | Frankfurt, Allemagne (UE) | Traitement UE, pas de transfert hors UE |
-| **MongoDB, Inc.** (MongoDB Atlas) | Base de données | UE (Frankfurt) ou US (Virginia) selon configuration | Clauses Contractuelles Types (CCT) UE |
+| **MongoDB, Inc.** (MongoDB Atlas) | Base de données principale | UE (Frankfurt) ou US (Virginia) selon configuration | Clauses Contractuelles Types (CCT) UE |
 | **Cloudinary Ltd.** | Stockage et transformation des photos | US / UE | Data Privacy Framework + CCT |
-| **Functional Software, Inc.** (Sentry) | Monitoring des erreurs et crashes | États-Unis | Data Privacy Framework + CCT |
-| **Apple Distribution International Ltd.** | Distribution App Store, MusicKit, Sign in with Apple, RevenueCat (via App Store) | Irlande (UE) / États-Unis | Traitement principalement UE + DPF |
+| **Functional Software, Inc.** (Sentry) | Monitoring des erreurs et rapports de crash | États-Unis | Data Privacy Framework + CCT |
+| **Apple Distribution International Ltd.** | Distribution App Store, MusicKit, Sign in with Apple, ShazamKit (reconnaissance musicale native iOS), gestion des achats intégrés (via App Store) | Irlande (UE) / États-Unis | Traitement principalement UE + DPF |
 | **Google LLC** | Sign in with Google (V1.0+) | États-Unis | Data Privacy Framework + CCT |
-| **Spotify AB** | API Spotify (déclenchement lecture) | Suède (UE) | Traitement UE |
-| **Deezer S.A.** | API Deezer (déclenchement lecture) | France (UE) | Traitement UE |
-| **ACRCloud** | Reconnaissance musicale (mode DJ Live) | Chine, Singapour, US | CCT + audit sécurité |
+| **Spotify AB** | Intégration Spotify (recherche catalogue, déclenchement de lecture via l'application externe Spotify) | Suède (UE) | Traitement UE |
+| **Deezer S.A.** | Intégration Deezer (recherche catalogue, déclenchement de lecture via l'application externe Deezer) | France (UE) | Traitement UE |
 | **RevenueCat, Inc.** (V1.1+) | Gestion des abonnements iOS | États-Unis | Data Privacy Framework + CCT |
 | **Stripe, Inc.** (V1.1+, web) | Traitement des paiements par carte | Irlande (UE) / États-Unis | Traitement UE + DPF |
-| **Anthropic PBC** | Assistance à la rédaction de contenus (Claude, en mode Cowork) | États-Unis | Traitement des données par le seul Éditeur, pas des données Utilisateur |
+| **Anthropic PBC** | Assistance à la rédaction de contenus (Claude, en mode Cowork), utilisée **exclusivement par l'Éditeur** pour la génération et la révision de documents non-personnels (code source, textes légaux, notes internes). Aucune donnée personnelle d'Utilisateur AhOuai n'est transmise à Anthropic. | États-Unis | Sans objet — pas de traitement de données d'Utilisateur AhOuai |
 
 Aucun de ces sous-traitants n'est autorisé à utiliser vos données à d'autres fins que celles strictement nécessaires à la fourniture du Service.
+
+*Note technique — évolution récente : depuis le 7 juillet 2026, la reconnaissance musicale du mode « DJ Live » est assurée nativement par ShazamKit sur l'appareil iOS de l'hôte, sans envoi d'échantillon audio vers un serveur tiers d'AhOuai. Le prestataire ACRCloud précédemment utilisé n'intervient plus dans le traitement.*
 
 ### 4.3. Autorités publiques
 
@@ -140,7 +143,7 @@ L'Éditeur **ne vend**, **ne loue** et **ne cède** vos données personnelles à
 
 ## 5. Transferts de données hors de l'Union européenne
 
-Certains sous-traitants (Cloudinary, Sentry, MongoDB en configuration US, Apple, Google, Anthropic, ACRCloud) traitent des données hors de l'Union européenne, principalement aux États-Unis.
+Certains sous-traitants (Cloudinary, Sentry, MongoDB en configuration US, Apple, Google, Anthropic) traitent des données hors de l'Union européenne, principalement aux États-Unis.
 
 Ces transferts sont encadrés par les mécanismes suivants prévus par le RGPD :
 
@@ -255,11 +258,12 @@ Si vous êtes titulaire de l'autorité parentale sur un enfant de moins de 15 an
 
 L'Éditeur met en œuvre les mesures techniques suivantes pour protéger vos données :
 
-- **Chiffrement en transit** : toutes les communications entre l'Application, le serveur relais et les sous-traitants utilisent les protocoles HTTPS et WSS (WebSocket sécurisé)
-- **Chiffrement au repos** : les données stockées dans MongoDB Atlas et Cloudinary sont chiffrées au niveau du disque
-- **Hachage des mots de passe** (V1.0+) : les mots de passe sont stockés uniquement sous forme hachée avec l'algorithme bcrypt, jamais en clair
+- **Chiffrement en transit** : toutes les communications entre l'Application, le serveur relais et les sous-traitants utilisent les protocoles HTTPS (TLS 1.2 minimum) et WSS (WebSocket sécurisé)
+- **Chiffrement au repos** : les données stockées dans MongoDB Atlas et Cloudinary sont chiffrées au niveau du disque conformément aux standards des prestataires
+- **Sécurisation des mots de passe** (V1.0+) : les mots de passe sont pris en charge et stockés exclusivement par notre prestataire d'authentification **Supabase Inc.**, qui applique des algorithmes de hachage sécurisés conformes aux standards de l'industrie (Argon2 / bcrypt). L'Éditeur ne stocke ni ne connaît à aucun moment les mots de passe en clair
+- **Authentification par jetons signés** : les sessions utilisateur reposent sur des jetons JWT signés en cryptographie asymétrique (ES256) émis par Supabase et vérifiés côté serveur relais via le mécanisme JWKS
 - **Isolation des données** : les données de chaque soirée sont isolées par un code unique, sans possibilité d'accès croisé
-- **Contrôles d'accès** : accès aux données brutes limité à l'Éditeur, avec authentification par jetons sécurisés
+- **Contrôles d'accès** : accès aux données brutes limité à l'Éditeur, avec authentification par jetons sécurisés et rotation régulière
 - **Sauvegardes régulières** : sauvegardes automatiques des bases de données pour prévenir la perte de données
 - **Monitoring temps réel** : détection des anomalies via Sentry et journaux applicatifs
 - **Rate limiting** (V1) : limitation des requêtes pour prévenir les attaques par force brute et le spam
@@ -335,7 +339,7 @@ Les modifications substantielles sont notifiées :
 - Par affichage d'une bannière dans l'Application lors du prochain lancement
 - Par email pour les changements ayant un impact significatif sur vos droits (uniquement si vous avez fourni une adresse email)
 
-La version en vigueur est celle disponible à l'adresse `https://ahouai.com/privacy` (URL à confirmer) et dans l'Application.
+La version en vigueur est celle disponible à l'adresse `https://api.ahouai.com/legal/privacy` (URL canonique V1 ; migration prévue vers `https://ahouai.com/privacy` lors du déploiement du site marketing) et dans l'Application.
 
 L'historique des versions est disponible sur simple demande à `contact@ahouai.com`.
 
@@ -348,7 +352,7 @@ L'historique des versions est disponible sur simple demande à `contact@ahouai.c
 Pour toute question, demande d'exercice de droits, ou réclamation relative à la présente Politique :
 
 - **Email** : `contact@ahouai.com`
-- **Adresse postale** : [À COMPLÉTER avant publication]
+- **Adresse postale** : 8 allée des Sapins, 95230 Soisy-sous-Montmorency, France
 
 L'Éditeur s'engage à répondre à votre demande dans les meilleurs délais, et au maximum dans un délai d'**un mois**.
 
@@ -368,8 +372,8 @@ Vous pouvez également saisir toute autre autorité de contrôle compétente au 
 ## 14. Version de la Politique
 
 - **Version actuelle** : 1.0
-- **Date d'entrée en vigueur** : [À COMPLÉTER]
-- **Date de dernière mise à jour** : [À COMPLÉTER]
+- **Date d'entrée en vigueur** : 1er septembre 2026
+- **Date de dernière mise à jour** : 12 août 2026
 
 ---
 

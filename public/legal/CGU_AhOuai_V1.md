@@ -1,7 +1,7 @@
 # Conditions Générales d'Utilisation — AhOuai
 
 **Version 1.0**
-**Date d'entrée en vigueur : [À COMPLÉTER avant publication]**
+**Date d'entrée en vigueur : 1er septembre 2026**
 
 ---
 
@@ -27,7 +27,7 @@ Les CGU s'appliquent à l'ensemble des Utilisateurs de l'Application, qu'ils soi
 
 - **Nom** : Jean-Sébastien Coursault
 - **Statut** : Personne physique
-- **Adresse postale** : [À COMPLÉTER avant publication]
+- **Adresse postale** : 8 allée des Sapins, 95230 Soisy-sous-Montmorency, France
 - **Email de contact** : contact@ahouai.com
 - **Directeur de la publication** : Jean-Sébastien Coursault
 
@@ -72,6 +72,16 @@ L'invité accède à la soirée en scannant un QR code affiché par l'hôte, ce 
 
 En Version 1.0, l'Application est fournie **entièrement gratuitement**. Une évolution vers un modèle « freemium » (plan gratuit + plan Pro payant) pourra être introduite dans une version ultérieure. Toute évolution tarifaire fera l'objet d'une notification préalable aux Utilisateurs et d'une mise à jour des présentes CGU.
 
+### 3.5. Contexte d'usage — cadre strictement privé
+
+Le Service AhOuai est conçu, développé et fourni exclusivement pour un usage **strictement privé, entre amis**, sans caractère commercial, public ou lucratif. L'Utilisateur s'engage à ne pas utiliser le Service :
+
+- dans un lieu ouvert au public (établissement recevant du public, débit de boissons, restaurant, discothèque) ;
+- dans un cadre professionnel ou générateur de recettes (soirée avec droit d'entrée payant, prestation événementielle facturée) ;
+- pour toute diffusion publique d'œuvres musicales au sens du Code de la propriété intellectuelle.
+
+L'Utilisateur reste seul responsable du respect des obligations éventuelles envers les sociétés de gestion collective (SACEM, SPRE) et l'ensemble des ayants droit en cas d'usage non conforme au présent article. L'Éditeur ne pourra en aucun cas être tenu responsable d'un usage détourné du Service par un Utilisateur.
+
 ---
 
 ## Article 4 — Accès au Service
@@ -100,11 +110,13 @@ L'Éditeur se réserve le droit d'interrompre temporairement le Service pour mai
 
 ### 5.1. Création de compte (Hôte uniquement)
 
-La création d'un compte est requise pour utiliser l'Application en tant qu'hôte de soirée. En Version 1.0, la création de compte est optionnelle. Dans une version ultérieure, elle pourra devenir obligatoire, avec l'introduction des méthodes suivantes :
+En Version 1.0, la création d'un compte est **obligatoire pour tout Utilisateur souhaitant utiliser l'Application en tant qu'hôte de soirée**. Elle est réalisée via l'une des méthodes d'authentification suivantes :
 
-- « Sign in with Apple » (Apple ID)
-- Compte Google
-- Adresse email + mot de passe
+- « Sign in with Apple » (via Apple ID) ;
+- Compte Google (via OAuth 2.0) ;
+- Adresse email + mot de passe (via le prestataire d'authentification Supabase Inc.).
+
+L'authentification et la sécurisation des identifiants sont assurées par le prestataire technique Supabase Inc., dont les mesures de sécurité sont détaillées dans la Politique de Confidentialité.
 
 L'invité, quant à lui, peut participer sans créer de compte : il fournit uniquement un prénom et un emoji pour chaque soirée à laquelle il participe.
 
@@ -200,6 +212,16 @@ Tout Utilisateur peut signaler un contenu qu'il juge contraire aux CGU par email
 
 L'Éditeur peut également retirer un contenu de sa propre initiative s'il constate une violation manifeste des CGU.
 
+### 7.5. Droit à l'image et consentement des personnes photographiées
+
+L'Utilisateur qui prend et partage une photographie via l'Application garantit :
+
+- avoir obtenu, préalablement à la prise de vue, le consentement libre, éclairé et non équivoque de toutes les personnes physiques identifiables figurant sur l'image, conformément à l'article 9 du Code civil et à la jurisprudence constante en matière de droit à l'image ;
+- avoir informé ces personnes de la finalité de la prise de vue (partage temporaire au sein d'une soirée entre amis) ainsi que de la durée de conservation applicable et de la possibilité d'en demander le retrait à tout moment ;
+- s'être assuré du consentement des représentants légaux pour toute personne mineure figurant sur la photographie.
+
+Toute personne photographiée peut demander le retrait immédiat d'une photographie en contactant `contact@ahouai.com` avec une preuve raisonnable d'identité. L'Éditeur procédera au retrait sous un délai maximum de 48 heures ouvrées et confirmera l'action par email. Ce droit de retrait s'exerce en complément des droits RGPD prévus par la Politique de Confidentialité.
+
 ---
 
 ## Article 8 — Propriété intellectuelle
@@ -257,7 +279,7 @@ L'Utilisateur peut, à tout moment et sans motif, résilier son compte AhOuai en
 
 - Supprimant l'Application de son appareil (aucun effet sur les données déjà collectées ; voir 10.4)
 - Envoyant une demande de suppression de compte à `contact@ahouai.com` (traitement sous 30 jours maximum)
-- Utilisant l'option « Supprimer mon compte » depuis les paramètres de l'Application, lorsque celle-ci sera disponible (Version 1.1)
+- Utilisant l'option « Supprimer mon compte » depuis les paramètres de l'Application (fonctionnalité disponible dès la Version 1.0). Cette action déclenche immédiatement la suppression du compte auprès du prestataire d'authentification (Supabase Inc.) ainsi que l'effacement ou l'anonymisation des données personnelles hébergées sur les bases de données de l'Éditeur, dans les conditions détaillées à l'article 6 (Durées de conservation) de la Politique de Confidentialité.
 
 ### 10.2. Suspension à l'initiative de l'Éditeur
 
@@ -328,6 +350,17 @@ L'exécution des obligations est suspendue pendant la durée de l'événement de
 
 ---
 
+## Article 12 bis — Fermeture ou arrêt définitif du Service
+
+L'Éditeur se réserve la possibilité de suspendre ou d'arrêter définitivement l'Application, notamment pour des raisons économiques, techniques ou stratégiques. Dans une telle hypothèse :
+
+- l'Éditeur informera l'ensemble des Utilisateurs disposant d'un compte au minimum trente (30) jours avant la fermeture effective, par notification au sein de l'Application et, le cas échéant, par email envoyé à l'adresse fournie lors de l'inscription ;
+- l'Éditeur mettra à disposition, pendant cette période de préavis, une fonctionnalité d'export des données personnelles au format lisible par machine (JSON), conformément au droit à la portabilité prévu par l'article 20 du RGPD ;
+- à l'expiration du délai de préavis, l'ensemble des données personnelles des Utilisateurs sera supprimé ou anonymisé selon les modalités prévues par la Politique de Confidentialité, sous réserve des durées de conservation légales applicables (obligations comptables, sécurité, coopération judiciaire) ;
+- aucune indemnité ne pourra être réclamée en raison de la fermeture du Service, sous réserve des dispositions d'ordre public.
+
+---
+
 ## Article 13 — Modifications des CGU
 
 L'Éditeur se réserve le droit de modifier les présentes CGU à tout moment, notamment pour tenir compte d'évolutions du Service, réglementaires ou légales.
@@ -345,7 +378,7 @@ En cas de refus, l'Utilisateur pourra résilier son compte selon les modalités 
 
 ## Article 14 — Données personnelles
 
-Le traitement des données personnelles collectées via l'Application est régi par la **Politique de Confidentialité** d'AhOuai, disponible à l'adresse `https://ahouai.com/privacy` (URL à confirmer) et accessible depuis l'Application.
+Le traitement des données personnelles collectées via l'Application est régi par la **Politique de Confidentialité** d'AhOuai, disponible à l'adresse `https://api.ahouai.com/legal/privacy` (URL canonique V1 ; migration prévue vers `https://ahouai.com/privacy` lors du déploiement du site marketing) et accessible depuis l'Application.
 
 Cette Politique de Confidentialité fait partie intégrante des présentes CGU. En acceptant les CGU, l'Utilisateur reconnaît avoir pris connaissance de la Politique de Confidentialité.
 
@@ -363,7 +396,7 @@ En cas de différend relatif à l'exécution ou à l'interprétation des CGU, l'
 
 ### 15.3. Médiation de la consommation
 
-Conformément à l'article L. 616-1 du Code de la consommation, l'Utilisateur consommateur peut recourir gratuitement au service de médiation de la consommation en cas de litige. L'Éditeur adhère au médiateur suivant : [À COMPLÉTER lors de l'adhésion effective à un médiateur].
+Conformément à l'article L. 616-1 du Code de la consommation, l'Utilisateur consommateur peut recourir gratuitement au service de médiation de la consommation en cas de litige. L'Éditeur est en cours d'adhésion à un service de médiation ; la désignation du médiateur sera effective avant le 1er septembre 2026 et l'information complète (nom, coordonnées) sera communiquée par email à `contact@ahouai.com` sur simple demande, ainsi que dans la prochaine mise à jour des présentes CGU.
 
 L'Utilisateur peut également recourir à la plateforme européenne de règlement en ligne des litiges (RLL) : https://ec.europa.eu/consumers/odr
 
@@ -381,7 +414,7 @@ L'Utilisateur peut également recourir à la plateforme européenne de règlemen
 Pour toute question, réclamation ou signalement lié aux présentes CGU ou à l'utilisation du Service :
 
 - **Email** : `contact@ahouai.com`
-- **Adresse postale** : [À COMPLÉTER avant publication]
+- **Adresse postale** : 8 allée des Sapins, 95230 Soisy-sous-Montmorency, France
 
 ---
 
@@ -404,8 +437,8 @@ Le fait pour l'Éditeur de ne pas exercer un droit ou de ne pas invoquer un manq
 ## Article 18 — Version des CGU
 
 - **Version actuelle** : 1.0
-- **Date d'entrée en vigueur** : [À COMPLÉTER]
-- **Date de dernière mise à jour** : [À COMPLÉTER]
+- **Date d'entrée en vigueur** : 1er septembre 2026
+- **Date de dernière mise à jour** : 12 août 2026
 
 L'historique des versions est disponible sur simple demande à `contact@ahouai.com`.
 
