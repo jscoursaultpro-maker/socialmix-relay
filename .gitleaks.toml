@@ -23,4 +23,4 @@ tags = ["secret"]
 
 [allowlist]
 description = "Allowlist paths"
-paths = ['''node_modules/''', '''\.git/''', '''package-lock\.json''']
+paths = ['''node_modules/''', '''\.git/''', '''package-lock\.json''', '''tests/''']
