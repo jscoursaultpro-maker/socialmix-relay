@@ -398,7 +398,7 @@ En cas de différend relatif à l'exécution ou à l'interprétation des CGU, l'
 
 Conformément à l'article L. 616-1 du Code de la consommation, l'Utilisateur consommateur peut recourir gratuitement au service de médiation de la consommation en cas de litige. L'Éditeur est en cours d'adhésion à un service de médiation ; la désignation du médiateur sera effective avant le 1er septembre 2026 et l'information complète (nom, coordonnées) sera communiquée par email à `contact@ahouai.com` sur simple demande, ainsi que dans la prochaine mise à jour des présentes CGU.
 
-L'Utilisateur peut également recourir à la plateforme européenne de règlement en ligne des litiges (RLL) : https://ec.europa.eu/consumers/odr
+*Nota bene : la plateforme européenne de règlement en ligne des litiges (RLL/ODR) précédemment accessible sur `ec.europa.eu/consumers/odr` a été fermée définitivement le 20 juillet 2025 en application du règlement (UE) 2024/3228. Elle n'est donc plus mentionnée comme voie de recours dans les présentes CGU. Le recours au médiateur français agréé CECMC ci-dessus reste pleinement applicable.*
 
 ### 15.4. Compétence juridictionnelle
 
