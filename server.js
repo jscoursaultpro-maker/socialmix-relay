@@ -5550,7 +5550,7 @@ setInterval(() => {
 }, 5 * 60 * 1000); // Toutes les 5 minutes
 
 // Auto-end after 12h of inactivity (RAM parties only)
-setInterval(() => {
+setInterval(async () => {
   const now = Date.now();
   for (const party of parties.values()) {
     if (party.lifecycle && party.lifecycle.status === 'live') {
@@ -5562,7 +5562,14 @@ setInterval(() => {
         console.log(`⏱️ [${party.code}] Auto-ended after 12h of inactivity`);
         io.to(`host:${party.code}`).emit('party:auto_ended');
         io.to(`guest:${party.code}`).emit('party:ended');
-        flushEndedParty(party.code);
+        // ★ FIX Sentry AHOUAI-RELAY-2 (12/08): pass party object, not code string.
+        // Was: flushEndedParty(party.code) → TypeError "Cannot create property 'endedAt' on string"
+        // Impact indirect probable sur Task #67 (parties fantômes) car auto-end crashait silencieusement.
+        try {
+          await flushEndedParty(party);
+        } catch (err) {
+          console.error(`❌ [${party.code}] Auto-end flushEndedParty failed:`, err.message);
+        }
         parties.delete(party.code);
       }
     }
