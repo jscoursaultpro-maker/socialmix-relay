@@ -10,6 +10,7 @@ import {
   computeFreshnessScore,
   NEVER_PLAYED_SCORE,
   toLegacyScore,
+  simulateIosComposite,
 } from '../../services/freshnessScoring.js';
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -87,4 +88,64 @@ test('F1g: toLegacyScore maps to V1 tiers correctly', () => {
   assert.equal(toLegacyScore(0), -100);
   assert.equal(toLegacyScore(28), -100); // 5 days ago
   assert.equal(toLegacyScore(39), -100);
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// F3 — Banger boost on party phase (+20)
+// ═══════════════════════════════════════════════════════════════════════
+test('F3: banger boost applies in party phase', () => {
+  // Sanity check — banger recent (5j, score 18) vs non-banger old (20j, score 74)
+  // The non-banger with much better freshness is still favored
+  const banger = simulateIosComposite({ freshnessScore: 18, isBanger: true, stage: 'party', isGuestSuggestion: false });
+  const nonBanger = simulateIosComposite({ freshnessScore: 74, isBanger: false, stage: 'party', isGuestSuggestion: false });
+  assert.equal(banger, 38);    // 18 + 20
+  assert.equal(nonBanger, 74);
+  assert.ok(nonBanger > banger, 'Sanity: non-banger with much better freshness still favored');
+
+  // Real edge case — banger 15j (63+20=83) beats non-banger 20j (74)
+  // Banger boost tips the balance when freshness gap is small
+  const bangerRecent = simulateIosComposite({ freshnessScore: 63, isBanger: true, stage: 'party', isGuestSuggestion: false });
+  const nonBangerOlder = simulateIosComposite({ freshnessScore: 74, isBanger: false, stage: 'party', isGuestSuggestion: false });
+  assert.equal(bangerRecent, 83);    // 63 + 20
+  assert.ok(bangerRecent > nonBangerOlder, 'Banger 15j (83) > non-banger 20j (74) → banger boost tips the balance');
+});
+
+test('F3b: banger boost applies in all eligible phases', () => {
+  for (const phase of ['takeoff', 'groove', 'party', 'closing']) {
+    const score = simulateIosComposite({ freshnessScore: 50, isBanger: true, stage: phase, isGuestSuggestion: false });
+    assert.equal(score, 70, `Banger boost should apply in ${phase}: 50+20=70`);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// F4 — Banger NOT boosted in arrival/ambiance (doctrine égalitaire)
+// ═══════════════════════════════════════════════════════════════════════
+test('F4: banger NOT boosted in arrival phase', () => {
+  const banger = simulateIosComposite({ freshnessScore: 18, isBanger: true, stage: 'arrival', isGuestSuggestion: false });
+  const nonBanger = simulateIosComposite({ freshnessScore: 74, isBanger: false, stage: 'arrival', isGuestSuggestion: false });
+  assert.equal(banger, 18);   // NO +20 boost
+  assert.equal(nonBanger, 74);
+  assert.ok(nonBanger > banger, 'Doctrine égalitaire respected on arrival');
+});
+
+test('F4b: banger NOT boosted in ambiance phase', () => {
+  const score = simulateIosComposite({ freshnessScore: 30, isBanger: true, stage: 'ambiance', isGuestSuggestion: false });
+  assert.equal(score, 30);  // NO boost
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// F5 — Guest override bypasses freshnessScore entirely
+// ═══════════════════════════════════════════════════════════════════════
+test('F5: guest override bypasses freshnessScore entirely', () => {
+  // Track played yesterday (score 6), but suggested by guest → treated as 100
+  const guestSuggestion = simulateIosComposite({ freshnessScore: 6, isBanger: false, stage: 'party', isGuestSuggestion: true });
+  assert.equal(guestSuggestion, 100);
+
+  // Even in arrival/ambiance (no banger boost), guest override still bypasses
+  const guestArrival = simulateIosComposite({ freshnessScore: 6, isBanger: false, stage: 'arrival', isGuestSuggestion: true });
+  assert.equal(guestArrival, 100);
+
+  // Guest override ALSO applies for banger tracks (doesn't stack — bypass wins)
+  const guestBanger = simulateIosComposite({ freshnessScore: 6, isBanger: true, stage: 'party', isGuestSuggestion: true });
+  assert.equal(guestBanger, 100);  // 100, not 120
 });

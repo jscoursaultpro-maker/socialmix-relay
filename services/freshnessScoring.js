@@ -53,3 +53,33 @@ export function toLegacyScore(freshnessScore) {
   if (freshnessScore >= 40) return 10;   // ≈ played 15-30d ago
   return -100;                           // ≈ played <15d ago
 }
+
+/** Phases where banger boost applies (mirrors DJBrain.swift SessionStage). */
+export const BANGER_ELIGIBLE_PHASES = new Set(['takeoff', 'groove', 'party', 'closing']);
+
+/**
+ * Simulate the composite scoring adjustment applied by DJBrain iOS.
+ * Mirrors DJBrain.swift logic (Task #44 Prompt B, commit 9a4acc0).
+ *
+ * Purpose: backend-side testing of doctrine rules (banger boost,
+ * guest override, phase eligibility) without requiring XCTest setup.
+ *
+ * @param {object} opts
+ * @param {number} opts.freshnessScore - Base score 0-100 from endpoint
+ * @param {boolean} opts.isBanger - Track.isBanger flag
+ * @param {string} opts.stage - SessionStage rawValue (arrival|ambiance|takeoff|groove|party|closing)
+ * @param {boolean} opts.isGuestSuggestion - True if track is a guest suggestion
+ * @returns {number} Final freshness contribution to composite (can exceed 100 with banger boost)
+ */
+export function simulateIosComposite({ freshnessScore, isBanger, stage, isGuestSuggestion }) {
+  // Guest override: bypass freshnessScore entirely (doctrine: guest choice prime)
+  if (isGuestSuggestion) {
+    return 100;
+  }
+  let score = freshnessScore;
+  // Banger boost ONLY on high-energy phases (not arrival/ambiance)
+  if (isBanger && BANGER_ELIGIBLE_PHASES.has(stage)) {
+    score += BANGER_BOOST;  // +20
+  }
+  return score;
+}
