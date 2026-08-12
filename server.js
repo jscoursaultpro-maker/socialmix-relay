@@ -30,6 +30,8 @@ import * as Sentry from '@sentry/node'; // ★ feat(sentry): Express error handl
 import { socketAuth } from './middleware/socketAuth.js'; // ★ Supabase auth middleware
 import { verifySupabaseJWT } from './lib/supabaseAuth.js';  // ★ for HTTP routes
 import { findOrCreateFromSupabase } from './services/userService.js'; // ★
+import { encodeObjectId, decodeToObjectId } from './utils/base62.js'; // ★ Task #81: afterglow URLs
+import { computeMoments } from './services/moments.js'; // ★ Task #81: post-party moments
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -2158,6 +2160,101 @@ app.post('/api/party/:code/resume', async (req, res) => {
   }
 });
 
+// ★ Task #81: GET /api/afterglow/:base62 — Public afterglow endpoint (rate-limit ready)
+app.get('/api/afterglow/:base62', async (req, res) => {
+  try {
+    const hexId = decodeToObjectId(req.params.base62);
+    const party = await Party.findById(hexId).lean();
+    if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
+    if (!party.endedAt) return res.status(403).json({ error: 'PARTY_STILL_LIVE' });
+
+    // Aggregate track data from HPH
+    const hph = await HostPlaybackHistory.find({ partyCode: party.code })
+      .sort({ playedAt: 1 }).lean();
+
+    // Photos from Photo collection (Cloudinary CDN URLs only)
+    const photos = await Photo.find({ partyCode: party.code, deletedAt: null })
+      .sort({ sentAt: -1 }).lean();
+
+    // Build guest stats from participantScores (RGPD: prénom + emoji only)
+    const guests = (party.participants || [])
+      .filter(p => !p.isHost)
+      .map(p => {
+        const scoreEntry = party.participantScores?.[p.name];
+        return {
+          name: p.name,
+          emoji: p.emoji || '🎉',
+          joinedAt: p.joinedAt,
+          stats: {
+            points: scoreEntry?.score || 0,
+            voteCount: scoreEntry?.voteCount || 0
+          }
+        };
+      });
+
+    // Track list with vote scores
+    const tracks = hph.map(h => ({
+      title: h.title,
+      artist: h.artist,
+      phase: h.phase,
+      playedAt: h.playedAt,
+      votes: h.voteScore || { feu: 0, cool: 0, bof: 0 },
+      wasSuggested: h.wasSuggestedByGuest || false,
+      suggestedBy: h.suggestedBy || null,
+      wasHostOverride: h.wasHostOverride || false
+    }));
+
+    // Global stats
+    const totalFeu = tracks.reduce((s, t) => s + (t.votes.feu || 0), 0);
+    const topTrack = tracks.reduce((best, t) =>
+      (t.votes.feu || 0) > (best?.votes?.feu || 0) ? t : best, null);
+    const topGuest = guests.reduce((best, g) =>
+      g.stats.points > (best?.stats?.points || 0) ? g : best, null);
+
+    const startedAt = party.lifecycle?.startedAt || party.createdAt;
+    const durationMs = party.endedAt && startedAt
+      ? new Date(party.endedAt) - new Date(startedAt) : null;
+
+    // ★ PUBLIC payload — never expose hostSecret, hostUserId, emails
+    res.json({
+      party: {
+        code: party.code,
+        partyName: party.partyName || party.welcomeText || null,
+        createdAt: party.createdAt,
+        endedAt: party.endedAt,
+        durationMs,
+        streamingProvider: party.streamingProvider || null,
+        hostProfile: {
+          name: party.hostProfile?.name || null,
+          emoji: party.hostProfile?.emoji || null
+        }
+      },
+      tracks,
+      guests,
+      moments: party.moments || [],
+      photos: photos.map(p => ({
+        url: p.url,
+        guestName: p.guestName,
+        guestEmoji: p.guestEmoji || null,
+        caption: p.caption || null,
+        sentAt: p.sentAt
+      })),
+      stats: {
+        totalTracks: tracks.length,
+        totalGuests: guests.length,
+        totalPhotos: photos.length,
+        totalFeuVotes: totalFeu,
+        topTrack: topTrack ? { title: topTrack.title, artist: topTrack.artist, feuVotes: topTrack.votes.feu } : null,
+        topGuest: topGuest && topGuest.stats.points > 0 ? { name: topGuest.name, emoji: topGuest.emoji, points: topGuest.stats.points } : null
+      }
+    });
+  } catch (err) {
+    if (err.message === 'INVALID_BASE62') return res.status(400).json({ error: 'INVALID_URL' });
+    console.error('❌ /afterglow error:', err);
+    res.status(500).json({ error: 'INTERNAL' });
+  }
+});
+
 // ★ A3c — GET /api/party/:code/audit — EventLog post-mortem (host only, JWT)
 app.get('/api/party/:code/audit', async (req, res) => {
   const code = (req.params.code || '').toUpperCase();
@@ -3291,6 +3388,14 @@ io.on('connection', (socket) => {
     console.log(`[${code}] 🎬 Party sent to AfterGlow by host`);
 
     await flushEndedParty(party);
+
+    // ★ Task #81: Compute moments fire-and-forget (non-blocking)
+    if (party._id) {
+      computeMoments(party._id).catch(err =>
+        console.error(`[${code}] ⚠️ computeMoments failed:`, err.message)
+      );
+    }
+
     parties.delete(code);
     cancelCleanup(code);
   });
@@ -5178,6 +5283,14 @@ io.on('connection', (socket) => {
     });
     console.log(`🎉 [${party.code}] Party ended by host`);
     await flushEndedParty(party);
+
+    // ★ Task #81: Compute moments fire-and-forget (non-blocking)
+    if (party._id) {
+      computeMoments(party._id).catch(err =>
+        console.error(`[${party.code}] ⚠️ computeMoments failed:`, err.message)
+      );
+    }
+
     parties.delete(party.code);
     cancelCleanup(party.code);
   });
