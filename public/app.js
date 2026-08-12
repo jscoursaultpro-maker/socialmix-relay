@@ -944,18 +944,20 @@ function connectToRelay() {
     if (ps.mode) { state.mode = ps.mode; updateDJMode(); }
     if (ps.participants) { updateTrombinoscope(ps.participants); }
     if (ps.photos && ps.photos.length) {
-      // Only rebuild diapo if photos have actual dataURL (full state).
-      // Lightweight state (resync) sends metadata only — skip grid rebuild.
-      const hasFullPhotos = ps.photos.some(p => p.dataURL);
-      if (hasFullPhotos) {
+      // ★ Task #103 Gap B fix: Cloudinary photos have .url (not .dataURL).
+      // buildLightState strips dataURL > 500 chars, so after reconnect
+      // only .url survives. Check both fields to rebuild grid reliably.
+      const hasPhotos = ps.photos.some(p => p.url || p.dataURL);
+      if (hasPhotos) {
         const grid = $('diapo-grid');
         if (grid) grid.innerHTML = '';
         state.diapoPhotos = new Set();
         ps.photos.forEach(p => {
-          if (!p.dataURL) return;
-          const key = (p.dataURL || '').substring(0, 100);
+          const src = p.url || p.dataURL;
+          if (!src) return;
+          const key = src.substring(0, 100);
           if (!state.diapoPhotos.has(key)) {
-            addDiapoPhoto(p.dataURL, p.guestName);
+            addDiapoPhoto(src, p.guestName);
           }
         });
         // Also add my own photos that might not be on server yet
@@ -1280,8 +1282,10 @@ function connectToRelay() {
   });
 
   // Photo shared by another guest (for diapo)
+  // ★ Task #103 Gap A fix: server sends photo.url (Cloudinary), NOT photo.dataURL
   socket.on('photo:shared', (photo) => {
-    addDiapoPhoto(photo.dataURL, photo.guestName);
+    const photoSrc = photo.url || photo.dataURL;
+    if (photoSrc) addDiapoPhoto(photoSrc, photo.guestName);
   });
 
   socket.on('photos:update', (photos) => {
@@ -3492,14 +3496,17 @@ function resizeImage(file, maxSize, quality, callback) {
   img.src = URL.createObjectURL(file);
 }
 
-function addDiapoPhoto(dataURL, guestName) {
+// ★ Task #103: param renamed photoSrc (accepts Cloudinary URL or base64 dataURL)
+function addDiapoPhoto(photoSrc, guestName) {
   const grid = $('diapo-grid');
   if (!grid) { console.error('[Photo] diapo-grid not found!'); return; }
+  if (!photoSrc) return;
   
-  // Track for dedup
+  // Track for dedup — use full URL for Cloudinary (short), mid-hash for base64 (long)
   if (!state.diapoPhotos) state.diapoPhotos = new Set();
-  const mid = Math.floor((dataURL || '').length / 2);
-  const key = (dataURL || '').length + ':' + (dataURL || '').substring(mid, mid + 80);
+  const key = photoSrc.startsWith('https://')
+    ? photoSrc                                        // Cloudinary URL = unique, use as-is
+    : photoSrc.length + ':' + photoSrc.substring(Math.floor(photoSrc.length / 2), Math.floor(photoSrc.length / 2) + 80);
   if (state.diapoPhotos.has(key)) {
     console.log('[Photo] Duplicate skipped');
     return;
@@ -3507,11 +3514,11 @@ function addDiapoPhoto(dataURL, guestName) {
   state.diapoPhotos.add(key);
   
   const img = document.createElement('img');
-  img.src = dataURL;
+  img.src = photoSrc;
   img.alt = `photo de ${guestName || 'guest'}`;
   img.style.cssText = 'width:100%; border-radius:8px; aspect-ratio:1; object-fit:cover; cursor:pointer;';
   // Ouvre la lightbox avec bouton FERMER (plus de téléchargement automatique)
-  img.addEventListener('click', () => showPhotoLightbox(dataURL, guestName || 'Guest'));
+  img.addEventListener('click', () => showPhotoLightbox(photoSrc, guestName || 'Guest'));
   grid.appendChild(img);
   console.log('[Photo] Added to diapo-grid, total:', grid.children.length);
 }
