@@ -59,7 +59,7 @@ const TrackSchema = new mongoose.Schema({
   // Niveau 5 — Tags orthogonaux
   confidence: { type: String, enum: ['high', 'medium', 'low', null], default: null },
   confidence_notes: { type: String, default: null },
-  isBanger: { type: Boolean, default: false },
+  isBanger: { type: Boolean, default: false, index: true },  // ★ Task #44: index for DJBrain filtered queries
   isSingalong: { type: Boolean, default: false },
   isEmotional: { type: Boolean, default: false },
   isCaliente: { type: Boolean, default: false },
