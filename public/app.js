@@ -4211,17 +4211,10 @@ function showDiapoSlide(index) {
     $('diapo-msg-caption').textContent = slide.message || slide.caption || '';
     const authorEmoji = findParticipantEmoji(slide.guestName);
     $('diapo-msg-author').innerHTML = `<span>${authorEmoji}</span> ${slide.guestName || 'Guest'}`;
-    // QR intégré dans post-it
-    const msgQr = $('diapo-msg-qr');
-    if (msgQr && diapoQrDataUrl) {
-      msgQr.innerHTML = `<img src="${diapoQrDataUrl}" width="80" height="80" alt="QR"><div class="diapo-message-qr-label">Rejoins cette soirée</div>`;
-    } else if (msgQr) {
-      msgQr.innerHTML = '';
-    }
-    // Hide track/QR overlay/author for message slides (QR intégré remplace)
+    // Hide track/author for message slides — QR overlay bottom-right stays visible (parité photos)
     if (trackOverlay) trackOverlay.style.display = 'none';
-    if (qrOverlay) qrOverlay.style.display = 'none';
     if (authorBadge) authorBadge.style.display = 'none';
+    if (qrOverlay) qrOverlay.style.display = '';
   } else {
     // Show photo, hide message
     msgSlide.classList.add('hidden');
