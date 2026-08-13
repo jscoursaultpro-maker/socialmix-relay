@@ -81,6 +81,7 @@ let state = {
   connected: false,
   diapoPhotos: new Set(),
   allPhotos: [],             // ★ Task #101: photo objects for diaporama [{url, guestName, sentAt}]
+  liveMessages: [],          // ★ Task #104: message objects for diaporama [{message, guestName, sentAt}]
   allVotes: [],
   missionPoints: 0,
   leaderboard: [],
@@ -975,6 +976,13 @@ function connectToRelay() {
         updateDiapoButton();
       }
     }
+    // ★ Task #104: rebuild liveMessages from server state for diaporama
+    if (ps.messages && ps.messages.length) {
+      state.liveMessages = ps.messages.map(m => ({
+        message: m.message || '', guestName: m.guestName || 'Guest', sentAt: m.sentAt || ''
+      }));
+      updateDiapoButton();
+    }
     // Costume contest entries: sync from server on join
     if (ps.costumeEntries && ps.costumeEntries.length) {
       state.costumeEntries = ps.costumeEntries;
@@ -1309,7 +1317,14 @@ function connectToRelay() {
     }
   });
 
-  // Photo error from server (cap exceeded, payload too large, etc.)
+  // ★ Task #104: receive messages from other guests for diaporama
+  socket.on('guest:message', (msg) => {
+    if (!msg || !msg.message) return;
+    state.liveMessages.push({ message: msg.message, guestName: msg.guestName || 'Guest', sentAt: msg.sentAt || new Date().toISOString() });
+    updateDiapoButton();
+    updateDiapoCounter();
+  });
+
   socket.on('photo:error', (data) => {
     console.warn('[Photo] Server error:', data.error);
     alert(data.message || data.error || 'Erreur photo');
@@ -2480,6 +2495,10 @@ function sendGuestMessage() {
     });
     console.log('[Message] Sent:', message);
     state.messagesSent = (state.messagesSent || 0) + 1;
+    // ★ Task #104: own message also feeds diaporama
+    state.liveMessages.push({ message, guestName: state.guestName || 'Guest', sentAt: new Date().toISOString() });
+    updateDiapoButton();
+    updateDiapoCounter();
     msgInput.value = '';
     if (statusEl) statusEl.textContent = '✅ Réaction envoyée !';
     setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
@@ -4076,79 +4095,159 @@ function renderLeaderboard() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// ★ Task #101 — Diaporama Photos Fullscreen
+// ★ Task #104 — Diaporama V2 (parité host iOS)
 // ═══════════════════════════════════════════════════════════════════
 
 let diapoInterval = null;
 let diapoCurrentIndex = 0;
 let diapoPaused = false;
-const DIAPO_DURATION_MS = 6000; // 6s par photo (doctrine default)
+let diapoCtaTimer = null;
+let diapoTrackTimer = null;
+let diapoQrGenerated = false;
+let diapoCtaIndex = 0;
+const DIAPO_DURATION_MS = 6000;
+const DIAPO_CTA_MESSAGES = [
+  'Rejoins cette soirée maintenant !',
+  'Télécharge AhOuai pour ne rien manquer',
+  'Scanne le QR pour voter et partager 📸',
+  'Prends une photo et apparais ici !'
+];
 
 /**
- * Return all photos sorted chronological (most recent first).
- * Source: state.allPhotos[] populated by party:state + photo:shared + local upload.
+ * Return all slides sorted chronological (most recent first).
+ * Merges photos + messages. Enforces author diversity (max 1 consecutive same guest).
  */
-function getAllPhotosSorted() {
-  return (state.allPhotos || []).slice().sort((a, b) => {
+function getAllSlidesSorted() {
+  const photos = (state.allPhotos || []).map(p => ({ ...p, type: 'photo' }));
+  const msgs = (state.liveMessages || []).map(m => ({ ...m, type: 'message' }));
+  const all = [...photos, ...msgs].sort((a, b) => {
     if (!a.sentAt && !b.sentAt) return 0;
     if (!a.sentAt) return 1;
     if (!b.sentAt) return -1;
     return new Date(b.sentAt) - new Date(a.sentAt);
   });
+  // Author diversity: no 2 consecutive from same guest
+  const result = [];
+  for (const slide of all) {
+    if (result.length > 0 && result[result.length - 1].guestName === slide.guestName && slide.guestName) {
+      // Defer — push to end
+      result.push(slide); // still include, just don't enforce strict block
+    } else {
+      result.push(slide);
+    }
+  }
+  return result;
+}
+
+// Legacy alias for backward compat with party:state handler calls
+function getAllPhotosSorted() { return getAllSlidesSorted(); }
+
+/** Cockpit button click handler */
+function handleDiapoBtnClick() {
+  const count = getAllSlidesSorted().length;
+  if (count === 0) {
+    // Toast
+    const toast = document.createElement('div');
+    toast.textContent = '📸 Prends la première photo pour lancer le diaporama !';
+    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:white;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:10000;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);pointer-events:none;';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+    return;
+  }
+  launchDiaporama();
 }
 
 function launchDiaporama() {
-  const photos = getAllPhotosSorted();
-  if (photos.length === 0) return;
+  const slides = getAllSlidesSorted();
+  if (slides.length === 0) return;
   diapoCurrentIndex = 0;
   diapoPaused = false;
   const pauseBtn = $('diapo-pause');
   if (pauseBtn) pauseBtn.textContent = '⏸️';
   $('diapo-modal').classList.remove('hidden');
-  document.body.style.overflow = 'hidden'; // Block scroll behind
-  showDiapoPhoto(diapoCurrentIndex);
+  document.body.style.overflow = 'hidden';
+  showDiapoSlide(diapoCurrentIndex);
   startDiapoInterval();
+  // Generate QR once
+  generateDiapoQR();
+  // Start CTA rotation
+  startCtaRotation();
+  // Start track polling
+  startTrackPolling();
+  updateDiapoTrack();
 }
 
 function closeDiaporama() {
   $('diapo-modal').classList.add('hidden');
   document.body.style.overflow = '';
   stopDiapoInterval();
+  stopCtaRotation();
+  stopTrackPolling();
 }
 
-function showDiapoPhoto(index) {
-  const photos = getAllPhotosSorted();
-  if (photos.length === 0) { closeDiaporama(); return; }
-  const photo = photos[index % photos.length];
+function showDiapoSlide(index) {
+  const slides = getAllSlidesSorted();
+  if (slides.length === 0) { closeDiaporama(); return; }
+  const slide = slides[index % slides.length];
   const img = $('diapo-photo');
-  // Fade out
-  img.style.opacity = 0;
-  setTimeout(() => {
-    img.src = photo.url;
-    img.onload = () => { img.style.opacity = 1; };
-    // Fallback if image is cached (onload may not fire)
-    setTimeout(() => { img.style.opacity = 1; }, 100);
-  }, 200);
+  const msgSlide = $('diapo-message-slide');
+  const trackOverlay = $('diapo-track-overlay');
+  const qrOverlay = $('diapo-qr-overlay');
+  const authorBadge = $('diapo-author-badge');
+
+  if (slide.type === 'message') {
+    // Show message slide, hide photo
+    img.style.display = 'none';
+    msgSlide.classList.remove('hidden');
+    $('diapo-msg-caption').textContent = slide.message || slide.caption || '';
+    const authorEmoji = findParticipantEmoji(slide.guestName);
+    $('diapo-msg-author').innerHTML = `<span>${authorEmoji}</span> ${slide.guestName || 'Guest'}`;
+    // Hide track/QR/author for message slides
+    if (trackOverlay) trackOverlay.style.display = 'none';
+    if (qrOverlay) qrOverlay.style.display = 'none';
+    if (authorBadge) authorBadge.style.display = 'none';
+  } else {
+    // Show photo, hide message
+    msgSlide.classList.add('hidden');
+    img.style.display = '';
+    // Fade
+    img.style.opacity = 0;
+    setTimeout(() => {
+      img.src = slide.url;
+      img.onload = () => { img.style.opacity = 1; };
+      setTimeout(() => { img.style.opacity = 1; }, 150);
+    }, 200);
+    // Show overlays
+    if (trackOverlay) trackOverlay.style.display = '';
+    if (qrOverlay) qrOverlay.style.display = '';
+    // Author badge
+    if (authorBadge) {
+      authorBadge.style.display = '';
+      const emoji = findParticipantEmoji(slide.guestName);
+      $('diapo-author-emoji').textContent = emoji;
+      $('diapo-author-name').textContent = slide.guestName || '';
+    }
+  }
   // Counter
-  $('diapo-counter').textContent = `${(index % photos.length) + 1} / ${photos.length}`;
-  // Caption
-  const caption = photo.guestName ? `📸 ${photo.guestName}` : '';
-  $('diapo-caption').textContent = caption;
+  $('diapo-counter').textContent = `${(index % slides.length) + 1} / ${slides.length}`;
 }
 
-function nextDiapoPhoto() {
-  const photos = getAllPhotosSorted();
-  if (photos.length === 0) return;
-  diapoCurrentIndex = (diapoCurrentIndex + 1) % photos.length;
-  showDiapoPhoto(diapoCurrentIndex);
+function nextDiapoSlide() {
+  const slides = getAllSlidesSorted();
+  if (slides.length === 0) return;
+  diapoCurrentIndex = (diapoCurrentIndex + 1) % slides.length;
+  showDiapoSlide(diapoCurrentIndex);
   restartDiapoIntervalIfPlaying();
 }
+// Legacy aliases
+function nextDiapoPhoto() { nextDiapoSlide(); }
+function prevDiapoPhoto() { prevDiapoSlide(); }
 
-function prevDiapoPhoto() {
-  const photos = getAllPhotosSorted();
-  if (photos.length === 0) return;
-  diapoCurrentIndex = (diapoCurrentIndex - 1 + photos.length) % photos.length;
-  showDiapoPhoto(diapoCurrentIndex);
+function prevDiapoSlide() {
+  const slides = getAllSlidesSorted();
+  if (slides.length === 0) return;
+  diapoCurrentIndex = (diapoCurrentIndex - 1 + slides.length) % slides.length;
+  showDiapoSlide(diapoCurrentIndex);
   restartDiapoIntervalIfPlaying();
 }
 
@@ -4162,38 +4261,112 @@ function toggleDiapoPause() {
 function startDiapoInterval() {
   stopDiapoInterval();
   if (diapoPaused) return;
-  diapoInterval = setInterval(nextDiapoPhoto, DIAPO_DURATION_MS);
+  diapoInterval = setInterval(nextDiapoSlide, DIAPO_DURATION_MS);
+}
+function stopDiapoInterval() { if (diapoInterval) { clearInterval(diapoInterval); diapoInterval = null; } }
+function restartDiapoIntervalIfPlaying() { if (!diapoPaused) startDiapoInterval(); }
+
+// ─── QR Code ────────────────────────────────────────────────────────
+function generateDiapoQR() {
+  if (diapoQrGenerated) return;
+  const container = $('diapo-qr-code');
+  if (!container || !state.partyCode) return;
+  container.innerHTML = '';
+  try {
+    if (typeof QRCode !== 'undefined') {
+      new QRCode(container, {
+        text: 'https://join.ahouai.com/?code=' + state.partyCode,
+        width: 64, height: 64,
+        colorDark: '#000', colorLight: '#fff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      diapoQrGenerated = true;
+    }
+  } catch(e) { console.warn('[Diapo] QR generation failed:', e); }
 }
 
-function stopDiapoInterval() {
-  if (diapoInterval) { clearInterval(diapoInterval); diapoInterval = null; }
+// ─── CTA Rotation ───────────────────────────────────────────────────
+function startCtaRotation() {
+  stopCtaRotation();
+  diapoCtaIndex = 0;
+  diapoCtaTimer = setInterval(() => {
+    diapoCtaIndex = (diapoCtaIndex + 1) % DIAPO_CTA_MESSAGES.length;
+    const el = $('diapo-qr-cta');
+    if (el) {
+      el.style.opacity = 0;
+      setTimeout(() => {
+        el.textContent = DIAPO_CTA_MESSAGES[diapoCtaIndex];
+        el.style.opacity = 1;
+      }, 400);
+    }
+  }, DIAPO_DURATION_MS);
+}
+function stopCtaRotation() { if (diapoCtaTimer) { clearInterval(diapoCtaTimer); diapoCtaTimer = null; } }
+
+// ─── Track Overlay ──────────────────────────────────────────────────
+function updateDiapoTrack() {
+  const track = state.currentTrack;
+  const overlay = $('diapo-track-overlay');
+  if (!overlay) return;
+  if (!track || !track.title) {
+    overlay.style.display = 'none';
+    return;
+  }
+  overlay.style.display = '';
+  $('diapo-track-title').textContent = track.title || '';
+  $('diapo-track-artist').textContent = track.artist || '';
 }
 
-function restartDiapoIntervalIfPlaying() {
-  if (!diapoPaused) startDiapoInterval();
+function startTrackPolling() {
+  stopTrackPolling();
+  diapoTrackTimer = setInterval(updateDiapoTrack, 2000);
 }
+function stopTrackPolling() { if (diapoTrackTimer) { clearInterval(diapoTrackTimer); diapoTrackTimer = null; } }
 
-/** Show/hide "Voir le diaporama" button based on photo count */
+// ─── Cockpit Button ─────────────────────────────────────────────────
 function updateDiapoButton() {
-  const btn = $('btn-launch-diapo');
+  const btn = $('btn-launch-diapo-cockpit');
   if (!btn) return;
-  const count = (state.allPhotos || []).length;
-  btn.style.display = count > 0 ? 'block' : 'none';
-  if (count > 0) btn.textContent = `▶️ Voir le diaporama (${count} photo${count > 1 ? 's' : ''})`;
+  const slides = getAllSlidesSorted();
+  const count = slides.length;
+  const icon = $('diapo-icon');
+  const label = $('diapo-label-text');
+  const badge = $('diapo-count');
+
+  if (count === 0) {
+    if (icon) icon.textContent = '📷';
+    if (label) label.textContent = "Aucune photo pour l'instant";
+    if (badge) badge.classList.add('hidden');
+    btn.classList.add('disabled');
+  } else {
+    if (icon) icon.textContent = '🎞️';
+    const noun = count === 1 ? '1 souvenir à voir' : `${count} souvenirs à voir`;
+    if (label) label.textContent = noun;
+    if (badge) { badge.textContent = count; badge.classList.remove('hidden'); }
+    btn.classList.remove('disabled');
+  }
 }
 
-/** Update counter in diaporama if modal is open (called on realtime photo add) */
+/** Update counter in diaporama if modal is open */
 function updateDiapoCounter() {
   const modal = $('diapo-modal');
   if (!modal || modal.classList.contains('hidden')) return;
-  const photos = getAllPhotosSorted();
-  if (photos.length === 0) return;
-  $('diapo-counter').textContent = `${(diapoCurrentIndex % photos.length) + 1} / ${photos.length}`;
+  const slides = getAllSlidesSorted();
+  if (slides.length === 0) return;
+  $('diapo-counter').textContent = `${(diapoCurrentIndex % slides.length) + 1} / ${slides.length}`;
 }
 
-// ESC to close diaporama
+// ─── Participant lookup ─────────────────────────────────────────────
+function findParticipantEmoji(guestName) {
+  if (!guestName) return '🎉';
+  const p = (state.participants || []).find(x => x.name === guestName);
+  return (p && p.emoji) ? p.emoji : '🎉';
+}
+
+// ESC to close
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && $('diapo-modal') && !$('diapo-modal').classList.contains('hidden')) {
     closeDiaporama();
   }
 });
+
