@@ -965,6 +965,25 @@ function connectToRelay() {
             state.allPhotos.push({ url: src, guestName: p.guestName || '', sentAt: p.sentAt || '' });
           }
         });
+        // ★ Task #106 Fix F — Rebuild state.myPhotos from server (section "Mes photos")
+        // Filter server photos by guestId or guestName match to reconstruct ownership
+        const myId = state.guestId;
+        const myName = state.guestName;
+        if (myId || myName) {
+          const existingMySet = new Set((state.myPhotos || []).map(u => (u || '').substring(0, 100)));
+          ps.photos.forEach(p => {
+            const src = p.url || p.dataURL;
+            if (!src) return;
+            const isMine = (myId && p.guestId === myId) ||
+                           (!p.guestId && myName && p.guestName === myName);
+            if (isMine && !existingMySet.has(src.substring(0, 100))) {
+              state.myPhotos = state.myPhotos || [];
+              state.myPhotos.push(src);
+              existingMySet.add(src.substring(0, 100));
+            }
+          });
+          console.log('[Task106-F] state.myPhotos resynced:', (state.myPhotos || []).length);
+        }
         // Also add my own photos that might not be on server yet
         (state.myPhotos || []).forEach(url => {
           const key = (url || '').substring(0, 100);
@@ -973,6 +992,7 @@ function connectToRelay() {
             state.allPhotos.push({ url, guestName: state.guestName || '', sentAt: '' });
           }
         });
+        updateMyPhotosGrid();
         updateDiapoButton();
       }
     }
