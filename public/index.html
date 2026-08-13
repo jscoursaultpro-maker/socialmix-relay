@@ -258,6 +258,13 @@
             <div class="header-greeting" id="greeting" style="text-align: center; font-size: 16px; margin-top: 4px; padding-bottom: 4px;">Hey ! 🎉</div>
         </div>
 
+        <!-- ★ Task #104: Diaporama cockpit button -->
+        <button id="btn-launch-diapo-cockpit" class="diapo-cockpit-btn" onclick="handleDiapoBtnClick()">
+            <span class="diapo-icon" id="diapo-icon">📷</span>
+            <span class="diapo-label" id="diapo-label-text">Aucune photo pour l'instant</span>
+            <span class="diapo-badge hidden" id="diapo-count">0</span>
+        </button>
+
         <!-- Social Hub Quick Access -->
         <button id="hub-top-btn" class="social-hub-btn" style="
             width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;
@@ -551,10 +558,7 @@
                         <input type="file" id="camera-photo-input" accept="image/*" onchange="handleDiapoPhoto(event)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
                     </div>
                 </div>
-                <!-- ★ Task #101: Diaporama launch button -->
-                <button id="btn-launch-diapo" class="diapo-launch-btn" onclick="launchDiaporama()" style="display:none">
-                    ▶️ Voir le diaporama
-                </button>
+
                 
                 <!-- My Photos section -->
                 <div style="margin-top:12px;">
@@ -728,6 +732,17 @@
 
     <!-- ★ Task #101: Diaporama fullscreen modal -->
     <div id="diapo-modal" class="diapo-modal hidden">
+        <!-- Vignettes gradient -->
+        <div class="diapo-vignette-top"></div>
+        <div class="diapo-vignette-bottom"></div>
+        <!-- Logo watermark -->
+        <div class="diapo-logo-watermark">AhOuai</div>
+        <!-- Author badge -->
+        <div class="diapo-author-badge" id="diapo-author-badge">
+            <span class="diapo-author-emoji" id="diapo-author-emoji">🎉</span>
+            <span class="diapo-author-name" id="diapo-author-name"></span>
+        </div>
+        <!-- Header controls -->
         <div class="diapo-header">
             <span id="diapo-counter" class="diapo-counter">1 / 1</span>
             <div class="diapo-controls">
@@ -735,18 +750,36 @@
                 <button id="diapo-close" class="diapo-ctrl-btn" onclick="closeDiaporama()">✕</button>
             </div>
         </div>
-        <div class="diapo-photo-container" onclick="nextDiapoPhoto()">
+        <!-- Photo / Message slide container -->
+        <div class="diapo-photo-container" id="diapo-slide-container" onclick="nextDiapoSlide()">
             <img id="diapo-photo" src="" alt="Photo soirée">
-            <div class="diapo-caption" id="diapo-caption"></div>
+            <div id="diapo-message-slide" class="diapo-message-slide hidden">
+                <div class="diapo-message-emoji">💬</div>
+                <div class="diapo-message-caption" id="diapo-msg-caption"></div>
+                <div class="diapo-message-author" id="diapo-msg-author"></div>
+            </div>
         </div>
+        <!-- Track overlay bottom-left -->
+        <div class="diapo-track-overlay" id="diapo-track-overlay">
+            <div class="diapo-track-waveform">♪♪♪</div>
+            <div class="diapo-track-title" id="diapo-track-title"></div>
+            <div class="diapo-track-artist" id="diapo-track-artist"></div>
+        </div>
+        <!-- QR overlay bottom-right -->
+        <div class="diapo-qr-overlay" id="diapo-qr-overlay">
+            <div id="diapo-qr-code"></div>
+            <div class="diapo-qr-cta" id="diapo-qr-cta">Rejoins cette soirée !</div>
+        </div>
+        <!-- Nav prev/next -->
         <div class="diapo-nav">
-            <button class="diapo-nav-btn diapo-nav-prev" onclick="event.stopPropagation(); prevDiapoPhoto()">‹</button>
-            <button class="diapo-nav-btn diapo-nav-next" onclick="event.stopPropagation(); nextDiapoPhoto()">›</button>
+            <button class="diapo-nav-btn diapo-nav-prev" onclick="event.stopPropagation(); prevDiapoSlide()">‹</button>
+            <button class="diapo-nav-btn diapo-nav-next" onclick="event.stopPropagation(); nextDiapoSlide()">›</button>
         </div>
     </div>
 
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="app.js?v=20260813v01"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="app.js?v=20260813v02"></script>
 </body>
 </html>
