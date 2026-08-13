@@ -80,6 +80,7 @@ let state = {
   mode: 'appMix',
   connected: false,
   diapoPhotos: new Set(),
+  allPhotos: [],             // ★ Task #101: photo objects for diaporama [{url, guestName, sentAt}]
   allVotes: [],
   missionPoints: 0,
   leaderboard: [],
@@ -952,12 +953,15 @@ function connectToRelay() {
         const grid = $('diapo-grid');
         if (grid) grid.innerHTML = '';
         state.diapoPhotos = new Set();
+        // ★ Task #101: rebuild allPhotos from server state
+        state.allPhotos = [];
         ps.photos.forEach(p => {
           const src = p.url || p.dataURL;
           if (!src) return;
           const key = src.substring(0, 100);
           if (!state.diapoPhotos.has(key)) {
             addDiapoPhoto(src, p.guestName);
+            state.allPhotos.push({ url: src, guestName: p.guestName || '', sentAt: p.sentAt || '' });
           }
         });
         // Also add my own photos that might not be on server yet
@@ -965,8 +969,10 @@ function connectToRelay() {
           const key = (url || '').substring(0, 100);
           if (!state.diapoPhotos.has(key)) {
             addDiapoPhoto(url, state.guestName);
+            state.allPhotos.push({ url, guestName: state.guestName || '', sentAt: '' });
           }
         });
+        updateDiapoButton();
       }
     }
     // Costume contest entries: sync from server on join
@@ -1285,7 +1291,14 @@ function connectToRelay() {
   // ★ Task #103 Gap A fix: server sends photo.url (Cloudinary), NOT photo.dataURL
   socket.on('photo:shared', (photo) => {
     const photoSrc = photo.url || photo.dataURL;
-    if (photoSrc) addDiapoPhoto(photoSrc, photo.guestName);
+    if (photoSrc) {
+      addDiapoPhoto(photoSrc, photo.guestName);
+      // ★ Task #101: track in allPhotos for diaporama
+      state.allPhotos.push({ url: photoSrc, guestName: photo.guestName || '', sentAt: photo.sentAt || new Date().toISOString() });
+      updateDiapoButton();
+      // If diaporama is open, update counter realtime
+      updateDiapoCounter();
+    }
   });
 
   socket.on('photos:update', (photos) => {
@@ -3339,7 +3352,11 @@ function handleDiapoPhoto(e) {
     
     state.myPhotos.push(cloudUrl);
     try { addDiapoPhoto(cloudUrl, state.guestName); } catch(e) { console.warn('[Photo] addDiapoPhoto error:', e); }
+    // ★ Task #101: track in allPhotos for diaporama
+    state.allPhotos.push({ url: cloudUrl, guestName: state.guestName || '', sentAt: new Date().toISOString() });
     updateMyPhotosGrid();
+    updateDiapoButton();
+    updateDiapoCounter();
     saveSession();
     
     if (socket && socket.connected) {
@@ -4057,3 +4074,126 @@ function renderLeaderboard() {
   }).join('');
   containers.forEach(c => c.innerHTML = html);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// ★ Task #101 — Diaporama Photos Fullscreen
+// ═══════════════════════════════════════════════════════════════════
+
+let diapoInterval = null;
+let diapoCurrentIndex = 0;
+let diapoPaused = false;
+const DIAPO_DURATION_MS = 6000; // 6s par photo (doctrine default)
+
+/**
+ * Return all photos sorted chronological (most recent first).
+ * Source: state.allPhotos[] populated by party:state + photo:shared + local upload.
+ */
+function getAllPhotosSorted() {
+  return (state.allPhotos || []).slice().sort((a, b) => {
+    if (!a.sentAt && !b.sentAt) return 0;
+    if (!a.sentAt) return 1;
+    if (!b.sentAt) return -1;
+    return new Date(b.sentAt) - new Date(a.sentAt);
+  });
+}
+
+function launchDiaporama() {
+  const photos = getAllPhotosSorted();
+  if (photos.length === 0) return;
+  diapoCurrentIndex = 0;
+  diapoPaused = false;
+  const pauseBtn = $('diapo-pause');
+  if (pauseBtn) pauseBtn.textContent = '⏸️';
+  $('diapo-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden'; // Block scroll behind
+  showDiapoPhoto(diapoCurrentIndex);
+  startDiapoInterval();
+}
+
+function closeDiaporama() {
+  $('diapo-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+  stopDiapoInterval();
+}
+
+function showDiapoPhoto(index) {
+  const photos = getAllPhotosSorted();
+  if (photos.length === 0) { closeDiaporama(); return; }
+  const photo = photos[index % photos.length];
+  const img = $('diapo-photo');
+  // Fade out
+  img.style.opacity = 0;
+  setTimeout(() => {
+    img.src = photo.url;
+    img.onload = () => { img.style.opacity = 1; };
+    // Fallback if image is cached (onload may not fire)
+    setTimeout(() => { img.style.opacity = 1; }, 100);
+  }, 200);
+  // Counter
+  $('diapo-counter').textContent = `${(index % photos.length) + 1} / ${photos.length}`;
+  // Caption
+  const caption = photo.guestName ? `📸 ${photo.guestName}` : '';
+  $('diapo-caption').textContent = caption;
+}
+
+function nextDiapoPhoto() {
+  const photos = getAllPhotosSorted();
+  if (photos.length === 0) return;
+  diapoCurrentIndex = (diapoCurrentIndex + 1) % photos.length;
+  showDiapoPhoto(diapoCurrentIndex);
+  restartDiapoIntervalIfPlaying();
+}
+
+function prevDiapoPhoto() {
+  const photos = getAllPhotosSorted();
+  if (photos.length === 0) return;
+  diapoCurrentIndex = (diapoCurrentIndex - 1 + photos.length) % photos.length;
+  showDiapoPhoto(diapoCurrentIndex);
+  restartDiapoIntervalIfPlaying();
+}
+
+function toggleDiapoPause() {
+  diapoPaused = !diapoPaused;
+  $('diapo-pause').textContent = diapoPaused ? '▶️' : '⏸️';
+  if (diapoPaused) stopDiapoInterval();
+  else startDiapoInterval();
+}
+
+function startDiapoInterval() {
+  stopDiapoInterval();
+  if (diapoPaused) return;
+  diapoInterval = setInterval(nextDiapoPhoto, DIAPO_DURATION_MS);
+}
+
+function stopDiapoInterval() {
+  if (diapoInterval) { clearInterval(diapoInterval); diapoInterval = null; }
+}
+
+function restartDiapoIntervalIfPlaying() {
+  if (!diapoPaused) startDiapoInterval();
+}
+
+/** Show/hide "Voir le diaporama" button based on photo count */
+function updateDiapoButton() {
+  const btn = $('btn-launch-diapo');
+  if (!btn) return;
+  const count = (state.allPhotos || []).length;
+  btn.style.display = count > 0 ? 'block' : 'none';
+  if (count > 0) btn.textContent = `▶️ Voir le diaporama (${count} photo${count > 1 ? 's' : ''})`;
+}
+
+/** Update counter in diaporama if modal is open (called on realtime photo add) */
+function updateDiapoCounter() {
+  const modal = $('diapo-modal');
+  if (!modal || modal.classList.contains('hidden')) return;
+  const photos = getAllPhotosSorted();
+  if (photos.length === 0) return;
+  $('diapo-counter').textContent = `${(diapoCurrentIndex % photos.length) + 1} / ${photos.length}`;
+}
+
+// ESC to close diaporama
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $('diapo-modal') && !$('diapo-modal').classList.contains('hidden')) {
+    closeDiaporama();
+  }
+});
