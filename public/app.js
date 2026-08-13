@@ -4105,6 +4105,9 @@ let diapoCtaTimer = null;
 let diapoTrackTimer = null;
 let diapoQrGenerated = false;
 let diapoCtaIndex = 0;
+let diapoControlsVisible = true;
+let diapoControlsTimer = null;
+const DIAPO_CONTROLS_HIDE_MS = 5000;
 const DIAPO_DURATION_MS = 6000;
 const DIAPO_CTA_MESSAGES = [
   'Rejoins cette soirée maintenant !',
@@ -4175,6 +4178,10 @@ function launchDiaporama() {
   // Start track polling
   startTrackPolling();
   updateDiapoTrack();
+  // Auto-hide controls after 5s (parité host iOS)
+  diapoControlsVisible = true;
+  updateDiapoControlsVisibility();
+  scheduleDiapoControlsHide();
 }
 
 function closeDiaporama() {
@@ -4183,6 +4190,7 @@ function closeDiaporama() {
   stopDiapoInterval();
   stopCtaRotation();
   stopTrackPolling();
+  clearTimeout(diapoControlsTimer); diapoControlsTimer = null;
 }
 
 function showDiapoSlide(index) {
@@ -4361,6 +4369,29 @@ function findParticipantEmoji(guestName) {
   if (!guestName) return '🎉';
   const p = (state.participants || []).find(x => x.name === guestName);
   return (p && p.emoji) ? p.emoji : '🎉';
+}
+
+// ─── Controls auto-hide (parité host iOS L86, L695-702) ─────────────
+function scheduleDiapoControlsHide() {
+  clearTimeout(diapoControlsTimer);
+  diapoControlsTimer = setTimeout(() => {
+    diapoControlsVisible = false;
+    updateDiapoControlsVisibility();
+  }, DIAPO_CONTROLS_HIDE_MS);
+}
+
+function toggleDiapoControls() {
+  diapoControlsVisible = !diapoControlsVisible;
+  updateDiapoControlsVisibility();
+  if (diapoControlsVisible) scheduleDiapoControlsHide();
+}
+
+function updateDiapoControlsVisibility() {
+  const els = document.querySelectorAll('.diapo-hideable');
+  els.forEach(el => {
+    if (diapoControlsVisible) el.classList.remove('controls-hidden');
+    else el.classList.add('controls-hidden');
+  });
 }
 
 // ESC to close

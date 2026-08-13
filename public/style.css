@@ -1674,3 +1674,7 @@ html, body {
 .diapo-nav-btn:hover { color: rgba(255,255,255,0.7); }
 .diapo-nav-btn:active { color: white; }
 
+/* Auto-hide controls (parité host iOS L86, L695-702) */
+.diapo-hideable { transition: opacity 300ms ease, transform 300ms ease; }
+.diapo-hideable.controls-hidden { opacity: 0; transform: translateY(10px); pointer-events: none; }
+

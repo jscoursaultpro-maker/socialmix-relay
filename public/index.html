@@ -743,7 +743,7 @@
             <span class="diapo-author-name" id="diapo-author-name"></span>
         </div>
         <!-- Header controls -->
-        <div class="diapo-header">
+        <div class="diapo-header diapo-hideable">
             <span id="diapo-counter" class="diapo-counter">1 / 1</span>
             <div class="diapo-controls">
                 <button id="diapo-pause" class="diapo-ctrl-btn" onclick="toggleDiapoPause()">⏸️</button>
@@ -751,7 +751,7 @@
             </div>
         </div>
         <!-- Photo / Message slide container -->
-        <div class="diapo-photo-container" id="diapo-slide-container" onclick="nextDiapoSlide()">
+        <div class="diapo-photo-container" id="diapo-slide-container" onclick="toggleDiapoControls()">
             <img id="diapo-photo" src="" alt="Photo soirée">
             <div id="diapo-message-slide" class="diapo-message-slide hidden">
                 <div class="diapo-message-emoji">💬</div>
@@ -771,7 +771,7 @@
             <div class="diapo-qr-cta" id="diapo-qr-cta">Rejoins cette soirée !</div>
         </div>
         <!-- Nav prev/next -->
-        <div class="diapo-nav">
+        <div class="diapo-nav diapo-hideable">
             <button class="diapo-nav-btn diapo-nav-prev" onclick="event.stopPropagation(); prevDiapoSlide()">‹</button>
             <button class="diapo-nav-btn diapo-nav-next" onclick="event.stopPropagation(); nextDiapoSlide()">›</button>
         </div>
