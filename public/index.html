@@ -551,6 +551,10 @@
                         <input type="file" id="camera-photo-input" accept="image/*" onchange="handleDiapoPhoto(event)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
                     </div>
                 </div>
+                <!-- ★ Task #101: Diaporama launch button -->
+                <button id="btn-launch-diapo" class="diapo-launch-btn" onclick="launchDiaporama()" style="display:none">
+                    ▶️ Voir le diaporama
+                </button>
                 
                 <!-- My Photos section -->
                 <div style="margin-top:12px;">
@@ -722,8 +726,27 @@
         </div>
     </div>
 
+    <!-- ★ Task #101: Diaporama fullscreen modal -->
+    <div id="diapo-modal" class="diapo-modal hidden">
+        <div class="diapo-header">
+            <span id="diapo-counter" class="diapo-counter">1 / 1</span>
+            <div class="diapo-controls">
+                <button id="diapo-pause" class="diapo-ctrl-btn" onclick="toggleDiapoPause()">⏸️</button>
+                <button id="diapo-close" class="diapo-ctrl-btn" onclick="closeDiaporama()">✕</button>
+            </div>
+        </div>
+        <div class="diapo-photo-container" onclick="nextDiapoPhoto()">
+            <img id="diapo-photo" src="" alt="Photo soirée">
+            <div class="diapo-caption" id="diapo-caption"></div>
+        </div>
+        <div class="diapo-nav">
+            <button class="diapo-nav-btn diapo-nav-prev" onclick="event.stopPropagation(); prevDiapoPhoto()">‹</button>
+            <button class="diapo-nav-btn diapo-nav-next" onclick="event.stopPropagation(); nextDiapoPhoto()">›</button>
+        </div>
+    </div>
+
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="app.js?v=20260626v03"></script>
+    <script src="app.js?v=20260813v01"></script>
 </body>
 </html>

@@ -1589,3 +1589,146 @@ html, body {
   width: 100%;
   box-sizing: border-box;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   ★ Task #101 — Diaporama Photos Fullscreen
+   ═══════════════════════════════════════════════════════════════ */
+
+.diapo-launch-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #00e1c4, #00b8a9);
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0a0e1a;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.diapo-launch-btn:active {
+  transform: scale(0.97);
+}
+
+/* Modal — position:fixed inset:0 = fullscreen CSS (iOS Safari safe) */
+.diapo-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+}
+.diapo-modal.hidden {
+  display: none;
+}
+
+/* Header */
+.diapo-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  padding-top: max(12px, env(safe-area-inset-top));
+  background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+}
+.diapo-counter {
+  color: rgba(255,255,255,0.8);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.diapo-controls {
+  display: flex;
+  gap: 8px;
+}
+.diapo-ctrl-btn {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 0.2s;
+}
+.diapo-ctrl-btn:active {
+  background: rgba(255,255,255,0.3);
+}
+
+/* Photo container */
+.diapo-photo-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.diapo-photo-container img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: opacity 400ms ease;
+}
+
+/* Caption */
+.diapo-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  color: rgba(255,255,255,0.85);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Nav prev/next — overlay lateral */
+.diapo-nav {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+.diapo-nav-btn {
+  pointer-events: auto;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-size: 32px;
+  font-weight: 300;
+  width: 44px;
+  height: 80px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: background 0.2s, color 0.2s;
+}
+.diapo-nav-prev { border-radius: 0 12px 12px 0; margin-left: 0; }
+.diapo-nav-next { border-radius: 12px 0 0 12px; margin-right: 0; }
+.diapo-nav-btn:active {
+  background: rgba(255,255,255,0.25);
+  color: white;
+}
