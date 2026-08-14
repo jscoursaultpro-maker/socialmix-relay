@@ -115,6 +115,8 @@ const TrackSchema = new mongoose.Schema({
 
   // Qualification manuelle par un admin via le back-office
   adminQualified:  { type: Boolean, default: false },
+  curation:        { type: String, enum: ['in', 'backlog', 'filler'], default: 'backlog', index: true },
+
   isGuessed:       { type: Boolean, default: false },
   tags:            { type: [String], default: [] },    // peak-time, warm-up, closing, safe, risky, sing-along
   partyMoment:     { type: String, enum: ['warm-up', 'peak', 'closing', 'all'], default: 'all' },
