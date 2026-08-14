@@ -156,7 +156,12 @@ async function updateStats() {
     
     // Bottom bar
     const bb = document.getElementById('bottom-stats');
-    if (bb) bb.textContent = `Aujourd'hui : ${s.today.complete + s.today.platine} tracks complètes | Vitesse : ${s.speedPerMin} tracks/min | ETA finir : ${eta}`;
+    const filterType = document.querySelector('input[name="f-type"]:checked')?.value || 'all';
+    if (filterType.startsWith('curation_review_')) {
+      if (bb) bb.textContent = `Bangers en revue: ${window._lastDataTotal || 0}`;
+    } else {
+      if (bb) bb.textContent = `Aujourd'hui : ${s.today.complete + s.today.platine} tracks complètes | Vitesse : ${s.speedPerMin} tracks/min | ETA finir : ${eta}`;
+    }
     
     // Modal Stats
     const minD = document.getElementById('modal-duration');
@@ -222,17 +227,33 @@ async function loadTracks(phaseSuggestion = null) {
 
     const params = new URLSearchParams();
     const filterType = document.querySelector('input[name="f-type"]:checked')?.value || 'all';
-    params.set('filter', filterType);
-    params.set('genre', genre);
-    params.set('sort', sort);
-    params.set('limit', limit);
-    params.set('source', source);
-    if (document.getElementById('f-no-phase').checked) params.set('phase', 'unclassified');
-    if (phaseSuggestion) params.set('phaseSuggestion', phaseSuggestion);
+    let endpoint = `/api/monitor/tracks?${params.toString()}`;
     
-    const data = await api('GET', `/api/monitor/tracks?${params.toString()}`);
-    tracks = data.tracks || [];
-    window._lastDataTotal = data.total || 0;
+    if (filterType.startsWith('curation_review_')) {
+      const bangerParams = new URLSearchParams();
+      if (filterType === 'curation_review_confirmed') bangerParams.set('ia_verdict', 'confirmed_banger');
+      if (filterType === 'curation_review_rejected') bangerParams.set('ia_verdict', 'explicitly_rejected');
+      if (filterType === 'curation_review_notreviewed') bangerParams.set('ia_verdict', 'not_reviewed');
+      endpoint = `/api/admin/tracks/bangers-review?${bangerParams.toString()}`;
+    } else {
+      params.set('filter', filterType);
+      params.set('genre', genre);
+      params.set('sort', sort);
+      params.set('limit', limit);
+      params.set('source', source);
+      if (document.getElementById('f-no-phase').checked) params.set('phase', 'unclassified');
+      if (phaseSuggestion) params.set('phaseSuggestion', phaseSuggestion);
+      endpoint = `/api/monitor/tracks?${params.toString()}`;
+    }
+    
+    const data = await api('GET', endpoint);
+    tracks = data.data || data.tracks || [];
+    window._lastDataTotal = data.total || data.count || 0;
+    
+    const bb = document.getElementById('bottom-stats');
+    if (filterType.startsWith('curation_review_') && bb) {
+      bb.textContent = `Bangers en revue: ${window._lastDataTotal}`;
+    }
     
     if (tracks.length > 0) {
       if (window.viewMode === 'table') {
@@ -328,9 +349,29 @@ function renderEditor() {
   let titleEl = document.getElementById('track-title').parentElement;
   let oldSug = document.getElementById('phase-sug-badge');
   if (oldSug) oldSug.remove();
-  if (t._suggestedPhase) {
-    let scoreText = t._phaseScore ? ` (score ${t._phaseScore})` : '';
-    titleEl.insertAdjacentHTML('beforeend', `<span id="phase-sug-badge" class="target-phase-badge">🎯 Best for ${t._suggestedPhase}${scoreText}</span>`);
+  let oldVerdict = document.getElementById('ia-verdict-badge');
+  if (oldVerdict) oldVerdict.remove();
+  
+  const filterType = document.querySelector('input[name="f-type"]:checked')?.value || 'all';
+  const isCurationMode = filterType.startsWith('curation_review_');
+  
+  if (isCurationMode) {
+    let badgeColor = '#9ca3af';
+    let badgeText = '❓ NON-REVIEWED';
+    if (t.ia_verdict === 'confirmed_banger') { badgeColor = '#10b981'; badgeText = '✅ CONFIRMÉ IA'; }
+    if (t.ia_verdict === 'explicitly_rejected') { badgeColor = '#ef4444'; badgeText = '🚨 REJETÉ IA'; }
+    titleEl.insertAdjacentHTML('beforeend', `<span id="ia-verdict-badge" class="target-phase-badge" style="background:${badgeColor}; color:white;">${badgeText}</span>`);
+    
+    const ca = document.getElementById('curation-actions');
+    if (ca) ca.style.display = 'flex';
+  } else {
+    const ca = document.getElementById('curation-actions');
+    if (ca) ca.style.display = 'none';
+    
+    if (t._suggestedPhase) {
+      let scoreText = t._phaseScore ? ` (score ${t._phaseScore})` : '';
+      titleEl.insertAdjacentHTML('beforeend', `<span id="phase-sug-badge" class="target-phase-badge">🎯 Best for ${t._suggestedPhase}${scoreText}</span>`);
+    }
   }
   
   const fallbackSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='80' height='80' fill='%23333'/><text x='40' y='45' font-size='24' text-anchor='middle' fill='%23666'>🎵</text></svg>";
@@ -442,6 +483,12 @@ function renderEditor() {
   };
   
   makeCb('inp-banger', 'Banger (Z)', t.isBanger, gpt.isBanger, 'isBanger');
+  
+  // Curation
+  const curationEmojis = { 'in': '⭐ IN', 'backlog': '📥 BACKLOG', 'filler': '🎛️ FILLER' };
+  const curHist = t.curation ? (curationEmojis[t.curation] || t.curation) : '';
+  const curOpts = ['in', 'backlog', 'filler'].map(c => `<option value="${c}" ${(t.curation||'backlog')===c ? 'selected':''}>${curationEmojis[c] || c}</option>`).join('');
+  addRow('Curation', 'curation', curHist, '-', `<select id="inp-curation" onchange="setCuration(this.value)">${curOpts}</select>`);
   makeCb('inp-singalong', 'Singalong (P)', t.isSingalong, gpt.isSingalong, 'isSingalong');
   makeCb('inp-emotional', 'Emotional (E)', t.isEmotional, gpt.isEmotional, 'isEmotional');
   makeCb('inp-caliente', 'Caliente (C)', t.isCaliente, gpt.isCaliente, 'isCaliente');
@@ -789,9 +836,30 @@ audioEl.ontimeupdate = () => {
 
 function seekAudio(e) {
   if (!audioEl.duration) return;
-  const rect = e.currentTarget.getBoundingClientRect();
-  const pct = (e.clientX - rect.left) / rect.width;
-  audioEl.currentTime = pct * audioEl.duration;
+  const m = e.currentTarget.getBoundingClientRect();
+  const p = (e.clientX - m.left) / m.width;
+  audioEl.currentTime = p * audioEl.duration;
+}
+
+// ─── Curation Flow ──────────────────────────────────────────
+async function setCuration(value) {
+  if (currentIdx < 0 || currentIdx >= tracks.length) return;
+  const t = tracks[currentIdx];
+  
+  // Bidirectionnalité visuelle : mettre à jour le dropdown
+  const sel = document.getElementById('inp-curation');
+  if (sel) sel.value = value;
+  
+  try {
+    const res = await api('PATCH', `/api/admin/tracks/${t._id}/curation`, { curation: value });
+    if (res.ok) {
+      t.curation = value;
+      showToast(`Track "${t.title}" -> ${value.toUpperCase()}`, 'success');
+      nextTrack();
+    }
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
 }
 
 // ─── ChatGPT Integration ──────────────────────────────────
