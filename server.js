@@ -483,7 +483,7 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
       });
     }
 
-    // Aggregation: sort-first pattern → $first gives correct lastPlayedPhase
+    // Aggregation: sort-first pattern → $first gives correct lastPlayedPhase + lastPartyId (Task #121)
     const history = await HostPlaybackHistory.aggregate([
       { $match: { hostUserId: new mongoose.Types.ObjectId(hostUserId), trackId: { $ne: null } } },
       { $sort: { playedAt: -1 } },
@@ -492,10 +492,28 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
           _id: "$trackId",
           lastPlayedAt: { $first: "$playedAt" },
           lastPlayedPhase: { $first: "$phase" },
+          lastPartyId: { $first: "$partyId" },
           playedInPartyCodes: { $addToSet: "$partyCode" }
         }
       }
     ]);
+
+    // ★ Task #121 (Fresh Rotation Cross-Party N=8) — doctrine lockée 14/08 avec Jean-Sé
+    //   Fetch les N=8 dernières parties du host pour calculer partyStaleness
+    //   (métrique = soirées, PAS jours ; distinct de freshnessScore temporal).
+    //   Règle : staleness < 8 → track jouée récemment (malus iOS scoring)
+    //          staleness ≥ 8 → track fresh (pas de malus)
+    //   Isolation par hostUserId (Michel ≠ Éric). Fallback pool épuisé côté iOS.
+    const CROSS_PARTY_WINDOW = 8;
+    const recentParties = await Party.find({ hostUserId })
+      .sort({ createdAt: -1 })
+      .limit(CROSS_PARTY_WINDOW)
+      .select('_id')
+      .lean();
+    const partyIndexMap = {};
+    recentParties.forEach((p, idx) => {
+      partyIndexMap[p._id.toString()] = idx + 1; // 1 = la plus récente, 8 = 8ème plus récente
+    });
 
     // Fetch tracks to get deezerId (payload keyed by deezerId for iOS compat)
     const trackIds = history.map(item => item._id).filter(Boolean);
@@ -520,6 +538,15 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
       const daysAgo = (now - new Date(item.lastPlayedAt).getTime()) / msInDay;
       const freshnessScore = computeFreshnessScore(daysAgo);
 
+      // ★ Task #121 — partyStaleness : position du lastPartyId dans les N=8 dernières parties.
+      //   1 = joué dans la party la plus récente (malus max côté iOS)
+      //   8 = joué dans la 8ème plus récente (malus faible côté iOS)
+      //   >8 (999) = plus ancien que la fenêtre = fresh (pas de malus)
+      const lastPartyIdStr = item.lastPartyId ? item.lastPartyId.toString() : null;
+      const partyStaleness = (lastPartyIdStr && partyIndexMap[lastPartyIdStr] !== undefined)
+        ? partyIndexMap[lastPartyIdStr]
+        : 999;
+
       if (isV2) {
         // V2 payload: rich object per track
         const partyCodes = (item.playedInPartyCodes || []).filter(Boolean).slice(0, 5);
@@ -527,7 +554,8 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
           freshnessScore,
           lastPlayedAt: new Date(item.lastPlayedAt).toISOString(),
           lastPlayedPhase: item.lastPlayedPhase || null,
-          playedInPartyCodes: partyCodes
+          playedInPartyCodes: partyCodes,
+          partyStaleness  // ★ Task #121 : 1-8 = récent (malus iOS), 999 = fresh (pas de malus)
         };
       } else {
         // Legacy payload: scalar tier value for backward compat
@@ -540,6 +568,8 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
       generatedAt: new Date().toISOString(),
       cacheTTL: 300,
       algo: 'v2_adaptive_pool_phase',
+      crossPartyWindow: CROSS_PARTY_WINDOW,  // ★ Task #121 : expose window size pour iOS
+      totalPartiesInWindow: recentParties.length,
       scores
     };
 
@@ -751,9 +781,16 @@ async function getIAVerdictMap() {
 app.get('/api/admin/tracks/bangers-review', adminAuth, async (req, res) => {
   try {
     const filterVerdict = req.query.ia_verdict;
+    const filterPhase = req.query.phase;
     const { iaBangers, iaNonBangers } = await getIAVerdictMap();
     
-    const tracks = await Track.find({ curation: 'in' }).lean();
+    let query = { curation: 'in' };
+    if (filterPhase && filterPhase !== 'all') {
+      if (filterPhase === 'unclassified') query.phase = null;
+      else query.phase = filterPhase;
+    }
+    
+    const tracks = await Track.find(query).lean();
       
     let results = [];
     for (const t of tracks) {
@@ -1582,6 +1619,7 @@ app.patch('/api/monitor/track/:id', adminAuth, async (req, res) => {
     if (body.hasLyrics !== undefined) t.hasLyrics = Boolean(body.hasLyrics);
     if (body.explicit !== undefined) t.explicit = Boolean(body.explicit);
     if (body.notes !== undefined) t.notes = body.notes;
+    if (body.curation !== undefined) t.curation = body.curation;
     
     t.isLabeled = body.is_labeled !== undefined ? Boolean(body.is_labeled) : true;
     
