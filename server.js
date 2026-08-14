@@ -33,6 +33,7 @@ import { findOrCreateFromSupabase } from './services/userService.js'; // ★
 import { encodeObjectId, decodeToObjectId } from './utils/base62.js'; // ★ Task #81: afterglow URLs
 import { computeMoments } from './services/moments.js'; // ★ Task #81: post-party moments
 import { computeUserStats } from './services/userStats.js'; // ★ Task #81 B2: post-party user stats
+import { reconcileAllVotes } from './services/voteReconciliation.js'; // ★ Task #114 bis: cron réconciliation Party.guestVotes → Track.performance
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -5466,6 +5467,25 @@ async function boot() {
       if (count > 0) console.log(`[RatingFlush] ✅ Flushed ${count} track ratings for party ${partyCode}`);
     }
   }, 10000);
+
+  // ★ Task #114 bis (14/08) — Cron réconciliation Party.guestVotes → Track.performance
+  // Contourne la volatilité de pendingRatings (RAM only, perdu au redémarrage server).
+  // Recalcule IDEMPOTENT depuis les Party.guestVotes persistants sur les 30 derniers jours.
+  // 1er run à T+5min pour laisser le server s'initialiser, puis toutes les heures.
+  // Peut être trigger manuellement via `node --env-file=.env scripts/reconcile_votes.mjs`.
+  const RECONCILE_INTERVAL_MS = 60 * 60 * 1000; // 1h
+  const RECONCILE_LOOKBACK_DAYS = 30;
+  const runReconciliation = async () => {
+    try {
+      const since = new Date(Date.now() - RECONCILE_LOOKBACK_DAYS * 24 * 3600 * 1000);
+      const result = await reconcileAllVotes({ since, dryRun: false });
+      console.log(`[VoteReconciliation] 🔄 ${result.updated} tracks updated, ${result.notFound} not-found, ${result.voteOrphans} vote-orphans, ${result.trackRatingsCount} track-ratings from ${result.partiesScanned} parties`);
+    } catch (err) {
+      console.error(`[VoteReconciliation] ❌ ${err.message}`);
+    }
+  };
+  setTimeout(runReconciliation, 5 * 60 * 1000); // 1er run à T+5min
+  setInterval(runReconciliation, RECONCILE_INTERVAL_MS);
 
   // ─── Sentry Express error handler ─────────────────────────────────────────
   // Must be AFTER all routes, BEFORE server.listen.
