@@ -753,9 +753,7 @@ app.get('/api/admin/tracks/bangers-review', adminAuth, async (req, res) => {
     const filterVerdict = req.query.ia_verdict;
     const { iaBangers, iaNonBangers } = await getIAVerdictMap();
     
-    const tracks = await Track.find({ curation: 'in' })
-      .select('_id title artist coverArtURL providers phase energy bpm danceability isBanger curation')
-      .lean();
+    const tracks = await Track.find({ curation: 'in' }).lean();
       
     let results = [];
     for (const t of tracks) {
@@ -768,20 +766,8 @@ app.get('/api/admin/tracks/bangers-review', adminAuth, async (req, res) => {
       
       if (filterVerdict && ia_verdict !== filterVerdict) continue;
       
-      results.push({
-        _id: t._id,
-        title: t.title,
-        artist: t.artist,
-        coverURL: t.coverArtURL,
-        previewURL: t.providers?.deezer?.trackId ? `https://cdns-preview-e.dzcdn.net/stream/c-${t.providers.deezer.trackId}-6.mp3` : null,
-        phase: t.phase,
-        energy: t.energy,
-        bpm: t.bpm,
-        danceability: t.danceability,
-        isBanger: t.isBanger,
-        curation: t.curation,
-        ia_verdict
-      });
+      t.ia_verdict = ia_verdict;
+      results.push(t);
     }
     res.json({ ok: true, count: results.length, data: results });
   } catch (err) {
