@@ -718,6 +718,93 @@ app.get('/api/admin/tracks', adminAuth, async (req, res) => {
   }
 });
 
+// --- BANGERS REVIEW HELPER ---
+let cachedIAVerdict = null;
+async function getIAVerdictMap() {
+  if (cachedIAVerdict && (Date.now() - cachedIAVerdict.ts < 3600000)) return cachedIAVerdict;
+  const iaBangers = new Set();
+  const iaNonBangers = new Set();
+  try {
+    const { readdirSync, readFileSync } = await import('fs');
+    const { join } = await import('path');
+    const BATCHES_DIR = join(__dirname, 'batches_done');
+    const files = readdirSync(BATCHES_DIR).filter(f => f.endsWith('.json'));
+    for (const f of files) {
+      const d = JSON.parse(readFileSync(join(BATCHES_DIR, f), 'utf8'));
+      const arr = d.classifications || [];
+      for (const t of arr) {
+        const idNum = Number(t.id);
+        if (isNaN(idNum) || idNum === 0) continue;
+        if (t.isBanger === true) iaBangers.add(idNum);
+        else iaNonBangers.add(idNum);
+      }
+    }
+    cachedIAVerdict = { iaBangers, iaNonBangers, ts: Date.now() };
+  } catch (err) {
+    console.error("Error reading batches_done:", err);
+    cachedIAVerdict = { iaBangers, iaNonBangers, ts: Date.now() };
+  }
+  return cachedIAVerdict;
+}
+
+// GET /api/admin/tracks/bangers-review
+app.get('/api/admin/tracks/bangers-review', adminAuth, async (req, res) => {
+  try {
+    const filterVerdict = req.query.ia_verdict;
+    const { iaBangers, iaNonBangers } = await getIAVerdictMap();
+    
+    const tracks = await Track.find({ curation: 'in' })
+      .select('_id title artist coverArtURL providers phase energy bpm danceability isBanger curation')
+      .lean();
+      
+    let results = [];
+    for (const t of tracks) {
+      const deezerId = Number(t.providers?.deezer?.trackId);
+      let ia_verdict = 'not_reviewed';
+      if (deezerId && !isNaN(deezerId)) {
+        if (iaBangers.has(deezerId)) ia_verdict = 'confirmed_banger';
+        else if (iaNonBangers.has(deezerId)) ia_verdict = 'explicitly_rejected';
+      }
+      
+      if (filterVerdict && ia_verdict !== filterVerdict) continue;
+      
+      results.push({
+        _id: t._id,
+        title: t.title,
+        artist: t.artist,
+        coverURL: t.coverArtURL,
+        previewURL: t.providers?.deezer?.trackId ? `https://cdns-preview-e.dzcdn.net/stream/c-${t.providers.deezer.trackId}-6.mp3` : null,
+        phase: t.phase,
+        energy: t.energy,
+        bpm: t.bpm,
+        danceability: t.danceability,
+        isBanger: t.isBanger,
+        curation: t.curation,
+        ia_verdict
+      });
+    }
+    res.json({ ok: true, count: results.length, data: results });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
+});
+
+// PATCH /api/admin/tracks/:id/curation
+app.patch('/api/admin/tracks/:id/curation', adminAuth, async (req, res) => {
+  try {
+    const { curation } = req.body;
+    if (!['in', 'backlog', 'filler'].includes(curation)) {
+      return res.status(400).json({ ok: false, error: 'invalid curation value' });
+    }
+    await Track.updateOne({ _id: req.params.id }, { $set: { curation } });
+    res.json({ ok: true, curation });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
+});
+
 // PATCH /api/admin/tracks/:id — qualifier/éditer un titre
 app.patch('/api/admin/tracks/:id', adminAuth, async (req, res) => {
   try {
