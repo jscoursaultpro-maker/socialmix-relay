@@ -4573,11 +4573,18 @@ io.on('connection', (socket) => {
     const hostRoom = `host:${party.code}`;
     io.to(hostRoom).emit('guest:suggested', suggestion);
     // ── TASK 3 (#WT): Write-through suggestion to MongoDB ──
+    // ★ Task #114 fix (14/08) — ISRC + deezerID + isrc étaient OMIS du write-through
+    // Impact : RatingFlush (L5422) findOne({isrc:...}) échouait silencieusement
+    // → feuRatio stagnait à 0.00 sur toutes les tracks. Fix : capturer isrc/deezerID/fallbackHash.
     Party.findOneAndUpdate(
       { code: party.code },
       { $push: { suggestions: { id: suggestion.id, title: suggestion.title, artist: suggestion.artist,
           guestName: suggestion.guestName, guestId: suggestion.guestId, status: 'pending',
-          sentAt: suggestion.sentAt, boostCount: 0 } } },
+          sentAt: suggestion.sentAt, boostCount: 0,
+          // ★ Task #114 — clés de matching Track catalogue pour RatingFlush
+          isrc: suggestion.isrc || null,
+          deezerID: suggestion.deezerID || suggestion.deezerId || null,
+          fallbackHash: suggestion.fallbackHash || null } } },
       { upsert: false }
     ).catch(err => console.error(`[${party.code}] ⚠️ Write-through (guest:suggest) failed: ${err.message}`));
     
