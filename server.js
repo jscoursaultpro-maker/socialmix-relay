@@ -2175,9 +2175,11 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   }
 
   // Broadcast à toute la soirée (host room + guest room)
+  // ★ Task #16 : ajout du broadcast explicite à guest:${code} (les guests ne sont PAS dans la room `code` générique)
   const updatedState = buildLightState(party);
   io.to(code).emit('party:state', updatedState);
   io.to(`host:${code}`).emit('party:state', updatedState);
+  io.to(`guest:${code}`).emit('party:state', updatedState);
 
   const boostLabel = isHostBoost ? '🎧 Host-boost' : '🔥 Boost';
   console.log(`[${code}] ${boostLabel}: "${sugg.title}" → ${sugg.boostCount} boost(s) par ${guestName}`);
