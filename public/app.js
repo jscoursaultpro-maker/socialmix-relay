@@ -1097,7 +1097,7 @@ function connectToRelay() {
     if (photos.length) {
       galleryHTML = photos.map((p, i) => `
         <div style="position:relative;" data-photo-idx="${i}">
-          <img src="${p.dataURL}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:2px solid rgba(255,255,255,0.1);cursor:pointer" onclick="showEndPhotoLightbox('${i}')">
+          <img src="${p.url || p.dataURL || ''}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:2px solid rgba(255,255,255,0.1);cursor:pointer" onclick="showEndPhotoLightbox('${i}')">
           <div class="end-photo-check" onclick="event.stopPropagation();toggleEndPhotoSelect(${i})" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:6px;border:2px solid rgba(255,255,255,0.4);background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;"></div>
           <div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.5);text-align:center;margin-top:2px;">${(p.guestName || 'Guest').substring(0, 8)}</div>
         </div>`).join('');
@@ -3826,7 +3826,7 @@ function downloadSelectedEndPhotos() {
   window._selectedEndPhotos.forEach(idx => {
     if (idx < photos.length) {
       const a = document.createElement('a');
-      a.href = photos[idx].dataURL;
+      a.href = photos[idx].url || photos[idx].dataURL || '';
       a.download = `soiree_photo_${idx + 1}.jpg`;
       document.body.appendChild(a);
       a.click();
@@ -4007,14 +4007,14 @@ function showEndPhotoLightbox(index) {
   const photo = photos[idx];
   const lb = document.getElementById('end-photo-lightbox');
   if (!lb) return;
-  document.getElementById('end-photo-img').src = photo.dataURL;
+  document.getElementById('end-photo-img').src = photo.url || photo.dataURL || '';
   document.getElementById('end-photo-author').textContent = `📷 ${photo.guestName || 'Guest'}`;
   const saveBtn = document.getElementById('end-photo-save');
   saveBtn.onclick = function(e) {
     e.stopPropagation();
     // Download the image
     const a = document.createElement('a');
-    a.href = photo.dataURL;
+    a.href = photo.url || photo.dataURL || '';
     a.download = `soiree_photo_${idx + 1}.jpg`;
     document.body.appendChild(a);
     a.click();
