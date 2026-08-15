@@ -5054,6 +5054,30 @@ io.on('connection', (socket) => {
     console.log(`🎵 [${party.code}] SUGGESTION PLAYED: "${data.trackTitle}" suggested by ${data.guestName}`);
   });
 
+  // ★ Task #26 extension: DJ Brain unable to find suggestion on Deezer
+  socket.on('host:suggestionUnavailable', (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    const match = party.suggestions.find(s => s.id === data.suggestionId);
+    if (match) {
+      match.status = 'unavailable';
+      const guestRoom = `guest:${party.code}`;
+      const hostRoom = `host:${party.code}`;
+      const payload = { 
+          code: party.code, 
+          suggestionId: data.suggestionId, 
+          reason: data.reason,
+          title: match.title || match.query,
+          artist: match.artist || ''
+      };
+      
+      io.to(guestRoom).emit('suggestion:unavailable', payload);
+      io.to(hostRoom).emit('suggestion:unavailable', payload);
+      
+      console.log(`🎵 [${party.code}] SUGGESTION UNAVAILABLE: "${match.title || match.query}" (reason: ${data.reason})`);
+      party.markModified('suggestions');
+    }
+  });
+
   socket.on('host:acceptSuggestion', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     const match = party.suggestions.find(s =>

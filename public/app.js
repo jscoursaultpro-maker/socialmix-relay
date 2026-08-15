@@ -1390,6 +1390,27 @@ function connectToRelay() {
     updateSuggestionBadge(data.title, data.status, data.message);
   });
 
+  socket.on('suggestion:unavailable', (data) => {
+    let msg = "Ce titre n'a pas trouvé sa place, essaie une autre version";
+    let badgeMsg = "Ignoré par le DJ";
+    if (data.reason === 'not_found_on_deezer') {
+       msg = "Ce titre n'est pas dispo sur Deezer, essaie une autre version";
+       badgeMsg = "Introuvable sur Deezer";
+    }
+    
+    showSuggestionToast(msg, 'error');
+    
+    const titleToUpdate = data.title;
+    if (titleToUpdate) {
+      const sugg = state.suggestions.find(s => (s.title||'').toLowerCase() === titleToUpdate.toLowerCase());
+      if (sugg) {
+        sugg.status = 'unavailable';
+        saveSession();
+      }
+      updateSuggestionBadge(titleToUpdate, 'unavailable', badgeMsg);
+    }
+  });
+
   // ★ Bug 5b fix — Hydrate pending suggestion after reconnect
   // Server emits this on guest:resume / guest:join when a pending suggestion exists
   socket.on('suggestion:confirmed', (data) => {
