@@ -3783,7 +3783,7 @@ io.on('connection', (socket) => {
       // ★ P0-3 — Attribution : qui a demandé ce titre ?
       // (requestedBy déclaré au-dessus — pas de re-déclaration avec let ici)
 
-      // 1. Chercher dans les suggestions récentes (queued ou next)
+      // 1. Chercher dans les suggestions récentes avec match strict (titre + artiste)
       if (track.fromSuggestion || track.suggestionId || track.source === 'djBrain_suggestion') {
         const matchedSugg = party.suggestions.find(s =>
           (s.title || '').toLowerCase() === (track.title || '').toLowerCase() &&
@@ -3792,22 +3792,30 @@ io.on('connection', (socket) => {
         );
         if (matchedSugg) {
           requestedBy = { source: 'suggestion', guestName: matchedSugg.guestName || null, guestId: matchedSugg.guestId || null };
-          // Marquer la suggestion comme jouée
           matchedSugg.status = 'played';
           matchedSugg.playedAt = new Date().toISOString();
         }
       }
 
-      // 2. Fallback : si track.suggestedBy est renseigné côté iOS (C2/C3 fix), l'utiliser directement
+      // 2. Fallback : recherche souple sur le titre + suggestedBy (cas DJBrain)
       if (requestedBy.source === 'djbrain' && track.suggestedBy) {
-        requestedBy = { source: 'suggestion', guestName: track.suggestedBy, guestId: null };
+        const matchedSugg = party.suggestions.find(s =>
+          (s.title || '').toLowerCase() === (track.title || '').toLowerCase() &&
+          (s.guestName === track.suggestedBy) &&
+          ['queued', 'next', 'pending'].includes(s.status)
+        );
+        requestedBy = { source: 'suggestion', guestName: track.suggestedBy, guestId: matchedSugg?.guestId || null };
+        if (matchedSugg) {
+          matchedSugg.status = 'played';
+          matchedSugg.playedAt = new Date().toISOString();
+        }
       }
 
-      // 3. Fallback : recherche souple sur le titre seul si pas encore trouvé
+      // 3. Fallback : recherche très souple sur le titre seul si pas encore trouvé
       if (requestedBy.source === 'djbrain') {
         const softMatch = party.suggestions.find(s =>
           (s.title || '').toLowerCase() === (track.title || '').toLowerCase() &&
-          ['queued', 'next'].includes(s.status)
+          ['queued', 'next', 'pending'].includes(s.status)
         );
         if (softMatch) {
           requestedBy = { source: 'suggestion', guestName: softMatch.guestName || null, guestId: softMatch.guestId || null };
