@@ -4041,6 +4041,13 @@ io.on('connection', (socket) => {
     // ★ R5 fix: requestedBy inclus dans le payload — les guests voient l'attribution en temps réel
     io.to(`guest:${party.code}`).emit('track:update', { ...stripSecret(track), requestedBy });
     console.log(`🎵 [${party.code}] Track: ${track?.title} — ${track?.artist} (by: ${requestedBy.guestName || 'DJ Brain'})`);
+
+    // ★ Task #17 (suite) : Si la track provient d'une suggestion, propager le status 'played' aux guests
+    if (requestedBy && requestedBy.source === 'suggestion') {
+      const updatedState = buildLightState(party);
+      io.to(`host:${party.code}`).emit('party:state', updatedState);
+      io.to(`guest:${party.code}`).emit('party:state', updatedState);
+    }
   });
 
   socket.on('host:liveTrackDetected', (payload) => {
@@ -4135,6 +4142,13 @@ io.on('connection', (socket) => {
     }));
     io.to(`guest:${party.code}`).emit('history:update', enrichedHistory);
     console.log(`🎧 [${party.code}] Shazam Live: ${liveTrack.title} — ${liveTrack.artist} (source: ${liveTrack.source})`);
+
+    // ★ Task #17 (suite) : Si la track Shazam matche une suggestion, propager le status 'played'
+    if (liveTrack.requestedBy && liveTrack.requestedBy.source === 'suggestion') {
+      const updatedState = buildLightState(party);
+      io.to(`host:${party.code}`).emit('party:state', updatedState);
+      io.to(`guest:${party.code}`).emit('party:state', updatedState);
+    }
   });
 
 
