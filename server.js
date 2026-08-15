@@ -5011,6 +5011,14 @@ io.on('connection', (socket) => {
         { $set: { 'suggestions.$.status': 'played', 'suggestions.$.scoredAt': match.scoredAt, 'suggestions.$.playedAt': match.playedAt } },
         { upsert: false }
       ).catch(err => console.error(`[${party.code}] ⚠️ Write-through (suggestionPlayed) failed: ${err.message}`));
+      
+      // ★ Task #17 : broadcast party:state à toutes les rooms pour propager le nouveau status
+      // Sans ça, seul le suggéreur (via suggestion:status filtré par guestName L5001)
+      // apprend que la suggestion est played. Les autres guests + host la voient encore active
+      // et peuvent la re-booster. Pattern identique à Task #16 boost handler.
+      const updatedState = buildLightState(party);
+      io.to(`host:${party.code}`).emit('party:state', updatedState);
+      io.to(`guest:${party.code}`).emit('party:state', updatedState);
     }
 
     // Credit points only if match found (and not duplicate — guard above returns early)
