@@ -500,7 +500,7 @@ async function setupLanding(activeCode) {
       
       const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
       if (isIOS) {
-        const appURL = `socialmix://join?code=${code}`;
+        const appURL = `ahouai://join?code=${code}`;
         const banner = document.createElement('div');
         banner.className = 'app-banner';
         banner.innerHTML = `
