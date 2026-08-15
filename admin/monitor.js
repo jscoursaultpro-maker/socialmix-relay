@@ -47,6 +47,7 @@ let tracks = [];
 let currentIdx = -1;
 let isPlaying = false;
 let sessionStats = { startTime: Date.now(), count: 0 };
+let curationSessionCount = 0;
 
 const GENRES = ['House','Electro','Disco','Pop','Hip-Hop','R&B','Latin','Reggaeton','Afro','Rock','COCOVARIET','Chill','Ambient','Jazz','Classical','Folk, World, & Country','Non-Music','Unknown'];
 const PHASES = ['arrival','ambiance','takeoff','groove','party','closing'];
@@ -158,7 +159,7 @@ async function updateStats() {
     const bb = document.getElementById('bottom-stats');
     const filterType = document.querySelector('input[name="f-type"]:checked')?.value || 'all';
     if (filterType.startsWith('curation_review_')) {
-      if (bb) bb.textContent = `Bangers en revue: ${window._lastDataTotal || 0}`;
+      if (bb) bb.textContent = `Bangers en revue: ${window._lastDataTotal || 0} | Traités cette session: ${curationSessionCount}`;
     } else {
       if (bb) bb.textContent = `Aujourd'hui : ${s.today.complete + s.today.platine} tracks complètes | Vitesse : ${s.speedPerMin} tracks/min | ETA finir : ${eta}`;
     }
@@ -227,6 +228,8 @@ async function loadTracks(phaseSuggestion = null) {
 
     const params = new URLSearchParams();
     const filterType = document.querySelector('input[name="f-type"]:checked')?.value || 'all';
+    const phaseSelect = document.getElementById('f-phase');
+    const phaseVal = phaseSelect ? phaseSelect.value : 'all';
     let endpoint = `/api/monitor/tracks?${params.toString()}`;
     
     if (filterType.startsWith('curation_review_')) {
@@ -234,6 +237,7 @@ async function loadTracks(phaseSuggestion = null) {
       if (filterType === 'curation_review_confirmed') bangerParams.set('ia_verdict', 'confirmed_banger');
       if (filterType === 'curation_review_rejected') bangerParams.set('ia_verdict', 'explicitly_rejected');
       if (filterType === 'curation_review_notreviewed') bangerParams.set('ia_verdict', 'not_reviewed');
+      if (phaseVal !== 'all') bangerParams.set('phase', phaseVal);
       endpoint = `/api/admin/tracks/bangers-review?${bangerParams.toString()}`;
     } else {
       params.set('filter', filterType);
@@ -241,7 +245,8 @@ async function loadTracks(phaseSuggestion = null) {
       params.set('sort', sort);
       params.set('limit', limit);
       params.set('source', source);
-      if (document.getElementById('f-no-phase').checked) params.set('phase', 'unclassified');
+      if (phaseVal !== 'all') params.set('phase', phaseVal);
+      if (document.getElementById('f-no-phase')?.checked) params.set('phase', 'unclassified');
       if (phaseSuggestion) params.set('phaseSuggestion', phaseSuggestion);
       endpoint = `/api/monitor/tracks?${params.toString()}`;
     }
@@ -252,7 +257,7 @@ async function loadTracks(phaseSuggestion = null) {
     
     const bb = document.getElementById('bottom-stats');
     if (filterType.startsWith('curation_review_') && bb) {
-      bb.textContent = `Bangers en revue: ${window._lastDataTotal}`;
+      bb.textContent = `Bangers en revue: ${window._lastDataTotal} | Traités cette session: ${curationSessionCount}`;
     }
     
     if (tracks.length > 0) {
@@ -364,6 +369,9 @@ function renderEditor() {
     
     const ca = document.getElementById('curation-actions');
     if (ca) ca.style.display = 'flex';
+    
+    const css = document.getElementById('curation-session-stats');
+    if (css) css.textContent = `🎯 Bangers reviewés cette session : ${curationSessionCount}`;
   } else {
     const ca = document.getElementById('curation-actions');
     if (ca) ca.style.display = 'none';
@@ -534,6 +542,7 @@ function renderEditor() {
     audioEl.src = t.previewUrl;
     if (document.getElementById('f-autoplay')?.checked) togglePlay();
   } else {
+    audioEl.src = ''; // Clear previous track to avoid playing it by mistake
     fetch(`/api/admin/deezer/preview/${did}`, { headers: { 'x-admin-token': adminToken } })
       .then(r => r.json())
       .then(data => {
@@ -604,7 +613,8 @@ function getFormData() {
     isVerified: document.getElementById('inp-verified').checked,
     hasLyrics: document.getElementById('inp-lyrics').checked,
     explicit: document.getElementById('inp-explicit').checked,
-    notes: document.getElementById('inp-notes').value || ""
+    notes: document.getElementById('inp-notes').value || "",
+    curation: document.getElementById('inp-curation') ? document.getElementById('inp-curation').value : undefined
   };
 }
 
@@ -854,6 +864,13 @@ async function setCuration(value) {
     const res = await api('PATCH', `/api/admin/tracks/${t._id}/curation`, { curation: value });
     if (res.ok) {
       t.curation = value;
+      curationSessionCount++;
+      const bb = document.getElementById('bottom-stats');
+      if (bb && document.querySelector('input[name="f-type"]:checked')?.value.startsWith('curation_review_')) {
+        bb.textContent = `Bangers en revue: ${window._lastDataTotal} | Traités cette session: ${curationSessionCount}`;
+      }
+      const css = document.getElementById('curation-session-stats');
+      if (css) css.textContent = `🎯 Bangers reviewés cette session : ${curationSessionCount}`;
       showToast(`Track "${t.title}" -> ${value.toUpperCase()}`, 'success');
       nextTrack();
     }

@@ -75,6 +75,29 @@
         <label><input type="radio" name="f-type" id="f-incoherent-closing" value="incoherent_closing_electro" onchange="applyFilter()"> 💀 Closing electro hard</label>
       </div>
 
+      <div class="filter-group" style="border-top: 1px solid rgba(167,139,250,.2); padding-top: 10px; margin-top: 4px;">
+        <div style="font-size: 10px; font-weight: 700; color: #10b981; letter-spacing: 1px; margin-bottom: 6px;">🎯 CURATION</div>
+        <label><input type="radio" name="f-type" id="f-curation-all" value="curation_review_all" onchange="applyFilter()"> 🎯 Bangers Review (tout)</label>
+        <label><input type="radio" name="f-type" id="f-curation-confirmed" value="curation_review_confirmed" onchange="applyFilter()"> ✅ Confirmés IA</label>
+        <label><input type="radio" name="f-type" id="f-curation-rejected" value="curation_review_rejected" onchange="applyFilter()"> 🚨 Rejetés IA</label>
+        <label><input type="radio" name="f-type" id="f-curation-notreviewed" value="curation_review_notreviewed" onchange="applyFilter()"> ❓ Non-reviewed</label>
+      </div>
+
+
+      <div class="filter-group">
+        <label>Phase spécifique :</label>
+        <select id="f-phase" onchange="applyFilter()">
+          <option value="all">Toutes phases</option>
+          <option value="arrival">arrival</option>
+          <option value="ambiance">ambiance</option>
+          <option value="takeoff">takeoff</option>
+          <option value="groove">groove</option>
+          <option value="party">party</option>
+          <option value="closing">closing</option>
+          <option value="unclassified">Sans phase</option>
+        </select>
+      </div>
+
       <div class="filter-group">
         <label>Genre spécifique :</label>
         <select id="f-genre" onchange="applyFilter()">
@@ -241,6 +264,14 @@
       </div>
       <audio id="audio-player"></audio>
     </div>
+
+    <div id="curation-actions" style="display:none; flex-direction:column; gap:10px; margin-top:15px; margin-bottom:15px;">
+      <div id="curation-session-stats" style="text-align: center; color: #10b981; font-weight: bold; font-size: 14px; margin-bottom: 5px;">Traités cette session : 0</div>
+      <button class="btn" style="background:#10b981; color:white; font-size:16px; padding:12px; font-weight:bold; border:none; cursor:pointer;" onclick="setCuration('in')">⭐ Garder IN</button>
+      <button class="btn" style="background:#f59e0b; color:white; font-size:16px; padding:12px; font-weight:bold; border:none; cursor:pointer;" onclick="setCuration('backlog')">📥 Envoyer BACKLOG</button>
+      <button class="btn" style="background:#3b82f6; color:white; font-size:16px; padding:12px; font-weight:bold; border:none; cursor:pointer;" onclick="setCuration('filler')">🎛️ Marquer FILLER</button>
+    </div>
+
 
     <div class="columns-container">
       <!-- Col 1: History -->

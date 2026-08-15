@@ -19,10 +19,11 @@ function fmtDate(d) {
 }
 
 async function run() {
-  const MONGO_URI = process.env.MONGO_URI;
+  // Accepte MONGO_URI (mon usage historique) OU MONGODB_URI (nom du .env relay-server)
+  const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
   if (!MONGO_URI || MONGO_URI.includes('********')) {
-    console.error('❌ MONGO_URI env variable required');
-    console.error('   Usage: MONGO_URI="mongodb+srv://..." node scripts/audit_soirees_13aout.mjs');
+    console.error('❌ MONGO_URI ou MONGODB_URI env variable required');
+    console.error('   Usage: node --env-file=.env scripts/audit_soirees_13aout.mjs');
     process.exit(1);
   }
 

@@ -1,32 +1,35 @@
-import { MongoClient } from 'mongodb';
+import mongoose from 'mongoose';
+
+import Track from './models/Track.js';
+import HostPlaybackHistory from './models/HostPlaybackHistory.js';
+import Party from './models/Party.js';
 
 async function run() {
-    const client = new MongoClient(process.env.MONGODB_URI);
-    await client.connect();
-    const db = client.db(process.env.MONGODB_URI.split('/').pop().split('?')[0]);
-    
-    console.log("=== DB COUNTS ===");
-    const inCount = await db.collection('tracks').countDocuments({ isBanger: true, qualityLevel: { $in: ['platine', 'complete'] } });
-    const fillerCount = await db.collection('tracks').countDocuments({ isFiller: true, qualityLevel: { $in: ['platine', 'complete'] } });
-    const backlogCount = await db.collection('tracks').countDocuments({ isBanger: { $ne: true }, isFiller: { $ne: true }, qualityLevel: { $in: ['platine', 'complete'] } });
-    
-    console.log(`IN (isBanger): ${inCount}`);
-    console.log(`Backlog (ni l'un ni l'autre): ${backlogCount}`);
-    console.log(`Filler (isFiller): ${fillerCount}`);
-    
-    console.log("\n=== SPECIFIC TRACKS ===");
-    const track1 = await db.collection('tracks').findOne({title: /forever young/i, artist: /murph/i}, {projection: {qualityLevel:1, isBanger:1}});
-    console.log("Forever Young (murph):", track1);
-    
-    const track2 = await db.collection('tracks').findOne({title: /september/i, artist: /deepend/i}, {projection: {qualityLevel:1, isBanger:1}});
-    console.log("September (deepend):", track2);
-    
-    console.log("\n=== PHASE COUNTS ===");
-    console.log("party:", await db.collection('tracks').countDocuments({phase: "party"}));
-    console.log("peak:", await db.collection('tracks').countDocuments({phase: "peak"}));
-    console.log("peaktime:", await db.collection('tracks').countDocuments({phase: "peaktime"}));
-    console.log("isBlocked (acapella/other):", await db.collection('tracks').countDocuments({isBlocked: true}));
-    
-    process.exit(0);
+  await mongoose.connect(process.env.MONGODB_URI);
+  console.log("Connected to MongoDB");
+
+  // Check recent HostPlaybackHistory
+  const recentPlays = await HostPlaybackHistory.find().sort({ playedAt: -1 }).limit(10);
+  console.log("\n--- Dernières lectures (HostPlaybackHistory) ---");
+  recentPlays.forEach(p => {
+    console.log(`[${p.playedAt.toISOString()}] ${p.title} - ${p.artist} (Suggéré: ${p.wasSuggestedByGuest}, Votes: 🔥${p.voteScore.feu} 😎${p.voteScore.cool} 😐${p.voteScore.bof})`);
+  });
+
+  // Check Track collection for recently updated tracks with plays
+  const recentTracks = await Track.find({ 'performance.totalPlays': { $gt: 0 } }).sort({ updatedAt: -1 }).limit(10);
+  console.log("\n--- Tracks récemment mis à jour en BDD (Track) ---");
+  recentTracks.forEach(t => {
+    console.log(`[${t.updatedAt.toISOString()}] ${t.title} - ${t.artist} (Plays: ${t.performance.totalPlays}, Feu Ratio: ${t.performance.feuRatio})`);
+  });
+  
+  // Check recent parties
+  const recentParties = await Party.find().sort({ createdAt: -1 }).limit(5);
+  console.log("\n--- Dernières soirées (Party) ---");
+  recentParties.forEach(p => {
+    console.log(`[${p.createdAt.toISOString()}] Code: ${p.code}, Tracks: ${p.trackHistory ? p.trackHistory.length : 0}, Suggestions: ${p.suggestions ? p.suggestions.length : 0}, GuestVotes: ${Object.keys(p.guestVotes || {}).length}`);
+  });
+
+  process.exit(0);
 }
+
 run().catch(console.error);
