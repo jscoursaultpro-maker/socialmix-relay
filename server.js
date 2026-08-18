@@ -4865,7 +4865,7 @@ io.on('connection', (socket) => {
 
     const party = getMutableParty(socket); if (!party) return;
     
-    const { title, artist, genre, isrc, deezerID, vibeScore, fromSuggestion, isGuessed } = data;
+    const { title, artist, genre, isrc, deezerID, bpm, vibeScore, fromSuggestion, isGuessed } = data;
     const hash = fallbackHash(title, artist);
     
     // 1. Add to playedKeys (both ISRC and fallbackHash)
@@ -4909,6 +4909,9 @@ io.on('connection', (socket) => {
       };
       
       if (isGuessed) update.$set.isGuessed = true;
+      // ★ fix: persist BPM sent by iOS (live-detected or Deezer API) — only if > 0 to avoid overwriting
+      const parsedBpm = Number(bpm) || 0;
+      if (parsedBpm > 0) update.$set.bpm = parsedBpm;
 
       await Track.findOneAndUpdate(filter, update, { upsert: true, new: true });
     } catch (err) {
