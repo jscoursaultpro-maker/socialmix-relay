@@ -14,7 +14,7 @@ import mongoose from 'mongoose';
 import User from './models/User.js';
 import Party from './models/Party.js';
 import Friendship from './models/Friendship.js';
-import Track from './models/Track.js';
+import Track, { computeQualityLevel } from './models/Track.js';
 import HostPreference from './models/HostPreference.js';
 import { Photo } from './models/Photo.js';
 import { EventLog } from './models/EventLog.js'; // ★ A3c — Structured audit trail
@@ -4913,7 +4913,15 @@ io.on('connection', (socket) => {
       const parsedBpm = Number(bpm) || 0;
       if (parsedBpm > 0) update.$set.bpm = parsedBpm;
 
-      await Track.findOneAndUpdate(filter, update, { upsert: true, new: true });
+      const updatedDoc = await Track.findOneAndUpdate(filter, update, { upsert: true, new: true });
+
+      // ★ fix(quality): apply qualityLevel since findOneAndUpdate bypasses pre-save hooks
+      if (updatedDoc) {
+        const correctQL = computeQualityLevel(updatedDoc);
+        if (updatedDoc.qualityLevel !== correctQL) {
+          await Track.updateOne({ _id: updatedDoc._id }, { $set: { qualityLevel: correctQL } });
+        }
+      }
     } catch (err) {
       console.error(`[Track] ❌ Upsert error: ${err.message}`);
     }

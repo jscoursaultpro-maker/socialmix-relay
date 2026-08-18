@@ -195,33 +195,40 @@ TrackSchema.index({ providerIdsResolvedAt: 1 }, { sparse: true }); // backfill i
 TrackSchema.index({ suggestable: 1, phase: 1 });
 TrackSchema.index({ confidence: 1, classifiedBy: 1 });
 
-TrackSchema.pre('save', function(next) {
+// ─── Quality Level computation (shared between pre-save and findOneAndUpdate callers) ──
+export function computeQualityLevel(doc) {
   let q = "vide";
-  
-  const hasBase = !!(this.genre && this.uiCategoryPrimary && this.phase);
-  const hasStats = !!(this.bpm > 0 && this.energy > 0);
-  
+
+  const hasBase = !!(doc.genre && doc.uiCategoryPrimary && doc.phase);
+  const hasStats = !!(doc.bpm > 0 && doc.energy > 0);
+
   if (hasBase || hasStats) {
     q = "partielle";
   }
-  
+
   const isFullyClassified = !!(
-    this.genre && this.uiCategoryPrimary && this.phase &&
-    this.bpm > 0 && this.energy > 0 && this.danceability != null &&
-    this.era && this.mood && this.language
+    doc.genre && doc.uiCategoryPrimary && doc.phase &&
+    doc.bpm > 0 && doc.energy > 0 && doc.danceability != null &&
+    doc.era && doc.mood && doc.language
   );
-  const isClaudeBatchClassified = typeof this.classifiedBy === 'string' && this.classifiedBy.startsWith('claude_batch');
-  
-  if (isFullyClassified || isClaudeBatchClassified || this.gptSuggestion != null || this.needs_review) {
+  const isClaudeBatchClassified = typeof doc.classifiedBy === 'string' && doc.classifiedBy.startsWith('claude_batch');
+
+  if (isFullyClassified || isClaudeBatchClassified || doc.gptSuggestion != null || doc.needs_review) {
     q = "complete";
   }
-  
-  if (this.isVerified) {
+
+  if (doc.isVerified) {
     q = "platine";
   }
-  
-  this.qualityLevel = q;
+
+  return q;
+}
+
+TrackSchema.pre('save', function(next) {
+  this.qualityLevel = computeQualityLevel(this);
   if (typeof next === 'function') next();
 });
 
-export default mongoose.model('Track', TrackSchema);
+const Track = mongoose.model('Track', TrackSchema);
+export default Track;
+

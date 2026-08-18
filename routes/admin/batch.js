@@ -1,5 +1,5 @@
 import express from 'express';
-import Track from '../../models/Track.js';
+import Track, { computeQualityLevel } from '../../models/Track.js';
 
 const router = express.Router();
 
@@ -130,8 +130,13 @@ router.post('/import', async (req, res) => {
         if (c[f] !== undefined && c[f] !== null) $set[f] = c[f];
       }
 
-      const result = await Track.updateOne({ _id: c.id }, { $set });
-      if (result.matchedCount > 0) {
+      const result = await Track.findOneAndUpdate({ _id: c.id }, { $set }, { new: true });
+      if (result) {
+        // ★ fix(quality): apply qualityLevel since updateOne bypasses pre-save
+        const correctQL = computeQualityLevel(result);
+        if (result.qualityLevel !== correctQL) {
+          await Track.updateOne({ _id: result._id }, { $set: { qualityLevel: correctQL } });
+        }
         updated++;
       } else {
         notFound++;
