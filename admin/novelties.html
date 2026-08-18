@@ -44,12 +44,12 @@
     /* Table */
     .container { max-width: 1200px; margin: 0 auto; background: #13131a; border-radius: 14px; border: 1px solid rgba(255,255,255,0.07); overflow: hidden; }
     .table-header {
-      display: grid; grid-template-columns: 2.5fr 1fr 0.8fr 0.6fr 0.6fr 0.8fr 1fr;
+      display: grid; grid-template-columns: 2.5fr 1.2fr 1.5fr 0.8fr 0.8fr;
       padding: 12px 20px; background: rgba(255,255,255,0.03); font-size: 0.72rem; font-weight: 700;
       color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.07);
     }
     .row {
-      display: grid; grid-template-columns: 2.5fr 1fr 0.8fr 0.6fr 0.6fr 0.8fr 1fr;
+      display: grid; grid-template-columns: 2.5fr 1.2fr 1.5fr 0.8fr 0.8fr;
       padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center;
       transition: background 0.15s;
     }
@@ -79,6 +79,14 @@
     .perf { text-align: right; }
     .perf .plays { font-weight: 600; font-size: 0.85rem; }
     .perf .feu { color: #f97316; font-weight: 700; font-size: 0.78rem; }
+
+    .id-chip { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 5px; font-size: 0.68rem; font-weight: 600; font-family: 'SF Mono','Fira Code',monospace; margin-right: 4px; margin-bottom: 3px; }
+    .id-deezer { background: rgba(0,208,232,0.1); color: #00d0e8; }
+    .id-isrc { background: rgba(255,255,255,0.06); color: #9ca3af; }
+    .id-apple { background: rgba(252,96,118,0.1); color: #fc6076; }
+    .id-spotify { background: rgba(30,215,96,0.1); color: #1ed760; }
+    .id-none { color: #4b5563; font-size: 0.72rem; font-style: italic; }
+    .suggest-by { font-size: 0.72rem; color: #60a5fa; margin-top: 3px; }
 
     .loading { text-align: center; padding: 50px; color: #6b7280; }
     .empty { text-align: center; padding: 40px; color: #6b7280; font-size: 0.9rem; }
@@ -144,10 +152,8 @@
     <div class="table-header">
       <div>Titre & Artiste</div>
       <div>Source</div>
+      <div>IDs</div>
       <div>Statut</div>
-      <div>BPM</div>
-      <div>Energy</div>
-      <div>Phase</div>
       <div style="text-align:right">Performance</div>
     </div>
     <div id="novelties-body">
@@ -259,31 +265,42 @@
           suggestion: ['Suggestion', 'badge-guest'],
         };
         const [srcLabel, srcClass] = srcMap[t.source] || [t.source || '—', 'badge-other'];
-        const sugBadge = t.suggestCount > 0 ? ` <span class="badge badge-guest">${t.suggestCount}× sugg</span>` : '';
+        const sugBadge = t.suggestCount > 0 ? `<span class="badge badge-guest" style="margin-left:4px">${t.suggestCount}× sugg</span>` : '';
 
         // Quality level
         const qlMap = { vide: ['Vide', 'ql-vide'], partielle: ['Partielle', 'ql-partielle'], complete: ['Complète', 'ql-complete'], platine: ['Platine', 'ql-platine'] };
         const [qlLabel, qlClass] = qlMap[t.qualityLevel] || ['Vide', 'ql-vide'];
 
-        // BPM / Energy / Phase
-        const bpmHtml = t.bpm > 0 ? `<span class="val-present">${t.bpm}</span>` : '<span class="val-missing">—</span>';
-        const energyHtml = t.energy > 0 ? `<span class="val-present">${t.energy}</span>` : '<span class="val-missing">—</span>';
-        const phaseHtml = t.phase ? `<span class="badge badge-exploration">${t.phase}</span>` : '<span class="val-missing">—</span>';
+        // Classification details (show when qualified)
+        const classDetails = [];
+        if (t.bpm > 0) classDetails.push(`${t.bpm} BPM`);
+        if (t.energy > 0) classDetails.push(`E:${t.energy}`);
+        if (t.phase) classDetails.push(t.phase);
+        const classHtml = classDetails.length ? `<div style="color:#6b7280;font-size:0.68rem;margin-top:2px">${classDetails.join(' · ')}</div>` : '';
+
+        // IDs
+        const idParts = [];
+        const deezerId = t.providers?.deezer?.trackId;
+        if (deezerId) idParts.push(`<span class="id-chip id-deezer">DZ:${deezerId}</span>`);
+        if (t.isrc) idParts.push(`<span class="id-chip id-isrc">ISRC:${esc(t.isrc)}</span>`);
+        const appleId = t.providers?.appleMusic?.trackId;
+        if (appleId) idParts.push(`<span class="id-chip id-apple">AM</span>`);
+        const spotifyId = t.providers?.spotify?.trackId;
+        if (spotifyId) idParts.push(`<span class="id-chip id-spotify">SP</span>`);
+        const idsHtml = idParts.length ? idParts.join('') : '<span class="id-none">Aucun ID</span>';
 
         // Performance
         const plays = t.performance?.totalPlays || 0;
         const feu = t.performance?.feuRatio || 0;
         const perfHtml = plays > 0
           ? `<div class="plays">${plays} plays</div><div class="feu">${(feu * 100).toFixed(0)}% 🔥</div>`
-          : '<div style="color:#4b5563;font-size:0.78rem">Jamais joué</div>';
+          : '<div style="color:#4b5563;font-size:0.78rem">—</div>';
 
         return `<div class="row ${rowClass}">
-          <div><div class="track-title">${esc(t.title)}</div><div class="track-artist">${esc(t.artist)}</div></div>
+          <div><div class="track-title">${esc(t.title)}</div><div class="track-artist">${esc(t.artist)}${t.genre ? ` · <span style="color:#6b7280">${esc(t.genre)}</span>` : ''}</div></div>
           <div><span class="badge ${srcClass}">${srcLabel}</span>${sugBadge}</div>
-          <div><span class="${qlClass}">${qlLabel}</span></div>
-          <div>${bpmHtml}</div>
-          <div>${energyHtml}</div>
-          <div>${phaseHtml}</div>
+          <div>${idsHtml}</div>
+          <div><span class="${qlClass}">${qlLabel}</span>${classHtml}</div>
           <div class="perf">${perfHtml}</div>
         </div>`;
       }).join('');

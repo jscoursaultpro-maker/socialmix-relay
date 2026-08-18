@@ -886,7 +886,7 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
       })
       .sort({ createdAt: -1 })
       .limit(50)
-      .select('title artist genre bpm phase energy performance source suggestCount qualityLevel classifiedBy curation isVerified deezerRank')
+      .select('title artist genre bpm phase energy performance source suggestCount qualityLevel classifiedBy curation isVerified deezerRank isrc providers availableOn')
       .lean()
     ]);
 
