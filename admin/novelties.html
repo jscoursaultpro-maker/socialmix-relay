@@ -198,9 +198,9 @@
 
       try {
         const res = await fetch('/api/admin/stats', {
-          headers: { 'X-Admin-Token': token }
+          headers: { 'X-Admin-Token': token, 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Erreur API');
+        if (!res.ok) throw new Error(`API ${res.status}`);
         const data = await res.json();
         allNovelties = data.novelties || [];
 
