@@ -27,6 +27,7 @@ import { uploadPhoto } from './services/cloudinaryService.js';
 import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
 import adminUsersRouter from './routes/admin/users.js';
 import adminGuestsRouter from './routes/admin/guests.js';
+import adminBatchRouter from './routes/admin/batch.js';
 import * as Sentry from '@sentry/node'; // ★ feat(sentry): Express error handler
 import { socketAuth } from './middleware/socketAuth.js'; // ★ Supabase auth middleware
 import { verifySupabaseJWT } from './lib/supabaseAuth.js';  // ★ for HTTP routes
@@ -689,6 +690,7 @@ app.get('/api/tracks/:id/providers', async (req, res) => {
 // ─── Admin API ────────────────────────────────────────────────────────
 app.use('/api/admin/users', adminAuth, adminUsersRouter);
 app.use('/api/admin/guests', adminAuth, adminGuestsRouter);
+app.use('/api/admin/batch', adminAuth, adminBatchRouter);
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
@@ -883,8 +885,8 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
         ]
       })
       .sort({ createdAt: -1 })
-      .limit(15)
-      .select('title artist genre bpm phase energy performance source suggestCount')
+      .limit(50)
+      .select('title artist genre bpm phase energy performance source suggestCount qualityLevel classifiedBy curation isVerified deezerRank')
       .lean()
     ]);
 

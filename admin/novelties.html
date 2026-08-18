@@ -7,31 +7,106 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: 'Inter', sans-serif; background: #0f0f13; color: #fff; margin: 0; padding: 20px; }
-    .header { display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 0 auto 30px auto; }
-    .header h1 { margin: 0; font-size: 24px; display: flex; align-items: center; gap: 10px; }
-    .btn { background: #3b82f6; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500; }
-    .btn:hover { background: #2563eb; }
-    
-    .container { max-width: 1000px; margin: 0 auto; background: #1f2937; border-radius: 12px; border: 1px solid #374151; overflow: hidden; }
-    
-    .table-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 15px 20px; background: #111827; font-size: 13px; font-weight: 600; color: #9ca3af; border-bottom: 1px solid #374151; }
-    .row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 15px 20px; border-bottom: 1px solid #374151; align-items: center; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #0a0a0f; color: #f1f1f3; margin: 0; padding: 24px; }
+
+    .header { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto 24px; flex-wrap: wrap; gap: 12px; }
+    .header h1 { font-size: 1.5rem; font-weight: 800; background: linear-gradient(135deg, #fff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header .subtitle { color: #6b7280; font-size: 0.85rem; margin-top: 4px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: none; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none; font-family: inherit; transition: all 0.2s; }
+    .btn-hub { background: rgba(75,85,99,0.3); border: 1px solid rgba(255,255,255,0.1); color: #9ca3af; }
+    .btn-hub:hover { background: rgba(75,85,99,0.5); color: #fff; }
+    .btn-primary { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-green { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
+    .btn-green:hover { background: rgba(34,197,94,0.3); }
+
+    /* Stats row */
+    .stats-bar { display: flex; gap: 12px; max-width: 1200px; margin: 0 auto 20px; flex-wrap: wrap; }
+    .stat-chip { background: #13131a; border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 12px 18px; display: flex; flex-direction: column; align-items: center; min-width: 120px; }
+    .stat-chip .val { font-size: 1.4rem; font-weight: 800; }
+    .stat-chip .lbl { color: #6b7280; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+    .stat-chip.red .val { color: #ef4444; }
+    .stat-chip.green .val { color: #22c55e; }
+    .stat-chip.orange .val { color: #f97316; }
+    .stat-chip.blue .val { color: #60a5fa; }
+
+    /* Filters */
+    .filters { display: flex; gap: 10px; max-width: 1200px; margin: 0 auto 16px; flex-wrap: wrap; align-items: center; }
+    .filters select, .filters input {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px; padding: 8px 12px; color: #f1f1f3; font-size: 0.82rem;
+      font-family: inherit; outline: none; transition: border-color 0.2s;
+    }
+    .filters select:focus, .filters input:focus { border-color: #3b82f6; }
+    .filters input { min-width: 200px; }
+
+    /* Table */
+    .container { max-width: 1200px; margin: 0 auto; background: #13131a; border-radius: 14px; border: 1px solid rgba(255,255,255,0.07); overflow: hidden; }
+    .table-header {
+      display: grid; grid-template-columns: 2.5fr 1fr 0.8fr 0.6fr 0.6fr 0.8fr 1fr;
+      padding: 12px 20px; background: rgba(255,255,255,0.03); font-size: 0.72rem; font-weight: 700;
+      color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .row {
+      display: grid; grid-template-columns: 2.5fr 1fr 0.8fr 0.6fr 0.6fr 0.8fr 1fr;
+      padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center;
+      transition: background 0.15s;
+    }
     .row:last-child { border-bottom: none; }
-    .row:hover { background: #374151; }
-    
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-right: 5px; }
-    .badge-orange { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-    .badge-blue { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
-    .badge-gray { background: rgba(255, 255, 255, 0.1); color: #d1d5db; }
-    
-    .track-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
-    .track-artist { color: #9ca3af; font-size: 13px; }
-    
-    .stat-plays { font-weight: 600; }
-    .stat-feu { color: #f59e0b; font-weight: 600; }
-    
-    .loading { text-align: center; padding: 50px; color: #9ca3af; }
+    .row:hover { background: rgba(124,92,252,0.06); }
+    .row.unqualified { border-left: 3px solid #f97316; }
+    .row.qualified { border-left: 3px solid #22c55e; }
+
+    .track-title { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-artist { color: #6b7280; font-size: 0.78rem; margin-top: 2px; }
+
+    .badge { display: inline-flex; padding: 2px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+    .badge-exploration { background: rgba(124,92,252,0.15); color: #a78bfa; }
+    .badge-guest { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .badge-host { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .badge-editorial { background: rgba(249,115,22,0.15); color: #f97316; }
+    .badge-other { background: rgba(255,255,255,0.08); color: #9ca3af; }
+
+    .ql-vide { color: #ef4444; font-weight: 700; font-size: 0.78rem; }
+    .ql-partielle { color: #f97316; font-weight: 600; font-size: 0.78rem; }
+    .ql-complete { color: #22c55e; font-weight: 600; font-size: 0.78rem; }
+    .ql-platine { color: #a78bfa; font-weight: 700; font-size: 0.78rem; }
+
+    .val-missing { color: #4b5563; font-size: 0.82rem; }
+    .val-present { font-weight: 600; font-size: 0.82rem; }
+
+    .perf { text-align: right; }
+    .perf .plays { font-weight: 600; font-size: 0.85rem; }
+    .perf .feu { color: #f97316; font-weight: 700; font-size: 0.78rem; }
+
+    .loading { text-align: center; padding: 50px; color: #6b7280; }
+    .empty { text-align: center; padding: 40px; color: #6b7280; font-size: 0.9rem; }
+
+    /* Batch modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #1a1a24; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
+      padding: 28px; width: 90%; max-width: 800px; max-height: 85vh; display: flex; flex-direction: column;
+    }
+    .modal h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; }
+    .modal .instructions { color: #9ca3af; font-size: 0.82rem; margin-bottom: 16px; line-height: 1.6; }
+    .modal textarea {
+      flex: 1; min-height: 300px; background: #111; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 14px; color: #d1d5db; font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.75rem; line-height: 1.4; resize: vertical; outline: none;
+    }
+    .modal textarea:focus { border-color: #3b82f6; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; flex-wrap: wrap; }
+    .batch-status { font-size: 0.82rem; margin-top: 10px; padding: 10px; border-radius: 8px; display: none; }
+    .batch-status.success { display: block; background: rgba(34,197,94,0.1); color: #22c55e; }
+    .batch-status.error { display: block; background: rgba(239,68,68,0.1); color: #ef4444; }
+
+    @media (max-width: 768px) {
+      .table-header, .row { grid-template-columns: 1fr; gap: 4px; }
+      .stats-bar { flex-direction: column; }
+    }
   </style>
 </head>
 <body>
@@ -39,89 +114,299 @@
   <div class="header">
     <div>
       <h1>🆕 Nouveautés & Découvertes</h1>
-      <p style="color: #9ca3af; margin-top: 5px; font-size: 14px;">Suivi des imports récents et suggestions de la communauté.</p>
+      <p class="subtitle">Tracks récentes non qualifiées — qualification IA en un clic</p>
     </div>
-    <a href="/admin/hub" class="btn" style="background: #4b5563;">🏠 Hub</a>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-primary" id="batch-btn" onclick="openBatchModal()">🤖 Batch IA</button>
+      <a href="/admin/hub" class="btn btn-hub">🏠 Hub</a>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="stats-bar"></div>
+
+  <div class="filters">
+    <select id="filter-source" onchange="renderNovelties()">
+      <option value="all">Toutes sources</option>
+      <option value="exploration">Exploration</option>
+      <option value="guest_suggestion">Guest Suggestion</option>
+      <option value="host_suggestion">Host Suggestion</option>
+      <option value="editorial">Editorial</option>
+    </select>
+    <select id="filter-status" onchange="renderNovelties()">
+      <option value="all">Tous statuts</option>
+      <option value="unqualified" selected>Non qualifiées</option>
+      <option value="qualified">Qualifiées</option>
+    </select>
+    <input type="text" id="filter-search" placeholder="🔍 Rechercher titre ou artiste…" oninput="renderNovelties()" />
   </div>
 
   <div class="container">
     <div class="table-header">
       <div>Titre & Artiste</div>
       <div>Source</div>
-      <div>Classification</div>
-      <div>Performance</div>
+      <div>Statut</div>
+      <div>BPM</div>
+      <div>Energy</div>
+      <div>Phase</div>
+      <div style="text-align:right">Performance</div>
     </div>
     <div id="novelties-body">
-      <div class="loading">Chargement des données...</div>
+      <div class="loading">Chargement…</div>
+    </div>
+  </div>
+
+  <!-- Batch Modal -->
+  <div class="modal-overlay" id="batch-modal">
+    <div class="modal">
+      <h2>🤖 Batch IA — Qualifier des tracks</h2>
+      <div class="instructions">
+        <strong>Étape 1</strong> : Cliquer "Générer" pour créer le prompt avec les tracks non-qualifiées.<br>
+        <strong>Étape 2</strong> : Copier le JSON et le coller dans Claude ou ChatGPT.<br>
+        <strong>Étape 3</strong> : Coller la réponse IA dans la zone ci-dessous et cliquer "Importer".<br>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="generateBatch()">⚡ Générer batch</button>
+        <button class="btn btn-hub" onclick="copyBatch()">📋 Copier le prompt</button>
+        <select id="batch-size" style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 10px;color:#fff;font-family:inherit;font-size:0.82rem">
+          <option value="10">10 tracks</option>
+          <option value="20">20 tracks</option>
+          <option value="30">30 tracks</option>
+        </select>
+      </div>
+      <textarea id="batch-textarea" placeholder="Le prompt batch apparaîtra ici après 'Générer'…&#10;&#10;Puis collez la réponse IA ici pour importer."></textarea>
+      <div class="batch-status" id="batch-status"></div>
+      <div class="modal-actions">
+        <button class="btn btn-green" onclick="importBatch()">✅ Importer résultat IA</button>
+        <button class="btn btn-hub" onclick="closeBatchModal()">Fermer</button>
+      </div>
     </div>
   </div>
 
   <script>
+    let allNovelties = [];
+
+    function getToken() {
+      return localStorage.getItem('sm_admin_token') || localStorage.getItem('adminToken') || '';
+    }
+
     async function loadNovelties() {
-      const token = localStorage.getItem('sm_admin_token') || localStorage.getItem('adminToken');
+      const token = getToken();
       if (!token) {
-        document.getElementById('novelties-body').innerHTML = '<div class="loading" style="color:#ef4444;">Non autorisé. Veuillez vous connecter au Hub d\'abord.</div>';
+        document.getElementById('novelties-body').innerHTML = '<div class="loading" style="color:#ef4444">Non autorisé. Connectez-vous au Hub d\'abord.</div>';
         return;
       }
-      
+
       try {
         const res = await fetch('/api/admin/stats', {
-          headers: { 'x-admin-token': token, 'Authorization': `Bearer ${token}` }
+          headers: { 'X-Admin-Token': token }
         });
         if (!res.ok) throw new Error('Erreur API');
-        
         const data = await res.json();
-        const novelties = data.novelties || [];
-        
-        if (novelties.length === 0) {
-          document.getElementById('novelties-body').innerHTML = '<div class="loading">Aucune nouveauté récente trouvée.</div>';
-          return;
-        }
-        
-        const html = novelties.map(t => {
-          const suggestBadge = t.suggestCount > 0 ? `<span class="badge badge-orange">${t.suggestCount} Sugg.</span>` : '';
-          const sourceBadge = t.source === 'guest_suggestion' || t.source === 'host_suggestion' ? '<span class="badge badge-blue">Guest</span>' : `<span class="badge badge-gray">${t.source || 'Nouveau'}</span>`;
-          
-          const perfPlays = t.performance?.totalPlays > 0 ? `<div class="stat-plays">${t.performance.totalPlays} plays</div>` : '<div style="color:#9ca3af; font-size:13px;">Jamais joué</div>';
-          const perfFeu = t.performance?.totalPlays > 0 ? `<div class="stat-feu">${(t.performance.feuRatio * 100).toFixed(0)}% 🔥</div>` : '';
-          
-          const bpmBadge = t.bpm > 0 ? `<span class="badge badge-gray">${t.bpm} BPM</span>` : '';
-          const energyBadge = t.energy > 0 ? `<span class="badge badge-gray">E:${t.energy}</span>` : '';
-          const phaseBadge = t.phase ? `<span class="badge badge-blue" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">${t.phase}</span>` : '';
+        allNovelties = data.novelties || [];
 
-          return `
-            <div class="row">
-              <div>
-                <div class="track-title">${esc(t.title)}</div>
-                <div class="track-artist">${esc(t.artist)}</div>
-              </div>
-              <div>
-                ${suggestBadge} ${sourceBadge}
-              </div>
-              <div>
-                <div style="font-weight:500; margin-bottom:4px; font-size:14px;">${esc(t.genre || 'Inconnu')}</div>
-                ${bpmBadge} ${energyBadge} ${phaseBadge}
-              </div>
-              <div>
-                ${perfPlays}
-                ${perfFeu}
-              </div>
-            </div>
-          `;
-        }).join('');
-        
-        document.getElementById('novelties-body').innerHTML = html;
-        
+        // Stats
+        const unq = allNovelties.filter(t => !t.qualityLevel || t.qualityLevel === 'vide');
+        const partial = allNovelties.filter(t => t.qualityLevel === 'partielle');
+        const complete = allNovelties.filter(t => t.qualityLevel === 'complete' || t.qualityLevel === 'platine');
+        const noBpm = allNovelties.filter(t => !t.bpm);
+        const noPhase = allNovelties.filter(t => !t.phase);
+
+        document.getElementById('stats-bar').innerHTML = `
+          <div class="stat-chip"><div class="val">${allNovelties.length}</div><div class="lbl">Total récentes</div></div>
+          <div class="stat-chip red"><div class="val">${unq.length}</div><div class="lbl">Non qualifiées</div></div>
+          <div class="stat-chip orange"><div class="val">${partial.length}</div><div class="lbl">Partielles</div></div>
+          <div class="stat-chip green"><div class="val">${complete.length}</div><div class="lbl">Complètes</div></div>
+          <div class="stat-chip blue"><div class="val">${noBpm.length}</div><div class="lbl">Sans BPM</div></div>
+          <div class="stat-chip blue"><div class="val">${noPhase.length}</div><div class="lbl">Sans phase</div></div>
+        `;
+
+        renderNovelties();
       } catch (e) {
-        document.getElementById('novelties-body').innerHTML = `<div class="loading" style="color:#ef4444;">Erreur: ${e.message}</div>`;
+        document.getElementById('novelties-body').innerHTML = `<div class="loading" style="color:#ef4444">Erreur: ${e.message}</div>`;
       }
     }
-    
+
+    function renderNovelties() {
+      const source = document.getElementById('filter-source').value;
+      const status = document.getElementById('filter-status').value;
+      const search = (document.getElementById('filter-search').value || '').toLowerCase();
+
+      let filtered = allNovelties;
+
+      if (source !== 'all') filtered = filtered.filter(t => t.source === source);
+      if (status === 'unqualified') filtered = filtered.filter(t => !t.qualityLevel || t.qualityLevel === 'vide' || t.qualityLevel === 'partielle');
+      if (status === 'qualified') filtered = filtered.filter(t => t.qualityLevel === 'complete' || t.qualityLevel === 'platine');
+      if (search) filtered = filtered.filter(t =>
+        (t.title || '').toLowerCase().includes(search) || (t.artist || '').toLowerCase().includes(search)
+      );
+
+      if (!filtered.length) {
+        document.getElementById('novelties-body').innerHTML = '<div class="empty">Aucune track trouvée avec ces filtres</div>';
+        return;
+      }
+
+      document.getElementById('novelties-body').innerHTML = filtered.map(t => {
+        const isUnq = !t.qualityLevel || t.qualityLevel === 'vide' || t.qualityLevel === 'partielle';
+        const rowClass = isUnq ? 'unqualified' : 'qualified';
+
+        // Source badge
+        const srcMap = {
+          exploration: ['Exploration', 'badge-exploration'],
+          guest_suggestion: ['Guest', 'badge-guest'],
+          host_suggestion: ['Host', 'badge-host'],
+          editorial: ['Editorial', 'badge-editorial'],
+          editorial_seed_v1: ['Seed', 'badge-editorial'],
+          suggestion: ['Suggestion', 'badge-guest'],
+        };
+        const [srcLabel, srcClass] = srcMap[t.source] || [t.source || '—', 'badge-other'];
+        const sugBadge = t.suggestCount > 0 ? ` <span class="badge badge-guest">${t.suggestCount}× sugg</span>` : '';
+
+        // Quality level
+        const qlMap = { vide: ['Vide', 'ql-vide'], partielle: ['Partielle', 'ql-partielle'], complete: ['Complète', 'ql-complete'], platine: ['Platine', 'ql-platine'] };
+        const [qlLabel, qlClass] = qlMap[t.qualityLevel] || ['Vide', 'ql-vide'];
+
+        // BPM / Energy / Phase
+        const bpmHtml = t.bpm > 0 ? `<span class="val-present">${t.bpm}</span>` : '<span class="val-missing">—</span>';
+        const energyHtml = t.energy > 0 ? `<span class="val-present">${t.energy}</span>` : '<span class="val-missing">—</span>';
+        const phaseHtml = t.phase ? `<span class="badge badge-exploration">${t.phase}</span>` : '<span class="val-missing">—</span>';
+
+        // Performance
+        const plays = t.performance?.totalPlays || 0;
+        const feu = t.performance?.feuRatio || 0;
+        const perfHtml = plays > 0
+          ? `<div class="plays">${plays} plays</div><div class="feu">${(feu * 100).toFixed(0)}% 🔥</div>`
+          : '<div style="color:#4b5563;font-size:0.78rem">Jamais joué</div>';
+
+        return `<div class="row ${rowClass}">
+          <div><div class="track-title">${esc(t.title)}</div><div class="track-artist">${esc(t.artist)}</div></div>
+          <div><span class="badge ${srcClass}">${srcLabel}</span>${sugBadge}</div>
+          <div><span class="${qlClass}">${qlLabel}</span></div>
+          <div>${bpmHtml}</div>
+          <div>${energyHtml}</div>
+          <div>${phaseHtml}</div>
+          <div class="perf">${perfHtml}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Batch IA ──
+
+    function openBatchModal() { document.getElementById('batch-modal').classList.add('active'); }
+    function closeBatchModal() { document.getElementById('batch-modal').classList.remove('active'); }
+
+    async function generateBatch() {
+      const size = document.getElementById('batch-size').value;
+      const textarea = document.getElementById('batch-textarea');
+      const statusEl = document.getElementById('batch-status');
+      statusEl.className = 'batch-status'; statusEl.style.display = 'none';
+      textarea.value = 'Génération en cours…';
+
+      try {
+        const res = await fetch('/api/admin/batch/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': getToken() },
+          body: JSON.stringify({ limit: parseInt(size) })
+        });
+        const data = await res.json();
+
+        if (!data.batch) {
+          textarea.value = data.message || 'Aucune track à qualifier';
+          return;
+        }
+
+        textarea.value = JSON.stringify(data.batch, null, 2);
+        statusEl.className = 'batch-status success';
+        statusEl.textContent = `✅ Batch généré : ${data.count} tracks prêtes pour Claude/ChatGPT`;
+        statusEl.style.display = 'block';
+      } catch (err) {
+        textarea.value = 'Erreur: ' + err.message;
+        statusEl.className = 'batch-status error';
+        statusEl.textContent = '❌ ' + err.message;
+        statusEl.style.display = 'block';
+      }
+    }
+
+    function copyBatch() {
+      const textarea = document.getElementById('batch-textarea');
+      textarea.select();
+      navigator.clipboard.writeText(textarea.value).then(() => {
+        const statusEl = document.getElementById('batch-status');
+        statusEl.className = 'batch-status success';
+        statusEl.textContent = '📋 Copié dans le presse-papier !';
+        statusEl.style.display = 'block';
+        setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
+      });
+    }
+
+    async function importBatch() {
+      const textarea = document.getElementById('batch-textarea');
+      const statusEl = document.getElementById('batch-status');
+      const raw = textarea.value.trim();
+
+      if (!raw) { statusEl.className = 'batch-status error'; statusEl.textContent = 'Zone de texte vide'; statusEl.style.display = 'block'; return; }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        // Try to extract JSON from markdown code block
+        const match = raw.match(/```json?\s*([\s\S]*?)```/);
+        if (match) {
+          try { parsed = JSON.parse(match[1]); } catch { /* fall through */ }
+        }
+        if (!parsed) {
+          statusEl.className = 'batch-status error';
+          statusEl.textContent = '❌ JSON invalide — collez la réponse brute de Claude/ChatGPT';
+          statusEl.style.display = 'block';
+          return;
+        }
+      }
+
+      const classifications = parsed.classifications || (Array.isArray(parsed) ? parsed : null);
+      if (!classifications || !classifications.length) {
+        statusEl.className = 'batch-status error';
+        statusEl.textContent = '❌ Pas de "classifications" trouvé dans le JSON';
+        statusEl.style.display = 'block';
+        return;
+      }
+
+      statusEl.className = 'batch-status'; statusEl.textContent = `Import en cours (${classifications.length} tracks)…`; statusEl.style.display = 'block';
+
+      try {
+        const res = await fetch('/api/admin/batch/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': getToken() },
+          body: JSON.stringify({ classifications })
+        });
+        const data = await res.json();
+
+        if (data.error) throw new Error(data.error);
+
+        statusEl.className = 'batch-status success';
+        statusEl.textContent = `✅ Import terminé — ${data.updated} mises à jour, ${data.notFound} non trouvées, ${data.errors} erreurs`;
+        statusEl.style.display = 'block';
+
+        // Reload novelties after import
+        setTimeout(() => { closeBatchModal(); loadNovelties(); }, 2000);
+      } catch (err) {
+        statusEl.className = 'batch-status error';
+        statusEl.textContent = '❌ ' + err.message;
+        statusEl.style.display = 'block';
+      }
+    }
+
+    // Close modal on overlay click
+    document.getElementById('batch-modal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeBatchModal();
+    });
+
     function esc(str) {
       if (!str) return '';
-      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
     }
-    
+
     loadNovelties();
   </script>
 </body>
