@@ -4909,17 +4909,51 @@ io.on('connection', (socket) => {
       };
       
       if (isGuessed) update.$set.isGuessed = true;
-      // ★ fix: persist BPM sent by iOS (live-detected or Deezer API) — only if > 0 to avoid overwriting
+
+      // ★ feat(bpm): intelligent bpmDetected + conflict detection
       const parsedBpm = Number(bpm) || 0;
-      if (parsedBpm > 0) update.$set.bpm = parsedBpm;
 
       const updatedDoc = await Track.findOneAndUpdate(filter, update, { upsert: true, new: true });
 
-      // ★ fix(quality): apply qualityLevel since findOneAndUpdate bypasses pre-save hooks
       if (updatedDoc) {
+        const postUpdate = {};
+
+        // ★ fix(quality): apply qualityLevel since findOneAndUpdate bypasses pre-save hooks
         const correctQL = computeQualityLevel(updatedDoc);
         if (updatedDoc.qualityLevel !== correctQL) {
-          await Track.updateOne({ _id: updatedDoc._id }, { $set: { qualityLevel: correctQL } });
+          postUpdate.qualityLevel = correctQL;
+        }
+
+        // ★ feat(bpm): intelligent bpmDetected rolling average + conflict detection
+        if (parsedBpm > 0 && !updatedDoc.isVerified) {
+          const oldDetected = updatedDoc.bpmDetected || 0;
+          const oldCount    = updatedDoc.bpmDetectedCount || 0;
+          const newCount    = oldCount + 1;
+          const newDetected = Math.round(((oldDetected * oldCount) + parsedBpm) / newCount);
+
+          postUpdate.bpmDetected = newDetected;
+          postUpdate.bpmDetectedCount = newCount;
+
+          const curatedBpm = updatedDoc.bpm || 0;
+
+          if (curatedBpm === 0) {
+            // No curated BPM exists — write detected as primary immediately
+            postUpdate.bpm = parsedBpm;
+          } else if (newCount >= 3) {
+            const divergence = Math.abs(newDetected - curatedBpm) / curatedBpm;
+            if (divergence < 0.30) {
+              // Consistent with curation — update bpm to detected average
+              postUpdate.bpm = newDetected;
+              postUpdate.bpmConflict = false;
+            } else {
+              // >30% divergence — flag conflict, don't overwrite curated bpm
+              postUpdate.bpmConflict = true;
+            }
+          }
+        }
+
+        if (Object.keys(postUpdate).length > 0) {
+          await Track.updateOne({ _id: updatedDoc._id }, { $set: postUpdate });
         }
       }
     } catch (err) {

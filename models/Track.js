@@ -23,6 +23,9 @@ const TrackSchema = new mongoose.Schema({
   bpm:          { type: Number, default: 0 },
   bpmSource:    { type: String },
   bpm_confidence: { type: String, enum: ['estimated', 'deezer_api', 'manual'], default: 'estimated' },
+  bpmDetected:      { type: Number, default: 0 },     // Rolling average of live-detected BPMs
+  bpmDetectedCount: { type: Number, default: 0 },     // Number of live BPM measurements
+  bpmConflict:      { type: Boolean, default: false }, // True when detected BPM diverges >30% from curated BPM
   energy:       { type: Number, default: 0, min: 0, max: 10 },    // 0 = non qualifié, 1-10 = qualifié
   releaseYear:  Number,
   coverArtURL:  String,                                             // URL Deezer (stable, gratuit)
