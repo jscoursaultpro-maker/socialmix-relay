@@ -9,11 +9,16 @@ router.post('/generate', async (req, res) => {
   const limit = Math.min(parseInt(req.body.limit) || 10, 30);
 
   try {
-    const tracks = await Track.find({
+    const filter = {
       qualityLevel: { $nin: ['complete', 'platine'] },
       isVerified: { $ne: true },
       suggestable: { $ne: false }
-    })
+    };
+    // ★ Optional: re-classify only tracks from a specific doctrine version
+    if (req.body.doctrineVersion) {
+      filter.doctrineVersion = req.body.doctrineVersion;
+    }
+    const tracks = await Track.find(filter)
     .sort({ 'performance.totalPlays': -1, deezerRank: -1, createdAt: -1 })
     .limit(limit)
     .lean();
@@ -124,7 +129,13 @@ router.post('/import', async (req, res) => {
     try {
       if (!c.id) { errors++; continue; }
 
-      const $set = { classifiedBy: 'claude_batch_hub', adminQualified: true };
+      const docVer = req.body.doctrineVersion || `v2_${new Date().toISOString().slice(0,10)}`;
+      const $set = {
+        classifiedBy: 'claude_batch_hub',
+        classifiedAt: new Date(),
+        doctrineVersion: docVer,
+        adminQualified: true
+      };
       if (c.genreBDD) $set.genre = c.genreBDD;
       for (const f of FIELDS) {
         if (c[f] !== undefined && c[f] !== null) $set[f] = c[f];

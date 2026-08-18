@@ -96,6 +96,8 @@ const TrackSchema = new mongoose.Schema({
     default: "gpt_imported"
   },
   classifiedBy: { type: String, default: null },
+  classifiedAt: { type: Date, default: null },                      // When this track was last classified
+  doctrineVersion: { type: String, default: null },                 // e.g. "v1_legacy", "v2_2026-08-18"
   notes: { type: String, default: "" },
   lastReviewedAt: { type: Date, default: null },
   importedAt: { type: Date, default: null },
