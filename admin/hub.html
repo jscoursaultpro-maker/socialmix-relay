@@ -256,6 +256,27 @@
     }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+    /* ─── Guest Search ─── */
+    .guest-search {
+      display: flex; gap: 12px; margin-bottom: 16px; align-items: center;
+    }
+    .guest-search input {
+      flex: 1; max-width: 320px; padding: 9px 14px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.05);
+      color: #f1f1f3; font-size: 0.85rem; font-family: inherit; outline: none;
+      transition: border-color 0.2s;
+    }
+    .guest-search input:focus { border-color: #3b82f6; }
+    .guest-search .guest-count { color: #6b7280; font-size: 0.78rem; }
+    .guest-avatar {
+      width: 32px; height: 32px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; font-size: 1rem;
+      background: rgba(124,92,252,0.15); flex-shrink: 0;
+    }
+    .guest-contact { color: #6b7280; font-size: 0.72rem; }
+    .guest-contact a { color: #60a5fa; text-decoration: none; }
+    .guest-contact a:hover { text-decoration: underline; }
+
     @media (max-width: 768px) {
       .hub-container { padding: 20px; }
       .grid { grid-template-columns: 1fr; }
@@ -454,6 +475,32 @@
         </div>
       </div>
 
+      <!-- ── Guests ── -->
+      <div class="sub-section">
+        <h3>👥 Guests</h3>
+        <div class="guest-search">
+          <input type="text" id="guest-search-input" placeholder="🔍 Rechercher un guest (nom ou email)…" />
+          <span class="guest-count" id="guest-count"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="parties-table" id="guests-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th data-gsort="name">Nom <span class="sort-arrow">↕</span></th>
+                <th data-gsort="email">Email <span class="sort-arrow">↕</span></th>
+                <th data-gsort="parties">Soirées <span class="sort-arrow">↕</span></th>
+                <th data-gsort="lastSeen">Dernière vue <span class="sort-arrow">↕</span></th>
+                <th>Contact</th>
+              </tr>
+            </thead>
+            <tbody id="guests-body">
+              <tr><td colspan="6" class="empty-state">Chargement…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- ── Nouveautés ── -->
       <div class="sub-section">
         <h3>🆕 Nouveautés récentes</h3>
@@ -533,9 +580,10 @@
       const headers = { 'X-Admin-Token': token };
 
       try {
-        const [statsRes, partiesRes] = await Promise.all([
+        const [statsRes, partiesRes, guestsRes] = await Promise.all([
           fetch('/api/admin/stats', { headers }),
-          fetch('/api/admin/parties?limit=15', { headers })
+          fetch('/api/admin/parties?limit=15', { headers }),
+          fetch('/api/admin/guests?limit=100', { headers })
         ]);
 
         if (statsRes.ok) {
@@ -551,6 +599,12 @@
           const data = await partiesRes.json();
           partiesData = data.parties || [];
           renderParties();
+        }
+
+        if (guestsRes && guestsRes.ok) {
+          const data = await guestsRes.json();
+          allGuests = data.guests || [];
+          renderGuests();
         }
 
         document.getElementById('last-update').textContent =
@@ -706,6 +760,78 @@
         currentSort.asc = true;
       }
       renderParties();
+    });
+
+    // ── Guests ──
+    let allGuests = [];
+    let guestSort = { col: 'parties', asc: false };
+
+    function renderGuests() {
+      const searchVal = (document.getElementById('guest-search-input').value || '').toLowerCase();
+      let filtered = allGuests;
+      if (searchVal) {
+        filtered = allGuests.filter(g =>
+          (g.name || '').toLowerCase().includes(searchVal)
+          || (g.email || '').toLowerCase().includes(searchVal)
+        );
+      }
+
+      const sorted = [...filtered].sort((a, b) => {
+        let va, vb;
+        switch (guestSort.col) {
+          case 'name':     va = (a.name || '').toLowerCase(); vb = (b.name || '').toLowerCase(); break;
+          case 'email':    va = a.email; vb = b.email; break;
+          case 'parties':  va = a.partiesCount; vb = b.partiesCount; break;
+          case 'lastSeen': va = new Date(a.lastSeenAt || 0); vb = new Date(b.lastSeenAt || 0); break;
+          default:         va = a.partiesCount; vb = b.partiesCount;
+        }
+        if (va < vb) return guestSort.asc ? -1 : 1;
+        if (va > vb) return guestSort.asc ? 1 : -1;
+        return 0;
+      });
+
+      document.getElementById('guest-count').textContent = `${filtered.length} guest${filtered.length > 1 ? 's' : ''}`;
+
+      if (!sorted.length) {
+        document.getElementById('guests-body').innerHTML = '<tr><td colspan="6" class="empty-state">Aucun guest trouvé</td></tr>';
+        return;
+      }
+
+      document.getElementById('guests-body').innerHTML = sorted.map(g => {
+        const lastSeen = g.lastSeenAt
+          ? new Date(g.lastSeenAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+            + ' ' + new Date(g.lastSeenAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          : '—';
+        const contactParts = [];
+        if (g.phone) contactParts.push(esc(g.phone));
+        if (g.instagram) contactParts.push(`<a href="https://instagram.com/${g.instagram.replace('@','')}" target="_blank">@${esc(g.instagram.replace('@',''))}</a>`);
+        const contactHtml = contactParts.length ? contactParts.join(' · ') : '<span style="color:#4b5563">—</span>';
+
+        return `<tr>
+          <td><div class="guest-avatar">${g.emoji || '🎉'}</div></td>
+          <td style="font-weight:600">${esc(g.name)}</td>
+          <td style="color:#9ca3af;font-size:0.82rem">${esc(g.email)}</td>
+          <td><span style="background:rgba(124,92,252,0.15);color:#a78bfa;padding:2px 10px;border-radius:6px;font-weight:700;font-size:0.82rem">${g.partiesCount}</span></td>
+          <td style="font-size:0.82rem">${lastSeen}</td>
+          <td class="guest-contact">${contactHtml}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Guest search (client-side filter)
+    document.getElementById('guest-search-input').addEventListener('input', () => renderGuests());
+
+    // Guest table sort
+    document.getElementById('guests-table').querySelector('thead').addEventListener('click', e => {
+      const th = e.target.closest('th');
+      if (!th || !th.dataset.gsort) return;
+      if (guestSort.col === th.dataset.gsort) {
+        guestSort.asc = !guestSort.asc;
+      } else {
+        guestSort.col = th.dataset.gsort;
+        guestSort.asc = true;
+      }
+      renderGuests();
     });
 
     // ── Util ──
