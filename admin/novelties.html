@@ -192,13 +192,14 @@
     let allNovelties = [];
 
     function getToken() {
-      return localStorage.getItem('sm_admin_token') || localStorage.getItem('adminToken') || '';
+      return localStorage.getItem('sm_admin_token') || localStorage.getItem('adminToken')
+        || sessionStorage.getItem('sm_admin_token') || sessionStorage.getItem('adminToken') || '';
     }
 
     async function loadNovelties() {
       const token = getToken();
       if (!token) {
-        document.getElementById('novelties-body').innerHTML = '<div class="loading" style="color:#ef4444">Non autorisé. Connectez-vous au Hub d\'abord.</div>';
+        window.location.href = '/admin/hub';
         return;
       }
 
@@ -206,6 +207,13 @@
         const res = await fetch('/api/admin/stats', {
           headers: { 'X-Admin-Token': token, 'Authorization': `Bearer ${token}` }
         });
+        if (res.status === 401 || res.status === 403) {
+          // Token expired (Render redeploy clears in-memory tokens) — re-login
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('sm_admin_token');
+          window.location.href = '/admin/hub';
+          return;
+        }
         if (!res.ok) throw new Error(`API ${res.status}`);
         const data = await res.json();
         allNovelties = data.novelties || [];
