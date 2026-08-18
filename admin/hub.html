@@ -8,6 +8,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <!-- ★ SSO Login screen — hub entry point -->
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0a0a0f; color: #f1f1f3;
+      font-size: 14px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
     #hub-login {
       display: flex; align-items: center; justify-content: center;
       min-height: 100vh; flex-direction: column; gap: 24px;
@@ -39,6 +47,221 @@
       font-size: 0.85rem; font-weight: 600; transition: background 0.2s;
     }
     #hub-header button:hover { background: rgba(239,68,68,0.25); }
+
+    /* ─── Hub Container ─── */
+    .hub-container {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 32px 40px 60px; max-width: 1200px; margin: 0 auto;
+    }
+    .hub-container h1 {
+      font-size: 2rem; font-weight: 900; margin-bottom: 4px;
+      background: linear-gradient(135deg, #fff, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hub-container .subtitle { color: #6b7280; margin-bottom: 32px; font-size: 0.95rem; }
+
+    /* ─── Tools Grid ─── */
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px; width: 100%;
+    }
+    .grid .card {
+      background: #13131a; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; padding: 22px; text-decoration: none; color: inherit;
+      transition: all 0.2s; display: block;
+    }
+    .grid .card:hover {
+      border-color: rgba(124,92,252,0.4); background: rgba(124,92,252,0.06);
+      transform: translateY(-2px); box-shadow: 0 8px 32px rgba(124,92,252,0.12);
+    }
+    .card-icon { font-size: 1.8rem; margin-bottom: 4px; }
+    .card-title { font-size: 1.05rem; font-weight: 700; margin: 8px 0 6px; }
+    .card-desc { color: #9ca3af; font-size: 0.85rem; line-height: 1.5; }
+    .badge {
+      display: inline-flex; align-items: center; padding: 2px 10px;
+      border-radius: 8px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .badge-green  { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .badge-blue   { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .badge-purple { background: rgba(124,92,252,0.15); color: #a78bfa; }
+    .badge-orange { background: rgba(249,115,22,0.15); color: #f97316; }
+
+    /* ─── Monitor Section ─── */
+    .monitor-section {
+      width: 100%; margin-top: 48px;
+      border-top: 1px solid rgba(255,255,255,0.07); padding-top: 40px;
+    }
+    .monitor-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+    }
+    .monitor-header h2 {
+      font-size: 1.4rem; font-weight: 800;
+      background: linear-gradient(135deg, #3b82f6, #22c55e);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .monitor-meta {
+      display: flex; align-items: center; gap: 14px; font-size: 0.82rem; color: #6b7280;
+    }
+    .monitor-meta .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
+      display: inline-block; animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+    .refresh-btn {
+      background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25);
+      color: #60a5fa; border-radius: 8px; padding: 6px 14px; cursor: pointer;
+      font-size: 0.82rem; font-weight: 600; transition: all 0.2s; font-family: inherit;
+    }
+    .refresh-btn:hover { background: rgba(59,130,246,0.25); }
+    .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ─── Stats Row ─── */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stat-box {
+      background: #13131a; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px; padding: 18px; text-align: center;
+      transition: transform 0.2s;
+    }
+    .stat-box:hover { transform: translateY(-2px); }
+    .stat-box .stat-val { font-size: 1.8rem; font-weight: 800; }
+    .stat-box .stat-lbl { color: #6b7280; font-size: 0.75rem; margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat-box.green  { border-color: rgba(34,197,94,0.25); }
+    .stat-box.green .stat-val  { color: #22c55e; }
+    .stat-box.orange { border-color: rgba(249,115,22,0.25); }
+    .stat-box.orange .stat-val { color: #f97316; }
+    .stat-box.red    { border-color: rgba(239,68,68,0.25); }
+    .stat-box.red .stat-val    { color: #ef4444; }
+    .stat-box.blue   { border-color: rgba(59,130,246,0.25); }
+    .stat-box.blue .stat-val   { color: #60a5fa; }
+
+    /* ─── Sub-sections ─── */
+    .sub-section {
+      background: #13131a; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; padding: 24px; margin-bottom: 20px;
+    }
+    .sub-section h3 {
+      font-size: 1rem; font-weight: 700; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ─── TestFlight Card ─── */
+    .tf-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .tf-item {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px; padding: 14px 18px;
+    }
+    .tf-item .tf-label { color: #6b7280; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+    .tf-item .tf-value { font-size: 1rem; font-weight: 600; }
+    .tf-item .tf-sub   { color: #9ca3af; font-size: 0.78rem; margin-top: 2px; }
+    .tf-item.active    { border-color: rgba(34,197,94,0.3); }
+    .tf-item.pending   { border-color: rgba(249,115,22,0.3); }
+    .asc-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff;
+      border: none; border-radius: 10px; padding: 10px 20px; cursor: pointer;
+      font-size: 0.88rem; font-weight: 700; transition: opacity 0.2s; text-decoration: none;
+      margin-top: 16px; font-family: inherit;
+    }
+    .asc-btn:hover { opacity: 0.85; }
+
+    /* ─── Parties Table ─── */
+    .parties-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      font-size: 0.85rem;
+    }
+    .parties-table thead th {
+      text-align: left; padding: 10px 14px; color: #6b7280;
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    .parties-table thead th:hover { color: #a78bfa; }
+    .parties-table thead th .sort-arrow { margin-left: 4px; font-size: 0.65rem; }
+    .parties-table tbody tr {
+      transition: background 0.15s;
+    }
+    .parties-table tbody tr:hover { background: rgba(124,92,252,0.06); }
+    .parties-table tbody td {
+      padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04);
+      white-space: nowrap;
+    }
+    .parties-table .code-link {
+      color: #60a5fa; text-decoration: none; font-weight: 600; font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    .parties-table .code-link:hover { text-decoration: underline; }
+    .status-active {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(34,197,94,0.15); color: #22c55e;
+      padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;
+    }
+    .status-ended {
+      color: #6b7280; font-size: 0.82rem;
+    }
+    .empty-state {
+      text-align: center; padding: 40px; color: #6b7280; font-size: 0.9rem;
+    }
+
+    /* ─── Top Tracks List ─── */
+    .top-list { list-style: none; }
+    .top-list li {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .top-list li:last-child { border-bottom: none; }
+    .top-rank {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: rgba(124,92,252,0.15); color: #a78bfa;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.78rem; font-weight: 800; flex-shrink: 0;
+    }
+    .top-info { flex: 1; min-width: 0; }
+    .top-title { font-weight: 600; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .top-artist { color: #6b7280; font-size: 0.78rem; }
+    .top-score { color: #f97316; font-weight: 700; font-size: 0.82rem; flex-shrink: 0; }
+
+    /* ─── Novelties ─── */
+    .novelty-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px;
+    }
+    .novelty-item {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px; padding: 12px 16px;
+    }
+    .novelty-item .nov-title { font-weight: 600; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .novelty-item .nov-artist { color: #6b7280; font-size: 0.78rem; }
+    .novelty-item .nov-meta { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+    .nov-tag {
+      display: inline-flex; padding: 2px 8px; border-radius: 6px;
+      font-size: 0.7rem; font-weight: 600;
+      background: rgba(124,92,252,0.12); color: #a78bfa;
+    }
+    .nov-tag.genre  { background: rgba(59,130,246,0.12); color: #60a5fa; }
+    .nov-tag.bpm    { background: rgba(34,197,94,0.12); color: #22c55e; }
+    .nov-tag.energy { background: rgba(249,115,22,0.12); color: #f97316; }
+
+    /* ─── Loading skeleton ─── */
+    .skeleton {
+      background: linear-gradient(90deg, #1a1a24 25%, #222 50%, #1a1a24 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px; height: 20px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    @media (max-width: 768px) {
+      .hub-container { padding: 20px; }
+      .grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .tf-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -145,15 +368,117 @@
       </a>
 
     </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ★ Monitor TestFlight & Adoption — Live dashboard section
+         ═══════════════════════════════════════════════════════════════ -->
+    <div class="monitor-section" id="monitor-section" style="display:none">
+
+      <div class="monitor-header">
+        <h2>📊 Monitor TestFlight</h2>
+        <div class="monitor-meta">
+          <span class="dot"></span>
+          <span id="last-update">—</span>
+          <button class="refresh-btn" id="refresh-btn" onclick="monitorRefresh()">↻ Refresh</button>
+        </div>
+      </div>
+
+      <!-- ── TestFlight Status ── -->
+      <div class="sub-section">
+        <h3>🚀 Statut TestFlight</h3>
+        <div class="tf-grid">
+          <div class="tf-item active">
+            <div class="tf-label">Build actuel</div>
+            <div class="tf-value">1.0.0 (3)</div>
+            <div class="tf-sub">Fix DJBrain suggestion slot + watchdog deadlock</div>
+          </div>
+          <div class="tf-item active">
+            <div class="tf-label">Groupe interne</div>
+            <div class="tf-value">Premiers Testeurs</div>
+            <div class="tf-sub">1 testeur — jscoursault ✅</div>
+          </div>
+          <div class="tf-item pending">
+            <div class="tf-label">Groupe externe</div>
+            <div class="tf-value">La famille les amis</div>
+            <div class="tf-sub">1 testeuse — Pauline ⏳ En attente review Apple</div>
+          </div>
+          <div class="tf-item">
+            <div class="tf-label">Bundle ID</div>
+            <div class="tf-value" style="font-family:'SF Mono','Fira Code',monospace;font-size:0.88rem">com.ahouai.app</div>
+            <div class="tf-sub">Team DQDAY9MA9A</div>
+          </div>
+        </div>
+        <a href="https://appstoreconnect.apple.com" target="_blank" rel="noopener" class="asc-btn">
+          🍎 Ouvrir App Store Connect
+        </a>
+      </div>
+
+      <!-- ── DJ Brain Health ── -->
+      <div class="sub-section">
+        <h3>🧠 Health DJ Brain</h3>
+        <div class="stats-row" id="brain-stats">
+          <div class="stat-box"><div class="stat-val skeleton" style="height:36px">&nbsp;</div><div class="stat-lbl">Total tracks</div></div>
+          <div class="stat-box green"><div class="stat-val skeleton" style="height:36px">&nbsp;</div><div class="stat-lbl">Qualifiées</div></div>
+          <div class="stat-box orange"><div class="stat-val skeleton" style="height:36px">&nbsp;</div><div class="stat-lbl">Sans énergie</div></div>
+          <div class="stat-box red"><div class="stat-val skeleton" style="height:36px">&nbsp;</div><div class="stat-lbl">Sans BPM</div></div>
+        </div>
+
+        <!-- Top Feu Ratio -->
+        <h3 style="margin-top:20px">🔥 Top 10 — Feu Ratio</h3>
+        <ul class="top-list" id="top-feu">
+          <li class="empty-state">Chargement…</li>
+        </ul>
+      </div>
+
+      <!-- ── Parties Récentes ── -->
+      <div class="sub-section">
+        <h3>🎉 Parties Récentes</h3>
+        <div style="overflow-x:auto">
+          <table class="parties-table" id="parties-table">
+            <thead>
+              <tr>
+                <th data-sort="code">Code <span class="sort-arrow">↕</span></th>
+                <th data-sort="date">Date <span class="sort-arrow">↕</span></th>
+                <th data-sort="duration">Durée <span class="sort-arrow">↕</span></th>
+                <th data-sort="participants">Participants <span class="sort-arrow">↕</span></th>
+                <th data-sort="tracks">Tracks <span class="sort-arrow">↕</span></th>
+                <th data-sort="suggestions">Suggestions <span class="sort-arrow">↕</span></th>
+                <th data-sort="status">Statut <span class="sort-arrow">↕</span></th>
+              </tr>
+            </thead>
+            <tbody id="parties-body">
+              <tr><td colspan="7" class="empty-state">Chargement…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Nouveautés ── -->
+      <div class="sub-section">
+        <h3>🆕 Nouveautés récentes</h3>
+        <div class="novelty-grid" id="novelties-grid">
+          <div class="empty-state" style="grid-column:1/-1">Chargement…</div>
+        </div>
+      </div>
+
+    </div><!-- end monitor-section -->
+
   </div><!-- end hub-container -->
 
   <script>
     const HUB_TOKEN_KEY = 'adminToken'; // clé universelle SSO
+    let monitorInterval = null;
+    let partiesData = [];
+    let currentSort = { col: 'date', asc: false };
 
     function hubShowApp() {
       document.getElementById('hub-login').style.display  = 'none';
       document.getElementById('hub-header').style.display = 'flex';
       document.querySelector('.hub-container').style.display = 'flex';
+      document.getElementById('monitor-section').style.display = 'block';
+      // Start live monitor
+      monitorRefresh();
+      monitorInterval = setInterval(monitorRefresh, 60_000);
     }
 
     // Si token déjà présent → afficher directement
@@ -187,11 +512,196 @@
 
     function hubLogout() {
       ['adminToken','sm_admin_token','monitor_token','socialmix_admin_token'].forEach(k => localStorage.removeItem(k));
+      if (monitorInterval) clearInterval(monitorInterval);
       location.reload();
     }
 
     // Enter key sur le champ mot de passe
     document.getElementById('hub-pwd').addEventListener('keydown', e => { if (e.key === 'Enter') hubLogin(); });
+
+    // ═══════════════════════════════════════════════════════════════
+    // ★ Monitor — Fetch & Render
+    // ═══════════════════════════════════════════════════════════════
+
+    function getToken() { return localStorage.getItem(HUB_TOKEN_KEY) || ''; }
+
+    async function monitorRefresh() {
+      const btn = document.getElementById('refresh-btn');
+      btn.disabled = true; btn.textContent = '↻ …';
+      const token = getToken();
+      const headers = { 'X-Admin-Token': token };
+
+      try {
+        const [statsRes, partiesRes] = await Promise.all([
+          fetch('/api/admin/stats', { headers }),
+          fetch('/api/admin/parties?limit=15', { headers })
+        ]);
+
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          renderBrainStats(stats);
+          renderTopFeu(stats.topFeu || []);
+          renderNovelties(stats.novelties || []);
+        } else if (statsRes.status === 401 || statsRes.status === 403) {
+          hubLogout(); return;
+        }
+
+        if (partiesRes.ok) {
+          const data = await partiesRes.json();
+          partiesData = data.parties || [];
+          renderParties();
+        }
+
+        document.getElementById('last-update').textContent =
+          'Mis à jour ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      } catch (err) {
+        console.error('[Monitor] Fetch error:', err);
+        document.getElementById('last-update').textContent = '⚠️ Erreur réseau';
+      }
+
+      btn.disabled = false; btn.textContent = '↻ Refresh';
+    }
+
+    // ── Brain Stats ──
+    function renderBrainStats(s) {
+      const pct = s.total > 0 ? ((s.qualified / s.total) * 100).toFixed(1) : '0';
+      document.getElementById('brain-stats').innerHTML = `
+        <div class="stat-box blue">
+          <div class="stat-val">${s.total.toLocaleString('fr-FR')}</div>
+          <div class="stat-lbl">Total tracks</div>
+        </div>
+        <div class="stat-box green">
+          <div class="stat-val">${pct}%</div>
+          <div class="stat-lbl">Qualifiées (${s.qualified.toLocaleString('fr-FR')})</div>
+        </div>
+        <div class="stat-box orange">
+          <div class="stat-val">${s.noEnergy.toLocaleString('fr-FR')}</div>
+          <div class="stat-lbl">Sans énergie</div>
+        </div>
+        <div class="stat-box red">
+          <div class="stat-val">${s.noBpm.toLocaleString('fr-FR')}</div>
+          <div class="stat-lbl">Sans BPM</div>
+        </div>
+      `;
+    }
+
+    // ── Top Feu ──
+    function renderTopFeu(tracks) {
+      if (!tracks.length) {
+        document.getElementById('top-feu').innerHTML = '<li class="empty-state">Aucune donnée</li>';
+        return;
+      }
+      document.getElementById('top-feu').innerHTML = tracks.map((t, i) => `
+        <li>
+          <div class="top-rank">${i + 1}</div>
+          <div class="top-info">
+            <div class="top-title">${esc(t.title)}</div>
+            <div class="top-artist">${esc(t.artist)} · ${esc(t.genre || '—')}</div>
+          </div>
+          <div class="top-score">🔥 ${((t.performance?.feuRatio || 0) * 100).toFixed(0)}%</div>
+          <div style="color:#6b7280;font-size:0.75rem;width:60px;text-align:right">${t.performance?.totalPlays || 0} plays</div>
+        </li>
+      `).join('');
+    }
+
+    // ── Novelties ──
+    function renderNovelties(items) {
+      if (!items.length) {
+        document.getElementById('novelties-grid').innerHTML = '<div class="empty-state" style="grid-column:1/-1">Aucune nouveauté</div>';
+        return;
+      }
+      document.getElementById('novelties-grid').innerHTML = items.map(t => `
+        <div class="novelty-item">
+          <div class="nov-title">${esc(t.title)}</div>
+          <div class="nov-artist">${esc(t.artist)}</div>
+          <div class="nov-meta">
+            ${t.genre ? `<span class="nov-tag genre">${esc(t.genre)}</span>` : ''}
+            ${t.bpm ? `<span class="nov-tag bpm">${t.bpm} BPM</span>` : ''}
+            ${t.energy ? `<span class="nov-tag energy">E${t.energy}</span>` : ''}
+            ${t.phase ? `<span class="nov-tag">${esc(t.phase)}</span>` : ''}
+            ${t.suggestCount ? `<span class="nov-tag" style="background:rgba(239,68,68,0.12);color:#f87171">🗳️ ${t.suggestCount}×</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ── Parties Table ──
+    function renderParties() {
+      const sorted = [...partiesData].sort((a, b) => {
+        let va, vb;
+        switch (currentSort.col) {
+          case 'code':         va = a.code; vb = b.code; break;
+          case 'date':         va = new Date(a.createdAt); vb = new Date(b.createdAt); break;
+          case 'duration':     va = getDuration(a); vb = getDuration(b); break;
+          case 'participants': va = (a.participants || []).length; vb = (b.participants || []).length; break;
+          case 'tracks':       va = (a.trackHistory || []).length; vb = (b.trackHistory || []).length; break;
+          case 'suggestions':  va = (a.suggestions || []).length; vb = (b.suggestions || []).length; break;
+          case 'status':       va = a.endedAt ? 1 : 0; vb = b.endedAt ? 1 : 0; break;
+          default:             va = new Date(a.createdAt); vb = new Date(b.createdAt);
+        }
+        if (va < vb) return currentSort.asc ? -1 : 1;
+        if (va > vb) return currentSort.asc ? 1 : -1;
+        return 0;
+      });
+
+      if (!sorted.length) {
+        document.getElementById('parties-body').innerHTML = '<tr><td colspan="7" class="empty-state">Aucune party trouvée</td></tr>';
+        return;
+      }
+
+      document.getElementById('parties-body').innerHTML = sorted.map(p => {
+        const date = new Date(p.createdAt);
+        const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+                        + ' ' + date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        const dur = getDuration(p);
+        const durStr = dur > 0 ? `${Math.floor(dur / 60)}h${String(dur % 60).padStart(2, '0')}` : '—';
+        const parts = (p.participants || []).length;
+        const tracks = (p.trackHistory || []).length;
+        const suggs = (p.suggestions || []).length;
+        const isActive = !p.endedAt;
+        const statusHtml = isActive
+          ? '<span class="status-active"><span class="dot" style="width:6px;height:6px"></span>Active</span>'
+          : '<span class="status-ended">Terminée</span>';
+
+        return `<tr${isActive ? ' style="background:rgba(34,197,94,0.04)"' : ''}>
+          <td><a class="code-link" href="/api/party/${p.code}/audit" target="_blank">${p.code}</a></td>
+          <td>${dateStr}</td>
+          <td>${durStr}</td>
+          <td>${parts}</td>
+          <td>${tracks}</td>
+          <td>${suggs}</td>
+          <td>${statusHtml}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function getDuration(p) {
+      if (!p.createdAt) return 0;
+      const start = new Date(p.createdAt);
+      const end = p.endedAt ? new Date(p.endedAt) : new Date();
+      return Math.round((end - start) / 60_000);
+    }
+
+    // ── Table sort ──
+    document.getElementById('parties-table').querySelector('thead').addEventListener('click', e => {
+      const th = e.target.closest('th');
+      if (!th || !th.dataset.sort) return;
+      if (currentSort.col === th.dataset.sort) {
+        currentSort.asc = !currentSort.asc;
+      } else {
+        currentSort.col = th.dataset.sort;
+        currentSort.asc = true;
+      }
+      renderParties();
+    });
+
+    // ── Util ──
+    function esc(s) {
+      if (!s) return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
   </script>
 </body>
 </html>
