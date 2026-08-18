@@ -199,6 +199,11 @@ TrackSchema.index({ availableOn: 1 });
 TrackSchema.index({ providerIdsResolvedAt: 1 }, { sparse: true }); // backfill idempotence query
 TrackSchema.index({ suggestable: 1, phase: 1 });
 TrackSchema.index({ confidence: 1, classifiedBy: 1 });
+// ─── Chantier 1 indexes (batch, monitoring, learning loop) ──────
+TrackSchema.index({ qualityLevel: 1 });
+TrackSchema.index({ doctrineVersion: 1 });
+TrackSchema.index({ bpmConflict: 1 }, { sparse: true });
+TrackSchema.index({ 'performance.feuRatio': -1 });
 
 // ─── Quality Level computation (shared between pre-save and findOneAndUpdate callers) ──
 export function computeQualityLevel(doc) {
