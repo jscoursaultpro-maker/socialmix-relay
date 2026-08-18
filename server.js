@@ -4927,12 +4927,13 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ★ Option 3 — Persist 19% fire tracks and fire scores
-  socket.on('host:track_feedback', (data) => {
+  // ★ Option 3 — Persist fire tracks scores (dual-write: file + MongoDB)
+  socket.on('host:track_feedback', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
     const { deezerID, title, artist, genre, bpm, fireCount, participantCount } = data;
     if (!deezerID) return;
     
+    // ── Dual-write 1: file-based (legacy, kept for rollback safety) ──
     try {
       let feedback = {};
       if (existsSync(FEEDBACK_PATH)) {
@@ -4943,12 +4944,8 @@ io.on('connection', (socket) => {
       const idStr = String(deezerID);
       const existing = feedback[idStr] || { deezerID, title, artist, genre, bpm, fireCount: 0, participantCount: 0 };
       
-      // Keep track of total fires for DJBrain
       existing.fireCount += fireCount;
-      // Keep the highest participant count seen to avoid diluting the ratio
       existing.participantCount = Math.max(existing.participantCount, participantCount);
-      
-      // Update metadata
       existing.title = title || existing.title;
       existing.artist = artist || existing.artist;
       existing.genre = genre || existing.genre;
@@ -4956,9 +4953,33 @@ io.on('connection', (socket) => {
       
       feedback[idStr] = existing;
       writeFileSync(FEEDBACK_PATH, JSON.stringify(feedback, null, 2));
-      console.log(`🔥 [${party.code}] Track feedback saved: "${title}" (Total Fire: ${existing.fireCount})`);
     } catch (err) {
-      console.error(`[Feedback] ❌ Error saving feedback: ${err.message}`);
+      console.error(`[Feedback] ❌ File write error: ${err.message}`);
+    }
+
+    // ── Dual-write 2: MongoDB Track.performance (source of truth) ──
+    try {
+      const parsedFire = Number(fireCount) || 0;
+      if (parsedFire <= 0) return;
+
+      const track = await Track.findOne({ 'providers.deezer.trackId': deezerID });
+      if (!track) return;
+
+      // $inc the feu rating counter
+      const feu  = (track.performance?.ratings?.feu  || 0) + parsedFire;
+      const cool = (track.performance?.ratings?.cool || 0);
+      const bof  = (track.performance?.ratings?.bof  || 0);
+      const totalVotes = feu + cool + bof;
+      const feuRatio = totalVotes > 0 ? Math.round((feu / totalVotes) * 100) / 100 : 0;
+
+      await Track.updateOne({ _id: track._id }, {
+        $inc: { 'performance.ratings.feu': parsedFire },
+        $set: { 'performance.feuRatio': feuRatio }
+      });
+
+      console.log(`🔥 [${party.code}] Track feedback persisted: "${title}" (feu:${feu}, ratio:${feuRatio})`);
+    } catch (err) {
+      console.error(`[Feedback] ❌ MongoDB write error: ${err.message}`);
     }
   });
 
