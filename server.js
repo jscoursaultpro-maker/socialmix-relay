@@ -510,11 +510,16 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
     //          staleness ≥ 8 → track fresh (pas de malus)
     //   Isolation par hostUserId (Michel ≠ Éric). Fallback pool épuisé côté iOS.
     const CROSS_PARTY_WINDOW = 8;
-    const recentParties = await Party.find({ hostUserId })
+    // ★ fix(20/08): Party.hostUserId is stored as native ObjectId (553 parties)
+    //   but the URL param comes as string. Query both formats defensively.
+    let hostUserIdVariants = [hostUserId];
+    try { hostUserIdVariants.push(new mongoose.Types.ObjectId(hostUserId)); } catch (_) {}
+    const recentParties = await Party.find({ hostUserId: { $in: hostUserIdVariants } })
       .sort({ createdAt: -1 })
       .limit(CROSS_PARTY_WINDOW)
       .select('_id')
       .lean();
+    console.log(`[Freshness] recentParties found: ${recentParties.length} for hostUserId ${hostUserId} (variants: string+ObjectId)`);
     const partyIndexMap = {};
     recentParties.forEach((p, idx) => {
       partyIndexMap[p._id.toString()] = idx + 1; // 1 = la plus récente, 8 = 8ème plus récente
@@ -3958,6 +3963,7 @@ io.on('connection', (socket) => {
               hostUserId:          _capturedUID,
               trackId:             resolvedTrack?._id || null,
               partyId:             partyMongoId,
+              partyCode:           _capturedCode,           // ★ fix(20/08): was missing → null for all HPH since 18/08
               deezerTrackId:       deezerId ? Number(deezerId) : null,
               title:               _capturedDoc.title  || null,
               artist:              _capturedDoc.artist || null,
