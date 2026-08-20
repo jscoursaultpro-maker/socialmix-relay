@@ -2303,9 +2303,37 @@ app.get('/api/afterglow/:base62', async (req, res) => {
     if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
     if (!party.endedAt) return res.status(403).json({ error: 'PARTY_STILL_LIVE' });
 
-    // Aggregate track data from HPH
-    const hph = await HostPlaybackHistory.find({ partyCode: party.code })
-      .sort({ playedAt: 1 }).lean();
+    // Aggregate track data from HPH with $lookup to Track collection for title/artist/artwork
+    // ★ Fix(AfterGlow B1): HPH stores trackId ref but title/artist may be null (pre-Task #44 parties).
+    //   $lookup joins Track to always resolve metadata; $ifNull falls back to HPH inline fields.
+    const hph = await HostPlaybackHistory.aggregate([
+      { $match: { partyCode: party.code } },
+      { $sort: { playedAt: 1 } },
+      { $lookup: {
+          from: 'tracks',
+          localField: 'trackId',
+          foreignField: '_id',
+          as: '_track'
+        }
+      },
+      { $unwind: { path: '$_track', preserveNullAndEmptyArrays: true } },
+      { $project: {
+          _id: 0,
+          title:    { $ifNull: ['$_track.title', '$title'] },
+          artist:   { $ifNull: ['$_track.artist', '$artist'] },
+          genre:    '$_track.genre',
+          album:    '$_track.album',
+          bpm:      '$_track.bpm',
+          artworkUrl: { $ifNull: ['$_track.coverArtURL', '$_track.appleMusicMetadata.artworkUrl'] },
+          phase:    1,
+          playedAt: 1,
+          voteScore: 1,
+          wasSuggestedByGuest: 1,
+          suggestedBy: 1,
+          wasHostOverride: 1
+        }
+      }
+    ]);
 
     // Photos from Photo collection (Cloudinary CDN URLs only)
     const photos = await Photo.find({ partyCode: party.code, deletedAt: null })
@@ -2329,8 +2357,12 @@ app.get('/api/afterglow/:base62', async (req, res) => {
 
     // Track list with vote scores
     const tracks = hph.map(h => ({
-      title: h.title,
-      artist: h.artist,
+      title: h.title || null,
+      artist: h.artist || null,
+      genre: h.genre || null,
+      album: h.album || null,
+      bpm: h.bpm || null,
+      artworkUrl: h.artworkUrl || null,
       phase: h.phase,
       playedAt: h.playedAt,
       votes: h.voteScore || { feu: 0, cool: 0, bof: 0 },
@@ -2338,6 +2370,7 @@ app.get('/api/afterglow/:base62', async (req, res) => {
       suggestedBy: h.suggestedBy || null,
       wasHostOverride: h.wasHostOverride || false
     }));
+
 
     // Global stats
     const totalFeu = tracks.reduce((s, t) => s + (t.votes.feu || 0), 0);
