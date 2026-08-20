@@ -38,6 +38,7 @@ import { computeUserStats } from './services/userStats.js'; // ★ Task #81 B2: 
 import { reconcileAllVotes } from './services/voteReconciliation.js'; // ★ Task #114 bis: cron réconciliation Party.guestVotes → Track.performance
 import Meta, { bumpSeedVersion, getSeedVersion } from './models/Meta.js'; // ★ Chantier 2: seed versioning
 import tracksSeedRouter from './routes/tracks-seed.js'; // ★ Chantier 2: GET /api/tracks/seed
+import foundersRankRouter from './routes/founders-rank.js'; // ★ Task #81: GET+POST /api/user/me/founders-rank
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
@@ -702,6 +703,9 @@ app.use('/api/admin/batch', adminAuth, adminBatchRouter);
 
 // ★ Chantier 2: Public Track catalogue seed (no auth — public data)
 app.use('/api/tracks/seed', compression(), tracksSeedRouter);
+
+// ★ Task #81: Founders program — opt-in, 2500 slots, Supabase JWT auth
+app.use('/api/user/me/founders-rank', foundersRankRouter);
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
