@@ -41,6 +41,7 @@ import tracksSeedRouter from './routes/tracks-seed.js'; // ★ Chantier 2: GET /
 import foundersRankRouter from './routes/founders-rank.js'; // ★ Task #81: GET+POST /api/user/me/founders-rank
 import profileHostRouter from './routes/profile-host.js'; // ★ B2.1: GET /api/profile/host/:handle
 import profileGuestRouter from './routes/profile-guest.js'; // ★ B2.1: GET /api/profile/guest/:handle
+import userFollowRouter from './routes/user-follow.js'; // ★ B2.1: POST/DELETE /api/user/follow/:targetUserId
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
@@ -712,6 +713,9 @@ app.use('/api/user/me/founders-rank', foundersRankRouter);
 // ★ B2.1: Public host profile (no auth)
 app.use('/api/profile/host', profileHostRouter);
 app.use('/api/profile/guest', profileGuestRouter);
+
+// ★ B2.1: Follow/unfollow (Supabase JWT auth)
+app.use('/api/user/follow', userFollowRouter);
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
