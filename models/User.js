@@ -90,6 +90,10 @@ const userSchema = new Schema({
   
   blockedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   
+  // === FOLLOW GRAPH (asymmetric — distinct from friends) ===
+  followers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  following: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  
   // === STATS (calculés post-soirée) ===
   stats: {
     partiesCount: { type: Number, default: 0 },
@@ -118,7 +122,8 @@ const userSchema = new Schema({
     notificationsEnabled: { type: Boolean, default: true },
     marketingOptIn: { type: Boolean, default: false },
     discoverableByFriends: { type: Boolean, default: true },
-    showInLeaderboard: { type: Boolean, default: true }
+    showInLeaderboard: { type: Boolean, default: true },
+    profilePublic: { type: Boolean, default: false }  // ★ B2.1: RGPD opt-in for public profile
   },
   
   // === SETTINGS ===
@@ -151,5 +156,6 @@ const userSchema = new Schema({
 
 // Index composé pour OAuth provider
 userSchema.index({ authProvider: 1, providerId: 1 }, { unique: true })
+userSchema.index({ 'preferences.profilePublic': 1, createdAt: -1 })  // ★ B2.1: discovery
 
 export default mongoose.model('User', userSchema)
