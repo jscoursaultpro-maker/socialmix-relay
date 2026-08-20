@@ -39,6 +39,7 @@ import { reconcileAllVotes } from './services/voteReconciliation.js'; // ★ Tas
 import Meta, { bumpSeedVersion, getSeedVersion } from './models/Meta.js'; // ★ Chantier 2: seed versioning
 import tracksSeedRouter from './routes/tracks-seed.js'; // ★ Chantier 2: GET /api/tracks/seed
 import foundersRankRouter from './routes/founders-rank.js'; // ★ Task #81: GET+POST /api/user/me/founders-rank
+import profileHostRouter from './routes/profile-host.js'; // ★ B2.1: GET /api/profile/host/:handle
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
@@ -706,6 +707,9 @@ app.use('/api/tracks/seed', compression(), tracksSeedRouter);
 
 // ★ Task #81: Founders program — opt-in, 2500 slots, Supabase JWT auth
 app.use('/api/user/me/founders-rank', foundersRankRouter);
+
+// ★ B2.1: Public host profile (no auth)
+app.use('/api/profile/host', profileHostRouter);
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
