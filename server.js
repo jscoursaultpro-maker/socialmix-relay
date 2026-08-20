@@ -36,6 +36,9 @@ import { encodeObjectId, decodeToObjectId } from './utils/base62.js'; // ★ Tas
 import { computeMoments } from './services/moments.js'; // ★ Task #81: post-party moments
 import { computeUserStats } from './services/userStats.js'; // ★ Task #81 B2: post-party user stats
 import { reconcileAllVotes } from './services/voteReconciliation.js'; // ★ Task #114 bis: cron réconciliation Party.guestVotes → Track.performance
+import Meta, { bumpSeedVersion, getSeedVersion } from './models/Meta.js'; // ★ Chantier 2: seed versioning
+import tracksSeedRouter from './routes/tracks-seed.js'; // ★ Chantier 2: GET /api/tracks/seed
+import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -691,6 +694,9 @@ app.get('/api/tracks/:id/providers', async (req, res) => {
 app.use('/api/admin/users', adminAuth, adminUsersRouter);
 app.use('/api/admin/guests', adminAuth, adminGuestsRouter);
 app.use('/api/admin/batch', adminAuth, adminBatchRouter);
+
+// ★ Chantier 2: Public Track catalogue seed (no auth — public data)
+app.use('/api/tracks/seed', compression(), tracksSeedRouter);
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
@@ -4954,6 +4960,8 @@ io.on('connection', (socket) => {
 
         if (Object.keys(postUpdate).length > 0) {
           await Track.updateOne({ _id: updatedDoc._id }, { $set: postUpdate });
+          // ★ Chantier 2: bump seedVersion (fire-and-forget)
+          bumpSeedVersion(io).catch(() => {});
         }
       }
     } catch (err) {
@@ -5672,6 +5680,19 @@ async function boot() {
   // 3. Seed editorial catalog (no-op if already seeded)
   // Run seeding asynchronously so server starts instantly
   seedEditorialCatalog().catch(console.error);
+
+  // ★ Chantier 2: Ensure seedVersion Meta doc exists
+  const sv = await getSeedVersion();
+  if (sv === 0) {
+    const initDoc = await Meta.findOneAndUpdate(
+      { key: 'seedVersion' },
+      { $setOnInsert: { value: Date.now(), updatedAt: new Date() } },
+      { upsert: true, new: true }
+    );
+    console.log(`[SeedVersion] initialized to ${initDoc.value}`);
+  } else {
+    console.log(`[SeedVersion] current = ${sv}`);
+  }
 
   // 4. Start flush loop
   startFlushLoop(parties);

@@ -239,6 +239,13 @@ TrackSchema.pre('save', function(next) {
   if (typeof next === 'function') next();
 });
 
+// ★ Chantier 2 (20/08): bump seedVersion after every Track save (fire-and-forget)
+TrackSchema.post('save', function() {
+  import('./Meta.js').then(({ bumpSeedVersion }) => {
+    bumpSeedVersion().catch(() => {});
+  }).catch(() => {});
+});
+
 const Track = mongoose.model('Track', TrackSchema);
 export default Track;
 

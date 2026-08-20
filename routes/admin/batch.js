@@ -1,5 +1,6 @@
 import express from 'express';
 import Track, { computeQualityLevel } from '../../models/Track.js';
+import { bumpSeedVersion } from '../../models/Meta.js'; // ★ Chantier 2
 
 const router = express.Router();
 
@@ -160,6 +161,8 @@ router.post('/import', async (req, res) => {
   }
 
   console.log(`[Batch Import] ✅ Updated: ${updated}, NotFound: ${notFound}, Errors: ${errors}`);
+  // ★ Chantier 2: bump seedVersion ONCE after batch (not per track)
+  if (updated > 0) bumpSeedVersion().catch(() => {});
   res.json({ updated, notFound, errors, total: classifications.length });
 });
 
