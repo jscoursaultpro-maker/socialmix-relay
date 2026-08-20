@@ -5505,6 +5505,24 @@ io.on('connection', (socket) => {
         party.isDirty = true;  // déclenche flush MongoDB
       }
     }
+
+    // ★ fix(Chantier1-bis 20/08): feed host votes into pendingRatings for real-time flush
+    // (previously only reconcileAllVotes cron 1h picked them up — host-is-guest doctrine)
+    if (data.type && trackTitle) {
+      const trackEntry = party.trackHistory.find(t =>
+        (t.title || '').toLowerCase() === (trackTitle || '').toLowerCase()
+      );
+      const trackKey = trackEntry?.isrc || fallbackHash(trackTitle, trackEntry?.artist || data.guestName || '');
+      if (!pendingRatings.has(party.code)) pendingRatings.set(party.code, new Map());
+      const partyPending = pendingRatings.get(party.code);
+      if (!partyPending.has(trackKey)) {
+        partyPending.set(trackKey, { feu: 0, cool: 0, bof: 0, isrc: trackEntry?.isrc, title: trackTitle, artist: trackEntry?.artist || '', genre: party._dominantGenre || '' });
+      }
+      const entry = partyPending.get(trackKey);
+      if (data.type === 'fire') entry.feu++;
+      else if (data.type === 'like') entry.cool++;
+      else if (data.type === 'meh') entry.bof++;
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════════
