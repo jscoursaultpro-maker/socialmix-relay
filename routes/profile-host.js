@@ -25,13 +25,24 @@ router.get('/:handle', async (req, res) => {
     const userId = user._id;
     
     // ─── 1. Get all ended parties for this host (lightweight) ────────
-    const rawParties = await Party.find(
-      { hostUserId: userId, endedAt: { $ne: null } },
-      {
+    // Use aggregate with allowDiskUse to handle 500+ parties without hitting sort memory limit
+    const rawParties = await Party.aggregate([
+      { $match: { hostUserId: userId, endedAt: { $ne: null } } },
+      { $sort: { createdAt: -1 } },
+      { $project: {
         code: 1, partyName: 1, welcomeText: 1, createdAt: 1, endedAt: 1,
-        'lifecycle.startedAt': 1, participants: 1, streamingProvider: 1
-      }
-    ).sort({ createdAt: -1 }).lean();
+        'lifecycle.startedAt': 1, streamingProvider: 1,
+        _guestCount: {
+          $size: {
+            $filter: {
+              input: { $ifNull: ['$participants', []] },
+              as: 'p',
+              cond: { $ne: ['$$p.isHost', true] }
+            }
+          }
+        }
+      }}
+    ], { allowDiskUse: true });
     
     const partyCodes = rawParties.map(p => p.code);
     
@@ -85,7 +96,7 @@ router.get('/:handle', async (req, res) => {
       const durationMs = p.endedAt && startedAt ? new Date(p.endedAt) - new Date(startedAt) : 0;
       const durationMin = Math.round(durationMs / 60000);
       const tc = trackCountMap.get(p.code) || 0;
-      const gc = (p.participants || []).filter(x => !x.isHost).length;
+      const gc = p._guestCount || 0;
       const pc = photoCountMap.get(p.code) || 0;
       
       totalTracks += tc;
