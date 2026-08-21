@@ -102,7 +102,8 @@ router.get('/:handle', async (req, res) => {
     
     const parties = rawParties.map(p => {
       const startedAt = p.lifecycle?.startedAt || p.createdAt;
-      const durationMs = p.endedAt && startedAt ? new Date(p.endedAt) - new Date(startedAt) : 0;
+      const rawDurationMs = p.endedAt && startedAt ? new Date(p.endedAt) - new Date(startedAt) : 0;
+      const durationMs = Math.max(0, rawDurationMs);
       const durationMin = Math.round(durationMs / 60000);
       const tc = trackCountMap.get(p.code) || 0;
       const gc = guestCountMap.get(p._id.toString()) || 0;
