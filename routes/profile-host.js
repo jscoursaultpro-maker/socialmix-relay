@@ -29,6 +29,7 @@ router.get('/:handle', async (req, res) => {
     
     // ─── Response ────────────────────────────────────────────────────
     res.json({
+      userId: user._id,
       handle: user.profile?.handle,
       name: user.profile?.firstName || 'Hôte',
       emoji: user.profile?.emoji || null,
