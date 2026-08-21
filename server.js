@@ -44,6 +44,7 @@ import profileGuestRouter from './routes/profile-guest.js'; // ★ B2.1: GET /ap
 import userFollowRouter from './routes/user-follow.js'; // ★ B2.1: POST/DELETE /api/user/follow/:targetUserId
 import userFriendsRouter from './routes/user-friends.js'; // ★ B2.2: Friend requests
 import profileCompareRouter from './routes/profile-compare.js'; // ★ B2.2: GET /api/profile/compare/:handle1/:handle2
+import userCrewsRouter from './routes/user-crews.js'; // ★ B2.2: GET /api/user/crews
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
@@ -722,6 +723,9 @@ app.use('/api/user/follow', userFollowRouter);
 
 // ★ B2.2: Friend requests (Supabase JWT auth)
 app.use('/api/user/friends', userFriendsRouter);
+
+// ★ B2.2: Auto-detected crews (Supabase JWT auth)
+app.use('/api/user/crews', userCrewsRouter);
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
