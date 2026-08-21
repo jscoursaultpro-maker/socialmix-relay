@@ -24,127 +24,94 @@ router.get('/:handle', async (req, res) => {
     
     const userId = user._id;
     
-    // ─── Aggregate party stats for this host ─────────────────────────
-    const partyAgg = await Party.aggregate([
-      { $match: { hostUserId: userId, endedAt: { $ne: null } } },
-      { $sort: { createdAt: -1 } },
+    // ─── 1. Get all ended parties for this host (lightweight) ────────
+    const rawParties = await Party.find(
+      { hostUserId: userId, endedAt: { $ne: null } },
       {
-        $lookup: {
-          from: 'hostplaybackhistories',
-          localField: 'code',
-          foreignField: 'partyCode',
-          as: '_hph'
-        }
-      },
-      {
-        $lookup: {
-          from: 'photos',
-          let: { pc: '$code' },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$partyCode', '$$pc'] }, deletedAt: null } },
-            { $sort: { sentAt: -1 } },
-            { $limit: 1 },
-            { $project: { url: 1 } }
-          ],
-          as: '_coverPhoto'
-        }
-      },
-      {
-        $addFields: {
-          _trackCount: { $size: '$_hph' },
-          _guestCount: {
-            $size: {
-              $filter: {
-                input: { $ifNull: ['$participants', []] },
-                as: 'p',
-                cond: { $ne: ['$$p.isHost', true] }
-              }
-            }
-          },
-          _photoCount: {
-            $size: { $ifNull: ['$_coverPhoto', []] }
-          },
-          _startedAt: { $ifNull: ['$lifecycle.startedAt', '$createdAt'] },
-          _genres: '$_hph.phase'
-        }
-      },
-      {
-        $project: {
-          code: 1,
-          partyName: { $ifNull: ['$partyName', '$welcomeText'] },
-          createdAt: 1,
-          endedAt: 1,
-          _startedAt: 1,
-          _trackCount: 1,
-          _guestCount: 1,
-          _coverPhotoUrl: { $arrayElemAt: ['$_coverPhoto.url', 0] },
-          _durationMs: { $subtract: ['$endedAt', '$_startedAt'] },
-          streamingProvider: 1
-        }
+        code: 1, partyName: 1, welcomeText: 1, createdAt: 1, endedAt: 1,
+        'lifecycle.startedAt': 1, participants: 1, streamingProvider: 1
       }
-    ]);
+    ).sort({ createdAt: -1 }).lean();
     
-    // ─── Compute aggregate stats ─────────────────────────────────────
-    const totalParties = partyAgg.length;
-    let totalTracks = 0, totalGuests = 0, totalDurationMs = 0;
-    let longestParty = null, biggestParty = null;
+    const partyCodes = rawParties.map(p => p.code);
     
-    const parties = partyAgg.map(p => {
-      const durationMin = p._durationMs ? Math.round(p._durationMs / 60000) : 0;
-      totalTracks += p._trackCount || 0;
-      totalGuests += p._guestCount || 0;
-      totalDurationMs += p._durationMs || 0;
-      
-      if (!longestParty || durationMin > longestParty.minutes) {
-        longestParty = { partyName: p.partyName, base62: encodeObjectId(p._id.toString()), minutes: durationMin };
-      }
-      if (!biggestParty || p._guestCount > biggestParty.guests) {
-        biggestParty = { partyName: p.partyName, base62: encodeObjectId(p._id.toString()), guests: p._guestCount };
-      }
-      
-      return {
-        base62: encodeObjectId(p._id.toString()),
-        partyName: p.partyName || null,
-        startedAt: p._startedAt || p.createdAt,
-        endedAt: p.endedAt,
-        durationMinutes: durationMin,
-        totalTracks: p._trackCount || 0,
-        totalGuests: p._guestCount || 0,
-        coverPhoto: p._coverPhotoUrl || null
-      };
-    });
+    // ─── 2. Aggregate track counts per party from HPH ────────────────
+    const hphCounts = await mongoose.connection.db.collection('hostplaybackhistories').aggregate([
+      { $match: { partyCode: { $in: partyCodes } } },
+      { $group: { _id: '$partyCode', trackCount: { $sum: 1 } } }
+    ]).toArray();
+    const trackCountMap = new Map(hphCounts.map(h => [h._id, h.trackCount]));
     
-    // ─── Top genre from HPH for this host ────────────────────────────
+    // ─── 3. Get cover photo per party (first photo) ──────────────────
+    const coverPhotos = await mongoose.connection.db.collection('photos').aggregate([
+      { $match: { partyCode: { $in: partyCodes }, deletedAt: null } },
+      { $sort: { sentAt: -1 } },
+      { $group: { _id: '$partyCode', url: { $first: '$url' }, total: { $sum: 1 } } }
+    ]).toArray();
+    const coverMap = new Map(coverPhotos.map(p => [p._id, p.url]));
+    const photoCountMap = new Map(coverPhotos.map(p => [p._id, p.total]));
+    
+    // ─── 4. Top genre from HPH → Track ───────────────────────────────
     const genreAgg = await mongoose.connection.db.collection('hostplaybackhistories').aggregate([
       { $match: { hostUserId: userId } },
       { $lookup: { from: 'tracks', localField: 'trackId', foreignField: '_id', as: '_t' } },
-      { $unwind: { path: '$_t', preserveNullAndEmptyArrays: true } },
-      { $match: { '_t.genre': { $ne: null } } },
+      { $unwind: { path: '$_t', preserveNullAndEmptyArrays: false } },
       { $group: { _id: '$_t.genre', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 1 }
-    ]).toArray();
+    ], { allowDiskUse: true }).toArray();
     const topGenre = genreAgg[0]?._id || null;
     
-    // ─── Photo count for this host ───────────────────────────────────
-    const totalPhotos = await mongoose.connection.db.collection('photos').countDocuments({
-      partyCode: { $in: partyAgg.map(p => p.code) },
-      deletedAt: null
-    });
-    
-    // ─── Feu ratio ───────────────────────────────────────────────────
+    // ─── 5. Feu ratio aggregate ──────────────────────────────────────
     const feuAgg = await mongoose.connection.db.collection('hostplaybackhistories').aggregate([
-      { $match: { hostUserId: userId, 'voteScore.feu': { $gt: 0 } } },
+      { $match: { hostUserId: userId } },
       { $group: {
         _id: null,
-        totalFeu: { $sum: '$voteScore.feu' },
-        totalCool: { $sum: '$voteScore.cool' },
-        totalBof: { $sum: '$voteScore.bof' }
+        totalFeu: { $sum: { $ifNull: ['$voteScore.feu', 0] } },
+        totalCool: { $sum: { $ifNull: ['$voteScore.cool', 0] } },
+        totalBof: { $sum: { $ifNull: ['$voteScore.bof', 0] } }
       }}
     ]).toArray();
     const feu = feuAgg[0] || {};
     const totalVotes = (feu.totalFeu || 0) + (feu.totalCool || 0) + (feu.totalBof || 0);
     const averageFeuRatio = totalVotes > 0 ? Math.round(((feu.totalFeu || 0) / totalVotes) * 100) / 100 : 0;
+    
+    // ─── 6. Build party list + compute stats ─────────────────────────
+    let totalTracks = 0, totalGuests = 0, totalPhotos = 0, totalDurationMs = 0;
+    let longestParty = null, biggestParty = null;
+    
+    const parties = rawParties.map(p => {
+      const startedAt = p.lifecycle?.startedAt || p.createdAt;
+      const durationMs = p.endedAt && startedAt ? new Date(p.endedAt) - new Date(startedAt) : 0;
+      const durationMin = Math.round(durationMs / 60000);
+      const tc = trackCountMap.get(p.code) || 0;
+      const gc = (p.participants || []).filter(x => !x.isHost).length;
+      const pc = photoCountMap.get(p.code) || 0;
+      
+      totalTracks += tc;
+      totalGuests += gc;
+      totalPhotos += pc;
+      totalDurationMs += durationMs;
+      
+      if (!longestParty || durationMin > longestParty.minutes) {
+        longestParty = { partyName: p.partyName || p.welcomeText || null, base62: encodeObjectId(p._id.toString()), minutes: durationMin };
+      }
+      if (!biggestParty || gc > biggestParty.guests) {
+        biggestParty = { partyName: p.partyName || p.welcomeText || null, base62: encodeObjectId(p._id.toString()), guests: gc };
+      }
+      
+      return {
+        base62: encodeObjectId(p._id.toString()),
+        partyName: p.partyName || p.welcomeText || null,
+        startedAt,
+        endedAt: p.endedAt,
+        durationMinutes: durationMin,
+        totalTracks: tc,
+        totalGuests: gc,
+        totalPhotos: pc,
+        coverPhoto: coverMap.get(p.code) || null
+      };
+    });
     
     // ─── Response ────────────────────────────────────────────────────
     res.json({
@@ -153,7 +120,7 @@ router.get('/:handle', async (req, res) => {
       emoji: user.profile?.emoji || null,
       memberSince: user.createdAt,
       stats: {
-        totalParties,
+        totalParties: rawParties.length,
         totalGuestsHosted: totalGuests,
         totalTracksPlayed: totalTracks,
         totalPhotos,
