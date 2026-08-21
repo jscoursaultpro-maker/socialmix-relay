@@ -43,6 +43,7 @@ import profileHostRouter from './routes/profile-host.js'; // ★ B2.1: GET /api/
 import profileGuestRouter from './routes/profile-guest.js'; // ★ B2.1: GET /api/profile/guest/:handle
 import userFollowRouter from './routes/user-follow.js'; // ★ B2.1: POST/DELETE /api/user/follow/:targetUserId
 import userFriendsRouter from './routes/user-friends.js'; // ★ B2.2: Friend requests
+import profileCompareRouter from './routes/profile-compare.js'; // ★ B2.2: GET /api/profile/compare/:handle1/:handle2
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
@@ -714,6 +715,7 @@ app.use('/api/user/me/founders-rank', foundersRankRouter);
 // ★ B2.1: Public host profile (no auth)
 app.use('/api/profile/host', profileHostRouter);
 app.use('/api/profile/guest', profileGuestRouter);
+app.use('/api/profile/compare', profileCompareRouter);
 
 // ★ B2.1: Follow/unfollow (Supabase JWT auth)
 app.use('/api/user/follow', userFollowRouter);
