@@ -20,103 +20,112 @@ router.get('/:handle', async (req, res) => {
     if (!user.preferences?.profilePublic) return res.status(404).json({ error: 'NOT_FOUND' });
     if (user.isBanned || user.isDeleted) return res.status(404).json({ error: 'NOT_FOUND' });
     
-    const userId = user._id;
     const firstName = user.profile?.firstName || 'Guest';
+    const email = user.email; // Used to reliably match GuestSession
     
-    // ─── Parties attended from denormalized array ─────────────────────
-    const attended = (user.partiesAttended || []).filter(p => p.role === 'guest');
+    // ─── 1. GuestSessions (totalPartiesAttended) ─────────────────────
+    const guestSessions = await mongoose.connection.db.collection('guestsessions').find(
+      { email: email },
+      { projection: { partyCode: 1, joinedAt: 1 } }
+    ).toArray();
     
-    // ─── Suggestions and votes from HPH ──────────────────────────────
-    const hphStats = await mongoose.connection.db.collection('hostplaybackhistories').aggregate([
-      { $match: { suggestedBy: firstName } },
-      { $group: {
-        _id: null,
-        totalSuggested: { $sum: 1 },
-        totalPlayed: { $sum: { $cond: [{ $ne: ['$playedAt', null] }, 1, 0] } }
-      }}
-    ]).toArray();
+    const attendedPartyCodes = [...new Set(guestSessions.map(s => s.partyCode))];
+    const totalPartiesAttended = attendedPartyCodes.length;
     
-    // ─── Photos shared ───────────────────────────────────────────────
-    const photoCount = await mongoose.connection.db.collection('photos').countDocuments({
+    // ─── 2. Suggestions (totalTracksSuggested) ───────────────────────
+    // V1 Approx: HostPlaybackHistory only stores suggestedBy as string (guestName)
+    // For V1.1 we should probably use guestUserId or email
+    const totalTracksSuggested = await mongoose.connection.db.collection('hostplaybackhistories').countDocuments({
+      wasSuggestedByGuest: true,
+      suggestedBy: firstName
+    });
+    
+    // ─── 3. Votes (totalVotesGiven) ──────────────────────────────────
+    // V1 Approx: Returning 0 or user.stats.feuVotesCount if we had it
+    // // TODO V1.1 exact - parse participantScores or GuestVote for this email
+    const totalVotesGiven = 0;
+    
+    // ─── 4. Photos (totalPhotosShared) ───────────────────────────────
+    // V1 Approx: Photo only has guestName
+    const totalPhotosShared = await mongoose.connection.db.collection('photos').countDocuments({
       guestName: firstName,
       deletedAt: null
     });
     
-    // ─── Top genre listened (from parties attended → HPH → Track) ────
-    const partyCodes = attended.map(p => p.partyCode).filter(Boolean);
-    let topGenre = null;
-    if (partyCodes.length > 0) {
+    // ─── 5. Top Genre & Parties List & Hosts ─────────────────────────
+    let topGenreListened = null;
+    let parties = [];
+    let favoriteHosts = [];
+    
+    if (attendedPartyCodes.length > 0) {
+      // Find the parties they attended
+      const rawParties = await mongoose.connection.db.collection('parties').find(
+        { code: { $in: attendedPartyCodes } },
+        { projection: { _id: 1, code: 1, partyName: 1, welcomeText: 1, hostUserId: 1 } }
+      ).toArray();
+      
+      const hostIds = [...new Set(rawParties.map(p => p.hostUserId).filter(Boolean))];
+      
+      // Fetch Host Profiles
+      let hostProfileMap = new Map();
+      if (hostIds.length > 0) {
+        const hosts = await User.find(
+          { _id: { $in: hostIds } },
+          { 'profile.firstName': 1, 'profile.handle': 1, 'profile.emoji': 1 }
+        ).lean();
+        for (const h of hosts) {
+          hostProfileMap.set(h._id.toString(), h.profile);
+        }
+      }
+      
+      // Top genre from the parties attended (using HPH)
       const genreAgg = await mongoose.connection.db.collection('hostplaybackhistories').aggregate([
-        { $match: { partyCode: { $in: partyCodes } } },
+        { $match: { partyCode: { $in: attendedPartyCodes } } },
         { $lookup: { from: 'tracks', localField: 'trackId', foreignField: '_id', as: '_t' } },
-        { $unwind: { path: '$_t', preserveNullAndEmptyArrays: true } },
-        { $match: { '_t.genre': { $ne: null } } },
+        { $unwind: { path: '$_t', preserveNullAndEmptyArrays: false } },
         { $group: { _id: '$_t.genre', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 1 }
       ]).toArray();
-      topGenre = genreAgg[0]?._id || null;
-    }
-    
-    // ─── Votes given (from GuestVote or participantScores) ───────────
-    const totalVotes = user.stats?.feuVotesCount || 0;
-    
-    // ─── Build parties list with host info ────────────────────────────
-    const partyIds = attended.map(p => p.partyId).filter(Boolean);
-    let partyHostMap = new Map();
-    if (partyIds.length > 0) {
-      const parties = await mongoose.connection.db.collection('parties').find(
-        { _id: { $in: partyIds } },
-        { projection: { hostUserId: 1, code: 1 } }
-      ).toArray();
-      for (const p of parties) {
-        partyHostMap.set(p._id.toString(), p.hostUserId);
-      }
-    }
-    
-    // Lookup host profiles
-    const hostIds = [...new Set([...partyHostMap.values()].filter(Boolean).map(id => id.toString()))];
-    let hostProfileMap = new Map();
-    if (hostIds.length > 0) {
-      const hosts = await User.find(
-        { _id: { $in: hostIds.map(id => new mongoose.Types.ObjectId(id)) } },
-        { 'profile.firstName': 1, 'profile.handle': 1, 'profile.emoji': 1 }
-      ).lean();
-      for (const h of hosts) {
-        hostProfileMap.set(h._id.toString(), h.profile);
-      }
-    }
-    
-    const parties = attended.slice(0, 50).map(p => {
-      const hostId = partyHostMap.get(p.partyId?.toString());
-      const hostProfile = hostId ? hostProfileMap.get(hostId.toString()) : null;
-      return {
-        base62: p.partyId ? encodeObjectId(p.partyId.toString()) : null,
-        partyName: p.partyName || null,
-        hostName: hostProfile?.firstName || null,
-        hostHandle: hostProfile?.handle || null,
-        joinedAt: p.joinedAt
-      };
-    });
-    
-    // ─── Favorite hosts (most attended) ──────────────────────────────
-    const hostCounts = {};
-    for (const p of attended) {
-      const hid = partyHostMap.get(p.partyId?.toString())?.toString();
-      if (hid) hostCounts[hid] = (hostCounts[hid] || 0) + 1;
-    }
-    const favoriteHosts = Object.entries(hostCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([hid, count]) => {
-        const hp = hostProfileMap.get(hid);
+      topGenreListened = genreAgg[0]?._id || null;
+      
+      // Build Parties List
+      parties = rawParties.map(p => {
+        const hostProfile = p.hostUserId ? hostProfileMap.get(p.hostUserId.toString()) : null;
+        // Find joinedAt from session (approx taking the first session for this code)
+        const session = guestSessions.find(s => s.partyCode === p.code);
+        
         return {
-          handle: hp?.handle || null,
-          name: hp?.firstName || null,
-          emoji: hp?.emoji || null,
-          count
+          base62: encodeObjectId(p._id.toString()),
+          partyName: p.partyName || p.welcomeText || null,
+          hostName: hostProfile?.firstName || null,
+          hostHandle: hostProfile?.handle || null,
+          joinedAt: session?.joinedAt || null
         };
-      });
+      })
+      .sort((a, b) => new Date(b.joinedAt || 0) - new Date(a.joinedAt || 0))
+      .slice(0, 50); // limit 50, sort desc
+      
+      // Build Favorite Hosts
+      const hostCounts = {};
+      for (const p of rawParties) {
+        const hid = p.hostUserId?.toString();
+        if (hid) hostCounts[hid] = (hostCounts[hid] || 0) + 1;
+      }
+      
+      favoriteHosts = Object.entries(hostCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([hid, count]) => {
+          const hp = hostProfileMap.get(hid);
+          return {
+            handle: hp?.handle || null,
+            name: hp?.firstName || null,
+            emoji: hp?.emoji || null,
+            count
+          };
+        });
+    }
     
     // ─── Response ────────────────────────────────────────────────────
     res.json({
@@ -125,12 +134,11 @@ router.get('/:handle', async (req, res) => {
       emoji: user.profile?.emoji || null,
       memberSince: user.createdAt,
       stats: {
-        totalPartiesAttended: attended.length,
-        totalTracksSuggested: hphStats[0]?.totalSuggested || 0,
-        totalTracksPlayed: hphStats[0]?.totalPlayed || 0,
-        totalVotesGiven: totalVotes,
-        totalPhotosShared: photoCount,
-        topGenreListened: topGenre
+        totalPartiesAttended,
+        totalTracksSuggested,
+        totalPhotosShared,
+        totalVotesGiven,
+        topGenreListened
       },
       parties,
       favoriteHosts,
