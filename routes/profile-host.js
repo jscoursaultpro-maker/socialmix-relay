@@ -25,14 +25,21 @@ router.get('/:handle', async (req, res) => {
     const userId = user._id;
     
     // ─── 1. Get all ended parties for this host (lightweight) ────────
-    // Use aggregate with allowDiskUse to handle 500+ parties without hitting sort memory limit
-    const rawParties = await Party.aggregate([
-      { $match: { hostUserId: userId, endedAt: { $ne: null } } },
-      { $sort: { createdAt: -1 } },
-      { $project: {
-        code: 1, partyName: 1, welcomeText: 1, createdAt: 1, endedAt: 1,
-        'lifecycle.startedAt': 1, streamingProvider: 1,
-        _guestCount: {
+    // Uses the new compound index { hostUserId: 1, createdAt: -1 } for native sort without memory limit
+    const rawParties = await Party.find({ hostUserId: userId, endedAt: { $ne: null } })
+      .select('_id code partyName welcomeText createdAt endedAt lifecycle.startedAt streamingProvider')
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    const partyCodes = rawParties.map(p => p.code);
+    const partyIds = rawParties.map(p => p._id);
+    
+    // ─── 2. Aggregate guest counts per party (lightweight) ───────────
+    const guestCounts = await Party.aggregate([
+      { $match: { _id: { $in: partyIds } } },
+      { $project: { 
+        _id: 1, 
+        guestCount: {
           $size: {
             $filter: {
               input: { $ifNull: ['$participants', []] },
@@ -42,18 +49,17 @@ router.get('/:handle', async (req, res) => {
           }
         }
       }}
-    ], { allowDiskUse: true });
+    ]);
+    const guestCountMap = new Map(guestCounts.map(g => [g._id.toString(), g.guestCount]));
     
-    const partyCodes = rawParties.map(p => p.code);
-    
-    // ─── 2. Aggregate track counts per party from HPH ────────────────
+    // ─── 3. Aggregate track counts per party from HPH ────────────────
     const hphCounts = await mongoose.connection.db.collection('hostplaybackhistories').aggregate([
       { $match: { partyCode: { $in: partyCodes } } },
       { $group: { _id: '$partyCode', trackCount: { $sum: 1 } } }
     ]).toArray();
     const trackCountMap = new Map(hphCounts.map(h => [h._id, h.trackCount]));
     
-    // ─── 3. Get cover photo per party (first photo) ──────────────────
+    // ─── 4. Get cover photo per party (first photo) ──────────────────
     const coverPhotos = await mongoose.connection.db.collection('photos').aggregate([
       { $match: { partyCode: { $in: partyCodes }, deletedAt: null } },
       { $sort: { sentAt: -1 } },
@@ -62,18 +68,21 @@ router.get('/:handle', async (req, res) => {
     const coverMap = new Map(coverPhotos.map(p => [p._id, p.url]));
     const photoCountMap = new Map(coverPhotos.map(p => [p._id, p.total]));
     
-    // ─── 4. Top genre from HPH → Track ───────────────────────────────
-    const genreAgg = await mongoose.connection.db.collection('hostplaybackhistories').aggregate([
-      { $match: { hostUserId: userId } },
-      { $lookup: { from: 'tracks', localField: 'trackId', foreignField: '_id', as: '_t' } },
-      { $unwind: { path: '$_t', preserveNullAndEmptyArrays: false } },
-      { $group: { _id: '$_t.genre', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 1 }
-    ], { allowDiskUse: true }).toArray();
-    const topGenre = genreAgg[0]?._id || null;
+    // ─── 5. Top genre from HPH → Track ───────────────────────────────
+    let topGenre = null;
+    if (partyCodes.length > 0) {
+      const genreAgg = await mongoose.connection.db.collection('hostplaybackhistories').aggregate([
+        { $match: { hostUserId: userId } },
+        { $lookup: { from: 'tracks', localField: 'trackId', foreignField: '_id', as: '_t' } },
+        { $unwind: { path: '$_t', preserveNullAndEmptyArrays: false } },
+        { $group: { _id: '$_t.genre', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 1 }
+      ]).toArray(); // No allowDiskUse needed since we don't sort before group, and group output is tiny
+      topGenre = genreAgg[0]?._id || null;
+    }
     
-    // ─── 5. Feu ratio aggregate ──────────────────────────────────────
+    // ─── 6. Feu ratio aggregate ──────────────────────────────────────
     const feuAgg = await mongoose.connection.db.collection('hostplaybackhistories').aggregate([
       { $match: { hostUserId: userId } },
       { $group: {
@@ -87,7 +96,7 @@ router.get('/:handle', async (req, res) => {
     const totalVotes = (feu.totalFeu || 0) + (feu.totalCool || 0) + (feu.totalBof || 0);
     const averageFeuRatio = totalVotes > 0 ? Math.round(((feu.totalFeu || 0) / totalVotes) * 100) / 100 : 0;
     
-    // ─── 6. Build party list + compute stats ─────────────────────────
+    // ─── 7. Build party list + compute stats ─────────────────────────
     let totalTracks = 0, totalGuests = 0, totalPhotos = 0, totalDurationMs = 0;
     let longestParty = null, biggestParty = null;
     
@@ -96,7 +105,7 @@ router.get('/:handle', async (req, res) => {
       const durationMs = p.endedAt && startedAt ? new Date(p.endedAt) - new Date(startedAt) : 0;
       const durationMin = Math.round(durationMs / 60000);
       const tc = trackCountMap.get(p.code) || 0;
-      const gc = p._guestCount || 0;
+      const gc = guestCountMap.get(p._id.toString()) || 0;
       const pc = photoCountMap.get(p.code) || 0;
       
       totalTracks += tc;
