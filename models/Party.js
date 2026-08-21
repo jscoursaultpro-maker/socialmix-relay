@@ -77,5 +77,7 @@ const PartySchema = new mongoose.Schema({
 
 // TTL index: auto-delete ended parties after 90 days
 PartySchema.index({ endedAt: 1 }, { expireAfterSeconds: 90 * 24 * 3600, partialFilterExpression: { endedAt: { $ne: null } } });
+PartySchema.index({ hostUserId: 1, createdAt: -1 });
+PartySchema.index({ hostUserId: 1, endedAt: -1 });
 
 export default mongoose.model('Party', PartySchema);
