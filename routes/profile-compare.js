@@ -51,12 +51,14 @@ router.get('/:handle1/:handle2', async (req, res) => {
     
     res.json({
       user1: {
+        userId: user1._id,
         handle: user1.profile?.handle,
         name: user1.profile?.firstName || 'Hôte 1',
         emoji: user1.profile?.emoji || null,
         stats: s1
       },
       user2: {
+        userId: user2._id,
         handle: user2.profile?.handle,
         name: user2.profile?.firstName || 'Hôte 2',
         emoji: user2.profile?.emoji || null,
