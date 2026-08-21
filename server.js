@@ -42,6 +42,7 @@ import foundersRankRouter from './routes/founders-rank.js'; // ★ Task #81: GET
 import profileHostRouter from './routes/profile-host.js'; // ★ B2.1: GET /api/profile/host/:handle
 import profileGuestRouter from './routes/profile-guest.js'; // ★ B2.1: GET /api/profile/guest/:handle
 import userFollowRouter from './routes/user-follow.js'; // ★ B2.1: POST/DELETE /api/user/follow/:targetUserId
+import userFriendsRouter from './routes/user-friends.js'; // ★ B2.2: Friend requests
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
@@ -716,6 +717,9 @@ app.use('/api/profile/guest', profileGuestRouter);
 
 // ★ B2.1: Follow/unfollow (Supabase JWT auth)
 app.use('/api/user/follow', userFollowRouter);
+
+// ★ B2.2: Friend requests (Supabase JWT auth)
+app.use('/api/user/friends', userFriendsRouter);
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
