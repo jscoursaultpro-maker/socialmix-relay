@@ -32,3 +32,13 @@ AuthKey_*.p8
 # Diagnostic scripts (hardening)
 _*.mjs
 _*.js
+
+# Scripts diagnostic temporaires (jamais commit)
+check-*.js
+check-*.mjs
+test-*.js
+_*.mjs
+
+# Data volatile (batches ChatGPT, exports CSV)
+batches_chatgpt/
+*.csv
