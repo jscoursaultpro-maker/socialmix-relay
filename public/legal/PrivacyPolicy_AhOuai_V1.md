@@ -129,7 +129,7 @@ AhOuai s'appuie sur les sous-traitants suivants, tous soumis à des obligations 
 
 Aucun de ces sous-traitants n'est autorisé à utiliser vos données à d'autres fins que celles strictement nécessaires à la fourniture du Service.
 
-*Note technique — évolution récente : depuis le 7 juillet 2026, la reconnaissance musicale du mode « DJ Live » est assurée nativement par ShazamKit sur l'appareil iOS de l'hôte, sans envoi d'échantillon audio vers un serveur tiers d'AhOuai. Le prestataire ACRCloud précédemment utilisé n'intervient plus dans le traitement.*
+*Note technique — la reconnaissance musicale du mode « DJ Live » est assurée nativement par ShazamKit sur l'appareil iOS de l'hôte, sans envoi d'échantillon audio vers un serveur tiers d'AhOuai.*
 
 ### 4.3. Autorités publiques
 
