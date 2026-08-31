@@ -4518,7 +4518,10 @@ function shareCurrentTrack() {
   shareURL.searchParams.set('title', track.title || '');
   shareURL.searchParams.set('artist', track.artist || '');
   if (track.deezerID) shareURL.searchParams.set('deezerID', String(track.deezerID));
-  if (track.coverURL) shareURL.searchParams.set('cover', track.coverURL);
+  // Cover: try all possible field names (artworkURL from Shazam, albumArtworkURL from trackHistory, coverURL from suggestions)
+  const coverURL = track.artworkURL || track.albumArtworkURL || track.coverURL
+    || (track.deezerID ? `https://api.deezer.com/track/${track.deezerID}/image?size=big` : null);
+  if (coverURL) shareURL.searchParams.set('cover', coverURL);
   if (track.previewURL) shareURL.searchParams.set('preview', track.previewURL);
   if (track.appleMusicID) shareURL.searchParams.set('appleMusicID', track.appleMusicID);
   if (track.spotifyID) shareURL.searchParams.set('spotifyID', track.spotifyID);
