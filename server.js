@@ -5506,6 +5506,81 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ★ Mes fire votes: fetch all tracks where this guest voted 🔥 across ALL parties
+  socket.on('guest:getMyFireVotes', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const guestId = data?.guestId;
+    const guestName = data?.guestName;
+    const socketId = socket.id;
+    if (!guestId && !guestName) return cb({ ok: false, error: 'no_identifier' });
+
+    try {
+      // guestVotes is { [voterKey]: { [trackTitle]: 'fire'|'like'|'meh' } }
+      // voterKey can be socket.id, guestId, or 'host'
+      const voterKeys = [guestId, socketId].filter(Boolean);
+
+      const results = await Party.aggregate([
+        // Only parties that have guestVotes
+        { $match: { guestVotes: { $exists: true, $ne: {} } } },
+        // Convert guestVotes object to array of { k: voterKey, v: { trackTitle: vote } }
+        { $addFields: { voteEntries: { $objectToArray: '$guestVotes' } } },
+        { $unwind: '$voteEntries' },
+        // Match by voterKey (guestId or socket.id)
+        { $match: { 'voteEntries.k': { $in: voterKeys } } },
+        // Convert track votes to array
+        { $addFields: { trackVotes: { $objectToArray: '$voteEntries.v' } } },
+        { $unwind: '$trackVotes' },
+        // Only fire votes
+        { $match: { 'trackVotes.v': 'fire' } },
+        // Enrich with trackHistory data
+        { $addFields: {
+          matchedTrack: {
+            $first: {
+              $filter: {
+                input: { $ifNull: ['$trackHistory', []] },
+                as: 't',
+                cond: { $eq: ['$$t.title', '$trackVotes.k'] }
+              }
+            }
+          }
+        }},
+        { $project: {
+          partyCode: '$code',
+          partyDate: '$createdAt',
+          title: '$trackVotes.k',
+          artist: { $ifNull: ['$matchedTrack.artist', ''] },
+          deezerID: { $ifNull: ['$matchedTrack.deezerId', '$matchedTrack.deezerID'] },
+          coverURL: { $ifNull: ['$matchedTrack.albumArtworkURL', '$matchedTrack.coverURL'] },
+          bpm: { $ifNull: ['$matchedTrack.bpm', 0] }
+        }},
+        // Deduplicate across parties
+        { $group: {
+          _id: '$title',
+          artist: { $first: '$artist' },
+          deezerID: { $first: '$deezerID' },
+          coverURL: { $first: '$coverURL' },
+          bpm: { $first: '$bpm' },
+          lastVotedAt: { $max: '$partyDate' },
+          voteCount: { $sum: 1 }
+        }},
+        { $project: {
+          _id: 0,
+          title: '$_id',
+          artist: 1, deezerID: 1, coverURL: 1, bpm: 1,
+          lastVotedAt: 1, voteCount: 1
+        }},
+        { $sort: { lastVotedAt: -1, voteCount: -1 } },
+        { $limit: 30 }
+      ]);
+
+      console.log(`[guest:getMyFireVotes] ✅ ${results.length} fire votes for "${guestName}" (${guestId})`);
+      cb({ ok: true, fireVotes: results });
+    } catch (err) {
+      console.error('[guest:getMyFireVotes] ❌ Error:', err.message);
+      cb({ ok: false, error: 'server_error' });
+    }
+  });
+
   socket.on('host:message', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     const msg = { id: Date.now().toString(), guestName: data.guestName || 'DJ', message: data.message || '', guestEmoji: data.guestEmoji || '🎧', sentAt: new Date().toISOString() };

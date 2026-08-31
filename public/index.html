@@ -458,16 +458,22 @@
             >📤  PARTAGER CE TITRE</button>
         </div>
 
-        <!-- ★ Mes suggestions preview (top 3, loaded via socket) -->
+        <!-- ★ Mes fire votes preview (top 5, loaded via socket) -->
         <div id="mySugsPreview" class="card" style="display:none;padding:14px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
                 <div style="display:flex;align-items:center;gap:6px;">
                     <span style="font-size:14px;">🔥</span>
                     <span style="font-size:10px;font-weight:800;color:#8B5CF6;letter-spacing:1px;">TES DERNIERS TOPS</span>
                 </div>
-                <button onclick="scrollToMySugsAll()" style="font-size:9px;font-weight:700;color:rgba(139,92,246,0.7);background:none;border:none;cursor:pointer;">Tout voir →</button>
             </div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:10px;">Tes coups de cœur en soirée</div>
             <div id="mySugsPreviewList"></div>
+            <button id="myTopsMore" onclick="showMoreTops()" style="
+                display:none;width:100%;margin-top:8px;padding:12px;
+                text-align:center;cursor:pointer;font-size:12px;font-weight:500;
+                color:rgba(139,92,246,0.7);background:transparent;
+                border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
+            ">Voir plus ↓</button>
         </div>
 
         <!-- Suggest Track — avant le trending pour éviter les sauts de layout -->
@@ -507,6 +513,12 @@
                     <span style="font-size:9px;color:rgba(255,255,255,0.3);font-weight:500;">Tap pour re-suggérer</span>
                 </div>
                 <div id="mySugsAllList"></div>
+                <button id="mySugsMore" onclick="showMoreSugs()" style="
+                    display:none;width:100%;margin-top:8px;padding:12px;
+                    text-align:center;cursor:pointer;font-size:12px;font-weight:500;
+                    color:rgba(139,92,246,0.7);background:transparent;
+                    border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
+                ">Voir plus ↓</button>
             </div>
         </div>
 

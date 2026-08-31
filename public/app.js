@@ -942,7 +942,7 @@ function connectToRelay() {
   socket.on('party:state', (ps) => {
     if (ps.currentTrack) { state.currentTrack = ps.currentTrack; updateNowPlaying(ps.currentTrack); }
     // ★ Mes suggestions inline: load once after first state sync
-    if (!_mySugsLoaded && state.guestName) loadMySuggestions();
+    if (!_myDataLoaded && state.guestName) loadMyData();
     if (ps.genreVotes) { state.genreVotes = ps.genreVotes; updateGenreChart(); }
     if (ps.trackHistory) { state.trackHistory = ps.trackHistory; updateHistory(); }
     if (ps.mode) { state.mode = ps.mode; updateDJMode(); }
@@ -4485,21 +4485,38 @@ function shareCurrentTrack() {
   }
 }
 
-// ─── Mes suggestions inline (socket-based, no auth required) ────────
-let _mySugsLoaded = false;
+// ─── Mes données inline (socket-based, no auth required) ────────────
+let _myDataLoaded = false;
+let myTopsData = [];       // fire votes pool (max 30 from backend)
+let mySugsData = [];       // suggestions pool (max 50 from backend)
+let myTopsShown = 5;       // currently displayed count
+let mySugsShown = 5;       // currently displayed count
+const MY_SUGS_MAX = 15;    // hard cap for suggestions
 
-function loadMySuggestions() {
-  if (!socket || !socket.connected || !state.guestName || _mySugsLoaded) return;
-  _mySugsLoaded = true;
+function loadMyData() {
+  if (!socket || !socket.connected || !state.guestName || _myDataLoaded) return;
+  _myDataLoaded = true;
 
+  // 1. Fire votes (TES DERNIERS TOPS)
+  socket.emit('guest:getMyFireVotes', {
+    guestId: state.guestId,
+    guestName: state.guestName,
+    email: state.guestEmail || null
+  }, (response) => {
+    if (!response?.ok || !response.fireVotes?.length) return;
+    myTopsData = response.fireVotes;
+    renderMyTops();
+  });
+
+  // 2. Suggestions (TU AS DÉJÀ SUGGÉRÉ)
   socket.emit('guest:getMySuggestions', {
     guestId: state.guestId,
     guestName: state.guestName,
     email: state.guestEmail || null
   }, (response) => {
     if (!response?.ok || !response.suggestions?.length) return;
-    renderMySuggestionsPreview(response.suggestions.slice(0, 3));
-    renderMySuggestionsAll(response.suggestions);
+    mySugsData = response.suggestions.slice(0, MY_SUGS_MAX);
+    renderMySugs();
   });
 }
 
@@ -4508,19 +4525,23 @@ function escHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-function renderMySuggestionsPreview(top3) {
+// ── TES DERNIERS TOPS (fire votes) ──────────────────────────────────
+function renderMyTops() {
   const container = $('mySugsPreview');
   const list = $('mySugsPreviewList');
-  if (!container || !list || !top3.length) return;
+  const moreBtn = $('myTopsMore');
+  if (!container || !list || !myTopsData.length) return;
   container.style.display = 'block';
-  list.innerHTML = top3.map(s => `
+
+  const visible = myTopsData.slice(0, myTopsShown);
+  list.innerHTML = visible.map(s => `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
-      <img src="${escHtml(s.coverURL || '')}" width="40" height="40" style="border-radius:6px;flex-shrink:0;background:#1a1a2e;" onerror="this.style.display='none'" />
+      ${s.coverURL ? `<img src="${escHtml(s.coverURL)}" width="40" height="40" style="border-radius:6px;flex-shrink:0;background:#1a1a2e;" onerror="this.style.display='none'" />` : '<div style="width:40px;height:40px;border-radius:6px;background:#1a1a2e;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">🎵</div>'}
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.title)}</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.artist)}</div>
       </div>
-      <div style="font-size:12px;font-weight:800;color:#EC4899;flex-shrink:0;">${s.feuCount > 0 ? '🔥 ' + s.feuCount : ''}</div>
+      <div style="font-size:12px;font-weight:800;color:#EC4899;flex-shrink:0;">${s.voteCount > 1 ? '🔥×' + s.voteCount : '🔥'}</div>
       <button onclick="resuggestFromHistory(${s.deezerID || 0}, '${escHtml(s.title).replace(/'/g,"\\'")}', '${escHtml(s.artist).replace(/'/g,"\\'")}', '${escHtml(s.coverURL || '').replace(/'/g,"\\'")}')" style="
         flex-shrink:0;padding:6px 10px;border-radius:8px;cursor:pointer;
         background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);
@@ -4528,14 +4549,35 @@ function renderMySuggestionsPreview(top3) {
       ">Re-suggérer</button>
     </div>
   `).join('');
+
+  // Pagination button
+  if (moreBtn) {
+    const remaining = myTopsData.length - myTopsShown;
+    if (remaining > 0) {
+      moreBtn.style.display = 'block';
+      moreBtn.textContent = `Voir plus (${remaining} restant${remaining > 1 ? 's' : ''}) ↓`;
+    } else {
+      moreBtn.style.display = 'none';
+    }
+  }
 }
 
-function renderMySuggestionsAll(all) {
+function showMoreTops() {
+  myTopsShown = Math.min(myTopsShown + 5, myTopsData.length);
+  renderMyTops();
+}
+
+// ── TU AS DÉJÀ SUGGÉRÉ (past suggestions) ───────────────────────────
+function renderMySugs() {
   const container = $('mySugsAll');
   const list = $('mySugsAllList');
-  if (!container || !list || !all.length) return;
+  const moreBtn = $('mySugsMore');
+  if (!container || !list || !mySugsData.length) return;
   container.style.display = 'block';
-  list.innerHTML = all.map(s => {
+
+  const capped = mySugsData.slice(0, MY_SUGS_MAX);
+  const visible = capped.slice(0, mySugsShown);
+  list.innerHTML = visible.map(s => {
     const dateStr = s.partyDate ? new Date(s.partyDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
     const statusBadge = s.status === 'played'
       ? '<span style="font-size:9px;padding:2px 6px;border-radius:6px;background:rgba(0,200,83,0.15);color:#00c853;font-weight:700;">Jouée</span>'
@@ -4544,7 +4586,7 @@ function renderMySuggestionsAll(all) {
         : '<span style="font-size:9px;padding:2px 6px;border-radius:6px;background:rgba(255,193,7,0.15);color:#ffc107;font-weight:700;">En attente</span>';
     return `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
-      <img src="${escHtml(s.coverURL || '')}" width="36" height="36" style="border-radius:6px;flex-shrink:0;background:#1a1a2e;" onerror="this.style.display='none'" />
+      ${s.coverURL ? `<img src="${escHtml(s.coverURL)}" width="36" height="36" style="border-radius:6px;flex-shrink:0;background:#1a1a2e;" onerror="this.style.display='none'" />` : '<div style="width:36px;height:36px;border-radius:6px;background:#1a1a2e;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎵</div>'}
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.title)}</div>
         <div style="font-size:10px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.artist)}</div>
@@ -4560,6 +4602,23 @@ function renderMySuggestionsAll(all) {
       ">Re-suggérer</button>
     </div>`;
   }).join('');
+
+  // Pagination button
+  if (moreBtn) {
+    const maxVisible = Math.min(capped.length, MY_SUGS_MAX);
+    const remaining = maxVisible - mySugsShown;
+    if (remaining > 0) {
+      moreBtn.style.display = 'block';
+      moreBtn.textContent = `Voir plus (${remaining} restant${remaining > 1 ? 's' : ''}) ↓`;
+    } else {
+      moreBtn.style.display = 'none';
+    }
+  }
+}
+
+function showMoreSugs() {
+  mySugsShown = Math.min(mySugsShown + 5, MY_SUGS_MAX);
+  renderMySugs();
 }
 
 function resuggestFromHistory(deezerID, title, artist, coverURL) {
