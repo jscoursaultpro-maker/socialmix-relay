@@ -4392,7 +4392,7 @@ function updateDiapoButton() {
 
   if (count === 0) {
     if (icon) icon.textContent = '📸';
-    if (label) label.textContent = '📸 Ajoute tes photos dans le social hub →';
+    if (label) label.textContent = 'Ajoute tes photos dans le social hub';
     if (badge) badge.classList.add('hidden');
     btn.classList.remove('disabled');
     btn.onclick = scrollToPhotosSection;
