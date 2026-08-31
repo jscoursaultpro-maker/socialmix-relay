@@ -38,13 +38,16 @@ const PartySchema = new mongoose.Schema({
   lifecycle: {
     status: { 
       type: String, 
-      enum: ['draft', 'scheduled', 'live', 'paused', 'ended', 'archived'],
+      enum: ['draft', 'scheduled', 'live', 'paused', 'ended', 'archived', 'host_disconnected'],
       default: 'live'
     },
     startedAt: { type: Date, default: Date.now },
     archivedAt: Date,
     endedBy: { type: String, enum: ['host', 'auto_timeout', 'admin'] },
-    lastActivityAt: { type: Date, default: Date.now }
+    lastActivityAt: { type: Date, default: Date.now },
+    // ★ Fix E1 (audit 31/08): zombie party detection
+    hostConnected: { type: Boolean, default: true },
+    hostDisconnectedAt: { type: Date, default: null }
   },
   // ★ Task #81: Persistance & Afterglow V1
   streamingProvider: {

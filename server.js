@@ -226,6 +226,8 @@ io.use(socketAuth);
 // ─── Multi-Party State ──────────────────────────────────────────────
 const parties = new Map();           // code → PartyState
 const partyCleanupTimers = new Map(); // code → setTimeout ID
+// ★ Fix E1 (audit 31/08): zombie party detection — 5min timer after host disconnect
+const hostDisconnectTimers = new Map(); // code → setTimeout ID
 
 // ★ A3a — Idempotence cache: partyCode → Set of last 500 eventIds
 const seenEventIds = new Map(); // code → Set<string>
@@ -3622,6 +3624,18 @@ io.on('connection', (socket) => {
       existing.isDirty = true;
       existing.lifecycle.status = 'live';
       existing.lifecycle.lastActivityAt = new Date().toISOString();
+      // ★ Fix E1: cancel zombie timer + restore host state on reconnect
+      existing.lifecycle.hostConnected = true;
+      existing.lifecycle.hostDisconnectedAt = null;
+      if (hostDisconnectTimers.has(code)) {
+        clearTimeout(hostDisconnectTimers.get(code));
+        hostDisconnectTimers.delete(code);
+        console.log(`✅ [${code}] Host reconnected within 5min — zombie timer cancelled`);
+        io.to(`guest:${code}`).emit('party:hostReconnected', { code, reconnectedAt: new Date().toISOString() });
+        Party.findOneAndUpdate({ code }, { $set: {
+          'lifecycle.status': 'live', 'lifecycle.hostConnected': true, 'lifecycle.hostDisconnectedAt': null
+        } }, { upsert: false }).catch(err => console.error(`[${code}] ⚠️ Host reconnect persist failed:`, err.message));
+      }
       existing.isPreParty = false;
       // ★ A1 fix: persist isPreParty=false en BDD IMMÉDIATEMENT
       Party.findOneAndUpdate({ code }, { isPreParty: false }, { upsert: false })
@@ -5713,6 +5727,43 @@ io.on('connection', (socket) => {
         console.log(`⏸️ [${code}] Grace period started for ${participant.name}`);
       } else {
         // ── HOST or guest without token: immediate removal ──
+        // ★ Fix E1: detect HOST disconnect and arm zombie timer
+        const isHost = party.hostSocketId === socket.id;
+        if (isHost && party.lifecycle.status !== 'ended') {
+          // Don't arm timer if party already ended properly
+          party.lifecycle.hostConnected = false;
+          party.lifecycle.hostDisconnectedAt = new Date().toISOString();
+          party.lifecycle.lastActivityAt = new Date().toISOString();
+          console.log(`⏳ [${code}] Host disconnected (reason: ${reason}) — arming 5min zombie timer`);
+          
+          // Cancel any existing timer for this code
+          if (hostDisconnectTimers.has(code)) {
+            clearTimeout(hostDisconnectTimers.get(code));
+          }
+          
+          hostDisconnectTimers.set(code, setTimeout(async () => {
+            hostDisconnectTimers.delete(code);
+            const currentParty = parties.get(code);
+            // Re-check: host may have reconnected and the timer reference changed
+            if (!currentParty || currentParty.lifecycle.hostConnected || currentParty.lifecycle.status === 'ended') {
+              console.log(`✅ [${code}] Zombie timer fired but host already reconnected or party ended — skipping`);
+              return;
+            }
+            currentParty.lifecycle.status = 'host_disconnected';
+            console.log(`🚨 [${code}] Host disconnected >5min — party marked host_disconnected`);
+            io.to(`guest:${code}`).emit('party:hostDisconnected', { code, disconnectedAt: new Date().toISOString() });
+            try {
+              await Party.findOneAndUpdate({ code }, { $set: {
+                'lifecycle.status': 'host_disconnected',
+                'lifecycle.hostConnected': false,
+                'lifecycle.hostDisconnectedAt': currentParty.lifecycle.hostDisconnectedAt
+              } }, { upsert: false });
+            } catch (err) {
+              console.error(`[${code}] ⚠️ Zombie party persist failed:`, err.message);
+            }
+          }, 5 * 60 * 1000)); // 5 minutes
+        }
+
         if (participant && party.guestGenreVotes[participant.name]) {
           delete party.guestGenreVotes[participant.name];
           const totals = recomputeGenreVotes(party);
