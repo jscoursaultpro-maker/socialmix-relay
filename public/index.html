@@ -432,6 +432,14 @@
 
         <!-- Vote Buttons -->
         <div class="card vote-section">
+            <button id="np-share-btn" onclick="shareCurrentTrack()" style="
+                width:100%;margin-bottom:12px;padding:14px;cursor:pointer;
+                background:transparent;border:1px solid rgba(139,92,246,0.4);
+                border-radius:12px;color:rgb(139,92,246);
+                font-size:13px;font-weight:600;letter-spacing:1px;
+                font-family:inherit;transition:background 0.2s;
+            " onmouseenter="this.style.background='rgba(139,92,246,0.08)'" onmouseleave="this.style.background='transparent'"
+            >📤  PARTAGER CE TITRE</button>
             <div class="vote-label">TON AVIS SUR CE TITRE</div>
             <div class="vote-buttons">
                 <button class="vote-btn bof" id="vote-meh" data-vote="meh">
@@ -448,14 +456,6 @@
                 </button>
             </div>
             <div class="vote-status" id="vote-status"></div>
-            <button id="np-share-btn" onclick="shareCurrentTrack()" style="
-                width:100%;margin-top:12px;padding:14px;cursor:pointer;
-                background:transparent;border:1px solid rgba(139,92,246,0.4);
-                border-radius:12px;color:rgb(139,92,246);
-                font-size:13px;font-weight:600;letter-spacing:1px;
-                font-family:inherit;transition:background 0.2s;
-            " onmouseenter="this.style.background='rgba(139,92,246,0.08)'" onmouseleave="this.style.background='transparent'"
-            >📤  PARTAGER CE TITRE</button>
         </div>
 
         <!-- ★ Mes fire votes preview (top 5, loaded via socket) -->
