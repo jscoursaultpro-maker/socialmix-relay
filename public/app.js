@@ -4448,3 +4448,37 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ─── Share Current Track (viral loop → ahouai.com/track/share) ──────
+function shareCurrentTrack() {
+  const track = state.currentTrack;
+  if (!track || !track.title) {
+    showToast('Aucun titre en cours de lecture', 2000);
+    return;
+  }
+
+  const shareURL = new URL('https://ahouai.com/track/share');
+  shareURL.searchParams.set('title', track.title || '');
+  shareURL.searchParams.set('artist', track.artist || '');
+  if (track.deezerID) shareURL.searchParams.set('deezerID', String(track.deezerID));
+  if (track.coverURL) shareURL.searchParams.set('cover', track.coverURL);
+  if (track.previewURL) shareURL.searchParams.set('preview', track.previewURL);
+  if (track.appleMusicID) shareURL.searchParams.set('appleMusicID', track.appleMusicID);
+  if (track.spotifyID) shareURL.searchParams.set('spotifyID', track.spotifyID);
+  if (track.isrc) shareURL.searchParams.set('isrc', track.isrc);
+
+  const shareData = {
+    title: `${track.title} — ${track.artist}`,
+    text: `🎵 Écoute "${track.title}" de ${track.artist} sur AhOuai !`,
+    url: shareURL.toString()
+  };
+
+  if (navigator.share) {
+    navigator.share(shareData).catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(shareURL.toString()).then(() => {
+      showToast('🔗 Lien copié !', 2000);
+    }).catch(() => {
+      showToast('Erreur lors de la copie', 2000);
+    });
+  }
+}
