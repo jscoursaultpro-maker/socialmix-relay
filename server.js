@@ -5507,71 +5507,91 @@ io.on('connection', (socket) => {
   });
 
   // ★ Mes fire votes: fetch all tracks where this guest voted 🔥 across ALL parties
+  // Key insight: guestVotes keys are socket.ids (change each session), NOT stable guestIds.
+  // So we first find ALL participant.id values for this guest (by name/email), then use
+  // those as voter keys to match in guestVotes.
   socket.on('guest:getMyFireVotes', async (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const guestId = data?.guestId;
     const guestName = data?.guestName;
-    const socketId = socket.id;
+    const email = data?.email;
     if (!guestId && !guestName) return cb({ ok: false, error: 'no_identifier' });
 
     try {
-      // guestVotes is { [voterKey]: { [trackTitle]: 'fire'|'like'|'meh' } }
-      // voterKey can be socket.id, guestId, or 'host'
-      const voterKeys = [guestId, socketId].filter(Boolean);
+      // Step 1: Find all participant.id entries for this guest across parties
+      const nameMatch = guestName ? [{ 'participants.name': guestName }] : [];
+      const emailMatch = email ? [{ 'participants.email': email }] : [];
+      const participantMatches = [...nameMatch, ...emailMatch];
+      if (!participantMatches.length) return cb({ ok: true, fireVotes: [] });
 
-      const results = await Party.aggregate([
-        // Only parties that have guestVotes
-        { $match: { guestVotes: { $exists: true, $ne: {} } } },
-        // Convert guestVotes object to array of { k: voterKey, v: { trackTitle: vote } }
-        { $addFields: { voteEntries: { $objectToArray: '$guestVotes' } } },
-        { $unwind: '$voteEntries' },
-        // Match by voterKey (guestId or socket.id)
-        { $match: { 'voteEntries.k': { $in: voterKeys } } },
-        // Convert track votes to array
-        { $addFields: { trackVotes: { $objectToArray: '$voteEntries.v' } } },
-        { $unwind: '$trackVotes' },
-        // Only fire votes
-        { $match: { 'trackVotes.v': 'fire' } },
-        // Enrich with trackHistory data
-        { $addFields: {
-          matchedTrack: {
-            $first: {
-              $filter: {
-                input: { $ifNull: ['$trackHistory', []] },
-                as: 't',
-                cond: { $eq: ['$$t.title', '$trackVotes.k'] }
+      const partiesWithGuest = await Party.aggregate([
+        { $match: { $or: participantMatches, guestVotes: { $exists: true, $ne: {} } } },
+        { $project: {
+          code: 1, createdAt: 1, guestVotes: 1, trackHistory: 1,
+          myParticipant: {
+            $filter: {
+              input: '$participants',
+              as: 'p',
+              cond: {
+                $or: [
+                  ...(guestName ? [{ $eq: ['$$p.name', guestName] }] : []),
+                  ...(email ? [{ $eq: ['$$p.email', email] }] : [])
+                ]
               }
             }
           }
-        }},
-        { $project: {
-          partyCode: '$code',
-          partyDate: '$createdAt',
-          title: '$trackVotes.k',
-          artist: { $ifNull: ['$matchedTrack.artist', ''] },
-          deezerID: { $ifNull: ['$matchedTrack.deezerId', '$matchedTrack.deezerID'] },
-          coverURL: { $ifNull: ['$matchedTrack.albumArtworkURL', '$matchedTrack.coverURL'] },
-          bpm: { $ifNull: ['$matchedTrack.bpm', 0] }
-        }},
-        // Deduplicate across parties
-        { $group: {
-          _id: '$title',
-          artist: { $first: '$artist' },
-          deezerID: { $first: '$deezerID' },
-          coverURL: { $first: '$coverURL' },
-          bpm: { $first: '$bpm' },
-          lastVotedAt: { $max: '$partyDate' },
-          voteCount: { $sum: 1 }
-        }},
-        { $project: {
-          _id: 0,
-          title: '$_id',
-          artist: 1, deezerID: 1, coverURL: 1, bpm: 1,
-          lastVotedAt: 1, voteCount: 1
-        }},
-        { $sort: { lastVotedAt: -1, voteCount: -1 } },
-        { $limit: 30 }
+        }}
       ]);
+
+      // Step 2: For each party, extract fire votes using participant.id as key
+      const allFireVotes = [];
+      for (const party of partiesWithGuest) {
+        const gv = party.guestVotes || {};
+        // Collect all possible voter keys for this guest in this party
+        const myIds = (party.myParticipant || []).map(p => p.id).filter(Boolean);
+        if (guestId) myIds.push(guestId);
+
+        for (const voterKey of myIds) {
+          const votes = gv[voterKey];
+          if (!votes || typeof votes !== 'object') continue;
+          for (const [trackTitle, vote] of Object.entries(votes)) {
+            if (vote !== 'fire') continue;
+            // Enrich from trackHistory
+            const matched = (party.trackHistory || []).find(t => t.title === trackTitle);
+            allFireVotes.push({
+              title: trackTitle,
+              artist: matched?.artist || '',
+              deezerID: matched?.deezerId || matched?.deezerID || null,
+              coverURL: matched?.albumArtworkURL || matched?.coverURL || null,
+              bpm: matched?.bpm || 0,
+              partyCode: party.code,
+              partyDate: party.createdAt
+            });
+          }
+        }
+      }
+
+      // Step 3: Deduplicate by title, keep most recent
+      const deduped = {};
+      for (const v of allFireVotes) {
+        const key = v.title;
+        if (!deduped[key]) {
+          deduped[key] = { ...v, voteCount: 1 };
+        } else {
+          deduped[key].voteCount++;
+          if (v.partyDate > deduped[key].lastVotedAt) {
+            deduped[key].lastVotedAt = v.partyDate;
+          }
+          // Prefer entries with artist/cover data
+          if (!deduped[key].artist && v.artist) deduped[key].artist = v.artist;
+          if (!deduped[key].coverURL && v.coverURL) deduped[key].coverURL = v.coverURL;
+          if (!deduped[key].deezerID && v.deezerID) deduped[key].deezerID = v.deezerID;
+        }
+      }
+
+      const results = Object.values(deduped)
+        .sort((a, b) => (b.partyDate || 0) - (a.partyDate || 0) || b.voteCount - a.voteCount)
+        .slice(0, 30);
 
       console.log(`[guest:getMyFireVotes] ✅ ${results.length} fire votes for "${guestName}" (${guestId})`);
       cb({ ok: true, fireVotes: results });
