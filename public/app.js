@@ -4391,17 +4391,27 @@ function updateDiapoButton() {
   const badge = $('diapo-count');
 
   if (count === 0) {
-    if (icon) icon.textContent = '📷';
-    if (label) label.textContent = "Aucune photo pour l'instant";
+    if (icon) icon.textContent = '📸';
+    if (label) label.textContent = '📸 Ajoute tes photos dans le social hub →';
     if (badge) badge.classList.add('hidden');
-    btn.classList.add('disabled');
+    btn.classList.remove('disabled');
+    btn.onclick = scrollToPhotosSection;
   } else {
     if (icon) icon.textContent = '🎞️';
     const noun = count === 1 ? '1 souvenir à voir' : `${count} souvenirs à voir`;
     if (label) label.textContent = noun;
     if (badge) { badge.textContent = count; badge.classList.remove('hidden'); }
     btn.classList.remove('disabled');
+    btn.onclick = handleDiapoBtnClick;
   }
+}
+
+function scrollToPhotosSection() {
+  showScreen('hub');
+  setTimeout(() => {
+    const picker = $('camera-photo-input');
+    if (picker) picker.click();
+  }, 400);
 }
 
 /** Update counter in diaporama if modal is open */
