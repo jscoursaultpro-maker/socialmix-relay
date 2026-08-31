@@ -47,6 +47,7 @@ import profileCompareRouter from './routes/profile-compare.js'; // ★ B2.2: GET
 import userCrewsRouter from './routes/user-crews.js'; // ★ B2.2: GET /api/user/crews
 import userRelationshipRouter from './routes/user-relationship.js'; // ★ B2.4: GET /api/user/relationship
 import trackSoloVotesRouter from './routes/track-solo-votes.js'; // ★ Track landing: POST /api/track/vote
+import userSuggestionsRouter from './routes/user-suggestions.js'; // ★ Mes suggestions: GET /api/user/me/suggestions
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
@@ -716,6 +717,9 @@ app.use('/api/tracks/seed', compression(), tracksSeedRouter);
 
 // ★ Task #81: Founders program — opt-in, 2500 slots, Supabase JWT auth
 app.use('/api/user/me/founders-rank', foundersRankRouter);
+
+// ★ Mes suggestions: user's suggestion history across all parties (Supabase JWT auth)
+app.use('/api/user/me/suggestions', userSuggestionsRouter);
 
 // ★ B2.1: Public host profile (no auth)
 app.use('/api/profile/host', profileHostRouter);
