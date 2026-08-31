@@ -1984,13 +1984,59 @@ function searchDeezerSuggestions() {
 }
 
 // ★ Phase 4A — Phase Indicator (v4: SVG tiles — CSS handles all colors)
-function updatePhaseIndicator(phase) {
-  if (!phase) return;
-  const p = phase.toLowerCase();
-  document.querySelectorAll('.phase-item').forEach(item => {
-    item.classList.toggle('active', item.dataset.phase === p);
-  });
+// ★ Phase Timeline (read-only, design iOS host porté)
+const PHASES = [
+  { key: 'arrival',  icon: '🚪', label: 'Arrivée',   color: 'rgb(153,192,255)', bg: 'rgba(153,192,255,0.2)' },
+  { key: 'ambiance', icon: '🌙', label: 'Ambiance',  color: 'rgb(191,153,255)', bg: 'rgba(191,153,255,0.2)' },
+  { key: 'takeoff',  icon: '⚡', label: 'Décollage', color: 'rgb(255,204,80)',  bg: 'rgba(255,204,80,0.2)'  },
+  { key: 'groove',   icon: '🎵', label: 'Groove',    color: 'rgb(255,128,80)',  bg: 'rgba(255,128,80,0.2)'  },
+  { key: 'party',    icon: '🔥', label: 'Fête',      color: 'rgb(255,80,140)',  bg: 'rgba(255,80,140,0.2)'  },
+  { key: 'closing',  icon: '🎉', label: 'Fin',       color: 'rgb(140,140,204)', bg: 'rgba(140,140,204,0.2)' },
+];
+
+function renderPhasePills() {
+  const container = $('phasePills');
+  if (!container) return;
+  container.innerHTML = PHASES.map(p => `
+    <div class="phase-pill" data-phase="${p.key}" style="--pill-color:${p.color};--pill-bg:${p.bg};">
+      <div class="phase-pill-circle">${p.icon}</div>
+      <div class="phase-pill-label">${p.label}</div>
+    </div>
+  `).join('');
 }
+
+function updatePhaseIndicator(phase) { updatePhaseTimeline(phase); }
+
+function updatePhaseTimeline(phase) {
+  if (!phase) return;
+  const key = phase.toLowerCase();
+  const idx = PHASES.findIndex(p => p.key === key);
+  if (idx < 0) return;
+
+  // Update pills: past / active / future
+  document.querySelectorAll('.phase-pill').forEach((pill, i) => {
+    pill.classList.remove('active', 'past', 'future');
+    if (i < idx) pill.classList.add('past');
+    else if (i === idx) pill.classList.add('active');
+    else pill.classList.add('future');
+  });
+
+  // Progress line width
+  const progress = $('phaseProgress');
+  if (progress) {
+    const pct = idx === 0 ? 0 : (idx / (PHASES.length - 1)) * 100;
+    progress.style.width = `calc(${pct}%)`;
+  }
+
+  // Labels
+  const nameEl = $('phaseCurrentName');
+  const subEl = $('phaseCurrentSub');
+  if (nameEl) nameEl.textContent = PHASES[idx].label;
+  if (subEl) subEl.textContent = `phase ${idx + 1} sur ${PHASES.length}`;
+}
+
+// Init pills at boot
+renderPhasePills();
 
 function loadTrendingSuggestions() {
   const container = $('suggest-results');
