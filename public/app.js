@@ -4560,7 +4560,7 @@ function loadMyData() {
     email: state.guestEmail || null
   }, (response) => {
     if (!response?.ok || !response.fireVotes?.length) return;
-    myTopsData = response.fireVotes;
+    myTopsData = response.fireVotes.filter(t => !isPlayedInCurrentParty(t.title));
     renderMyTops();
   });
 
@@ -4571,9 +4571,16 @@ function loadMyData() {
     email: state.guestEmail || null
   }, (response) => {
     if (!response?.ok || !response.suggestions?.length) return;
-    mySugsData = response.suggestions.slice(0, MY_SUGS_MAX);
+    mySugsData = response.suggestions.filter(s => !isPlayedInCurrentParty(s.title)).slice(0, MY_SUGS_MAX);
     renderMySugs();
   });
+}
+
+// Exclude tracks already played in tonight's party
+function isPlayedInCurrentParty(title) {
+  if (!title || !state.trackHistory?.length) return false;
+  const t = title.toLowerCase();
+  return state.trackHistory.some(h => h.title?.toLowerCase() === t);
 }
 
 function escHtml(str) {
