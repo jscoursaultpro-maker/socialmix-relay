@@ -3015,7 +3015,13 @@ function findUserProfile(userId) {
 
 // ─── Helpers (party-scoped) ─────────────────────────────────────────
 function addPhotoToParty(party, photo) {
-  const url = photo.dataURL || '';
+  // ★ Task #51 v4 C (audit 30/08) — Normalize Cloudinary URLs:
+  // host:photo sends Cloudinary URL in dataURL field → buildLightState strips dataURL > 500 chars
+  // → photo lost on resync. Fix: copy to url field so it survives the strip.
+  if (photo.dataURL && photo.dataURL.startsWith('https://res.cloudinary.com/') && !photo.url) {
+    photo.url = photo.dataURL;
+  }
+  const url = photo.dataURL || photo.url || '';
   const mid = Math.floor(url.length / 2);
   const hash = url.length + ':' + url.substring(mid, mid + 80);
   if (party.photoHashes.has(hash)) return false;
