@@ -5465,6 +5465,47 @@ io.on('connection', (socket) => {
     addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 10, 'message');
   });
 
+  // ★ Mes suggestions inline: fetch all suggestions by this guest across ALL parties
+  socket.on('guest:getMySuggestions', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    const guestId = data?.guestId || socket.user?._id?.toString() || socket.id;
+    const guestName = data?.guestName;
+    const email = data?.email;
+
+    try {
+      const matchOr = [{ 'suggestions.guestId': guestId }];
+      if (guestName) matchOr.push({ 'suggestions.guestName': guestName });
+      if (email) matchOr.push({ 'suggestions.guestEmail': email });
+
+      const results = await Party.aggregate([
+        { $unwind: '$suggestions' },
+        { $match: { $or: matchOr } },
+        { $project: {
+          partyCode: '$code',
+          partyDate: '$createdAt',
+          title: '$suggestions.title',
+          artist: '$suggestions.artist',
+          deezerID: '$suggestions.deezerID',
+          coverURL: '$suggestions.coverURL',
+          duration: '$suggestions.duration',
+          status: '$suggestions.status',
+          feuCount: { $ifNull: ['$suggestions.boostCount', 0] },
+          sentAt: '$suggestions.sentAt',
+          suggestionId: '$suggestions.id'
+        }},
+        { $sort: { feuCount: -1, sentAt: -1 } },
+        { $limit: 50 }
+      ]);
+
+      console.log(`[guest:getMySuggestions] ✅ ${results.length} suggestions for "${guestName}" (${guestId})`);
+      cb({ ok: true, suggestions: results });
+    } catch (err) {
+      console.error('[guest:getMySuggestions] ❌ Error:', err.message);
+      cb({ ok: false, error: 'server_error' });
+    }
+  });
+
   socket.on('host:message', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     const msg = { id: Date.now().toString(), guestName: data.guestName || 'DJ', message: data.message || '', guestEmoji: data.guestEmoji || '🎧', sentAt: new Date().toISOString() };

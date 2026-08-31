@@ -941,6 +941,8 @@ function connectToRelay() {
   // ═══ HOST → GUEST Events ═══
   socket.on('party:state', (ps) => {
     if (ps.currentTrack) { state.currentTrack = ps.currentTrack; updateNowPlaying(ps.currentTrack); }
+    // ★ Mes suggestions inline: load once after first state sync
+    if (!_mySugsLoaded && state.guestName) loadMySuggestions();
     if (ps.genreVotes) { state.genreVotes = ps.genreVotes; updateGenreChart(); }
     if (ps.trackHistory) { state.trackHistory = ps.trackHistory; updateHistory(); }
     if (ps.mode) { state.mode = ps.mode; updateDJMode(); }
@@ -4482,3 +4484,103 @@ function shareCurrentTrack() {
     });
   }
 }
+
+// ─── Mes suggestions inline (socket-based, no auth required) ────────
+let _mySugsLoaded = false;
+
+function loadMySuggestions() {
+  if (!socket || !socket.connected || !state.guestName || _mySugsLoaded) return;
+  _mySugsLoaded = true;
+
+  socket.emit('guest:getMySuggestions', {
+    guestId: state.guestId,
+    guestName: state.guestName,
+    email: state.guestEmail || null
+  }, (response) => {
+    if (!response?.ok || !response.suggestions?.length) return;
+    renderMySuggestionsPreview(response.suggestions.slice(0, 3));
+    renderMySuggestionsAll(response.suggestions);
+  });
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function renderMySuggestionsPreview(top3) {
+  const container = $('mySugsPreview');
+  const list = $('mySugsPreviewList');
+  if (!container || !list || !top3.length) return;
+  container.style.display = 'block';
+  list.innerHTML = top3.map(s => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <img src="${escHtml(s.coverURL || '')}" width="40" height="40" style="border-radius:6px;flex-shrink:0;background:#1a1a2e;" onerror="this.style.display='none'" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.title)}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.artist)}</div>
+      </div>
+      <div style="font-size:12px;font-weight:800;color:#EC4899;flex-shrink:0;">${s.feuCount > 0 ? '🔥 ' + s.feuCount : ''}</div>
+      <button onclick="resuggestFromHistory(${s.deezerID || 0}, '${escHtml(s.title).replace(/'/g,"\\'")}', '${escHtml(s.artist).replace(/'/g,"\\'")}', '${escHtml(s.coverURL || '').replace(/'/g,"\\'")}')" style="
+        flex-shrink:0;padding:6px 10px;border-radius:8px;cursor:pointer;
+        background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);
+        color:#8B5CF6;font-size:10px;font-weight:700;
+      ">Re-suggérer</button>
+    </div>
+  `).join('');
+}
+
+function renderMySuggestionsAll(all) {
+  const container = $('mySugsAll');
+  const list = $('mySugsAllList');
+  if (!container || !list || !all.length) return;
+  container.style.display = 'block';
+  list.innerHTML = all.map(s => {
+    const dateStr = s.partyDate ? new Date(s.partyDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
+    const statusBadge = s.status === 'played'
+      ? '<span style="font-size:9px;padding:2px 6px;border-radius:6px;background:rgba(0,200,83,0.15);color:#00c853;font-weight:700;">Jouée</span>'
+      : s.status === 'dismissed'
+        ? '<span style="font-size:9px;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.35);font-weight:700;">Refusée</span>'
+        : '<span style="font-size:9px;padding:2px 6px;border-radius:6px;background:rgba(255,193,7,0.15);color:#ffc107;font-weight:700;">En attente</span>';
+    return `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <img src="${escHtml(s.coverURL || '')}" width="36" height="36" style="border-radius:6px;flex-shrink:0;background:#1a1a2e;" onerror="this.style.display='none'" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.title)}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.artist)}</div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+          ${statusBadge}
+          ${dateStr ? '<span style="font-size:9px;color:rgba(255,255,255,0.2);">·</span><span style="font-size:9px;color:rgba(255,255,255,0.25);">'+dateStr+'</span>' : ''}
+        </div>
+      </div>
+      <button onclick="resuggestFromHistory(${s.deezerID || 0}, '${escHtml(s.title).replace(/'/g,"\\'")}', '${escHtml(s.artist).replace(/'/g,"\\'")}', '${escHtml(s.coverURL || '').replace(/'/g,"\\'")}')" style="
+        flex-shrink:0;padding:6px 10px;border-radius:8px;cursor:pointer;
+        background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);
+        color:#8B5CF6;font-size:10px;font-weight:700;
+      ">Re-suggérer</button>
+    </div>`;
+  }).join('');
+}
+
+function resuggestFromHistory(deezerID, title, artist, coverURL) {
+  if (!socket || !socket.connected) { showToast('⚠️ Déconnecté', 2000); return; }
+  emitWithAck('guest:suggest', {
+    title, artist, deezerID, coverURL,
+    query: `${title} - ${artist}`,
+    guestName: state.guestName,
+    guestId: state.guestId,
+    eventId: crypto.randomUUID()
+  }, (ack) => {
+    if (!ack) return;
+    if (ack.ok) showToast('✅ Suggestion envoyée au DJ !', 3000);
+    else if (ack.error === 'already_played') showToast('🔁 ' + (ack.reason || 'Déjà jouée ce soir'), 4000);
+    else if (ack.error === 'already_suggested') showToast('🎵 ' + (ack.reason || 'Déjà proposée'), 4000);
+    else showToast('⚠️ ' + (ack.reason || 'Suggestion refusée'), 4000);
+  });
+}
+
+function scrollToMySugsAll() {
+  const el = $('mySugsAll');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
