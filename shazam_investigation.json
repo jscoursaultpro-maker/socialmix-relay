@@ -1,0 +1,517 @@
+{
+  "FT7KZD": {
+    "code": "FT7KZD",
+    "trackHistory": [
+      {
+        "title": "Electric Feel",
+        "artist": "MGMT",
+        "isrc": "USSM10702131",
+        "appleMusicID": "264720106",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/72/f3/ed/72f3edba-cbb0-4887-bb89-4aedf97ecd12/888880287779.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:47:14Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesTop": 1
+      },
+      {
+        "title": "Diamond Veins (feat. Sarah Rebecca)",
+        "artist": "French 79",
+        "isrc": "FR9W11161070",
+        "appleMusicID": "1441875434",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/1e/95/87/1e95877e-1c04-d365-a8ab-fd1a00d0ff66/3760209412611.png/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:43:57Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0
+      },
+      {
+        "title": "Pennywise Tribute",
+        "artist": "Bassnectar",
+        "isrc": "USEP41208027",
+        "appleMusicID": "1520667123",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/14/e2/0d/14e20dba-e800-5b81-ff73-5565f7fe1718/30.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:41:39Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesTop": 1
+      },
+      {
+        "title": "Bombalaya (Blooom Remix)",
+        "artist": "DNMO, Wolfy Lights & Blooom",
+        "isrc": "GB2LD2410134",
+        "appleMusicID": "1742101335",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/fd/bd/99/fdbd99b7-e118-7aff-c2d8-096bcd303ce1/5055199569673.png/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:35:09Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "Outro (Edit)",
+        "artist": "Jim Aves Remix",
+        "isrc": "",
+        "appleMusicID": "",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/c4/46/12/c4461204-7a12-24f9-da16-bbc7f9887633/artwork.jpg/800x800cc.jpg",
+        "startedAt": "2026-08-23T14:33:47Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "One More Time",
+        "artist": "Daft Punk",
+        "isrc": "GBDUW0000053",
+        "appleMusicID": "697195462",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fd/4a/77/fd4a77db-0ebc-d043-41a2-f32fa1bb0fb4/dj.qrikkdwj.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:25:23Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "Graveyard Disciples",
+        "artist": "Black Label Society",
+        "isrc": "GBCBR0100680",
+        "appleMusicID": "1437328610",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/3e/3f/90/3e3f90df-1345-e18b-859f-1b0fff2c505e/634164603922.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:23:08Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "Free Bird",
+        "artist": "MOONLGHT",
+        "isrc": "USLD91762001",
+        "appleMusicID": "1759672820",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/fc/56/1d/fc561d4f-11e5-72af-cad5-d9c5c9aabddc/43201.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:21:46Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "Dani Girl Pumping It (feat. Prozak) [MOOEY DECK REMIX]",
+        "artist": "MOOEY DECK",
+        "isrc": "",
+        "appleMusicID": "",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/0c/e4/df/0ce4dfc4-7d47-cc98-3c57-1043d77d726b/artwork.jpg/800x800cc.jpg",
+        "startedAt": "2026-08-23T14:19:29Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0
+      },
+      {
+        "title": "Song 2",
+        "artist": "Blur",
+        "isrc": "GBAYE9600015",
+        "appleMusicID": "726415832",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music6/v4/b9/e6/e3/b9e6e359-ea96-a43f-69d5-33acde015daa/dj.iwrogllq.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:16:53Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "Thunderstruck",
+        "artist": "MOONLGHT",
+        "isrc": "USLD91772899",
+        "appleMusicID": "1798841778",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/1b/1b/90/1b1b90bf-0923-2c17-dd42-f2a92f834e2c/50696.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:11:15Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "HITZ 4 THE HOOD",
+        "artist": "Charlie Shell",
+        "isrc": "USA2P2515934",
+        "appleMusicID": "6767186014",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/20/3f/bb/203fbb04-7450-feef-51db-09aff8930602/198704447273.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:10:06Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0
+      },
+      {
+        "title": "Hot In Here",
+        "artist": "Champion & Sammy Virji",
+        "isrc": "QMFMF2321763",
+        "appleMusicID": "1715284440",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/d0/f6/08/d0f6088a-695e-9795-a85e-19f4cd250e45/197190414813.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:06:45Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0
+      },
+      {
+        "title": "Ready Steady Go (feat. Asher D)",
+        "artist": "Paul Oakenfold",
+        "isrc": "GBBUF0190173",
+        "appleMusicID": "1816497441",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/7c/b8/df/7cb8df61-69d1-019b-866b-efae0f7b8cae/885012034010.png/800x800bb.jpg",
+        "startedAt": "2026-08-23T14:04:45Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "Flat Beat",
+        "artist": "Mr. Oizo",
+        "isrc": "FRV229900020",
+        "appleMusicID": "121304765",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Features/60/ed/a4/dj.fdyfneca.jpg/693x600bb.jpg",
+        "startedAt": "2026-08-23T13:54:24Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "Smells Like Teen Spirit (DJs From Mars Unofficial Remix) [Nirvana]",
+        "artist": "DJs from Mars",
+        "isrc": "",
+        "appleMusicID": "",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/14/7f/b7/147fb710-6c49-d3b9-0e71-2fa0600e36fd/59f764c469702d6da1000000_cover.png/800x800cc.jpg",
+        "startedAt": "2026-08-23T13:49:45Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "I Stand Alone",
+        "artist": "Godsmack",
+        "isrc": "USUR10111257",
+        "appleMusicID": "1440900494",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/ea/94/40/ea94401d-9fcc-c536-2dee-e768550a3c24/17UMGIM80975.rgb.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T13:47:11Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "Bass Is Kickin'",
+        "artist": "Phibes",
+        "isrc": "QZFZ52021531",
+        "appleMusicID": "1501240094",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/f0/05/32/f00532c3-2248-ae4e-4a2d-f9c9062d21d5/artwork.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T13:43:15Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "Coming Undone",
+        "artist": "Korn",
+        "isrc": "USVI20500588",
+        "appleMusicID": "1594715396",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/05/87/ad/0587ad45-51e5-f00c-48a4-941452a65d85/5054526859951.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T13:42:48Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "Ya Mama (MOGUAI Remix)",
+        "artist": "Fatboy Slim",
+        "isrc": "FR6V81900165",
+        "appleMusicID": "1802871091",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/75/89/25/758925db-67f9-9fa6-fc27-c549ca5bd766/4050538899115.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T13:41:24Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0,
+        "votesFeu": 1
+      },
+      {
+        "title": "Hit the Floor",
+        "artist": "LINKIN PARK",
+        "isrc": "USWB11201127",
+        "appleMusicID": "528437022",
+        "artworkURL": "https://is1-ssl.mzstatic.com/image/thumb/Features125/v4/dd/7d/72/dd7d7259-d27f-5b3e-ce64-9e304d2cb40f/dj.rxzrauer.jpg/800x800bb.jpg",
+        "startedAt": "2026-08-23T13:30:15Z",
+        "source": "live_dj_shazam",
+        "votes": {
+          "bof": 0,
+          "cool": 0,
+          "feu": 0
+        },
+        "phase": "arrival",
+        "requestedBy": {
+          "source": "live_dj",
+          "guestName": null
+        },
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0
+      },
+      {
+        "title": "butterflies.",
+        "artist": "Brent Faiyaz",
+        "genre": "Hip-Hop",
+        "bpm": 63,
+        "energy": null,
+        "phase": "arrival",
+        "provider": "dj_brain_auto",
+        "source": "dj_brain_auto",
+        "suggestedBy": null,
+        "suggestedByName": null,
+        "requestedBy": {
+          "source": "djbrain",
+          "guestName": null
+        },
+        "playedAt": "2026-08-23T13:29:44.070Z",
+        "trackId": null,
+        "deezerId": 3765666312,
+        "spotifyId": null,
+        "appleMusicId": null,
+        "isrc": null,
+        "duration": null,
+        "albumTitle": null,
+        "albumArtworkURL": null,
+        "reasoning": null,
+        "djBrainScore": null,
+        "isGuessed": false,
+        "confirmReplay": false,
+        "fireCount": 0,
+        "likeCount": 0,
+        "mehCount": 0
+      }
+    ]
+  }
+}

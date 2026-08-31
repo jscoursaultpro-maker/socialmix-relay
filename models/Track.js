@@ -157,7 +157,14 @@ const TrackSchema = new mongoose.Schema({
     ratings: {
       feu:  { type: Number, default: 0 },   // 🔥
       cool: { type: Number, default: 0 },   // 😎
-      bof:  { type: Number, default: 0 }    // 😐
+      bof:  { type: Number, default: 0 },   // 😐
+      // ★ Solo votes (hors soirée) — captured via /track landing page.
+      // NE PAS mélanger avec les votes en soirée dans les calculs DJ Brain
+      // sans validation doctrine (mémoire feedback_bdd_prime_algo).
+      // Pour l'instant, ces champs sont STOCKÉS UNIQUEMENT — non lus par l'algo.
+      feuSolo:  { type: Number, default: 0 },
+      likeSolo: { type: Number, default: 0 },
+      bofSolo:  { type: Number, default: 0 }
     },
     feuRatio:      { type: Number, default: 0 },   // feu / (feu+cool+bof), 0 si aucun vote
     avgVibeAtPlay: { type: Number, default: 0 },   // Vibe moyen au moment des lectures

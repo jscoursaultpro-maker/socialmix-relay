@@ -46,6 +46,7 @@ import userFriendsRouter from './routes/user-friends.js'; // ★ B2.2: Friend re
 import profileCompareRouter from './routes/profile-compare.js'; // ★ B2.2: GET /api/profile/compare/:handle1/:handle2
 import userCrewsRouter from './routes/user-crews.js'; // ★ B2.2: GET /api/user/crews
 import userRelationshipRouter from './routes/user-relationship.js'; // ★ B2.4: GET /api/user/relationship
+import trackSoloVotesRouter from './routes/track-solo-votes.js'; // ★ Track landing: POST /api/track/vote
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
@@ -732,6 +733,9 @@ app.use('/api/user/crews', userCrewsRouter);
 
 // ★ B2.4: User relationship (Supabase JWT auth)
 app.use('/api/user/relationship', userRelationshipRouter);
+
+// ★ Track landing page: anonymous solo votes (no auth, rate-limited by IP)
+app.use('/api/track', trackSoloVotesRouter);
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
