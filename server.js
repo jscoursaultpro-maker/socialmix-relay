@@ -231,6 +231,12 @@ const partyCleanupTimers = new Map(); // code → setTimeout ID
 // ★ Fix E1 (audit 31/08): zombie party detection — 5min timer after host disconnect
 const hostDisconnectTimers = new Map(); // code → setTimeout ID
 
+// ★ Chantier 5: CGU version + rate limiting for guest:requestJoin
+const CURRENT_CGU_VERSION = '2026-08-01';
+const requestJoinRateLimit = new Map(); // key → { count, resetAt }
+const REQUEST_JOIN_MAX = 3;       // max attempts
+const REQUEST_JOIN_WINDOW_MS = 60 * 1000; // per 1 minute
+
 // ★ A3a — Idempotence cache: partyCode → Set of last 500 eventIds
 const seenEventIds = new Map(); // code → Set<string>
 const SEEN_EVENTIDS_CAP = 500;
@@ -4456,8 +4462,14 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('guest:join', async (data) => {
+    // ★ Chantier 5: deprecation warning — legacy clients should migrate to guest:requestJoin
+    console.warn(`[DEPRECATED] guest:join called by socket ${socket.id}, should migrate to guest:requestJoin`);
     const code = (data.partyCode || '').toUpperCase();
     let party = parties.get(code);
+    // ★ Chantier 5: notify host of legacy join
+    if (party && party.hostSocketId) {
+      io.to(party.hostSocketId).emit('host:legacyGuestJoined', { socketId: socket.id, guestName: data.name || 'Guest' });
+    }
 
     // ★ fix(#21 RGPD) — Validation email obligatoire
     const emailRaw = (data.email || '').trim();
@@ -4610,6 +4622,309 @@ io.on('connection', (socket) => {
       });
       console.log(`🔄 [${code}] Hydrated pending suggestion (join) for ${guestName}: "${pendingSuggJoin.title}" (pos:${queuePosJoin})`);
     }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ★ CHANTIER 5 — GUEST REQUEST JOIN (salle d'attente)
+  // ═══════════════════════════════════════════════════════════════════
+
+  socket.on('guest:requestJoin', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const code = (data.code || data.partyCode || '').toUpperCase();
+    const emailRaw = (data.email || '').trim();
+    const firstName = (data.firstName || '').trim();
+    const lastName = (data.lastName || '').trim();
+    const cguAccepted = data.cguAccepted === true;
+
+    // ★ Validation
+    if (!code || !isValidPartyCode(code)) return cb({ ok: false, error: 'INVALID_CODE', message: 'Code soirée invalide.' });
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRaw || !emailPattern.test(emailRaw)) return cb({ ok: false, error: 'INVALID_EMAIL', message: 'Un email valide est requis.' });
+    if (!firstName) return cb({ ok: false, error: 'MISSING_NAME', message: 'Le prénom est requis.' });
+    if (!cguAccepted) return cb({ ok: false, error: 'CGU_REQUIRED', message: 'Tu dois accepter les CGU pour continuer.' });
+
+    // ★ Rate limiting (3 attempts/min per IP+code)
+    const clientIp = socket.handshake?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() || socket.handshake?.address || 'unknown';
+    const rlKey = `pending:${clientIp}:${code}`;
+    const now = Date.now();
+    const rl = requestJoinRateLimit.get(rlKey);
+    if (rl && rl.resetAt > now) {
+      if (rl.count >= REQUEST_JOIN_MAX) {
+        console.warn(`[${code}] ⚠️ guest:requestJoin RATE LIMITED: ${clientIp}`);
+        return cb({ ok: false, error: 'RATE_LIMIT', message: 'Trop de tentatives, réessaie dans 1 min.' });
+      }
+      rl.count++;
+    } else {
+      requestJoinRateLimit.set(rlKey, { count: 1, resetAt: now + REQUEST_JOIN_WINDOW_MS });
+    }
+
+    // ★ Find party
+    let party = parties.get(code);
+    if (!party) {
+      try {
+        const dbParty = await Party.findOne({ code, endedAt: null });
+        if (!dbParty) return cb({ ok: false, error: 'PARTY_NOT_FOUND', message: 'Aucune soirée active avec ce code.' });
+        party = createPartyState(code, dbParty._id);
+        party.hostSecret = dbParty.hostSecret;
+        party.hostProfile = dbParty.hostProfile || null;
+        party.hostSocketId = null;
+        party.participants = dbParty.participants || [];
+        party.pendingGuests = dbParty.pendingGuests || [];
+        party.preApprovedGuests = dbParty.preApprovedGuests || [];
+        party.hostUserId = dbParty.hostUserId || null;
+        parties.set(code, party);
+      } catch (err) {
+        console.error(`[${code}] ❌ guest:requestJoin DB error:`, err.message);
+        return cb({ ok: false, error: 'SERVER_ERROR', message: 'Erreur serveur.' });
+      }
+    }
+
+    // ★ User.findOrCreateByEmail
+    let user;
+    try {
+      user = await User.findOrCreateByEmail({ email: emailRaw, firstName, lastName, cguVersion: CURRENT_CGU_VERSION });
+    } catch (err) {
+      console.error(`[${code}] ❌ User.findOrCreateByEmail failed:`, err.message);
+      return cb({ ok: false, error: 'USER_CREATE_FAILED', message: 'Erreur lors de la création du compte.' });
+    }
+    socket.user = user;
+
+    const userId = user._id;
+    const userIdStr = userId.toString();
+
+    // ★ Check if already approved participant (reconnect scenario)
+    const existingParticipant = party.participants.find(p => p.userId === userIdStr || p.email === emailRaw.toLowerCase());
+    if (existingParticipant) {
+      existingParticipant.id = socket.id;
+      existingParticipant.connected = true;
+      socket.partyCode = code;
+      socket.join(`guest:${code}`);
+      socket.emit('party:state', buildLightState(party));
+      socket.emit('session:token', { sessionToken: existingParticipant.sessionToken || randomUUID(), partyCode: code, userId: userIdStr });
+      console.log(`🔄 [${code}] guest:requestJoin — already approved, rebinding: ${firstName} (${userIdStr})`);
+      return cb({ ok: true, status: 'approved' });
+    }
+
+    // ★ Check pre-approved
+    const isPreApproved = (party.preApprovedGuests || []).some(id => id.toString() === userIdStr);
+
+    if (isPreApproved) {
+      const sessionToken = randomUUID();
+      const guest = {
+        id: socket.id, userId: userIdStr, name: firstName, emoji: '🎉',
+        email: emailRaw.toLowerCase(), firstName, lastName,
+        partyCode: code, joinedAt: new Date().toISOString(),
+        sessionToken, connected: true
+      };
+      party.participants.push(guest);
+      party.sessionTokens[sessionToken] = firstName;
+      party.isDirty = true;
+      socket.partyCode = code;
+      socket.join(`guest:${code}`);
+      socket.emit('party:state', buildLightState(party));
+      socket.emit('session:token', { sessionToken, partyCode: code, userId: userIdStr });
+      io.to(`host:${code}`).emit('guest:joined', guest);
+      io.to(`guest:${code}`).emit('participants:update', party.participants);
+      console.log(`✅ [${code}] guest:requestJoin — PRE-APPROVED: ${firstName} ${lastName} (${userIdStr})`);
+      return cb({ ok: true, status: 'approved' });
+    }
+
+    // ★ Idempotence: already in pendingGuests?
+    const existingPending = party.pendingGuests.find(g => g.userId.toString() === userIdStr);
+    if (existingPending) {
+      existingPending.socketId = socket.id;
+      existingPending.firstName = firstName || existingPending.firstName;
+      existingPending.lastName = lastName || existingPending.lastName;
+      party.isDirty = true;
+      socket.partyCode = code;
+      socket.join(`pending:${code}`);
+      const hostProfile = party.hostProfile || {};
+      socket.emit('guest:pendingApproval', {
+        hostFirstName: hostProfile.name || hostProfile.firstName || 'le DJ',
+        hostPhoto: hostProfile.photo || null,
+        partyName: code
+      });
+      console.log(`🔄 [${code}] guest:requestJoin — IDEMPOTENT re-request: ${firstName} (${userIdStr})`);
+      return cb({ ok: true, status: 'pending' });
+    }
+
+    // ★ New pending guest
+    party.pendingGuests.push({
+      userId, email: emailRaw.toLowerCase(), firstName, lastName,
+      requestedAt: new Date(), socketId: socket.id
+    });
+    party.isDirty = true;
+    socket.partyCode = code;
+    socket.join(`pending:${code}`);
+
+    const hostProfile = party.hostProfile || {};
+    socket.emit('guest:pendingApproval', {
+      hostFirstName: hostProfile.name || hostProfile.firstName || 'le DJ',
+      hostPhoto: hostProfile.photo || null,
+      partyName: code
+    });
+
+    if (party.hostSocketId) {
+      io.to(party.hostSocketId).emit('host:pendingGuestRequest', {
+        userId: userIdStr, firstName, lastName, email: emailRaw.toLowerCase()
+      });
+    }
+
+    // Write-through to MongoDB
+    Party.findOneAndUpdate(
+      { code },
+      { $push: { pendingGuests: { userId, email: emailRaw.toLowerCase(), firstName, lastName, requestedAt: new Date(), socketId: socket.id } } },
+      { upsert: false }
+    ).catch(err => console.error(`[${code}] ⚠️ Write-through (guest:requestJoin) failed:`, err.message));
+
+    console.log(`🚪 [${code}] guest:requestJoin — PENDING: ${firstName} ${lastName} <${emailRaw}> (${userIdStr})`);
+    cb({ ok: true, status: 'pending' });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ★ CHANTIER 5 — HOST APPROVE / DENY / PRE-APPROVE
+  // ═══════════════════════════════════════════════════════════════════
+
+  socket.on('host:approveGuest', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    if (socket.id !== party.hostSocketId) return cb({ ok: false, error: 'NOT_HOST', message: 'Seul le host peut approuver.' });
+
+    const targetUserId = (data.userId || '').toString();
+    if (!targetUserId) return cb({ ok: false, error: 'MISSING_USERID' });
+
+    const pendingIdx = party.pendingGuests.findIndex(g => g.userId.toString() === targetUserId);
+    if (pendingIdx === -1) return cb({ ok: false, error: 'NOT_FOUND', message: 'Guest non trouvé dans la salle d\'attente.' });
+
+    const pendingEntry = party.pendingGuests[pendingIdx];
+    party.pendingGuests.splice(pendingIdx, 1);
+
+    const sessionToken = randomUUID();
+    const guest = {
+      id: pendingEntry.socketId, userId: targetUserId, name: pendingEntry.firstName,
+      emoji: '🎉', email: pendingEntry.email, firstName: pendingEntry.firstName,
+      lastName: pendingEntry.lastName, partyCode: party.code,
+      joinedAt: new Date().toISOString(), sessionToken, connected: true
+    };
+    party.participants.push(guest);
+    party.sessionTokens[sessionToken] = pendingEntry.firstName;
+    party.isDirty = true;
+
+    if (pendingEntry.socketId) {
+      const guestSocket = io.sockets.sockets.get(pendingEntry.socketId);
+      if (guestSocket) {
+        guestSocket.leave(`pending:${party.code}`);
+        guestSocket.join(`guest:${party.code}`);
+        guestSocket.partyCode = party.code;
+        guestSocket.emit('guest:approved', { partyState: buildLightState(party) });
+        guestSocket.emit('session:token', { sessionToken, partyCode: party.code, userId: targetUserId });
+      }
+    }
+    io.to(`guest:${party.code}`).emit('participants:update', party.participants);
+
+    Party.findOneAndUpdate(
+      { code: party.code },
+      { $pull: { pendingGuests: { userId: pendingEntry.userId } },
+        $push: { participants: { name: guest.name, emoji: guest.emoji, joinedAt: guest.joinedAt, userId: targetUserId, email: guest.email, isHost: false } } },
+      { upsert: false }
+    ).catch(err => console.error(`[${party.code}] ⚠️ Write-through (host:approveGuest) failed:`, err.message));
+
+    console.log(`✅ [${party.code}] host:approveGuest: ${pendingEntry.firstName} ${pendingEntry.lastName} (${targetUserId})`);
+    cb({ ok: true, guestName: pendingEntry.firstName });
+  });
+
+  socket.on('host:denyGuest', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    if (socket.id !== party.hostSocketId) return cb({ ok: false, error: 'NOT_HOST' });
+
+    const targetUserId = (data.userId || '').toString();
+    if (!targetUserId) return cb({ ok: false, error: 'MISSING_USERID' });
+
+    const pendingIdx = party.pendingGuests.findIndex(g => g.userId.toString() === targetUserId);
+    if (pendingIdx === -1) return cb({ ok: false, error: 'NOT_FOUND' });
+
+    const pendingEntry = party.pendingGuests[pendingIdx];
+    party.pendingGuests.splice(pendingIdx, 1);
+    party.isDirty = true;
+
+    if (pendingEntry.socketId) {
+      const guestSocket = io.sockets.sockets.get(pendingEntry.socketId);
+      if (guestSocket) {
+        guestSocket.emit('guest:denied', { reason: 'host_declined' });
+        guestSocket.leave(`pending:${party.code}`);
+      }
+    }
+
+    Party.findOneAndUpdate(
+      { code: party.code },
+      { $pull: { pendingGuests: { userId: pendingEntry.userId } } },
+      { upsert: false }
+    ).catch(err => console.error(`[${party.code}] ⚠️ Write-through (host:denyGuest) failed:`, err.message));
+
+    console.log(`❌ [${party.code}] host:denyGuest: ${pendingEntry.firstName} (${targetUserId})`);
+    cb({ ok: true });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ★ CHANTIER 5 — GUEST UPDATE PENDING INFO
+  // ═══════════════════════════════════════════════════════════════════
+
+  socket.on('guest:updatePendingInfo', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+
+    const pendingEntry = party.pendingGuests.find(g => g.socketId === socket.id);
+    if (!pendingEntry) return cb({ ok: false, error: 'NOT_PENDING', message: 'Tu n\'es pas dans la salle d\'attente.' });
+
+    const firstName = (data.firstName || '').trim();
+    const lastName = (data.lastName || '').trim();
+    if (firstName) pendingEntry.firstName = firstName;
+    if (lastName) pendingEntry.lastName = lastName;
+    party.isDirty = true;
+
+    try {
+      await User.findOneAndUpdate(
+        { _id: pendingEntry.userId, $or: [{ 'profile.firstName': '' }, { 'profile.firstName': { $exists: false } }] },
+        { $set: { 'profile.firstName': firstName || undefined, 'profile.lastName': lastName || undefined } }
+      );
+    } catch (err) {
+      console.warn(`[${party.code}] ⚠️ User update (updatePendingInfo) failed:`, err.message);
+    }
+
+    if (party.hostSocketId) {
+      io.to(party.hostSocketId).emit('host:pendingGuestUpdated', {
+        userId: pendingEntry.userId.toString(), firstName: pendingEntry.firstName,
+        lastName: pendingEntry.lastName, email: pendingEntry.email
+      });
+    }
+
+    console.log(`✏️ [${party.code}] guest:updatePendingInfo: ${pendingEntry.firstName} ${pendingEntry.lastName}`);
+    cb({ ok: true });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ★ CHANTIER 5 — HOST SET PRE-APPROVED GUESTS
+  // ═══════════════════════════════════════════════════════════════════
+
+  socket.on('host:setPreApprovedGuests', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    if (socket.id !== party.hostSocketId) return cb({ ok: false, error: 'NOT_HOST' });
+
+    const userIds = data.userIds || [];
+    const validIds = userIds.filter(id => typeof id === 'string' && /^[0-9a-f]{24}$/.test(id));
+    party.preApprovedGuests = validIds;
+    party.isDirty = true;
+
+    Party.findOneAndUpdate(
+      { code: party.code },
+      { $set: { preApprovedGuests: validIds } },
+      { upsert: false }
+    ).catch(err => console.error(`[${party.code}] ⚠️ Write-through (host:setPreApprovedGuests) failed:`, err.message));
+
+    console.log(`🛡️ [${party.code}] host:setPreApprovedGuests: ${validIds.length} users`);
+    cb({ ok: true, count: validIds.length });
   });
 
   // ═══════════════════════════════════════════════════════════════════
