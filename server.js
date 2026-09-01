@@ -3155,6 +3155,15 @@ function getMutableParty(socket) {
   return party;
 }
 
+// ★ Chantier 5: resolve stable userId for a guest socket
+// Priority: socket.user._id (from auth/requestJoin) > participant.userId > socket.id
+function resolveGuestUserId(party, socket) {
+  if (socket.user?._id) return socket.user._id.toString();
+  const participant = (party.participants || []).find(p => p.id === socket.id);
+  if (participant?.userId) return participant.userId;
+  return socket.id; // ultimate fallback (legacy clients without User doc)
+}
+
 function cancelCleanup(code) {
   if (partyCleanupTimers.has(code)) { clearTimeout(partyCleanupTimers.get(code)); partyCleanupTimers.delete(code); }
 }
@@ -4996,9 +5005,11 @@ io.on('connection', (socket) => {
       console.log(`🔄 [${code}] Hydrated pending suggestion for ${guestName}: "${pendingSugg.title}" (pos:${queuePos})`);
     }
 
-    // ★ Bug 5 fix — Hydrate guest’s own votes after reconnect
-    const myVotes = party.guestVotes?.[participant.id] ||
-                    party.guestVotes?.[participant.userId] || {};
+    // ★ Chantier 5: use resolveGuestUserId for vote hydration (stable key)
+    const resumeUserId = resolveGuestUserId(party, socket);
+    const myVotes = party.guestVotes?.[resumeUserId] ||
+                    party.guestVotes?.[participant.userId] ||
+                    party.guestVotes?.[participant.id] || {};
     if (Object.keys(myVotes).length > 0) {
       socket.emit('votes:hydrate', { myVotes });
     }
@@ -5020,8 +5031,8 @@ io.on('connection', (socket) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     
-    // ★ P0.4: Server-side guestId — NEVER trust client-sent data.guestId
-    const guestId = socket.user?._id?.toString() || socket.id;
+    // ★ Chantier 5: stable userId for vote persistence (was socket.id)
+    const guestId = resolveGuestUserId(party, socket);
     
     // ★ A3a — Idempotence guard
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
@@ -5031,7 +5042,16 @@ io.on('connection', (socket) => {
       return cb({ ok: true, duplicate: true, eventId: data.eventId });
     }
     updateActivity(party);
-    if (!party.guestVotes[guestId]) party.guestVotes[guestId] = {};
+    // ★ Chantier 5: backward compat — migrate old socket.id key to userId
+    if (!party.guestVotes[guestId]) {
+      const oldKey = socket.id;
+      if (oldKey !== guestId && party.guestVotes[oldKey]) {
+        party.guestVotes[guestId] = party.guestVotes[oldKey];
+        delete party.guestVotes[oldKey];
+      } else {
+        party.guestVotes[guestId] = {};
+      }
+    }
     // ★ Bug 2 fix — store _guestName for reverse-lookup in getMyFireVotes
     // socket.id changes every reconnect, so we need a stable identifier to trace votes back
     if (data.guestName && !party.guestVotes[guestId]._guestName) {
@@ -5078,7 +5098,8 @@ io.on('connection', (socket) => {
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     
     // ★ P0.4: Server-side guestId
-    const guestId = socket.user?._id?.toString() || socket.id;
+    // ★ Chantier 5: stable userId for genre vote persistence
+    const guestId = resolveGuestUserId(party, socket);
     
     // ★ A3a — Idempotence guard
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
@@ -5131,7 +5152,8 @@ io.on('connection', (socket) => {
     updateActivity(party);
     
     // ★ P0.4: Server-side guestId for logging
-    const guestId = socket.user?._id?.toString() || socket.id;
+    // ★ Chantier 5: stable userId for suggestion attribution
+    const guestId = resolveGuestUserId(party, socket);
     
     // ★ A3a — Idempotence guard
     const { isDuplicate } = checkAndRegisterEventId(party.code, data.eventId);
@@ -5220,7 +5242,7 @@ io.on('connection', (socket) => {
     });
     
     if (data.guestId || data.guestName)
-      addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 5, `suggestion: ${title}`);
+      addPoints(party, resolveGuestUserId(party, socket), data.guestName || 'Guest', 5, `suggestion: ${title}`);
 
     // 4. Verifier la coherence de phase via MongoDB (async, non-bloquant)
     const currentPhase = party.currentPhase || 'arrival';
@@ -5766,7 +5788,7 @@ io.on('connection', (socket) => {
         width: photoMeta.width,
         height: photoMeta.height,
         guestName: data.guestName || 'Guest', 
-        guestId: data.guestId || socket.id,
+        guestId: resolveGuestUserId(party, socket),  // ★ Chantier 5: stable userId
         caption: data.caption || null, 
         sentAt: new Date().toISOString() 
       };
@@ -5802,7 +5824,7 @@ io.on('connection', (socket) => {
       const hostSockets = io.sockets.adapter.rooms.get(hostRoom);
       socket.broadcast.to(`guest:${party.code}`).emit('photo:shared', photo);
       io.to(hostRoom).emit('guest:photo', photo);
-      addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 20, 'photo');
+      addPoints(party, resolveGuestUserId(party, socket), data.guestName || 'Guest', 20, 'photo');
       console.log(`📸 [${party.code}] Photo ACCEPTED & UPLOADED: ${data.guestName} (${guestPhotoCount + 1}/${GUEST_PHOTO_CAP}, host sockets: ${hostSockets ? hostSockets.size : 0})`);
     } catch (err) {
       console.error(`📸 [${party.code}] Photo UPLOAD FAILED`, err);
@@ -5837,14 +5859,14 @@ io.on('connection', (socket) => {
     // Broadcast to host AND all other guests
     io.to(`host:${party.code}`).emit('guest:message', msg);
     socket.broadcast.to(`guest:${party.code}`).emit('guest:message', msg);
-    addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 10, 'message');
+    addPoints(party, resolveGuestUserId(party, socket), data.guestName || 'Guest', 10, 'message');
   });
 
   // ★ Mes suggestions inline: fetch all suggestions by this guest across ALL parties
   socket.on('guest:getMySuggestions', async (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
-    const guestId = data?.guestId || socket.user?._id?.toString() || socket.id;
+    const guestId = resolveGuestUserId(party, socket);  // ★ Chantier 5: stable userId
     const guestName = data?.guestName;
     const email = data?.email;
 
@@ -6050,14 +6072,14 @@ io.on('connection', (socket) => {
   socket.on('costume:enter', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     party.costumeEntries = party.costumeEntries.filter(e => e.guestId !== data.guestId && e.guestName !== data.guestName);
-    party.costumeEntries.push({ guestId: data.guestId || socket.id, guestName: data.guestName || 'Guest', emoji: data.emoji || '🎭', photo: data.photo, votes: 0 });
+    party.costumeEntries.push({ guestId: resolveGuestUserId(party, socket), guestName: data.guestName || 'Guest', emoji: data.emoji || '🎭', photo: data.photo, votes: 0 });
     if (data.guestId === 'host' && data.guestName && data.guestName !== 'DJ') {
       const hostP = party.participants.find(p => p.isHost);
       if (hostP) { hostP.name = data.guestName; io.to(`guest:${party.code}`).emit('participants:update', party.participants); }
     }
     io.to(`guest:${party.code}`).emit('costume:entries', party.costumeEntries);
     io.to(`host:${party.code}`).emit('costume:entries', party.costumeEntries);
-    addPoints(party, data.guestId || socket.id, data.guestName || 'Guest', 30, 'costume entry');
+    addPoints(party, resolveGuestUserId(party, socket), data.guestName || 'Guest', 30, 'costume entry');
   });
 
   socket.on('costume:vote', (data) => {
@@ -6109,7 +6131,7 @@ io.on('connection', (socket) => {
   socket.on('mission:complete', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     const pts = data.points || 0;
-    if (pts > 0) addPoints(party, data.participantId || data.guestId || socket.id, data.name || 'Guest', pts, `mission: ${data.mission || 'unknown'}`);
+    if (pts > 0) addPoints(party, data.participantId || resolveGuestUserId(party, socket), data.name || 'Guest', pts, `mission: ${data.mission || 'unknown'}`);
   });
 
   socket.on('costume:winner', (data) => {
