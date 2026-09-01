@@ -85,7 +85,14 @@ let state = {
   allVotes: [],
   missionPoints: 0,
   leaderboard: [],
-  missionsCompleted: {}
+  missionsCompleted: {},
+  // ★ Chantier 5 — Onboarding + Salle d'attente
+  chantier5: {
+    screen: null,        // 'onboarding' | 'waiting' | 'welcome' | 'denied' | null (main app)
+    waitingSince: null,  // timestamp pour timer 60s
+    waitingTimer: null,  // setInterval ref
+    pendingInfo: { firstName: '', lastName: '', email: '' }
+  }
 };
 
 // ─── DOM Helper ──────────────────────────────────────
@@ -523,15 +530,401 @@ async function setupLanding(activeCode) {
   }
   
   $('landing-cta').addEventListener('click', () => {
-    // Check if consent already given
-    if (hasConsent()) {
-      showScreen('profile');
-    } else {
-      showScreen('consent');
-    }
+    // ★ Chantier 5: Redirect to onboarding (new flow) instead of legacy consent/profile
+    handleLandingCTA();
   });
   
   return false;
+}
+
+// ═══════════════════════════════════════════
+// ★ CHANTIER 5 — ONBOARDING + SALLE D'ATTENTE
+// ═══════════════════════════════════════════
+const C5_PROFILE_KEY = 'ahouai:guestProfile';
+
+function loadC5Profile() {
+  try { return JSON.parse(localStorage.getItem(C5_PROFILE_KEY)) || null; } catch(e) { return null; }
+}
+
+function saveC5Profile(data) {
+  try { localStorage.setItem(C5_PROFILE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+// ── Show onboarding screen (called from init routing or landing CTA) ──
+function showOnboarding(code) {
+  code = (code || state.partyCode || '').toUpperCase();
+  state.partyCode = code;
+  state.chantier5.screen = 'onboarding';
+
+  // Update party label
+  const label = $('ob-party-label');
+  if (label) label.textContent = code ? `REJOINDRE ${code}` : 'Rejoindre la soirée';
+
+  // Pre-fill from localStorage
+  const saved = loadC5Profile();
+  if (saved) {
+    if (saved.firstName && $('ob-firstname')) $('ob-firstname').value = saved.firstName;
+    if (saved.lastName && $('ob-lastname')) $('ob-lastname').value = saved.lastName;
+    if (saved.email && $('ob-email')) $('ob-email').value = saved.email;
+  } else {
+    // Fallback: pre-fill from existing state (legacy profile)
+    if (state.guestName && $('ob-firstname')) $('ob-firstname').value = state.guestName;
+    if (state.guestLastName && $('ob-lastname')) $('ob-lastname').value = state.guestLastName;
+    if (state.guestEmail && $('ob-email')) $('ob-email').value = state.guestEmail;
+  }
+
+  // Recheck submit button state
+  validateOnboardingForm();
+  showScreen('onboarding');
+}
+
+// ── Validate onboarding form → enable/disable submit ──
+function validateOnboardingForm() {
+  const fn = ($('ob-firstname') || {}).value || '';
+  const ln = ($('ob-lastname') || {}).value || '';
+  const em = ($('ob-email') || {}).value || '';
+  const cgu = ($('ob-cgu') || {}).checked || false;
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.trim());
+  const btn = $('ob-submit');
+  if (btn) btn.disabled = !(fn.trim().length >= 2 && ln.trim().length >= 2 && emailOk && cgu);
+}
+
+// ── Setup onboarding screen listeners ──
+function setupOnboardingScreen() {
+  const fields = ['ob-firstname', 'ob-lastname', 'ob-email'];
+  fields.forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('input', validateOnboardingForm);
+  });
+  const cgu = $('ob-cgu');
+  if (cgu) cgu.addEventListener('change', () => {
+    validateOnboardingForm();
+    // Sync visual checkmark state for CSS :has fallback
+    const checkmark = $('ob-cgu').parentElement.querySelector('.c5-cgu-checkmark');
+    if (checkmark) {
+      checkmark.classList.toggle('checked', $('ob-cgu').checked);
+      // Also render check mark for browsers without :has
+      checkmark.textContent = $('ob-cgu').checked ? '✓' : '';
+    }
+  });
+}
+
+// ── Called on form submit ──
+function submitOnboarding() {
+  const fn = ($('ob-firstname').value || '').trim();
+  const ln = ($('ob-lastname').value || '').trim();
+  const em = ($('ob-email').value || '').trim();
+  const cgu = $('ob-cgu').checked;
+  let hasError = false;
+
+  // Clear previous errors
+  ['ob-firstname-error','ob-lastname-error','ob-email-error','ob-cgu-error'].forEach(id => {
+    const el = $(id); if (el) el.classList.add('hidden');
+  });
+  ['ob-firstname','ob-lastname','ob-email'].forEach(id => {
+    const el = $(id); if (el) el.classList.remove('c5-input-error');
+  });
+  $('ob-cgu-label') && $('ob-cgu-label').classList.remove('c5-cgu-error');
+
+  if (fn.length < 2) {
+    $('ob-firstname').classList.add('c5-input-error');
+    $('ob-firstname-error').classList.remove('hidden');
+    hasError = true;
+  }
+  if (ln.length < 2) {
+    $('ob-lastname').classList.add('c5-input-error');
+    $('ob-lastname-error').classList.remove('hidden');
+    hasError = true;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+    $('ob-email').classList.add('c5-input-error');
+    $('ob-email-error').classList.remove('hidden');
+    hasError = true;
+  }
+  if (!cgu) {
+    $('ob-cgu-label').classList.add('c5-cgu-error');
+    $('ob-cgu-error').classList.remove('hidden');
+    hasError = true;
+  }
+  if (hasError) return;
+
+  // Save to localStorage
+  saveC5Profile({ firstName: fn, lastName: ln, email: em });
+  state.chantier5.pendingInfo = { firstName: fn, lastName: ln, email: em };
+
+  // Update state (also set legacy fields for backward compat with existing handlers)
+  state.guestName = fn;
+  state.guestLastName = ln;
+  state.guestEmail = em;
+
+  // Disable button + show loading
+  const btn = $('ob-submit');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span>⏳</span> Envoi...'; }
+
+  // Ensure socket is connected before emitting
+  if (!socket || !socket.connected) {
+    connectToRelay();
+    // Wait for connection then emit
+    const onConnect = () => {
+      socket.off('connect', onConnect);
+      _emitRequestJoin(fn, ln, em);
+    };
+    socket.on('connect', onConnect);
+  } else {
+    _emitRequestJoin(fn, ln, em);
+  }
+}
+
+function _emitRequestJoin(fn, ln, em) {
+  socket.emit('guest:requestJoin', {
+    code: state.partyCode,
+    email: em,
+    firstName: fn,
+    lastName: ln,
+    cguAccepted: true
+  }, (res) => {
+    const btn = $('ob-submit');
+    if (!res || !res.ok) {
+      // Restore button
+      if (btn) { btn.disabled = false; btn.innerHTML = '<span>🎉</span> CONTINUER'; }
+      // Handle errors
+      const code = res?.code || res?.error || 'UNKNOWN';
+      if (code === 'RATE_LIMIT') {
+        showToast('🛑 Trop de tentatives, réessaie dans 1 min', 6000);
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '⏱️ Réessaie dans 60s';
+          setTimeout(() => {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<span>🎉</span> CONTINUER'; }
+          }, 60000);
+        }
+      } else if (code === 'INVALID_CODE' || code === 'PARTY_NOT_FOUND') {
+        showToast('❌ Code soirée invalide ou introuvable');
+      } else if (code === 'INVALID_EMAIL') {
+        $('ob-email').classList.add('c5-input-error');
+        $('ob-email-error').classList.remove('hidden');
+      } else if (code === 'MISSING_NAME') {
+        $('ob-firstname').classList.add('c5-input-error');
+        $('ob-firstname-error').classList.remove('hidden');
+      } else if (code === 'CGU_REQUIRED') {
+        $('ob-cgu-label').classList.add('c5-cgu-error');
+        $('ob-cgu-error').classList.remove('hidden');
+      } else if (code === 'USER_CREATE_FAILED') {
+        showToast('❌ Erreur serveur, réessaie');
+        console.error('[C5] USER_CREATE_FAILED:', res);
+      } else {
+        showToast('❌ ' + (res?.message || 'Erreur inconnue'));
+      }
+      return;
+    }
+
+    // Success
+    if (res.status === 'approved') {
+      // Auto-approved (pre-approved or no waiting room)
+      console.log('[C5] Auto-approved → entering cockpit');
+      enterCockpitFromOnboarding();
+    } else if (res.status === 'pending') {
+      // Show waiting room
+      showWaitingRoom(res.hostFirstName, res.hostPhoto, res.partyName);
+    } else {
+      // Fallback: enter cockpit
+      enterCockpitFromOnboarding();
+    }
+  });
+}
+
+// ── Enter cockpit from onboarding (new flow) ──
+function enterCockpitFromOnboarding() {
+  state.chantier5.screen = null;
+  saveProfile();
+  // Save CGU consent record
+  if (!hasConsent()) {
+    const consent = { version: '1.0', timestamp: Date.now(), date: new Date().toISOString(), acceptedAt: new Date().toISOString() };
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(consent));
+  }
+  enterCockpit();
+}
+
+// ── Show waiting room ──
+function showWaitingRoom(hostFirstName, hostPhoto, partyName) {
+  state.chantier5.screen = 'waiting';
+  state.chantier5.waitingSince = Date.now();
+
+  // Host avatar
+  const hostInitials = $('wr-host-initials');
+  const hostPhotoEl = $('wr-host-photo');
+  if (hostPhoto && hostPhotoEl) {
+    hostPhotoEl.src = hostPhoto;
+    hostPhotoEl.style.display = 'block';
+    if (hostInitials) hostInitials.style.display = 'none';
+  } else if (hostInitials) {
+    const name = hostFirstName || 'DJ';
+    hostInitials.textContent = name.charAt(0).toUpperCase();
+    hostInitials.style.display = '';
+    if (hostPhotoEl) hostPhotoEl.style.display = 'none';
+  }
+
+  // Subtitle text
+  const text = $('wr-host-text');
+  if (text) {
+    const hn = hostFirstName ? hostFirstName : 'Le host';
+    const pn = partyName || state.partyCode || 'la soirée';
+    text.textContent = `${hn} doit t'accepter dans ${pn}`;
+  }
+
+  // Pre-fill update form
+  const wfn = $('wr-firstname'); const wln = $('wr-lastname');
+  if (wfn) wfn.value = state.chantier5.pendingInfo.firstName || state.guestName;
+  if (wln) wln.value = state.chantier5.pendingInfo.lastName || state.guestLastName;
+
+  showScreen('waiting');
+
+  // Start 60s timer → reveal CTA card
+  startWaitingTimer();
+}
+
+// ── Waiting room screen setup ──
+function setupWaitingRoomScreen() {
+  const updateBtn = $('wr-update-btn');
+  if (updateBtn) {
+    updateBtn.addEventListener('click', () => {
+      const fn = ($('wr-firstname').value || '').trim();
+      const ln = ($('wr-lastname').value || '').trim();
+      if (!fn || !ln) { showToast('Prénom et nom requis'); return; }
+      updateBtn.disabled = true;
+      updateBtn.textContent = '⏳ Envoi...';
+      socket.emit('guest:updatePendingInfo', { firstName: fn, lastName: ln }, (res) => {
+        updateBtn.disabled = false;
+        updateBtn.innerHTML = '✏️ Mettre à jour';
+        if (res && res.ok) {
+          showToast('✅ Infos mises à jour !');
+          state.guestName = fn;
+          state.guestLastName = ln;
+          state.chantier5.pendingInfo.firstName = fn;
+          state.chantier5.pendingInfo.lastName = ln;
+          saveC5Profile({ firstName: fn, lastName: ln, email: state.chantier5.pendingInfo.email });
+        } else {
+          showToast('❌ Erreur lors de la mise à jour');
+        }
+      });
+    });
+  }
+}
+
+// ── 60s timer → reveal CTA card ──
+function startWaitingTimer() {
+  // Clear previous timer
+  if (state.chantier5.waitingTimer) clearTimeout(state.chantier5.waitingTimer);
+  state.chantier5.waitingTimer = setTimeout(() => {
+    if (state.chantier5.screen !== 'waiting') return;
+    const ctaCard = $('wr-cta-card');
+    if (ctaCard) ctaCard.classList.remove('hidden');
+    console.log('[C5] 60s elapsed → CTA card revealed');
+  }, 60000);
+}
+
+// ── Show welcome screen then transition to cockpit ──
+function showWelcomeScreen(partyName, firstName) {
+  state.chantier5.screen = 'welcome';
+  if (state.chantier5.waitingTimer) clearTimeout(state.chantier5.waitingTimer);
+
+  const title = $('wc-title');
+  const sub = $('wc-sub');
+  if (title) title.textContent = `Bienvenue ${firstName || state.guestName} ! 🎉`;
+  if (sub) sub.textContent = partyName ? `Tu rejoins ${partyName}` : 'La soirée commence…';
+
+  // Spawn confetti
+  spawnConfetti();
+
+  showScreen('welcome');
+
+  // Auto-transition to cockpit after 2s
+  setTimeout(() => {
+    state.chantier5.screen = null;
+    enterCockpitFromOnboarding();
+  }, 2200);
+}
+
+// ── Confetti spawner ──
+function spawnConfetti() {
+  const container = $('confetti-container');
+  if (!container) return;
+  container.innerHTML = '';
+  const colors = ['#8b5cf6','#a78bfa','#00e0c4','#fbbf24','#f472b6','#34d399','#60a5fa'];
+  for (let i = 0; i < 40; i++) {
+    const p = document.createElement('div');
+    p.className = 'c5-confetti-particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.top = '-10px';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    p.style.width = (6 + Math.random() * 8) + 'px';
+    p.style.height = (6 + Math.random() * 8) + 'px';
+    const dur = (1.5 + Math.random() * 2).toFixed(2) + 's';
+    const delay = (Math.random() * 0.8).toFixed(2) + 's';
+    p.style.animationDuration = dur;
+    p.style.animationDelay = delay;
+    container.appendChild(p);
+  }
+}
+
+// ── Show denied screen ──
+function showDeniedScreen(reason) {
+  state.chantier5.screen = 'denied';
+  if (state.chantier5.waitingTimer) clearTimeout(state.chantier5.waitingTimer);
+  const reasonEl = $('dn-reason');
+  if (reasonEl && reason) reasonEl.textContent = reason;
+  showScreen('denied');
+}
+
+// ── Setup denied screen ──
+function setupDeniedScreen() {
+  const btn = $('dn-back-btn');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      state.chantier5.screen = null;
+      showScreen('landing');
+    });
+  }
+}
+
+// ── Socket.IO listeners for Chantier 5 events ──
+// Called after socket is created in connectToRelay()
+function bindChantier5SocketListeners(sock) {
+  // Guest approved by host
+  sock.on('guest:approved', (data) => {
+    console.log('[C5] guest:approved received', data);
+    if (state.chantier5.screen === 'waiting') {
+      const partyName = data?.partyState?.partyName || state.partyCode;
+      showWelcomeScreen(partyName, state.guestName);
+    } else if (state.chantier5.screen === 'onboarding') {
+      // Auto-approved case where we got the event before ack
+      enterCockpitFromOnboarding();
+    }
+  });
+
+  // Guest pending (echo confirmation)
+  sock.on('guest:pendingApproval', (data) => {
+    console.log('[C5] guest:pendingApproval received', data);
+    if (state.chantier5.screen === 'onboarding') {
+      showWaitingRoom(data?.hostFirstName, data?.hostPhoto, data?.partyName);
+    }
+  });
+
+  // Guest denied
+  sock.on('guest:denied', (data) => {
+    console.log('[C5] guest:denied received', data);
+    const reason = data?.reason || 'Le host a décliné ta demande d\'accès à la soirée.';
+    showDeniedScreen(reason);
+  });
+}
+
+// ── Update landing CTA → go to onboarding (not legacy consent/profile flow) ──
+// This is patched in setupLanding (see below)
+function handleLandingCTA() {
+  const params = getURLParams();
+  const code = state.partyCode || (params.code ? params.code.toUpperCase() : '');
+  showOnboarding(code);
 }
 
 // ═══════════════════════════════════════════
@@ -860,6 +1253,9 @@ function connectToRelay() {
     reconnectionAttempts: Infinity,
     timeout: 5000
   });
+
+  // ★ Chantier 5: bind onboarding/waiting/welcome/denied socket listeners
+  bindChantier5SocketListeners(socket);
 
   socket.on('connect', () => {
     state.connected = true;
@@ -3956,6 +4352,10 @@ async function init() {
   setupCodeScreen();
   setupSocialHub();
   setupExitModal();
+  // ★ Chantier 5 — Onboarding screens
+  setupOnboardingScreen();
+  setupWaitingRoomScreen();
+  setupDeniedScreen();
 
   // Auto-rejoin if session + profile exist
   const resumeSession = loadResumeSession();
@@ -3977,11 +4377,17 @@ async function init() {
     state.guestName = resumeSession.guestName || state.guestName;
     enterCockpit();
   } else if (params.code && hasProfile && state.guestName) {
-    // QR scan with existing profile → skip to cockpit directly
-    enterCockpit();
+    // QR scan with existing profile → use new onboarding (pre-fill fields)
+    // ★ Chantier 5: route vers onboarding au lieu de cockpit direct
+    // Si le guest a un profil complet avec email, on peut tenter auto-submit
+    if (state.guestEmail) {
+      showOnboarding(params.code.toUpperCase());
+    } else {
+      showOnboarding(params.code.toUpperCase());
+    }
   } else if (params.code) {
-    // QR scan, no profile yet → consent first (if not already given)
-    showScreen(hasConsent() ? 'profile' : 'consent');
+    // QR scan, no profile yet → onboarding (nouveau flow Chantier 5)
+    showOnboarding(params.code.toUpperCase());
   } else {
     showScreen('landing');
   }
