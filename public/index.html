@@ -126,6 +126,135 @@
         </div>
     </div>
 
+    <!-- ═══ ★ CHANTIER 5 — SCREEN OB: ONBOARDING ═══ -->
+    <div id="onboarding-screen" class="screen c5-screen">
+        <div class="c5-container">
+            <!-- Glow bg -->
+            <div class="c5-glow"></div>
+
+            <!-- Header -->
+            <div class="c5-header">
+                <div class="c5-logo-icon">🎧</div>
+                <h1 class="c5-logo-title">AhOuai</h1>
+                <p class="c5-subtitle" id="ob-party-label">Rejoindre la soirée</p>
+            </div>
+
+            <!-- Form -->
+            <form id="onboarding-form" class="c5-form" onsubmit="event.preventDefault(); submitOnboarding();">
+                <div class="c5-field-row">
+                    <div class="c5-field">
+                        <label class="c5-label">PRÉNOM <span class="c5-required">*</span></label>
+                        <input type="text" id="ob-firstname" class="c5-input" placeholder="Marie"
+                            autocomplete="given-name" autocapitalize="words" minlength="2" required>
+                        <p class="c5-field-error hidden" id="ob-firstname-error">Prénom requis (min. 2 caractères)</p>
+                    </div>
+                    <div class="c5-field">
+                        <label class="c5-label">NOM <span class="c5-required">*</span></label>
+                        <input type="text" id="ob-lastname" class="c5-input" placeholder="Dupont"
+                            autocomplete="family-name" autocapitalize="words" minlength="2" required>
+                        <p class="c5-field-error hidden" id="ob-lastname-error">Nom requis (min. 2 caractères)</p>
+                    </div>
+                </div>
+
+                <div class="c5-field">
+                    <label class="c5-label">EMAIL <span class="c5-required">*</span></label>
+                    <input type="email" id="ob-email" class="c5-input" placeholder="marie@example.com"
+                        autocomplete="email" inputmode="email" required>
+                    <p class="c5-field-error hidden" id="ob-email-error">Un email valide est requis</p>
+                </div>
+
+                <label class="c5-cgu-label" id="ob-cgu-label">
+                    <input type="checkbox" id="ob-cgu" class="c5-cgu-checkbox">
+                    <span class="c5-cgu-checkmark"></span>
+                    <span class="c5-cgu-text">J'accepte les <a href="/cgu" target="_blank" rel="noopener" class="c5-link">CGU</a> et la <a href="/privacy" target="_blank" rel="noopener" class="c5-link">Politique de confidentialité</a></span>
+                </label>
+                <p class="c5-field-error hidden" id="ob-cgu-error">Tu dois accepter les conditions pour continuer</p>
+
+                <button type="submit" id="ob-submit" class="c5-btn" disabled>
+                    <span>🎉</span> CONTINUER
+                </button>
+            </form>
+
+            <p class="c5-footer">Pas besoin de télécharger · 100% navigateur</p>
+        </div>
+    </div>
+
+    <!-- ═══ ★ CHANTIER 5 — SCREEN WR: WAITING ROOM ═══ -->
+    <div id="waiting-screen" class="screen c5-screen">
+        <div class="c5-container c5-waiting-container">
+            <div class="c5-glow c5-glow-teal"></div>
+
+            <!-- Host card -->
+            <div class="c5-host-card">
+                <div class="c5-host-avatar" id="wr-host-avatar">
+                    <span id="wr-host-initials">DJ</span>
+                    <img id="wr-host-photo" src="" alt="Host" style="display:none;">
+                </div>
+                <div class="c5-host-info">
+                    <h2 class="c5-waiting-title">Ta demande est envoyée !</h2>
+                    <p class="c5-waiting-sub" id="wr-host-text">En attente d'approbation…</p>
+                </div>
+            </div>
+
+            <!-- Spinner -->
+            <div class="c5-spinner-wrap">
+                <div class="c5-spinner"></div>
+            </div>
+
+            <p class="c5-waiting-hint">Tu seras notifié dès que tu es accepté 👀</p>
+
+            <!-- CTA 60s — hidden initially, revealed by timer -->
+            <div class="c5-cta-card hidden" id="wr-cta-card">
+                <div class="c5-cta-header">
+                    <span class="c5-cta-icon">🤔</span>
+                    <div>
+                        <div class="c5-cta-title">Le host ne te reconnaît pas ?</div>
+                        <div class="c5-cta-sub">Complète ou vérifie tes infos</div>
+                    </div>
+                </div>
+                <div class="c5-field-row">
+                    <div class="c5-field">
+                        <label class="c5-label">PRÉNOM</label>
+                        <input type="text" id="wr-firstname" class="c5-input c5-input-sm" placeholder="Prénom" autocomplete="given-name">
+                    </div>
+                    <div class="c5-field">
+                        <label class="c5-label">NOM</label>
+                        <input type="text" id="wr-lastname" class="c5-input c5-input-sm" placeholder="Nom" autocomplete="family-name">
+                    </div>
+                </div>
+                <button id="wr-update-btn" class="c5-btn c5-btn-secondary">
+                    ✏️ Mettre à jour
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ ★ CHANTIER 5 — SCREEN WC: WELCOME ═══ -->
+    <div id="welcome-screen" class="screen c5-screen">
+        <div class="c5-container c5-welcome-container">
+            <div class="c5-glow c5-glow-confetti"></div>
+            <!-- Confetti particles (injected by JS) -->
+            <div id="confetti-container" class="c5-confetti-wrap"></div>
+            <div class="c5-welcome-emoji">🎉</div>
+            <h2 class="c5-welcome-title" id="wc-title">Bienvenue !</h2>
+            <p class="c5-welcome-sub" id="wc-sub">La soirée commence…</p>
+            <div class="c5-welcome-loader"></div>
+        </div>
+    </div>
+
+    <!-- ═══ ★ CHANTIER 5 — SCREEN DN: DENIED ═══ -->
+    <div id="denied-screen" class="screen c5-screen">
+        <div class="c5-container c5-denied-container">
+            <div class="c5-glow c5-glow-grey"></div>
+            <div class="c5-denied-emoji">🚫</div>
+            <h2 class="c5-denied-title">Demande refusée</h2>
+            <p class="c5-denied-sub" id="dn-reason">Le host a décliné ta demande d'accès à la soirée.</p>
+            <button id="dn-back-btn" class="c5-btn c5-btn-ghost">
+                ← Retour à l'accueil
+            </button>
+        </div>
+    </div>
+
     <!-- ═══ SCREEN 2: PROFILE ═══ -->
     <div id="profile-screen" class="screen">
         <div class="profile-container">
