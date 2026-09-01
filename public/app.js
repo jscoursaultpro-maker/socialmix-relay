@@ -2481,14 +2481,17 @@ function escapeAttr(str) {
 function updateHistory() {
   const list = $('history-list');
   const count = $('history-count');
+  const moreBtn = $('historyMore');
   
   if (!state.trackHistory.length) {
     list.innerHTML = '<div class="empty-state">Aucun titre joué pour le moment</div>';
     count.textContent = '0 titres';
+    if (moreBtn) moreBtn.style.display = 'none';
     return;
   }
   
-  count.textContent = `${state.trackHistory.length} titres`;
+  const total = state.trackHistory.length;
+  count.textContent = `${total} titres`;
   list.innerHTML = '';
   
   // Build local vote map as fallback (server enriches too but local may be fresher)
@@ -2501,7 +2504,9 @@ function updateHistory() {
     else if (v.type === 'meh') localVotes[t].meh++;
   });
   
-  state.trackHistory.forEach((track, i) => {
+  // ★ Bug 8 — Paginated display
+  const visible = state.trackHistory.slice(0, historyShown);
+  visible.forEach((track, i) => {
     const item = document.createElement('div');
     item.className = 'history-item';
     const query = encodeURIComponent(`${track.artist} ${track.title}`);
@@ -2520,7 +2525,7 @@ function updateHistory() {
     if (meh > 0) voteBadges += `<span style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.35);">👎${meh}</span>`;
     
     item.innerHTML = `
-      <span class="history-num">${state.trackHistory.length - i}</span>
+      <span class="history-num">${total - i}</span>
       <div class="history-info">
         <div class="history-title">${track.title}${genreBadge}</div>
         <div class="history-artist">${track.artist}</div>
@@ -2549,6 +2554,17 @@ function updateHistory() {
     list.appendChild(item);
   });
   
+  // ★ Bug 8 — Pagination button
+  if (moreBtn) {
+    const remaining = total - historyShown;
+    if (remaining > 0) {
+      moreBtn.style.display = 'block';
+      moreBtn.textContent = `Voir plus (${remaining} restant${remaining > 1 ? 's' : ''}) ↓`;
+    } else {
+      moreBtn.style.display = 'none';
+    }
+  }
+  
   // Send message button — also bound via inline onclick="sendGuestMessage()"
   const sendBtn = $('send-message-btn');
   const msgInput = $('guest-message-input');
@@ -2559,6 +2575,12 @@ function updateHistory() {
       if (e.key === 'Enter') { e.preventDefault(); sendGuestMessage(); }
     });
   }
+}
+
+// ★ Bug 8 — Show more history tracks
+function showMoreHistory() {
+  historyShown = Math.min(historyShown + 5, state.trackHistory.length);
+  updateHistory();
 }
 
 // Global function: send guest reaction message (callable from inline onclick)
@@ -4553,6 +4575,8 @@ let mySugsData = [];       // suggestions pool (max 50 from backend)
 let myTopsShown = 5;       // currently displayed count
 let mySugsShown = 5;       // currently displayed count
 const MY_SUGS_MAX = 15;    // hard cap for suggestions
+let historyShown = 5;      // ★ Bug 8 — history pagination
+const resuggestedTrackIds = new Set(); // ★ Bug 7 — tracks already re-suggested this session
 
 function loadMyData() {
   if (!socket || !socket.connected || !state.guestName || _myDataLoaded) return;
@@ -4602,21 +4626,25 @@ function renderMyTops() {
   container.style.display = 'block';
 
   const visible = myTopsData.slice(0, myTopsShown);
-  list.innerHTML = visible.map(s => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+  list.innerHTML = visible.map(s => {
+    // ★ Bug 7 — Check if already re-suggested
+    const alreadyResuggested = resuggestedTrackIds.has(`${s.deezerID || 0}:${(s.title || '').toLowerCase()}`);
+    return `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);${alreadyResuggested ? 'opacity:0.45;' : ''}">
       ${s.coverURL ? `<img src="${escHtml(s.coverURL)}" width="40" height="40" style="border-radius:6px;flex-shrink:0;background:#1a1a2e;" onerror="this.style.display='none'" />` : '<div style="width:40px;height:40px;border-radius:6px;background:#1a1a2e;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">🎵</div>'}
-      <div style="flex:1;min-width:0;">
+      <div style="flex:1;min-width:0;overflow:hidden;">
         <div style="font-size:13px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.title)}</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.artist)}</div>
       </div>
       <div style="font-size:12px;font-weight:800;color:#EC4899;flex-shrink:0;">${s.voteCount > 1 ? '🔥×' + s.voteCount : '🔥'}</div>
-      <button onclick="resuggestFromHistory(${s.deezerID || 0}, '${escHtml(s.title).replace(/'/g,"\\'")}', '${escHtml(s.artist).replace(/'/g,"\\'")}', '${escHtml(s.coverURL || '').replace(/'/g,"\\'")}')" style="
-        flex-shrink:0;padding:6px 10px;border-radius:8px;cursor:pointer;
-        background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);
-        color:#8B5CF6;font-size:10px;font-weight:700;
-      ">Re-suggérer</button>
-    </div>
-  `).join('');
+      <button ${alreadyResuggested ? 'disabled' : ''} onclick="resuggestFromHistory(${s.deezerID || 0}, '${escHtml(s.title).replace(/'/g,"\\'")}', '${escHtml(s.artist).replace(/'/g,"\\'")}', '${escHtml(s.coverURL || '').replace(/'/g,"\\'")}')" style="
+        flex-shrink:0;padding:6px 10px;border-radius:8px;cursor:${alreadyResuggested ? 'default' : 'pointer'};
+        background:${alreadyResuggested ? 'rgba(255,255,255,0.04)' : 'rgba(139,92,246,0.12)'};
+        border:1px solid ${alreadyResuggested ? 'rgba(255,255,255,0.08)' : 'rgba(139,92,246,0.3)'};
+        color:${alreadyResuggested ? 'rgba(255,255,255,0.25)' : '#8B5CF6'};font-size:10px;font-weight:700;
+      ">${alreadyResuggested ? '✓ Envoyée' : 'Re-suggérer'}</button>
+    </div>`;
+  }).join('');
 
   // Pagination button
   if (moreBtn) {
@@ -4643,7 +4671,16 @@ function renderMySugs() {
   if (!container || !list || !mySugsData.length) return;
   container.style.display = 'block';
 
-  const capped = mySugsData.slice(0, MY_SUGS_MAX);
+  // ★ Bug 6 — Client-side dedup by title+artist (case-insensitive)
+  const seen = new Set();
+  const dedupedData = mySugsData.filter(s => {
+    const key = `${(s.title || '').toLowerCase().trim()}|${(s.artist || '').toLowerCase().trim()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const capped = dedupedData.slice(0, MY_SUGS_MAX);
   const visible = capped.slice(0, mySugsShown);
   list.innerHTML = visible.map(s => {
     const dateStr = s.partyDate ? new Date(s.partyDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
@@ -4652,10 +4689,12 @@ function renderMySugs() {
       : s.status === 'dismissed'
         ? '<span style="font-size:9px;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.35);font-weight:700;">Refusée</span>'
         : '<span style="font-size:9px;padding:2px 6px;border-radius:6px;background:rgba(255,193,7,0.15);color:#ffc107;font-weight:700;">En attente</span>';
+    // ★ Bug 7 — Check if this track was already re-suggested this session
+    const alreadyResuggested = resuggestedTrackIds.has(`${s.deezerID || 0}:${(s.title || '').toLowerCase()}`);
     return `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);${alreadyResuggested ? 'opacity:0.45;' : ''}">
       ${s.coverURL ? `<img src="${escHtml(s.coverURL)}" width="36" height="36" style="border-radius:6px;flex-shrink:0;background:#1a1a2e;" onerror="this.style.display='none'" />` : '<div style="width:36px;height:36px;border-radius:6px;background:#1a1a2e;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎵</div>'}
-      <div style="flex:1;min-width:0;">
+      <div style="flex:1;min-width:0;overflow:hidden;">
         <div style="font-size:12px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.title)}</div>
         <div style="font-size:10px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.artist)}</div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
@@ -4663,11 +4702,12 @@ function renderMySugs() {
           ${dateStr ? '<span style="font-size:9px;color:rgba(255,255,255,0.2);">·</span><span style="font-size:9px;color:rgba(255,255,255,0.25);">'+dateStr+'</span>' : ''}
         </div>
       </div>
-      <button onclick="resuggestFromHistory(${s.deezerID || 0}, '${escHtml(s.title).replace(/'/g,"\\'")}', '${escHtml(s.artist).replace(/'/g,"\\'")}', '${escHtml(s.coverURL || '').replace(/'/g,"\\'")}')" style="
-        flex-shrink:0;padding:6px 10px;border-radius:8px;cursor:pointer;
-        background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);
-        color:#8B5CF6;font-size:10px;font-weight:700;
-      ">Re-suggérer</button>
+      <button ${alreadyResuggested ? 'disabled' : ''} onclick="resuggestFromHistory(${s.deezerID || 0}, '${escHtml(s.title).replace(/'/g,"\\'")}', '${escHtml(s.artist).replace(/'/g,"\\'")}', '${escHtml(s.coverURL || '').replace(/'/g,"\\'")}')" style="
+        flex-shrink:0;padding:6px 10px;border-radius:8px;cursor:${alreadyResuggested ? 'default' : 'pointer'};
+        background:${alreadyResuggested ? 'rgba(255,255,255,0.04)' : 'rgba(139,92,246,0.12)'};
+        border:1px solid ${alreadyResuggested ? 'rgba(255,255,255,0.08)' : 'rgba(139,92,246,0.3)'};
+        color:${alreadyResuggested ? 'rgba(255,255,255,0.25)' : '#8B5CF6'};font-size:10px;font-weight:700;
+      ">${alreadyResuggested ? '✓ Envoyée' : 'Re-suggérer'}</button>
     </div>`;
   }).join('');
 
@@ -4691,6 +4731,12 @@ function showMoreSugs() {
 
 function resuggestFromHistory(deezerID, title, artist, coverURL) {
   if (!socket || !socket.connected) { showToast('⚠️ Déconnecté', 2000); return; }
+  // ★ Bug 7 — Prevent re-suggesting same track twice in one session
+  const trackKey = `${deezerID || 0}:${(title || '').toLowerCase()}`;
+  if (resuggestedTrackIds.has(trackKey)) {
+    showToast('🎵 Déjà re-suggéré ce soir', 2000);
+    return;
+  }
   emitWithAck('guest:suggest', {
     title, artist, deezerID, coverURL,
     query: `${title} - ${artist}`,
@@ -4699,7 +4745,13 @@ function resuggestFromHistory(deezerID, title, artist, coverURL) {
     eventId: crypto.randomUUID()
   }, (ack) => {
     if (!ack) return;
-    if (ack.ok) showToast('✅ Suggestion envoyée au DJ !', 3000);
+    if (ack.ok) {
+      showToast('✅ Suggestion envoyée au DJ !', 3000);
+      // ★ Bug 7 — Mark as re-suggested + refresh UI
+      resuggestedTrackIds.add(trackKey);
+      renderMyTops();
+      renderMySugs();
+    }
     else if (ack.error === 'already_played') showToast('🔁 ' + (ack.reason || 'Déjà jouée ce soir'), 4000);
     else if (ack.error === 'already_suggested') showToast('🎵 ' + (ack.reason || 'Déjà proposée'), 4000);
     else showToast('⚠️ ' + (ack.reason || 'Suggestion refusée'), 4000);
