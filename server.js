@@ -3687,6 +3687,8 @@ io.on('connection', (socket) => {
           // ✅ Found matching party in DB — restore it to RAM and resume
           // createPartyState is already imported at top of file
           const restoredParty = createPartyState(code, dbParty._id);  // ★ Task #81: propagate _id
+          restoredParty.hostUserId = dbParty.hostUserId || null;  // ★ fix(HPH): was MISSING → hostUserId guard skipped all HPH after reconnect
+          console.log(`[recovery] party ${code} — hostUserId restored: ${restoredParty.hostUserId ? 'OK (' + restoredParty.hostUserId + ')' : 'MISSING'}`);
           restoredParty.mode = dbParty.mode || 'appMix';
           restoredParty.currentTrack = dbParty.currentTrack || null;
           restoredParty.nextTrack = dbParty.nextTrack || null;
@@ -4008,7 +4010,7 @@ io.on('connection', (socket) => {
         const _capturedUID   = party.hostUserId;
         // Cache _mongoId pour cette soirée (évite re-query par track)
         if (!party._mongoId) {
-          party._mongoId = Party.findOne({ code: _capturedCode }).select('_id').lean()
+          party._mongoId = Party.findOne({ code: _capturedCode, endedAt: null }).select('_id').lean()  // ★ fix(HPH): filter endedAt:null to avoid code collision with archived parties
             .then(p => { if (p) party._mongoId = p._id; return p?._id || null; })
             .catch(() => null);
         }
