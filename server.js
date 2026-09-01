@@ -4715,6 +4715,11 @@ io.on('connection', (socket) => {
     }
     updateActivity(party);
     if (!party.guestVotes[guestId]) party.guestVotes[guestId] = {};
+    // ★ Bug 2 fix — store _guestName for reverse-lookup in getMyFireVotes
+    // socket.id changes every reconnect, so we need a stable identifier to trace votes back
+    if (data.guestName && !party.guestVotes[guestId]._guestName) {
+      party.guestVotes[guestId]._guestName = data.guestName;
+    }
     party.guestVotes[guestId][data.trackId || 'current'] = data.type;
     const safeData = { ...data, guestId }; // override client guestId
     io.to(`host:${party.code}`).emit('guest:voted', safeData);
@@ -5581,6 +5586,7 @@ io.on('connection', (socket) => {
         { $match: { $or: participantMatches, guestVotes: { $exists: true, $ne: {} } } },
         { $project: {
           code: 1, createdAt: 1, guestVotes: 1, trackHistory: 1,
+          // Filtered to our target guest (for participant.id match)
           myParticipant: {
             $filter: {
               input: '$participants',
@@ -5592,22 +5598,70 @@ io.on('connection', (socket) => {
                 ]
               }
             }
-          }
+          },
+          // ★ Bug 2 fix — ALL participants for reverse-lookup attribution
+          allParticipants: '$participants'
         }}
       ]);
 
-      // Step 2: For each party, extract fire votes using participant.id as key
+      // Step 2: For each party, extract fire votes using multiple strategies:
+      // Strategy A: participant.id match (current socket.id — rarely works across sessions)
+      // Strategy B: _guestName metadata stored in guestVotes (new, future-proof)
+      // Strategy C: reverse-lookup — match participant name to all guestVotes keys via participants array
       const allFireVotes = [];
+      const seenVoteKeys = new Set(); // dedup across strategies
       for (const party of partiesWithGuest) {
         const gv = party.guestVotes || {};
-        // Collect all possible voter keys for this guest in this party
-        const myIds = (party.myParticipant || []).map(p => p.id).filter(Boolean);
-        if (guestId) myIds.push(guestId);
+        // Strategy A: Collect participant.id matches
+        const myIds = new Set((party.myParticipant || []).map(p => p.id).filter(Boolean));
+        if (guestId) myIds.add(guestId);
+
+        // Strategy B: Find guestVotes entries with matching _guestName
+        if (guestName) {
+          for (const [key, votes] of Object.entries(gv)) {
+            if (votes && typeof votes === 'object' && votes._guestName === guestName) {
+              myIds.add(key);
+            }
+          }
+        }
+
+        // Strategy C: Historical vote recovery via elimination.
+        // Problem: socket.id changes every reconnect and participant.id only stores the LAST one.
+        // Old vote keys (old socket.ids) are orphaned — no direct mapping to participant name.
+        // Solution: Build a set of keys CLAIMED by OTHER participants (via their current participant.id),
+        // then attribute all remaining unclaimed non-host keys to our target guest.
+        // This works well when there are few guests per party (typical: 2-8 guests).
+        // Risk: in parties with many guests who all reconnected, some votes may be misattributed.
+        // Mitigation: _guestName metadata (Strategy B) will make this unnecessary for future votes.
+        if (guestName) {
+          // Keys claimed by OTHER participants (not our target guest)
+          const otherClaimedKeys = new Set();
+          for (const p of (party.allParticipants || [])) {
+            if (!p.id || p.isHost) continue;
+            // Skip participants that match our target guest
+            const isMe = (guestName && p.name === guestName) || (email && p.email === email);
+            if (isMe) continue;
+            otherClaimedKeys.add(p.id);
+          }
+
+          for (const [key, votes] of Object.entries(gv)) {
+            if (key === 'host' || myIds.has(key)) continue;
+            if (!votes || typeof votes !== 'object') continue;
+            // If this key is NOT claimed by another participant, attribute to our guest
+            if (!otherClaimedKeys.has(key)) {
+              myIds.add(key);
+            }
+          }
+        }
 
         for (const voterKey of myIds) {
+          const voteKeyId = `${party.code}:${voterKey}`;
+          if (seenVoteKeys.has(voteKeyId)) continue;
+          seenVoteKeys.add(voteKeyId);
           const votes = gv[voterKey];
           if (!votes || typeof votes !== 'object') continue;
           for (const [trackTitle, vote] of Object.entries(votes)) {
+            if (trackTitle === '_guestName') continue; // skip metadata field
             if (vote !== 'fire') continue;
             // Enrich from trackHistory
             const matched = (party.trackHistory || []).find(t => t.title === trackTitle);
