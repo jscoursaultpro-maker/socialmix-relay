@@ -147,12 +147,50 @@ const userSchema = new Schema({
   isDeleted: { type: Boolean, default: false },
   deletedAt: Date,
   
+  // === CGU / LEGAL ===
+  cguAcceptedAt: { type: Date, default: null },   // ★ Chantier 5: date d'acceptation CGU
+  cguVersion:    { type: String, default: null },  // ★ Chantier 5: version CGU acceptée (e.g. '2026-08-01')
+  
   // === META ===
   isMigrated: { type: Boolean, default: false }, // Added based on migration spec
   createdAt: { type: Date, default: Date.now },
   lastSeenAt: { type: Date, default: Date.now },
   schemaVersion: { type: String, default: '2.0' }
 })
+
+// ★ Chantier 5: Upsert-style helper for guest onboarding
+userSchema.statics.findOrCreateByEmail = async function({ email, firstName, lastName, cguVersion }) {
+  const normalizedEmail = email.toLowerCase().trim();
+  let user = await this.findOne({ email: normalizedEmail });
+  if (user) {
+    // Update name only if previously empty
+    let changed = false;
+    if (firstName && !user.profile?.firstName) { user.profile.firstName = firstName; changed = true; }
+    if (lastName && !user.profile?.lastName) { user.profile.lastName = lastName; changed = true; }
+    // Always update CGU if a newer version is provided
+    if (cguVersion && cguVersion !== user.cguVersion) {
+      user.cguAcceptedAt = new Date();
+      user.cguVersion = cguVersion;
+      changed = true;
+    }
+    user.lastSeenAt = new Date();
+    if (changed) await user.save();
+    return user;
+  }
+  // Create new user
+  user = await this.create({
+    email: normalizedEmail,
+    profile: { firstName: firstName || 'Guest', lastName: lastName || '' },
+    authProvider: null,  // no OAuth provider yet (guest onboarding)
+    cguAcceptedAt: new Date(),
+    cguVersion: cguVersion || null,
+    schemaVersion: '2.0',
+    createdAt: new Date(),
+    lastSeenAt: new Date()
+  });
+  console.log(`[User] ✅ Created via guest onboarding: ${normalizedEmail} (_id=${user._id})`);
+  return user;
+};
 
 // Index composé pour OAuth provider
 userSchema.index({ authProvider: 1, providerId: 1 }, { unique: true })

@@ -23,6 +23,8 @@ export function createPartyState(code, _id = null) {
     disconnectTimers: {},      // {participantName: timeoutId} — 4h cleanup
     guestVotes: {},            // {guestId: {trackId: voteType}}
     suggestions: [],           // [{query, guestName, sentAt}]
+    pendingGuests: [],         // ★ Chantier 5: [{userId, email, firstName, lastName, socketId, requestedAt}]
+    preApprovedGuests: [],     // ★ Chantier 5: [ObjectId] — host pre-approved user IDs
     currentPhase: 'arrival',   // Phase en cours: arrival|ambiance|takeoff|groove|party|closing
     hostProfile: null,         // {name, emoji}
     // ★ Host decisions — persisted for reconnect restore (doctrine L55-113)

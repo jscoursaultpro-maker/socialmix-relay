@@ -12,6 +12,17 @@ const PartySchema = new mongoose.Schema({
   genreVotes:       { type: mongoose.Schema.Types.Mixed, default: {} },
   vibeScore:        { type: Number, default: 0 },
   participants:     [mongoose.Schema.Types.Mixed],
+  // ★ Chantier 5: Salle d'attente — pending guests awaiting host approval
+  pendingGuests: [{
+    userId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    email:        { type: String, required: true },
+    firstName:    { type: String, default: '' },
+    lastName:     { type: String, default: '' },
+    requestedAt:  { type: Date, default: Date.now },
+    socketId:     { type: String, default: null }
+  }],
+  // ★ Chantier 5: Pre-approved guests (auto-approve on requestJoin)
+  preApprovedGuests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   guestVotes:       { type: mongoose.Schema.Types.Mixed, default: {} },
   suggestions:      [mongoose.Schema.Types.Mixed],
   hostProfile:      { type: mongoose.Schema.Types.Mixed, default: null },
@@ -82,5 +93,6 @@ const PartySchema = new mongoose.Schema({
 PartySchema.index({ endedAt: 1 }, { expireAfterSeconds: 90 * 24 * 3600, partialFilterExpression: { endedAt: { $ne: null } } });
 PartySchema.index({ hostUserId: 1, createdAt: -1 });
 PartySchema.index({ hostUserId: 1, endedAt: -1 });
+PartySchema.index({ 'pendingGuests.userId': 1 }, { sparse: true });  // ★ Chantier 5: fast pending lookup
 
 export default mongoose.model('Party', PartySchema);
