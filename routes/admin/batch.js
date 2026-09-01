@@ -34,7 +34,7 @@ router.post('/generate', async (req, res) => {
         created_at: new Date().toISOString(),
         doctrine_version: "AHOUAI_DOCTRINE_PHASES v2 (14 juillet 2026)"
       },
-      _instruction: `Tu es DJ pro expert AhOuai. Classifie ces ${tracks.length} tracks selon la doctrine officielle (voir _doctrine). Renseigne l'exhaustivité des 25 champs par track. Réponds UNIQUEMENT avec le JSON { classifications: [...${tracks.length} objets...] } sans texte autour, dans le format _format_reponse_par_track.`,
+      _instruction: `Tu es DJ pro expert AhOuai. Classifie ces ${tracks.length} tracks selon la doctrine officielle (voir _doctrine). Renseigne l'exhaustivité des 25 champs par track. Réponds UNIQUEMENT avec le JSON { classifications: [...${tracks.length} objets...] } sans texte autour, dans le format _format_reponse_par_track.\n\nUtilise le deezerRank pour affiner cooldownDays et isBanger : rank < 100k = hit massif (cooldownDays: 21, isBanger vraisemblable), rank 100k-500k = populaire (cooldownDays: 14), rank > 500k = tube rare (cooldownDays: 7). Utilise duration_sec pour orienter la phase : <180s = probable arrival/ambiance, 180-240s = takeoff/groove, >240s = groove/party/closing (les longs morceaux tiennent le dancefloor). Si isrc est fourni, utilise-le comme identifiant unique pour cette classification.`,
       _doctrine: {
         phases: {
           arrival:  { role: "Apéro chic, madeleine douce", bpm: "70-110", energy: "3.5-5" },
@@ -95,7 +95,15 @@ router.post('/generate', async (req, res) => {
         bpm_actuel: t.bpm || null,
         energy_actuel: t.energy || null,
         phase_actuelle: t.phase || null,
-        deezerRank: t.deezerRank || null,
+        // ★ Enrichissements Batch IA v2
+        isrc: t.isrc || null,
+        deezerRank: t.deezerRank || t.providers?.deezer?.rank || null,
+        duration_sec: t.duration || null,
+        danceability_actuel: t.danceability || null,
+        hasLyrics_actuel: t.hasLyrics ?? null,
+        language_actuel: t.language || null,
+        era_actuel: t.era || null,
+        albumCoverURL: t.coverArtURL || t.appleMusicMetadata?.artworkUrl || null,
         source: t.source || null
       }))
     };
