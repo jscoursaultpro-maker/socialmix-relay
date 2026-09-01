@@ -192,8 +192,14 @@ userSchema.statics.findOrCreateByEmail = async function({ email, firstName, last
   return user;
 };
 
-// Index composé pour OAuth provider
-userSchema.index({ authProvider: 1, providerId: 1 }, { unique: true })
+// Index composé pour OAuth provider — partial pour exclure les guests onboardés (providerId absent)
+// ★ Chantier 5 fix (01/09): sans partialFilterExpression, tous les guests onboarding créaient
+// des conflits (null, null) au 2ème+ user → USER_CREATE_FAILED. Partial index ne s'active
+// que quand providerId est effectivement présent (OAuth Apple/Google/email).
+userSchema.index(
+  { authProvider: 1, providerId: 1 },
+  { unique: true, partialFilterExpression: { providerId: { $exists: true, $type: 'string' } } }
+)
 userSchema.index({ 'preferences.profilePublic': 1, createdAt: -1 })  // ★ B2.1: discovery
 
 export default mongoose.model('User', userSchema)
