@@ -4256,6 +4256,59 @@ io.on('connection', (socket) => {
     io.to(`guest:${party.code}`).emit('history:update', enrichedHistory);
     console.log(`🎧 [${party.code}] Shazam Live: ${liveTrack.title} — ${liveTrack.artist} (source: ${liveTrack.source})`);
 
+    // ★ Shazam DJ Live → upsert Track collection (async, fire-and-forget)
+    // Nourrit le Monitor Nouveautés & Découvertes + rend la track classifiable via Batch IA
+    if (isNewTrack && liveTrack.title) {
+      (async () => {
+        try {
+          const title = liveTrack.title;
+          const artist = liveTrack.artist || '';
+          const isrc = liveTrack.isrc || null;
+          const appleMusicID = liveTrack.appleMusicID || payload.appleMusicID || null;
+          const artworkURL = liveTrack.artworkURL || payload.artworkURL || null;
+          const hash = fallbackHash(title, artist);
+
+          const filter = isrc ? { isrc } : { fallbackHash: hash };
+          const existing = await Track.findOne(filter).lean();
+
+          if (!existing) {
+            // Nouvelle track — création avec metadata Shazam
+            const newDoc = {
+              title,
+              artist,
+              genre: '',
+              fallbackHash: hash,
+              source: 'shazam_dj_live',
+              suggestable: false,
+              classifiedBy: null,
+              classifiedAt: null,
+              doctrineVersion: null,
+              isVerified: false,
+            };
+            if (isrc) newDoc.isrc = isrc;
+            if (appleMusicID) newDoc.appleMusicID = appleMusicID;
+            if (artworkURL) newDoc.coverArtURL = artworkURL;
+
+            await Track.create(newDoc);
+            console.log(`[shazam-upsert] ✅ Nouvelle track créée: "${title}" — ${artist} (source=shazam_dj_live)`);
+          } else {
+            // Track existante — enrichir uniquement les champs manquants
+            const patch = {};
+            if (!existing.isrc && isrc) patch.isrc = isrc;
+            if (!existing.appleMusicID && appleMusicID) patch.appleMusicID = appleMusicID;
+            if (!existing.providers?.appleMusic?.trackId && appleMusicID) patch['providers.appleMusic.trackId'] = appleMusicID;
+            if (!existing.coverArtURL && artworkURL) patch.coverArtURL = artworkURL;
+            if (Object.keys(patch).length > 0) {
+              await Track.updateOne({ _id: existing._id }, { $set: patch });
+              console.log(`[shazam-upsert] ➕ Track enrichie: "${title}" (${Object.keys(patch).join(', ')})`);
+            }
+          }
+        } catch (err) {
+          console.error('[shazam-upsert] error:', err.message);
+        }
+      })();
+    }
+
     // ★ Task #17 (suite) : Si la track Shazam matche une suggestion, propager le status 'played'
     if (liveTrack.requestedBy && liveTrack.requestedBy.source === 'suggestion') {
       const updatedState = buildLightState(party);

@@ -92,7 +92,7 @@ const TrackSchema = new mongoose.Schema({
   chatgptQueueId: { type: String, default: null },
   source: { 
     type: String, 
-    enum: ["monitor_manual", "gpt_imported", "editorial_seed_v1", "deezer_search", "host_suggestion", "guest_suggestion", "exploration", "editorial", "suggestion", "shazam", "fantome_recovered", "batch_workflow"],
+    enum: ["monitor_manual", "gpt_imported", "editorial_seed_v1", "deezer_search", "host_suggestion", "guest_suggestion", "exploration", "editorial", "suggestion", "shazam", "shazam_dj_live", "fantome_recovered", "batch_workflow"],
     default: "gpt_imported"
   },
   classifiedBy: { type: String, default: null },
