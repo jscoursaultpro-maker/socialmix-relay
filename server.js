@@ -64,28 +64,12 @@ process.on('uncaughtException', (err) => {
 const FEEDBACK_PATH = join(__dirname, 'socialmix_feedback.json');
 
 // ─── FallbackHash normalization (mirrors EditorialSeedLoader.swift) ────
-// \u2605 Chantier normalize alignment (01/09/2026):
-// iOS DJBrain bascule vers "no spaces" (commit 2ee54a1, side-effect du 22/08 fix "The Rapture Pt. III").
-// Server aligne : nouveau hash SANS espaces (fallbackHashNew), ancien AVEC espaces (fallbackHash).
-// PENDANT migration BDD : fallbackHash() retourne encore l'ANCIEN format (comportement inchange
-// pour eviter tout duplicate en prod). Migration BDD active fallbackHashNew() pour reindexer.
-// Une fois migration BDD 100% terminee : bascule fallbackHash = fallbackHashNew + retire legacy.
+// \u2605 FallbackHash normalization (aligne iOS DJBrain normalizeTitle 22/08/2026)
+// Format canonique : title/artist normalises en minuscules alphanumeriques, SANS espaces.
+// Ex: "The Rapture Pt. III" - "&ME & Black Coffee" \u2192 "theraptureptiii_meblackcoffee"
+// Cutover complet 01/09/2026 (chantier normalize alignment) : legacy avec-espaces supprime,
+// BDD 100% migree (2886 tracks), tous les writes utilisent ce format.
 function fallbackHash(title, artist) {
-  // LEGACY: avec espaces (comportement pre-01/09/2026, MATCHES la BDD actuelle)
-  const normalize = (s) => s
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/\b(feat\.?|ft\.?|featuring)\b/gi, '')
-    .replace(/\([^)]*\)/g, '')
-    .replace(/\[[^\]]*\]/g, '')
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return `${normalize(title || '')}_${normalize(artist || '')}`;
-}
-
-function fallbackHashNew(title, artist) {
-  // NEW: no spaces (aligne iOS DJBrain 2ee54a1) \u2014 utilise par migration + apres cutover
   const normalize = (s) => s
     .toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -96,16 +80,8 @@ function fallbackHashNew(title, artist) {
     .trim();
   return `${normalize(title || '')}_${normalize(artist || '')}`;
 }
-
-// \u2605 Safe lookup pendant migration : essaie nouveau hash (iOS) PUIS legacy (BDD actuelle).
-// A appeler depuis les handlers qui recoivent des donnees iOS potentiellement au nouveau format.
-// A simplifier vers findOne({ fallbackHash: newHash }) une fois migration BDD 100% terminee.
-async function findTrackByFallback(TrackModel, title, artist) {
-  const newHash = fallbackHashNew(title, artist);
-  const legacyHash = fallbackHash(title, artist);
-  if (newHash === legacyHash) return await TrackModel.findOne({ fallbackHash: newHash });
-  return await TrackModel.findOne({ fallbackHash: { $in: [newHash, legacyHash] } });
-}
+// Alias retro-compat : fallbackHashNew garde le meme comportement pour ne pas casser d'autres references
+const fallbackHashNew = fallbackHash;
 
 // ─── Genre normalization — unifies editorial_seed + track_metadata genres ─
 const GENRE_MAP = {
