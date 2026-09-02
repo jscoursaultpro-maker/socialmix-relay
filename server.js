@@ -165,7 +165,12 @@ async function seedEditorialCatalog() {
     let inserted = 0, skipped = 0;
     for (const t of tracks) {
       if (!t.title || !t.artist) { skipped++; continue; }
-      const hash = t.fallbackHash || fallbackHash(t.title, t.artist);
+      // ★ Chantier normalize: lookup dual-hash (new+legacy), insert au nouveau format
+      const newHash = fallbackHashNew(t.title, t.artist);
+      const legacyHash = fallbackHash(t.title, t.artist);
+      const hashCandidates = newHash === legacyHash ? [newHash] : [newHash, legacyHash];
+      if (t.fallbackHash && !hashCandidates.includes(t.fallbackHash)) hashCandidates.push(t.fallbackHash);
+      const hash = newHash;  // insert value = new format
       const genre = normalizeGenre(t.genre);
       const deezerTrackId = t.providers?.deezer?.trackId || null;
 
@@ -175,7 +180,7 @@ async function seedEditorialCatalog() {
         coverArtURL = `https://api.deezer.com/album/${t.providers.deezer.albumId}/image`;
       }
 
-      const filter = t.isrc ? { isrc: t.isrc } : { fallbackHash: hash };
+      const filter = t.isrc ? { isrc: t.isrc } : { fallbackHash: { $in: hashCandidates } };
 
       // $set → always enrich genre/bpm/deezerID (even for existing docs)
       // $setOnInsert → only write identity fields on brand-new inserts
@@ -4313,9 +4318,12 @@ io.on('connection', (socket) => {
           const isrc = liveTrack.isrc || null;
           const appleMusicID = liveTrack.appleMusicID || payload.appleMusicID || null;
           const artworkURL = liveTrack.artworkURL || payload.artworkURL || null;
-          const hash = fallbackHash(title, artist);
+          // ★ Chantier normalize: lookup dual-hash, insert au nouveau format
+          const newHash = fallbackHashNew(title, artist);
+          const legacyHash = fallbackHash(title, artist);
+          const hashCandidates = newHash === legacyHash ? [newHash] : [newHash, legacyHash];
 
-          const filter = isrc ? { isrc } : { fallbackHash: hash };
+          const filter = isrc ? { isrc } : { fallbackHash: { $in: hashCandidates } };
           const existing = await Track.findOne(filter).lean();
 
           if (!existing) {
@@ -4324,7 +4332,7 @@ io.on('connection', (socket) => {
               title,
               artist,
               genre: '',
-              fallbackHash: hash,
+              fallbackHash: newHash,  // ★ Chantier normalize: insert au nouveau format
               source: 'shazam_dj_live',
               suggestable: false,
               classifiedBy: null,
@@ -5394,23 +5402,27 @@ io.on('connection', (socket) => {
     const party = getMutableParty(socket); if (!party) return;
     
     const { title, artist, genre, isrc, deezerID, bpm, vibeScore, fromSuggestion, isGuessed } = data;
-    const hash = fallbackHash(title, artist);
-    
+    // ★ Chantier normalize: lookup dual-hash, insert au nouveau format
+    const newHash = fallbackHashNew(title, artist);
+    const legacyHash = fallbackHash(title, artist);
+    const hashCandidates = newHash === legacyHash ? [newHash] : [newHash, legacyHash];
+    const hash = newHash;  // valeur pour insert + playedKeys (nouveau format)
+
     // 1. Add to playedKeys (both ISRC and fallbackHash)
     if (!party.playedKeys) party.playedKeys = [];
     if (isrc && !party.playedKeys.includes(isrc)) party.playedKeys.push(isrc);
     if (hash && !party.playedKeys.includes(hash)) party.playedKeys.push(hash);
     if (deezerID && !party.playedKeys.includes(String(deezerID))) party.playedKeys.push(String(deezerID));
-    
+
     console.log(`🎵 [${party.code}] Track played: "${title}" — ${artist} (keys: ${party.playedKeys.length})`);
-    
+
     // 2. Upsert Track in MongoDB (async, non-blocking)
     try {
       const hour = new Date().getHours();
       const hourBucket = hour < 21 ? '18-21' : hour < 23 ? '21-23' : hour < 1 || hour >= 23 ? '23-01' : '01-03';
       const partyGenre = party._dominantGenre || genre || '';
-      
-      const filter = isrc ? { isrc } : { fallbackHash: hash };
+
+      const filter = isrc ? { isrc } : { fallbackHash: { $in: hashCandidates } };
       const inc = {
         'performance.totalPlays': 1,
         [`performance.hourBuckets.${hourBucket}.plays`]: 1,
@@ -6227,7 +6239,8 @@ io.on('connection', (socket) => {
       const trackEntry = party.trackHistory.find(t =>
         (t.title || '').toLowerCase() === (trackTitle || '').toLowerCase()
       );
-      const trackKey = trackEntry?.isrc || fallbackHash(trackTitle, trackEntry?.artist || data.guestName || '');
+      // ★ Chantier normalize: cle RAM pour agregation pendingRatings, utilise le nouveau format
+      const trackKey = trackEntry?.isrc || fallbackHashNew(trackTitle, trackEntry?.artist || data.guestName || '');
       if (!pendingRatings.has(party.code)) pendingRatings.set(party.code, new Map());
       const partyPending = pendingRatings.get(party.code);
       if (!partyPending.has(trackKey)) {
