@@ -180,7 +180,13 @@ async function seedEditorialCatalog() {
         coverArtURL = `https://api.deezer.com/album/${t.providers.deezer.albumId}/image`;
       }
 
-      const filter = t.isrc ? { isrc: t.isrc } : { fallbackHash: { $in: hashCandidates } };
+      // ★ Chantier normalize: lookup ISRC OR hash simultanement (evite recreer duplicates
+      // apres merge). Si le seed a un ISRC different du WINNER (loser supprime), le match
+      // par hash sauvegarde le canonique.
+      const orConditions = [];
+      if (t.isrc) orConditions.push({ isrc: t.isrc });
+      orConditions.push({ fallbackHash: { $in: hashCandidates } });
+      const filter = orConditions.length === 1 ? orConditions[0] : { $or: orConditions };
 
       // $set → always enrich genre/bpm/deezerID (even for existing docs)
       // $setOnInsert → only write identity fields on brand-new inserts
@@ -4318,12 +4324,15 @@ io.on('connection', (socket) => {
           const isrc = liveTrack.isrc || null;
           const appleMusicID = liveTrack.appleMusicID || payload.appleMusicID || null;
           const artworkURL = liveTrack.artworkURL || payload.artworkURL || null;
-          // ★ Chantier normalize: lookup dual-hash, insert au nouveau format
+          // ★ Chantier normalize: lookup ISRC OR hash simultanement pour matcher les canoniques
           const newHash = fallbackHashNew(title, artist);
           const legacyHash = fallbackHash(title, artist);
           const hashCandidates = newHash === legacyHash ? [newHash] : [newHash, legacyHash];
 
-          const filter = isrc ? { isrc } : { fallbackHash: { $in: hashCandidates } };
+          const orConditions = [];
+          if (isrc) orConditions.push({ isrc });
+          orConditions.push({ fallbackHash: { $in: hashCandidates } });
+          const filter = orConditions.length === 1 ? orConditions[0] : { $or: orConditions };
           const existing = await Track.findOne(filter).lean();
 
           if (!existing) {
@@ -5422,7 +5431,11 @@ io.on('connection', (socket) => {
       const hourBucket = hour < 21 ? '18-21' : hour < 23 ? '21-23' : hour < 1 || hour >= 23 ? '23-01' : '01-03';
       const partyGenre = party._dominantGenre || genre || '';
 
-      const filter = isrc ? { isrc } : { fallbackHash: { $in: hashCandidates } };
+      // ★ Chantier normalize: lookup ISRC OR hash simultanement pour matcher les canoniques
+      const orConditions = [];
+      if (isrc) orConditions.push({ isrc });
+      orConditions.push({ fallbackHash: { $in: hashCandidates } });
+      const filter = orConditions.length === 1 ? orConditions[0] : { $or: orConditions };
       const inc = {
         'performance.totalPlays': 1,
         [`performance.hourBuckets.${hourBucket}.plays`]: 1,
