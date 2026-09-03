@@ -1062,6 +1062,9 @@ function setupProfile() {
           alias: state.guestAlias,
           emoji: state.guestEmoji,
           photo: state.guestPhoto,
+          phone: state.guestPhone,
+          email: state.guestEmail,       // ★ fix Bug Benjamin #4: email obligatoire sinon serveur rejette
+          instagram: state.guestInsta,
           partyCode: state.partyCode
         });
       }
@@ -1074,7 +1077,7 @@ function setupProfile() {
           if (!socket || !socket.connected) {
             connectToRelay();
           } else {
-            socket.emit('guest:join', { name: state.guestName, lastName: state.guestLastName, alias: state.guestAlias, emoji: state.guestEmoji, photo: state.guestPhoto, partyCode: state.partyCode });
+            socket.emit('guest:join', { name: state.guestName, lastName: state.guestLastName, alias: state.guestAlias, emoji: state.guestEmoji, photo: state.guestPhoto, phone: state.guestPhone, email: state.guestEmail, instagram: state.guestInsta, partyCode: state.partyCode });  // ★ fix Bug Benjamin #4
           }
           // Also fetch meta once to update trombinoscope immediately
           fetch(`/api/party/${state.partyCode}/meta`).then(r => r.json()).then(m => {
@@ -1172,7 +1175,7 @@ function setupCodeScreen() {
           if (!socket || !socket.connected) {
             connectToRelay();
           } else {
-            socket.emit('guest:join', { name: state.guestName, lastName: state.guestLastName, alias: state.guestAlias, emoji: state.guestEmoji, photo: state.guestPhoto, partyCode: state.partyCode });
+            socket.emit('guest:join', { name: state.guestName, lastName: state.guestLastName, alias: state.guestAlias, emoji: state.guestEmoji, photo: state.guestPhoto, phone: state.guestPhone, email: state.guestEmail, instagram: state.guestInsta, partyCode: state.partyCode });  // ★ fix Bug Benjamin #4
           }
           return; // Stop here, wait for host
         }
