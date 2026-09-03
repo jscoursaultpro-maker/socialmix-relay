@@ -4761,7 +4761,12 @@ io.on('connection', (socket) => {
     }
 
     // ★ Check pre-approved
-    const isPreApproved = (party.preApprovedGuests || []).some(id => id.toString() === userIdStr);
+    // ★ FIX URGENT 03/09 : AUTO_APPROVE_GUESTS=true tant que l'UI iOS host de validation
+    //   n'est pas livree (Chantier 5 Etape 3 prevue 04/09 19h). Sans ca, les guests sont mis
+    //   en pending sans que le host puisse les approuver → bloques indefiniment ou refuses.
+    //   A DESACTIVER (retirer cette variable) apres livraison Etape 3 iOS.
+    const AUTO_APPROVE_GUESTS = (process.env.AUTO_APPROVE_GUESTS || 'true') === 'true';
+    const isPreApproved = AUTO_APPROVE_GUESTS || (party.preApprovedGuests || []).some(id => id.toString() === userIdStr);
 
     if (isPreApproved) {
       const sessionToken = randomUUID();
