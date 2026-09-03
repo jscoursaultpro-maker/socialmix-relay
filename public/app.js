@@ -1707,6 +1707,22 @@ function connectToRelay() {
   });
 
   socket.on('vote:received', (data) => {
+    // ★ Emis quand le HOST vote (host:vote handler L6227)
+    state.allVotes.push(data);
+    updateEngagementFromVotes();
+  });
+
+  // ★ fix Bug Benjamin #1: emis quand un GUEST vote (guest:vote handler L5108-5109)
+  // Sans ce listener, un guest ne voyait que ses propres votes + ceux du host dans le Dashboard
+  // → désynchro complète entre guests (chacun voit un dashboard différent)
+  socket.on('guest:voted', (data) => {
+    // Ne pas re-compter mon propre vote (déjà pushé en local L2009 avant emit)
+    // Le serveur override guestId avec userId stable (resolveGuestUserId) donc on compare state.userId
+    // Fallback : guestName (au cas où userId pas encore set)
+    const isMine =
+      (data.guestId && (data.guestId === state.userId || data.guestId === state.guestId)) ||
+      (data.guestName && data.guestName === state.guestName);
+    if (isMine) return;
     state.allVotes.push(data);
     updateEngagementFromVotes();
   });
