@@ -1793,15 +1793,20 @@ function connectToRelay() {
     // Only show notification to the guest who sent the suggestion
     if (data.guestName && data.guestName !== state.guestName) return;
     console.log('[Suggestion] Status update:', data.status, data.title);
-    
+
     // Update state to persist status across reloads
     const sugg = state.suggestions.find(s => s.title === data.title);
     if (sugg) {
       sugg.status = data.status;
       saveSession();
     }
-    
-    showSuggestionToast(data.message || `Suggestion: ${data.status}`, data.status);
+
+    // ★ fix Bug Benjamin #2: skip le toast "next" pour eviter la superposition
+    // avec "played" qui arrive quelques secondes apres (les 2 toasts se chevauchent
+    // pendant la transition CSS 0.4s). Le badge reste updated pour le status "next".
+    if (data.status !== 'next') {
+      showSuggestionToast(data.message || `Suggestion: ${data.status}`, data.status);
+    }
     
     // Update persistent status badge in suggestion list
     updateSuggestionBadge(data.title, data.status, data.message);
