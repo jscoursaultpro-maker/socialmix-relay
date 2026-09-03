@@ -3082,8 +3082,17 @@ function addPoints(party, participantId, name, points, reason) {
     const byId = Object.entries(party.participantScores).find(([, v]) => v.participantId === participantId);
     key = byName ? byName[0] : (byId ? byId[0] : normalizedName);
   }
-  if (!party.participantScores[key]) party.participantScores[key] = { name: normalizedName, score: 0, voteCount: 0, participantId: participantId || key };
+  if (!party.participantScores[key]) party.participantScores[key] = { name: normalizedName, score: 0, voteCount: 0, photoCount: 0, participantId: participantId || key };
   party.participantScores[key].score += points;
+  // ★ fix Bug Benjamin #3: incrementer voteCount + photoCount pour tracer l'activite reelle
+  // (etaient initialises a 0 mais jamais incrementes → archive afterglow affichait tout a 0)
+  if (typeof reason === 'string') {
+    if (reason.startsWith('vote ') || reason === 'genre vote') {
+      party.participantScores[key].voteCount = (party.participantScores[key].voteCount || 0) + 1;
+    } else if (reason === 'photo') {
+      party.participantScores[key].photoCount = (party.participantScores[key].photoCount || 0) + 1;
+    }
+  }
   // ★ E1 FIX: Host entry name is FROZEN to 'DJ'. For guests, update name normally.
   if (isHost) {
     if (party.participantScores[key].name !== 'DJ') {
@@ -3130,6 +3139,20 @@ function broadcastLeaderboard(party) {
   party.leaderboard = lb;
   io.to(`guest:${party.code}`).emit('leaderboard:update', lb);
   io.to(`host:${party.code}`).emit('leaderboard:update', lb);
+
+  // ★ fix Bug Benjamin #3: broadcast participantScores en live pour que l'archive iOS
+  // recoive voteCount + photoCount pendant la soiree (etait envoye uniquement a party:ended)
+  const scoresSnapshot = {};
+  for (const [key, entry] of Object.entries(party.participantScores)) {
+    scoresSnapshot[key] = {
+      name: key === 'host' ? hostDisplayName : (entry.name || key),
+      score: entry.score || 0,
+      voteCount: entry.voteCount || 0,
+      photoCount: entry.photoCount || 0
+    };
+  }
+  io.to(`host:${party.code}`).emit('scores:update', scoresSnapshot);
+  io.to(`guest:${party.code}`).emit('scores:update', scoresSnapshot);
 }
 
 const GENRE_VOTE_TTL_MS = 30 * 60 * 1000; // 30 minutes
