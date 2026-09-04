@@ -227,6 +227,7 @@ function getURLParams() {
   const params = new URLSearchParams(window.location.search);
   return {
     code: params.get('code'),
+    party: params.get('party'), // ★ Fix v34 SSO — retour OAuth utilise ?party= pour éviter collision "code"
     name: params.get('name'),
     emoji: params.get('emoji')
   };
