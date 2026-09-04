@@ -641,7 +641,7 @@ async function signInWithProvider(provider) {
     // vers l'origine SANS le query "code".
     const partyCode = state.partyCode || new URL(window.location.href).searchParams.get('code');
     if (partyCode) {
-      try { sessionStorage.setItem('ahouai_pending_party', partyCode.toUpperCase()); } catch(e) {}
+      try { localStorage.setItem('ahouai_pending_party', partyCode.toUpperCase()); } catch(e) {}
     }
     const redirectUrl = window.location.origin + window.location.pathname; // sans query
     const { error } = await _supabaseClient.auth.signInWithOAuth({
@@ -690,9 +690,9 @@ async function handleSupabaseSession(session) {
     // en priorité, puis fallback state.partyCode ou query param "code" (mais ce dernier peut être
     // le "code" OAuth au moment du retour, donc pas fiable).
     let codeToJoin = null;
-    try { codeToJoin = sessionStorage.getItem('ahouai_pending_party'); } catch(e) {}
+    try { codeToJoin = localStorage.getItem('ahouai_pending_party'); } catch(e) {}
     if (codeToJoin) {
-      try { sessionStorage.removeItem('ahouai_pending_party'); } catch(e) {}
+      try { localStorage.removeItem('ahouai_pending_party'); } catch(e) {}
     } else {
       codeToJoin = state.partyCode || new URL(window.location.href).searchParams.get('code');
     }
