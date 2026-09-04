@@ -612,15 +612,29 @@ async function initSupabaseSSO() {
     const ssoBlock = document.getElementById('ob-sso-block');
     if (ssoBlock) ssoBlock.style.display = 'block';
 
-    // Détecter session déjà présente (post-redirect OAuth) ou événement futur
-    const { data: { session } } = await _supabaseClient.auth.getSession();
-    if (session && !_sessionCallbackHandled) {
-      _sessionCallbackHandled = true;
-      handleSupabaseSession(session);
-    }
+    // ★ Fix v31 — Poll actif (SDK Supabase peut mettre 500-2000ms à parser le hash #access_token)
+    // Sans poll, getSession() retourne null au 1er check → user devait re-cliquer Google pour trigger
+    let sessionCheckAttempts = 0;
+    const sessionPollInterval = setInterval(async () => {
+      sessionCheckAttempts++;
+      try {
+        const { data: { session } } = await _supabaseClient.auth.getSession();
+        if (session && !_sessionCallbackHandled) {
+          clearInterval(sessionPollInterval);
+          _sessionCallbackHandled = true;
+          console.log('[SSO] Session détectée via poll (tentative ' + sessionCheckAttempts + ')');
+          handleSupabaseSession(session);
+        } else if (sessionCheckAttempts >= 30) {
+          clearInterval(sessionPollInterval); // arrêt après 6s
+          console.log('[SSO] Pas de session après 6s de poll — user pas connecté');
+        }
+      } catch (e) { console.warn('[SSO] getSession poll fail:', e); }
+    }, 200);
+
     _supabaseClient.auth.onAuthStateChange((event, session) => {
       console.log('[SSO] Auth event:', event);
       if (event === 'SIGNED_IN' && session && !_sessionCallbackHandled) {
+        clearInterval(sessionPollInterval);
         _sessionCallbackHandled = true;
         handleSupabaseSession(session);
       }
