@@ -3390,8 +3390,27 @@ function stripSecret(obj) {
 //          isHost=false → keep slice(-20) to protect guest network payload
 function buildLightState(party, isHost = false) {
   // Lightweight participants
-  const lightParticipants = (party.participants || []).map(p => ({
+  // ★ Bug E-fix-1 — Injecter host si absent des participants (edge case) + fallback userId host
+  const rawParticipants = party.participants || [];
+  const hasHost = rawParticipants.some(p => p.isHost);
+  const enriched = hasHost ? rawParticipants : [
+    {
+      id: party.hostSocketId || null,
+      userId: party.hostUserId ? String(party.hostUserId) : null,
+      name: party.hostProfile?.name || party.hostProfile?.firstName || 'DJ',
+      emoji: party.hostProfile?.emoji || '🎧',
+      isHost: true,
+      connected: true,
+      partyCode: party.code,
+      joinedAt: party.createdAt || new Date().toISOString(),
+      photo: party.hostProfile?.photo || null
+    },
+    ...rawParticipants
+  ];
+  const lightParticipants = enriched.map(p => ({
     id: p.id,
+    // ★ Bug E-3a fix + E-fix-1 — userId nécessaire pour boutons d'ami; host fallback party.hostUserId
+    userId: p.userId ? String(p.userId) : (p.isHost && party.hostUserId ? String(party.hostUserId) : null),
     name: p.name,
     emoji: p.emoji,
     isHost: p.isHost || false,
@@ -3510,6 +3529,16 @@ function logAudioEvent({ partyCode, hostId, eventType, eventId, meta }) {
 // ─── Socket.IO Connection Handling ──────────────────────────────────
 io.on('connection', (socket) => {
   console.log(`🔌 Connected: ${socket.id}`);
+
+  // ★ Bug E-fix-2 — Universal user identify: join room user:${userId}
+  // Le client émet client:identify quand son userId est disponible (post-auth, post-reconnect, post-approve).
+  // Résout notifs socket amis pour flows où joinUserRoom n'est pas appelé nativement (host, resume, etc.)
+  socket.on('client:identify', ({ userId } = {}) => {
+    if (userId) {
+      try { socket.join(`user:${userId}`); } catch (e) {}
+      console.log(`👤 identify socket ${socket.id} → user:${userId}`);
+    }
+  });
 
   // Auto-join host room: if ANY host: prefixed event is received,
   // ensure this socket is in the 'host' room (resilient to server restarts)

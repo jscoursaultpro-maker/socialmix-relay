@@ -1426,6 +1426,10 @@ function connectToRelay() {
       state.guestId = 'guest_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
     }
     updateConnection('connected', 'Connecté');
+    // ★ Bug E-fix-2 — Ré-identifier au reconnect (nouveau socketId → room user:${userId} à rejoindre)
+    if (state.userId) {
+      socket.emit('client:identify', { userId: state.userId });
+    }
     
     // A3b — Rejouer les events en attente avant de rejoindre (tri par sentAt ASC)
     if (pendingEvents.size > 0) {
@@ -1485,6 +1489,10 @@ function connectToRelay() {
     if (data.userId) state.userId = data.userId;
     saveSession();
     console.log('[Session] Token saved:', data.sessionToken.substring(0, 8) + '... userId:', data.userId || 'n/a');
+    // ★ Bug E-fix-2 — identifier ce socket au serveur pour recevoir notifs amis (room user:${userId})
+    if (data.userId && socket && socket.connected) {
+      socket.emit('client:identify', { userId: data.userId });
+    }
   });
 
   socket.on('disconnect', () => {
