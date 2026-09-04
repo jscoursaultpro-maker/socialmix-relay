@@ -83,6 +83,22 @@ function fallbackHash(title, artist) {
 // Alias retro-compat : fallbackHashNew garde le meme comportement pour ne pas casser d'autres references
 const fallbackHashNew = fallbackHash;
 
+// ★ Bug R — Normalization pour Smart Match cascade (suggestions ↔ track jouée)
+// Retire : accents, parenthèses/crochets contenu, feat.|ft.|featuring + tout ce qui suit,
+// non-alphanumériques. Résultat : "I Think I Like It (Radio Edit)" → "ithinkilikeit"
+// Absorbe les différences de nommage entre iOS/Virtual DJ et les APIs streaming.
+function normalizeForMatch(s) {
+  if (!s) return '';
+  return String(s)
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\b(feat\.?|ft\.?|featuring|avec|with)\b.*/gi, '')
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+}
+
 // ★ Bug J — Résolution artwork avec cascade DB → Deezer + cache in-memory (fire-and-forget côté callers)
 const _artworkCache = new Map(); // key: cacheKey, value: { url, ts }
 const _ARTWORK_TTL_MS = 60 * 60 * 1000; // 1h TTL
@@ -4089,47 +4105,75 @@ io.on('connection', (socket) => {
 
       if (isNewTrack) {
       // ★ P0-3 — Attribution : qui a demandé ce titre ?
-      // (requestedBy déclaré au-dessus — pas de re-déclaration avec let ici)
+      // ★ Bug R — Smart Match cascade : Match ID (absolu) → ISRC (certifié) → Souple (normalisé) → Titre seul (fallback)
+      // Absorbe les différences de nommage entre logiciel DJ (Virtual DJ) et APIs Spotify/Deezer
+      const eligibleSuggs = (party.suggestions || []).filter(s => ['queued', 'next', 'pending'].includes(s.status));
+      let matchedSugg = null;
+      let matchType = null;
 
-      // 1. Chercher dans les suggestions récentes avec match strict (titre + artiste)
-      if (track.fromSuggestion || track.suggestionId || track.source === 'djBrain_suggestion') {
-        const matchedSugg = party.suggestions.find(s =>
-          (s.title || '').toLowerCase() === (track.title || '').toLowerCase() &&
-          (s.artist || '').toLowerCase() === (track.artist || '').toLowerCase() &&
-          ['queued', 'next', 'pending'].includes(s.status)
-        );
-        if (matchedSugg) {
-          requestedBy = { source: 'suggestion', guestName: matchedSugg.guestName || null, guestId: matchedSugg.guestId || null };
-          matchedSugg.status = 'played';
-          matchedSugg.playedAt = new Date().toISOString();
+      // Priorité 1 — Match ID absolu (suggestionId envoyé par iOS)
+      if (track.suggestionId) {
+        matchedSugg = eligibleSuggs.find(s => s._id === track.suggestionId || s.id === track.suggestionId);
+        if (matchedSugg) matchType = 'ID';
+      }
+
+      // Priorité 2 — Match ISRC certifié (identifiant international unique)
+      if (!matchedSugg && track.isrc) {
+        matchedSugg = eligibleSuggs.find(s => s.isrc && s.isrc === track.isrc);
+        if (matchedSugg) matchType = 'ISRC';
+      }
+
+      // Priorité 3 — Match souple normalisé (title + artist)
+      // Tolère "(Radio Edit)", "feat. X", casse, accents, ponctuation
+      if (!matchedSugg) {
+        const normT = normalizeForMatch(track.title);
+        const normA = normalizeForMatch(track.artist);
+        if (normT && normA) {
+          matchedSugg = eligibleSuggs.find(s => {
+            const sT = normalizeForMatch(s.title);
+            const sA = normalizeForMatch(s.artist);
+            if (!sT || !sA) return false;
+            const titleOK = (normT === sT || normT.includes(sT) || sT.includes(normT));
+            const artistOK = (normA === sA || normA.includes(sA) || sA.includes(normA));
+            return titleOK && artistOK;
+          });
+          if (matchedSugg) matchType = 'SOFT';
         }
       }
 
-      // 2. Fallback : recherche souple sur le titre + suggestedBy (cas DJBrain)
-      if (requestedBy.source === 'djbrain' && track.suggestedBy) {
-        const matchedSugg = party.suggestions.find(s =>
-          (s.title || '').toLowerCase() === (track.title || '').toLowerCase() &&
-          (s.guestName === track.suggestedBy) &&
-          ['queued', 'next', 'pending'].includes(s.status)
-        );
-        requestedBy = { source: 'suggestion', guestName: track.suggestedBy, guestId: matchedSugg?.guestId || null };
-        if (matchedSugg) {
-          matchedSugg.status = 'played';
-          matchedSugg.playedAt = new Date().toISOString();
+      // Priorité 4 — Fallback titre seul + suggestedBy (cas DJBrain avec metadata partielle)
+      if (!matchedSugg && track.suggestedBy) {
+        const normT = normalizeForMatch(track.title);
+        matchedSugg = eligibleSuggs.find(s => {
+          if (s.guestName !== track.suggestedBy) return false;
+          const sT = normalizeForMatch(s.title);
+          return normT && sT && (normT === sT || sT.includes(normT) || normT.includes(sT));
+        });
+        if (matchedSugg) matchType = 'TITLE+GUEST';
+      }
+
+      // Priorité 5 — Fallback titre seul (dernier recours, uniquement si track marquée comme provenant d'une suggestion)
+      if (!matchedSugg && (track.fromSuggestion || track.suggestionId || track.source === 'djBrain_suggestion')) {
+        const normT = normalizeForMatch(track.title);
+        if (normT) {
+          matchedSugg = eligibleSuggs.find(s => {
+            const sT = normalizeForMatch(s.title);
+            return sT && (normT === sT || sT.includes(normT) || normT.includes(sT));
+          });
+          if (matchedSugg) matchType = 'TITLE_ONLY';
         }
       }
 
-      // 3. Fallback : recherche très souple sur le titre seul si pas encore trouvé
-      if (requestedBy.source === 'djbrain') {
-        const softMatch = party.suggestions.find(s =>
-          (s.title || '').toLowerCase() === (track.title || '').toLowerCase() &&
-          ['queued', 'next', 'pending'].includes(s.status)
-        );
-        if (softMatch) {
-          requestedBy = { source: 'suggestion', guestName: softMatch.guestName || null, guestId: softMatch.guestId || null };
-          softMatch.status = 'played';
-          softMatch.playedAt = new Date().toISOString();
-        }
+      // Appliquer le match trouvé
+      if (matchedSugg) {
+        requestedBy = {
+          source: 'suggestion',
+          guestName: matchedSugg.guestName || null,
+          guestId: matchedSugg.guestId || null
+        };
+        matchedSugg.status = 'played';
+        matchedSugg.playedAt = new Date().toISOString();
+        console.log(`[${party.code}] 🎯 SmartMatch ${matchType}: "${track.title}" → suggestion de ${matchedSugg.guestName || '?'} (sugg="${matchedSugg.title}")`);
       }
 
       let historySource = track.source || 'dj_brain_auto';
