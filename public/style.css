@@ -365,25 +365,29 @@ html, body {
   background: linear-gradient(135deg, var(--phase-bg, rgba(139,92,246,0.15)) 0%, rgba(10,14,26,0.4) 100%);
   border: 1px solid var(--phase-color, rgba(139,92,246,0.4));
   border-radius: 18px;
-  padding: 16px 18px 20px;
+  padding: 18px 20px 22px;
   margin-bottom: 12px;
-  height: auto;
-  overflow: hidden;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   word-wrap: break-word;
   overflow-wrap: break-word;
   box-shadow: 0 4px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.06);
 }
-/* Icône emoji phase en watermark background — injectée via data-phase-icon attribute */
+/* Icône emoji phase en watermark background — injectée via data-phase-icon attribute.
+   Clippée au cadre via clip-path pour rester dans les coins arrondis sans overflow:hidden
+   (qui clippait aussi le texte narrative quand le parent contraint le height). */
 .phase-narrative::before {
   content: attr(data-phase-icon);
   position: absolute;
-  right: -14px;
-  bottom: -24px;
-  font-size: 96px;
-  opacity: 0.08;
+  right: 8px;
+  bottom: 8px;
+  font-size: 72px;
+  opacity: 0.10;
   pointer-events: none;
   transform: rotate(-15deg);
   line-height: 1;
+  z-index: 0;
 }
 .phase-narrative-header {
   display: flex;
