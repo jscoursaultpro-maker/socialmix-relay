@@ -644,7 +644,18 @@ function submitWelcomeBack() {
   state.guestLastName = saved.lastName;
   state.guestEmail = saved.email;
 
+  let ackReceived = false;
   const doEmit = () => {
+    console.log('[WelcomeBack] emit guest:requestJoin code=', state.partyCode, 'email=', saved.email);
+    // ★ Bug welcome-back safety — timeout 10s si serveur ne répond pas (évite loading infini)
+    const timeoutId = setTimeout(() => {
+      if (ackReceived) return;
+      ackReceived = true;
+      console.warn('[WelcomeBack] ⏱️ Timeout 10s — pas de réponse serveur');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<span>🎉</span> REJOINDRE'; }
+      showToast('⏱️ Serveur ne répond pas. Réessaie ou modifie tes infos.', 5000);
+      showOnboardingForm();
+    }, 10000);
     socket.emit('guest:requestJoin', {
       code: state.partyCode,
       email: saved.email,
@@ -652,23 +663,37 @@ function submitWelcomeBack() {
       lastName: saved.lastName,
       cguAccepted: true
     }, (res) => {
+      if (ackReceived) return; // timeout déjà firé
+      ackReceived = true;
+      clearTimeout(timeoutId);
+      console.log('[WelcomeBack] ack received:', res);
       if (!res || !res.ok) {
         // Erreur → fallback au form classique avec toast, l'user peut ajuster
         if (btn) { btn.disabled = false; btn.innerHTML = '<span>🎉</span> REJOINDRE'; }
         const code = res?.code || res?.error || 'UNKNOWN';
         const msg = code === 'RATE_LIMIT' ? '🛑 Trop de tentatives, réessaie dans 1 min'
-                  : (code === 'INVALID_CODE' || code === 'PARTY_NOT_FOUND') ? '❌ Code soirée invalide'
-                  : '❌ Reconnexion échouée, remplis à nouveau tes infos';
+                  : (code === 'INVALID_CODE' || code === 'PARTY_NOT_FOUND') ? '❌ Code soirée invalide ou introuvable'
+                  : `❌ ${res?.message || 'Reconnexion échouée, remplis à nouveau tes infos'}`;
         showToast(msg, 5000);
         if (code !== 'RATE_LIMIT') showOnboardingForm();
       }
-      // Succès → handlers socket (guest:approved / guest:waitingRoom) basculent d'écran
+      // Succès (res.ok=true) → handlers socket (guest:approved / guest:waitingRoom) basculent d'écran
     });
   };
 
   if (!socket || !socket.connected) {
+    console.log('[WelcomeBack] socket disconnected, reconnecting first...');
     connectToRelay();
+    // Timeout de sécurité pour éviter d'attendre indéfiniment un connect qui n'arrive pas
+    const connectTimeout = setTimeout(() => {
+      if (ackReceived) return;
+      ackReceived = true;
+      if (btn) { btn.disabled = false; btn.innerHTML = '<span>🎉</span> REJOINDRE'; }
+      showToast('⚠️ Impossible de se connecter au serveur. Vérifie ta connexion.', 5000);
+      showOnboardingForm();
+    }, 8000);
     const onConnect = () => {
+      clearTimeout(connectTimeout);
       socket.off('connect', onConnect);
       doEmit();
     };
