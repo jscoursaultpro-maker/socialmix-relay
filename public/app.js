@@ -650,14 +650,15 @@ async function signInWithProvider(provider) {
     return;
   }
   try {
-    // ★ Fix collision ?code= — le param "code" du party AhOuai entre en conflit avec le param
-    // "code" du callback OAuth Google/Apple. On stocke le party en sessionStorage et on redirige
-    // vers l'origine SANS le query "code".
+    // ★ Fix v33 — Passer partyCode via URL redirectTo (paramètre "party" pour éviter collision "code" OAuth).
+    // localStorage n'est pas fiable en Safari nav privée (peut être perdu entre redirects cross-domain).
     const partyCode = state.partyCode || new URL(window.location.href).searchParams.get('code');
     if (partyCode) {
       try { localStorage.setItem('ahouai_pending_party', partyCode.toUpperCase()); } catch(e) {}
     }
-    const redirectUrl = window.location.origin + window.location.pathname; // sans query
+    const redirectUrlObj = new URL(window.location.origin + window.location.pathname);
+    if (partyCode) redirectUrlObj.searchParams.set('party', partyCode.toUpperCase()); // param "party" (pas "code" pour éviter collision OAuth PKCE)
+    const redirectUrl = redirectUrlObj.toString();
     const { error } = await _supabaseClient.auth.signInWithOAuth({
       provider,
       options: { redirectTo: redirectUrl }
@@ -700,11 +701,15 @@ async function handleSupabaseSession(session) {
       saveC5Profile({ firstName, lastName, email, ssoProvider: session.user?.app_metadata?.provider });
     }
 
-    // ★ Fix collision ?code= — récupère party code depuis sessionStorage (stocké avant OAuth)
-    // en priorité, puis fallback state.partyCode ou query param "code" (mais ce dernier peut être
-    // le "code" OAuth au moment du retour, donc pas fiable).
+    // ★ Fix v33 — Récupère party code : priorité URL param "party" (fiable cross-domain redirects),
+    // puis localStorage (backup), puis state.partyCode.
     let codeToJoin = null;
-    try { codeToJoin = localStorage.getItem('ahouai_pending_party'); } catch(e) {}
+    try {
+      codeToJoin = new URL(window.location.href).searchParams.get('party');
+    } catch(e) {}
+    if (!codeToJoin) {
+      try { codeToJoin = localStorage.getItem('ahouai_pending_party'); } catch(e) {}
+    }
     if (codeToJoin) {
       try { localStorage.removeItem('ahouai_pending_party'); } catch(e) {}
     } else {
@@ -5155,6 +5160,11 @@ async function init() {
   if (params.name) state.guestName = params.name;
   if (params.emoji) state.guestEmoji = params.emoji;
   if (params.code) state.partyCode = params.code.toUpperCase();
+  // ★ Fix v33 SSO — support param "party" (utilisé au retour OAuth pour éviter collision avec "code" OAuth PKCE)
+  if (!params.code && params.party) {
+    params.code = params.party;
+    state.partyCode = params.party.toUpperCase();
+  }
   
   // Setup all screens (must run before pre-party early return so listeners are attached)
   setupConsent();
