@@ -699,35 +699,27 @@ async function handleSupabaseSession(session) {
     if (codeToJoin && firstName && email) {
       state.partyCode = codeToJoin.toUpperCase();
       showToast(`✅ Connecté ${firstName}, on te connecte à la soirée...`, 2500);
-      // ★ Fix — attendre que le socket soit connecté avant d'émettre guest:requestJoin
-      // (le welcome-back qui apparaissait n'était pas fiable — bouton REJOINDRE parfois inactif)
-      const tryEmit = () => {
-        if (typeof _emitRequestJoin === 'function' && socket && socket.connected) {
-          console.log('[SSO] Socket connecté, emit guest:requestJoin');
-          _emitRequestJoin(firstName, lastName, email);
-          return true;
-        }
-        return false;
-      };
-      if (!tryEmit()) {
-        console.log('[SSO] Socket pas encore connecté, attente...');
-        if (typeof connectToRelay === 'function' && (!socket || !socket.connected)) {
-          try { connectToRelay(); } catch(e) {}
-        }
-        // Poll toutes les 200ms pendant 8s max
-        let attempts = 0;
-        const maxAttempts = 40;
-        const pollInterval = setInterval(() => {
-          attempts++;
-          if (tryEmit()) {
-            clearInterval(pollInterval);
-          } else if (attempts >= maxAttempts) {
-            clearInterval(pollInterval);
-            console.warn('[SSO] Socket toujours pas connecté après 8s — fallback welcome-back');
-            if (typeof showOnboarding === 'function') showOnboarding(codeToJoin);
-          }
-        }, 200);
+      // ★ Fix v28 — Route via showOnboarding (déclenche welcome-back) + auto-submit dès socket prêt
+      // Rend l'écran welcome-back visible pendant que le socket se connecte, puis submit auto.
+      if (typeof showOnboarding === 'function') showOnboarding(codeToJoin);
+      // Init socket si pas encore lancé
+      if (typeof connectToRelay === 'function' && (!socket || !socket.connected)) {
+        try { connectToRelay(); } catch(e) {}
       }
+      // Poll auto-submit welcome-back dès que socket connecté
+      let attempts = 0;
+      const maxAttempts = 50; // 10s max
+      const pollInterval = setInterval(() => {
+        attempts++;
+        if (socket && socket.connected && typeof submitWelcomeBack === 'function') {
+          clearInterval(pollInterval);
+          console.log('[SSO] Socket connecté, auto-submit welcome-back');
+          submitWelcomeBack();
+        } else if (attempts >= maxAttempts) {
+          clearInterval(pollInterval);
+          console.warn('[SSO] Socket pas connecté après 10s — user devra cliquer REJOINDRE manuellement');
+        }
+      }, 200);
     } else {
       console.log('[SSO] Pas de code party, retour landing');
     }
