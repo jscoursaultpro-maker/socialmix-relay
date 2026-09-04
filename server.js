@@ -314,7 +314,21 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(join(__dirname, 'public')));
+// ★ Fix Bug I 04/09 — Safari agressif : disable ETag + lastModified sur les assets
+// dynamiques (html/js/css) qui font Safari revalider et parfois garder l'ancien état.
+// setHeaders ecrase les headers pour ces types de fichier (defense in depth avec middleware L308).
+app.use(express.static(join(__dirname, 'public'), {
+  maxAge: 0,
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 // ─── Admin SPA ──────────────────────────────────────────────────────
 // Servi depuis /relay-server/admin/ — auth gérée par le SPA via token
@@ -588,9 +602,18 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
       //   8 = joué dans la 8ème plus récente (malus faible côté iOS)
       //   >8 (999) = plus ancien que la fenêtre = fresh (pas de malus)
       const lastPartyIdStr = item.lastPartyId ? item.lastPartyId.toString() : null;
-      const partyStaleness = (lastPartyIdStr && partyIndexMap[lastPartyIdStr] !== undefined)
+      let partyStaleness = (lastPartyIdStr && partyIndexMap[lastPartyIdStr] !== undefined)
         ? partyIndexMap[lastPartyIdStr]
         : 999;
+      // ★ Fix Bug H 04/09 — Sécurité temporelle pour hosts power-users (>8 parties/semaine)
+      // Si track jouée < 14 jours mais hors fenêtre N=8 (car host teste bcp), forcer un
+      // partyStaleness proportionnel pour préserver le malus. Sinon Morgane jouée il y a 7j
+      // devient "fresh" (999) et DJBrain la reprend inlassablement (Bug Benjamin KJUY9G).
+      const STALENESS_TEMPORAL_FALLBACK_DAYS = 14;
+      if (partyStaleness === 999 && daysAgo < STALENESS_TEMPORAL_FALLBACK_DAYS) {
+        // Mapping linéaire : daysAgo=0 → staleness=1 (malus max), daysAgo=14 → staleness=8 (malus min)
+        partyStaleness = Math.max(1, Math.min(8, Math.round(1 + (daysAgo * 7 / STALENESS_TEMPORAL_FALLBACK_DAYS))));
+      }
 
       if (isV2) {
         // V2 payload: rich object per track
