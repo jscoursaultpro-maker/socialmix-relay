@@ -2818,12 +2818,31 @@ function authMiddleware(req, res, next) {
   return res.status(401).json({ error: 'Invalid or expired session token' });
 }
 
-// ─── Push Notification Stubs (Phase 2) ──────────────────────────────
-function notifyFriendRequest(targetUserId, fromName) {
-  console.log(`[Push] 📩 ${fromName} t'a ajouté en ami (target: ${targetUserId})`);
+// ─── Push Notifications amis (temps réel via socket rooms user:${userId}) ──────────
+// ★ Bug E-1 — Registre socket ↔ user via room "user:${userId}" (join manuel aux points d'entrée).
+// Helper: à appeler après socket.join(guest/host/pending) partout où on connait l'userId.
+function joinUserRoom(socket, userId) {
+  if (socket && userId) {
+    try { socket.join(`user:${userId}`); } catch(e) {}
+  }
 }
-function notifyFriendAccepted(requesterId, acceptedByName) {
-  console.log(`[Push] ✅ ${acceptedByName} a accepté ta demande (requester: ${requesterId})`);
+function notifyFriendRequest(targetUserId, fromName, fromEmoji, friendshipId) {
+  if (!targetUserId) return;
+  io.to(`user:${targetUserId}`).emit('friend:requestReceived', {
+    friendshipId: friendshipId || null,
+    fromName: fromName || 'Un invité',
+    fromEmoji: fromEmoji || '🎉'
+  });
+  console.log(`[Push] 📩 ${fromName} → user:${targetUserId} (friend:requestReceived)`);
+}
+function notifyFriendAccepted(requesterId, acceptedByName, acceptedByEmoji, friendshipId) {
+  if (!requesterId) return;
+  io.to(`user:${requesterId}`).emit('friend:requestAccepted', {
+    friendshipId: friendshipId || null,
+    acceptedByName: acceptedByName || 'Un invité',
+    acceptedByEmoji: acceptedByEmoji || '🎉'
+  });
+  console.log(`[Push] ✅ ${acceptedByName} → user:${requesterId} (friend:requestAccepted)`);
 }
 
 // ─── Friends API ────────────────────────────────────────────────────
@@ -2849,7 +2868,8 @@ app.post('/api/friends/request', authMiddleware, (req, res) => {
       existing.requestedBy = req.userId;
       existing.createdAt = new Date().toISOString();
       existing.acceptedAt = null;
-      notifyFriendRequest(targetUserId, req.guestName);
+      const reqProfileReact = findUserProfile(req.userId);
+      notifyFriendRequest(targetUserId, req.guestName, reqProfileReact?.emoji, existing._id);
       return res.json({ ok: true, friendship: existing, reactivated: true });
     }
     return res.status(409).json({ error: 'Friendship already exists', status: existing.status });
@@ -2869,7 +2889,8 @@ app.post('/api/friends/request', authMiddleware, (req, res) => {
   // Async persist to MongoDB if available
   Friendship.create(friendship).catch(() => {});
   
-  notifyFriendRequest(targetUserId, req.guestName);
+  const requesterProfile = findUserProfile(req.userId);
+  notifyFriendRequest(targetUserId, req.guestName, requesterProfile?.emoji, friendship._id);
   console.log(`👥 [Friends] ${req.guestName} → request → ${targetUserId}`);
   res.json({ ok: true, friendship });
 });
@@ -2897,7 +2918,8 @@ app.post('/api/friends/accept', authMiddleware, (req, res) => {
     { status: 'accepted', acceptedAt: friendship.acceptedAt }
   ).catch(() => {});
   
-  notifyFriendAccepted(friendship.requestedBy, req.guestName);
+  const accepterProfile = findUserProfile(req.userId);
+  notifyFriendAccepted(friendship.requestedBy, req.guestName, accepterProfile?.emoji, friendship._id);
   console.log(`👥 [Friends] ${req.guestName} accepted friendship ${friendshipId}`);
   res.json({ ok: true, friendship });
 });
@@ -4675,6 +4697,8 @@ io.on('connection', (socket) => {
     }
     socket.partyCode = code;
     socket.join(`guest:${code}`);
+    // ★ Bug E-1 — join user room pour socket push amis (userId défini plus bas dans "const guest = {..userId..}")
+    if (data.userId) joinUserRoom(socket, data.userId);
     cancelCleanup(code);
 
     // Generate session token for reconnection
@@ -4883,6 +4907,7 @@ io.on('connection', (socket) => {
       existingParticipant.connected = true;
       socket.partyCode = code;
       socket.join(`guest:${code}`);
+      joinUserRoom(socket, userIdStr); // ★ Bug E-1
       socket.emit('party:state', buildLightState(party));
       socket.emit('session:token', { sessionToken: existingParticipant.sessionToken || randomUUID(), partyCode: code, userId: userIdStr });
       console.log(`🔄 [${code}] guest:requestJoin — already approved, rebinding: ${firstName} (${userIdStr})`);
@@ -4910,6 +4935,7 @@ io.on('connection', (socket) => {
       party.isDirty = true;
       socket.partyCode = code;
       socket.join(`guest:${code}`);
+      joinUserRoom(socket, userIdStr); // ★ Bug E-1
       socket.emit('party:state', buildLightState(party));
       socket.emit('session:token', { sessionToken, partyCode: code, userId: userIdStr });
       io.to(`host:${code}`).emit('guest:joined', guest);
@@ -5004,6 +5030,7 @@ io.on('connection', (socket) => {
       if (guestSocket) {
         guestSocket.leave(`pending:${party.code}`);
         guestSocket.join(`guest:${party.code}`);
+        joinUserRoom(guestSocket, targetUserId); // ★ Bug E-1
         guestSocket.partyCode = party.code;
         guestSocket.emit('guest:approved', { partyState: buildLightState(party) });
         guestSocket.emit('session:token', { sessionToken, partyCode: party.code, userId: targetUserId });
@@ -5148,6 +5175,7 @@ io.on('connection', (socket) => {
     participant.connected = true;
     socket.partyCode = code;
     socket.join(`guest:${code}`);
+    if (participant.userId) joinUserRoom(socket, participant.userId); // ★ Bug E-1
     cancelCleanup(code);
 
     // Send full state
