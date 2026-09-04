@@ -1921,12 +1921,24 @@ function connectToRelay() {
 
   // ★ Bug E-5a — Notifications temps réel amis (toast clickable → ouvre sheet detail)
   socket.on('friend:requestReceived', (data) => {
-    console.log('[Friends] 📩 Demande reçue de', data?.fromName, 'userId=', data?.fromUserId);
+    console.log('[Friends] 📩 Demande reçue de', data?.fromName, 'userId=', data?.fromUserId, 'fid=', data?.friendshipId);
     const emoji = data?.fromEmoji || '👋';
     const name = data?.fromName || 'Un invité';
+    // ★ Fix race — pré-set state local IMMÉDIATEMENT (avant refresh async) pour que la sheet
+    // affiche les boutons Accepter/Refuser dès l'ouverture, sans attendre le round-trip serveur.
+    if (data?.fromUserId && data?.friendshipId) {
+      if (!state._friendStatuses) state._friendStatuses = {};
+      state._friendStatuses[data.fromUserId] = {
+        status: 'pending_received',
+        friendshipId: data.friendshipId,
+        fromName: name
+      };
+      if (typeof updateProfileBadge === 'function') updateProfileBadge();
+      if (typeof refreshTrombiBadges === 'function') refreshTrombiBadges();
+    }
     showFriendActionToast(`🔔 ${emoji} ${name} veut être ton ami — Répondre →`, data?.fromUserId, 6000);
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-    refreshFriendStatuses();
+    refreshFriendStatuses(); // refresh serveur en background (source de vérité)
   });
   socket.on('friend:requestAccepted', (data) => {
     console.log('[Friends] ✅ Demande acceptée par', data?.acceptedByName);
