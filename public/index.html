@@ -280,8 +280,8 @@
             <h2 class="screen-title">MON PROFIL</h2>
             <p class="screen-subtitle">Pour Le Crew et les contacts</p>
 
-            <!-- ★ Bug E-4 — CTA Mes amis (raccourci vers SOCIAL HUB pour voir demandes reçues) -->
-            <button id="profile-friends-cta" onclick="if(typeof showScreen==='function'){showScreen('hub'); setTimeout(()=>document.getElementById('trombi-grid')?.scrollIntoView({behavior:'smooth',block:'start'}),100);}" style="width:100%; padding:14px 16px; background:linear-gradient(135deg,rgba(0,224,196,0.12),rgba(0,210,255,0.08)); border:1px solid rgba(0,224,196,0.28); border-radius:14px; display:flex; align-items:center; gap:12px; cursor:pointer; margin:12px 0 6px; color:#fff;">
+            <!-- ★ Bug E-3b — CTA Mes amis (redirige vers écran centralisé Mes amis) -->
+            <button id="profile-friends-cta" onclick="if(typeof openMyFriendsScreen==='function') openMyFriendsScreen();" style="width:100%; padding:14px 16px; background:linear-gradient(135deg,rgba(0,224,196,0.12),rgba(0,210,255,0.08)); border:1px solid rgba(0,224,196,0.28); border-radius:14px; display:flex; align-items:center; gap:12px; cursor:pointer; margin:12px 0 6px; color:#fff;">
                 <span style="font-size:22px;">👥</span>
                 <div style="flex:1; text-align:left;">
                     <div style="font-size:13px; font-weight:900; color:#fff;">Mes amis</div>
@@ -388,6 +388,43 @@
                     <span>🎉</span> REJOINDRE
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- ═══ ★ Bug E-3b — SCREEN "MES AMIS" (centralisé cross-parties) ═══ -->
+    <div id="my-friends-screen" class="screen">
+        <div class="profile-container" style="max-width:520px; padding:20px 16px 40px;">
+            <button id="my-friends-back" class="back-btn" onclick="if(typeof showScreen==='function') showScreen(state.previousScreen==='profile'?'profile':'cockpit')">‹ RETOUR</button>
+            <h2 class="screen-title">👥 MES AMIS</h2>
+            <p class="screen-subtitle">Toutes tes relations, en un seul endroit</p>
+
+            <!-- Section demandes reçues -->
+            <div id="mf-pending-section" style="margin-top:20px; display:none;">
+                <div style="font-size:11px; font-weight:900; color:#ff3b30; letter-spacing:1.5px; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+                    <span>🔔</span> DEMANDES REÇUES <span id="mf-pending-count" style="background:#ff3b30; color:#fff; padding:2px 8px; border-radius:10px; font-size:10px;">0</span>
+                </div>
+                <div id="mf-pending-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+
+            <!-- Section amis acceptés -->
+            <div style="margin-top:24px;">
+                <div style="font-size:11px; font-weight:900; color:#00e0c4; letter-spacing:1.5px; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+                    <span>✅</span> MES AMIS <span id="mf-friends-count" style="background:rgba(0,224,196,0.2); color:#00e0c4; padding:2px 8px; border-radius:10px; font-size:10px;">0</span>
+                </div>
+                <div id="mf-friends-list" style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="text-align:center; padding:24px; color:rgba(255,255,255,0.35); font-size:12px; font-style:italic;">Tu n'as pas encore d'amis AhOuai</div>
+                </div>
+            </div>
+
+            <!-- Section demandes envoyées -->
+            <div id="mf-sent-section" style="margin-top:24px; display:none;">
+                <div style="font-size:11px; font-weight:900; color:#f59e0b; letter-spacing:1.5px; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+                    <span>⏳</span> DEMANDES ENVOYÉES <span id="mf-sent-count" style="background:rgba(245,158,11,0.2); color:#f59e0b; padding:2px 8px; border-radius:10px; font-size:10px;">0</span>
+                </div>
+                <div id="mf-sent-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+
+            <p style="text-align:center; margin-top:32px; font-size:11px; color:rgba(255,255,255,0.3);">Croise du monde en soirée pour agrandir ton crew 🎉</p>
         </div>
     </div>
 
@@ -926,6 +963,6 @@
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="app.js?v=20260904v21"></script>
+    <script src="app.js?v=20260904v23"></script>
 </body>
 </html>

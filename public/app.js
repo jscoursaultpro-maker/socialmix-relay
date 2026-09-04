@@ -142,17 +142,12 @@ function showFriendActionToast(message, targetUserId, duration = 6000) {
   toast.onclick = () => {
     toast.style.opacity = '0';
     toast.style.pointerEvents = 'none';
-    // Ouvrir SOCIAL HUB
-    if (typeof showScreen === 'function') showScreen('hub');
-    // Attendre le render trombi puis ouvrir la sheet detail de la personne
-    setTimeout(() => {
-      if (!targetUserId) return;
-      const users = window._trombiAllUsers || [];
-      const idx = users.findIndex(u => u.userId === targetUserId);
-      if (idx >= 0 && typeof showTrombiContact === 'function') {
-        showTrombiContact(idx);
-      }
-    }, 350);
+    // ★ Bug E-3b — Ouvrir directement l'écran centralisé Mes amis (fluide, dédié)
+    if (typeof openMyFriendsScreen === 'function') {
+      openMyFriendsScreen(targetUserId);
+    } else if (typeof showScreen === 'function') {
+      showScreen('hub'); // fallback si Mes amis non chargé
+    }
   };
   setTimeout(() => {
     toast.style.opacity = '0';
@@ -1462,7 +1457,13 @@ function enterCockpit() {
   $('hub-card-btn').addEventListener('click', () => showScreen('hub'));
   
   // Profile edit button → go to profile screen for editing
+  // ★ Bug E-3b — Raccourci intelligent : si pending>0, va direct sur Mes amis (économise 1 tap)
   $('edit-profile-btn').addEventListener('click', () => {
+    const pending = typeof countPendingReceived === 'function' ? countPendingReceived() : 0;
+    if (pending > 0 && typeof openMyFriendsScreen === 'function') {
+      openMyFriendsScreen();
+      return;
+    }
     state.editingFromCockpit = true;
     showScreen('profile');
     setupProfile();
@@ -3713,6 +3714,110 @@ function refreshFriendStatuses(cb) {
   }).catch(err => { console.warn('[Friends] refreshFriendStatuses fail:', err); cb && cb(); });
 }
 
+// ★ Bug E-3b — Écran centralisé "Mes amis" (cross-parties)
+function openMyFriendsScreen(highlightUserId) {
+  // Track previous screen pour le back button
+  state.previousScreen = (state.chantier5?.screen === 'profile' || document.getElementById('profile-screen')?.classList.contains('active')) ? 'profile' : 'cockpit';
+  if (typeof showScreen === 'function') showScreen('my-friends');
+  // Fetch data + render
+  const headers = { 'x-session-token': state.sessionToken };
+  if (!state.sessionToken) {
+    _renderMyFriends({friends:[], pending:[], sent:[]}, highlightUserId);
+    return;
+  }
+  Promise.all([
+    fetch('/api/friends/list', { headers }).then(r => r.json()).catch(() => ({friends:[]})),
+    fetch('/api/friends/pending', { headers }).then(r => r.json()).catch(() => ({pending:[]})),
+    fetch('/api/friends/sent', { headers }).then(r => r.json()).catch(() => ({sent:[]}))
+  ]).then(([l, p, s]) => {
+    _renderMyFriends({friends: l.friends || [], pending: p.pending || [], sent: s.sent || []}, highlightUserId);
+  }).catch(err => {
+    console.warn('[MyFriends] fetch fail:', err);
+    _renderMyFriends({friends:[], pending:[], sent:[]}, highlightUserId);
+  });
+}
+
+function _renderMyFriends(data, highlightUserId) {
+  const pending = data.pending || [];
+  const friends = data.friends || [];
+  const sent = data.sent || [];
+
+  // Section demandes reçues
+  const pendingSection = document.getElementById('mf-pending-section');
+  const pendingList = document.getElementById('mf-pending-list');
+  const pendingCount = document.getElementById('mf-pending-count');
+  if (pendingSection && pendingList && pendingCount) {
+    pendingCount.textContent = pending.length;
+    if (pending.length === 0) {
+      pendingSection.style.display = 'none';
+    } else {
+      pendingSection.style.display = 'block';
+      pendingList.innerHTML = pending.map(p => {
+        const name = escapeHtml(p.fromName || 'Un invité');
+        const emoji = p.fromEmoji || '🎉';
+        const highlight = highlightUserId && p.fromUserId === highlightUserId ? 'box-shadow:0 0 0 2px #ff3b30;' : '';
+        return `<div class="mf-card mf-card-pending" style="display:flex; align-items:center; gap:12px; padding:12px; background:linear-gradient(135deg,rgba(255,59,48,0.10),rgba(255,107,53,0.06)); border:1px solid rgba(255,59,48,0.30); border-radius:12px; ${highlight}">
+          <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;">${emoji}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:14px; font-weight:900; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</div>
+            <div style="font-size:10px; font-weight:600; color:rgba(255,255,255,0.5); margin-top:2px;">veut être ton ami</div>
+          </div>
+          <button onclick="acceptFriendRequest('${p._id}', '${name.replace(/'/g, "\\'")}')" style="padding:8px 12px; background:linear-gradient(135deg,#00e0c4,#00b8a9); border:none; border-radius:10px; font-size:11px; font-weight:900; color:#0a0e1a; cursor:pointer; flex-shrink:0;">✅</button>
+          <button onclick="declineFriendRequest('${p._id}', '${name.replace(/'/g, "\\'")}')" style="padding:8px 10px; background:rgba(255,59,48,0.12); border:1px solid rgba(255,59,48,0.4); border-radius:10px; font-size:11px; font-weight:900; color:#ff3b30; cursor:pointer; flex-shrink:0;">✕</button>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // Section amis acceptés
+  const friendsList = document.getElementById('mf-friends-list');
+  const friendsCount = document.getElementById('mf-friends-count');
+  if (friendsList && friendsCount) {
+    friendsCount.textContent = friends.length;
+    if (friends.length === 0) {
+      friendsList.innerHTML = '<div style="text-align:center; padding:24px; color:rgba(255,255,255,0.35); font-size:12px; font-style:italic;">Tu n\'as pas encore d\'amis AhOuai — croise du monde en soirée !</div>';
+    } else {
+      friendsList.innerHTML = friends.map(f => {
+        const name = escapeHtml(f.friendName || 'Ami');
+        const emoji = f.friendEmoji || '🎉';
+        const metAt = f.metAt ? `Rencontré à <b style="color:#00e0c4;">${escapeHtml(f.metAt)}</b>` : 'Ami AhOuai';
+        return `<div class="mf-card mf-card-friend" style="display:flex; align-items:center; gap:12px; padding:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px;">
+          <div style="width:42px; height:42px; border-radius:50%; background:rgba(0,224,196,0.12); border:2px solid rgba(0,224,196,0.35); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;">${emoji}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:14px; font-weight:900; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</div>
+            <div style="font-size:10px; font-weight:600; color:rgba(255,255,255,0.5); margin-top:2px;">${metAt}</div>
+          </div>
+          <span style="font-size:16px; color:#00e0c4;">✓</span>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // Section demandes envoyées
+  const sentSection = document.getElementById('mf-sent-section');
+  const sentList = document.getElementById('mf-sent-list');
+  const sentCount = document.getElementById('mf-sent-count');
+  if (sentSection && sentList && sentCount) {
+    sentCount.textContent = sent.length;
+    if (sent.length === 0) {
+      sentSection.style.display = 'none';
+    } else {
+      sentSection.style.display = 'block';
+      sentList.innerHTML = sent.map(s => {
+        const name = escapeHtml(s.targetName || 'Invité');
+        const emoji = s.targetEmoji || '🎉';
+        return `<div class="mf-card mf-card-sent" style="display:flex; align-items:center; gap:12px; padding:10px; background:rgba(255,255,255,0.02); border:1px dashed rgba(245,158,11,0.35); border-radius:12px; opacity:0.85;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(245,158,11,0.10); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">${emoji}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:800; color:rgba(255,255,255,0.85); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</div>
+            <div style="font-size:10px; font-weight:600; color:#f59e0b; margin-top:2px;">⏳ En attente de sa réponse</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
 // ★ Bug E-3a — Compter les demandes reçues non traitées
 function countPendingReceived() {
   const s = state._friendStatuses || {};
@@ -3762,9 +3867,12 @@ function acceptFriendRequest(friendshipId, fromName) {
       showToast(`✅ Tu es maintenant ami avec ${fromName || 'ce guest'}`, 3500);
       if (navigator.vibrate) navigator.vibrate([100, 30, 100]);
       refreshFriendStatuses();
-      // Fermer la sheet detail si ouverte
       const lb = $('trombi-lightbox');
       if (lb) lb.style.display = 'none';
+      // ★ Bug E-3b — Refresh écran Mes amis si actif
+      if (document.getElementById('my-friends-screen')?.classList.contains('active')) {
+        openMyFriendsScreen();
+      }
     } else {
       showToast(`❌ ${data.error || 'Erreur acceptation'}`, 3000);
     }
@@ -3787,6 +3895,10 @@ function declineFriendRequest(friendshipId, fromName) {
       refreshFriendStatuses();
       const lb = $('trombi-lightbox');
       if (lb) lb.style.display = 'none';
+      // ★ Bug E-3b — Refresh écran Mes amis si actif
+      if (document.getElementById('my-friends-screen')?.classList.contains('active')) {
+        openMyFriendsScreen();
+      }
     }
   })
   .catch(err => console.error('[Friends] Decline failed:', err));
