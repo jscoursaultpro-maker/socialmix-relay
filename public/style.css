@@ -1679,6 +1679,7 @@ html, body {
 .diapo-controls { display: flex; gap: 8px; }
 .diapo-ctrl-btn { background: rgba(255,255,255,0.15); border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 16px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: background 0.2s; }
 .diapo-ctrl-btn:active { background: rgba(255,255,255,0.3); }
+.diapo-back-btn { width: auto; padding: 0 16px; background: rgba(0, 224, 195, 0.15); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; font-size: 12px; font-weight: 700; color: #fff; letter-spacing: 0.5px; touch-action: manipulation; }
 
 /* Photo / slide container */
 .diapo-photo-container { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; cursor: pointer; }
