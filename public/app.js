@@ -636,14 +636,17 @@ async function signInWithProvider(provider) {
     return;
   }
   try {
-    // Preserve party code in URL param pour le retour post-OAuth
-    const currentUrl = new URL(window.location.href);
-    if (state.partyCode && !currentUrl.searchParams.get('code')) {
-      currentUrl.searchParams.set('code', state.partyCode);
+    // ★ Fix collision ?code= — le param "code" du party AhOuai entre en conflit avec le param
+    // "code" du callback OAuth Google/Apple. On stocke le party en sessionStorage et on redirige
+    // vers l'origine SANS le query "code".
+    const partyCode = state.partyCode || new URL(window.location.href).searchParams.get('code');
+    if (partyCode) {
+      try { sessionStorage.setItem('ahouai_pending_party', partyCode.toUpperCase()); } catch(e) {}
     }
+    const redirectUrl = window.location.origin + window.location.pathname; // sans query
     const { error } = await _supabaseClient.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: currentUrl.toString() }
+      options: { redirectTo: redirectUrl }
     });
     if (error) {
       console.error('[SSO] signIn error:', error);
@@ -683,8 +686,16 @@ async function handleSupabaseSession(session) {
       saveC5Profile({ firstName, lastName, email, ssoProvider: session.user?.app_metadata?.provider });
     }
 
-    // Auto-join la party si code présent
-    const codeToJoin = state.partyCode || new URL(window.location.href).searchParams.get('code');
+    // ★ Fix collision ?code= — récupère party code depuis sessionStorage (stocké avant OAuth)
+    // en priorité, puis fallback state.partyCode ou query param "code" (mais ce dernier peut être
+    // le "code" OAuth au moment du retour, donc pas fiable).
+    let codeToJoin = null;
+    try { codeToJoin = sessionStorage.getItem('ahouai_pending_party'); } catch(e) {}
+    if (codeToJoin) {
+      try { sessionStorage.removeItem('ahouai_pending_party'); } catch(e) {}
+    } else {
+      codeToJoin = state.partyCode || new URL(window.location.href).searchParams.get('code');
+    }
     if (codeToJoin && firstName && email) {
       state.partyCode = codeToJoin.toUpperCase();
       showToast(`✅ Connecté ${firstName}, on te connecte à la soirée...`, 2500);
