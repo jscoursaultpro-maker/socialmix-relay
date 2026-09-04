@@ -31,7 +31,7 @@
     <meta name="twitter:image" content="https://join.ahouai.com/favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260904v12">
+    <link rel="stylesheet" href="style.css?v=20260904v13">
 </head>
 <body>
 
@@ -179,7 +179,21 @@
                 </button>
             </form>
 
-            <p class="c5-footer">Pas besoin de télécharger · 100% navigateur</p>
+            <!-- ★ Bug N — Welcome Back (device connu, CGU déjà acceptée) -->
+            <div id="ob-welcome-back" style="display:none;">
+                <div class="c5-welcome-card">
+                    <div class="c5-welcome-emoji">👋</div>
+                    <h2 class="c5-welcome-title" id="wb-title">Salut !</h2>
+                    <p class="c5-welcome-subtitle" id="wb-subtitle">Prêt à rejoindre la soirée ?</p>
+                    <div class="c5-welcome-info" id="wb-info"></div>
+                    <button type="button" id="wb-join-btn" class="c5-btn" onclick="submitWelcomeBack()">
+                        <span>🎉</span> REJOINDRE
+                    </button>
+                    <a href="#" class="c5-welcome-edit" onclick="event.preventDefault(); showOnboardingForm();">Modifier mes infos</a>
+                </div>
+            </div>
+
+            <p class="c5-footer" id="ob-footer">Pas besoin de télécharger · 100% navigateur</p>
         </div>
     </div>
 
@@ -900,6 +914,6 @@
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="app.js?v=20260904v11"></script>
+    <script src="app.js?v=20260904v13"></script>
 </body>
 </html>

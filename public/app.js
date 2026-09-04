@@ -541,13 +541,22 @@ async function setupLanding(activeCode) {
 // ★ CHANTIER 5 — ONBOARDING + SALLE D'ATTENTE
 // ═══════════════════════════════════════════
 const C5_PROFILE_KEY = 'ahouai:guestProfile';
+// ★ Bug N — version CGU pour re-consent si évolution (miroir serveur CURRENT_CGU_VERSION)
+const C5_CURRENT_CGU_VERSION = '2026-08-01';
 
 function loadC5Profile() {
   try { return JSON.parse(localStorage.getItem(C5_PROFILE_KEY)) || null; } catch(e) { return null; }
 }
 
 function saveC5Profile(data) {
-  try { localStorage.setItem(C5_PROFILE_KEY, JSON.stringify(data)); } catch(e) {}
+  try {
+    const enriched = {
+      ...data,
+      cguAcceptedVersion: C5_CURRENT_CGU_VERSION,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(C5_PROFILE_KEY, JSON.stringify(enriched));
+  } catch(e) {}
 }
 
 // ── Show onboarding screen (called from init routing or landing CTA) ──
@@ -560,8 +569,20 @@ function showOnboarding(code) {
   const label = $('ob-party-label');
   if (label) label.textContent = code ? `REJOINDRE ${code}` : 'Rejoindre la soirée';
 
-  // Pre-fill from localStorage
+  // ★ Bug N — Welcome Back : si profile complet + CGU version courante → skip form
   const saved = loadC5Profile();
+  const emailValid = saved?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(saved.email);
+  const cguValid = saved?.cguAcceptedVersion === C5_CURRENT_CGU_VERSION;
+  const profileComplete = saved && (saved.firstName||'').trim().length >= 2 && (saved.lastName||'').trim().length >= 2 && emailValid;
+
+  if (profileComplete && cguValid) {
+    showWelcomeBack(saved, code);
+    showScreen('onboarding');
+    return;
+  }
+
+  // Fallback: form classique (comportement historique)
+  showOnboardingForm(); // ensure form visible if we're coming back from welcome-back
   if (saved) {
     if (saved.firstName && $('ob-firstname')) $('ob-firstname').value = saved.firstName;
     if (saved.lastName && $('ob-lastname')) $('ob-lastname').value = saved.lastName;
@@ -576,6 +597,85 @@ function showOnboarding(code) {
   // Recheck submit button state
   validateOnboardingForm();
   showScreen('onboarding');
+}
+
+// ★ Bug N — Welcome Back : afficher la card de reconnexion, masquer le form
+function showWelcomeBack(profile, code) {
+  const wb = $('ob-welcome-back');
+  const form = $('onboarding-form');
+  const footer = $('ob-footer');
+  if (!wb || !form) return;
+  const title = $('wb-title');
+  const subtitle = $('wb-subtitle');
+  const info = $('wb-info');
+  if (title)    title.textContent    = `Salut ${profile.firstName} !`;
+  if (subtitle) subtitle.textContent = code ? `Prêt à rejoindre la soirée ${code} ?` : 'Prêt à rejoindre la soirée ?';
+  if (info)     info.textContent     = `${profile.firstName} ${profile.lastName} · ${profile.email}`;
+  form.style.display = 'none';
+  if (footer) footer.style.display = 'none';
+  wb.style.display = 'block';
+  // Reset button state au cas où retour depuis un submit précédent
+  const btn = $('wb-join-btn');
+  if (btn) { btn.disabled = false; btn.innerHTML = '<span>🎉</span> REJOINDRE'; }
+}
+
+// ★ Bug N — Retour vers le form classique depuis le welcome-back
+function showOnboardingForm() {
+  const wb = $('ob-welcome-back');
+  const form = $('onboarding-form');
+  const footer = $('ob-footer');
+  if (!form) return;
+  if (wb) wb.style.display = 'none';
+  form.style.display = '';
+  if (footer) footer.style.display = '';
+}
+
+// ★ Bug N — Submit depuis le welcome-back (reuse guest:requestJoin, gestion erreur propre)
+function submitWelcomeBack() {
+  const saved = loadC5Profile();
+  if (!saved || !saved.firstName || !saved.lastName || !saved.email) {
+    showOnboardingForm();
+    return;
+  }
+  const btn = $('wb-join-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span>⏳</span> Connexion...'; }
+  state.chantier5.pendingInfo = { firstName: saved.firstName, lastName: saved.lastName, email: saved.email };
+  state.guestName = saved.firstName;
+  state.guestLastName = saved.lastName;
+  state.guestEmail = saved.email;
+
+  const doEmit = () => {
+    socket.emit('guest:requestJoin', {
+      code: state.partyCode,
+      email: saved.email,
+      firstName: saved.firstName,
+      lastName: saved.lastName,
+      cguAccepted: true
+    }, (res) => {
+      if (!res || !res.ok) {
+        // Erreur → fallback au form classique avec toast, l'user peut ajuster
+        if (btn) { btn.disabled = false; btn.innerHTML = '<span>🎉</span> REJOINDRE'; }
+        const code = res?.code || res?.error || 'UNKNOWN';
+        const msg = code === 'RATE_LIMIT' ? '🛑 Trop de tentatives, réessaie dans 1 min'
+                  : (code === 'INVALID_CODE' || code === 'PARTY_NOT_FOUND') ? '❌ Code soirée invalide'
+                  : '❌ Reconnexion échouée, remplis à nouveau tes infos';
+        showToast(msg, 5000);
+        if (code !== 'RATE_LIMIT') showOnboardingForm();
+      }
+      // Succès → handlers socket (guest:approved / guest:waitingRoom) basculent d'écran
+    });
+  };
+
+  if (!socket || !socket.connected) {
+    connectToRelay();
+    const onConnect = () => {
+      socket.off('connect', onConnect);
+      doEmit();
+    };
+    socket.on('connect', onConnect);
+  } else {
+    doEmit();
+  }
 }
 
 // ── Validate onboarding form → enable/disable submit ──

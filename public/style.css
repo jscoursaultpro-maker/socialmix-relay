@@ -2067,6 +2067,85 @@ html, body {
   z-index: 1;
 }
 
+/* ★ Bug N — Welcome Back Card (device connu, CGU déjà acceptée) */
+.c5-welcome-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 32px 24px 24px;
+  background: linear-gradient(135deg, rgba(0,224,195,0.08) 0%, rgba(30,58,138,0.06) 100%);
+  border: 1px solid rgba(0,224,195,0.22);
+  border-radius: 24px;
+  box-shadow: 0 8px 40px rgba(0,224,195,0.10), inset 0 1px 0 rgba(255,255,255,0.05);
+  animation: c5WelcomeIn 0.4s ease-out;
+  position: relative;
+  z-index: 1;
+}
+@keyframes c5WelcomeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.c5-welcome-emoji {
+  font-size: 64px;
+  line-height: 1;
+  animation: c5Wave 1.6s ease-in-out;
+  transform-origin: 70% 80%;
+}
+@keyframes c5Wave {
+  0%, 100% { transform: rotate(0deg); }
+  15%      { transform: rotate(-18deg); }
+  30%      { transform: rotate(14deg); }
+  45%      { transform: rotate(-12deg); }
+  60%      { transform: rotate(10deg); }
+}
+.c5-welcome-title {
+  font-size: 28px;
+  font-weight: 900;
+  color: #fff;
+  margin: 0;
+  text-align: center;
+  letter-spacing: -0.5px;
+}
+.c5-welcome-subtitle {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.7);
+  margin: 0;
+  text-align: center;
+  line-height: 1.4;
+}
+.c5-welcome-info {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+  letter-spacing: 0.2px;
+}
+.c5-welcome-card #wb-join-btn {
+  width: 100%;
+  margin-top: 4px;
+}
+.c5-welcome-edit {
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: 2px;
+  padding: 8px 12px;
+  transition: color 0.2s;
+}
+.c5-welcome-edit:hover,
+.c5-welcome-edit:active { color: rgba(255,255,255,0.85); }
+
 /* ── Waiting Room ────────────────────────────── */
 .c5-waiting-container { justify-content: center; min-height: 100vh; }
 
