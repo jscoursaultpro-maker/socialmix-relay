@@ -4966,13 +4966,18 @@ function shareCurrentTrack() {
     return;
   }
 
-  const shareURL = new URL('https://ahouai.com/track/share');
+  // ★ Fix Bug WhatsApp preview 03/09 : slug = deezerID numeric permet a opengraph-image.tsx
+  // de parser le deezerID (regex ^\d+$) et de fetcher la cover Deezer server-side.
+  // Fallback slug "share" si pas de deezerID (rare, tracks sans provider Deezer).
+  const slug = track.deezerID ? String(track.deezerID) : 'share';
+  const shareURL = new URL(`https://ahouai.com/track/${slug}`);
   shareURL.searchParams.set('title', track.title || '');
   shareURL.searchParams.set('artist', track.artist || '');
   if (track.deezerID) shareURL.searchParams.set('deezerID', String(track.deezerID));
   // Cover: try all possible field names (artworkURL from Shazam, albumArtworkURL from trackHistory, coverURL from suggestions, albumCoverURL from iOS)
-  const coverURL = track.artworkURL || track.albumArtworkURL || track.coverURL || track.albumCoverURL
-    || (track.deezerID ? `https://api.deezer.com/track/${track.deezerID}/image?size=big` : null);
+  // ★ Fix Bug cover 03/09 : PAS de fallback URL bidon /track/${id}/image (n'existe pas dans l'API Deezer).
+  // Si aucun cover explicite, la landing page fera le fetch Deezer JSON API pour recuperer album.cover_xl.
+  const coverURL = track.artworkURL || track.albumArtworkURL || track.coverURL || track.albumCoverURL || null;
   if (coverURL) shareURL.searchParams.set('cover', coverURL);
   // ★ Bug 1 fix — always pass deezerID for OG image fallback even if cover is present
   if (track.deezerID && !shareURL.searchParams.has('deezerID')) shareURL.searchParams.set('deezerID', String(track.deezerID));
