@@ -2994,6 +2994,25 @@ app.get('/api/friends/pending', authMiddleware, (req, res) => {
   res.json({ ok: true, pending: enriched });
 });
 
+// ★ Bug E-3a — GET /api/friends/sent — My outgoing (still pending) friend requests
+app.get('/api/friends/sent', authMiddleware, (req, res) => {
+  const sent = friendships.filter(f =>
+    f.requestedBy === req.userId && f.status === 'pending'
+  );
+  const enriched = sent.map(f => {
+    const targetUserId = f.userA === req.userId ? f.userB : f.userA;
+    const profile = findUserProfile(targetUserId);
+    return {
+      _id: f._id,
+      targetUserId,
+      targetName: profile?.name || 'Unknown',
+      targetEmoji: profile?.emoji || '🎉',
+      createdAt: f.createdAt
+    };
+  });
+  res.json({ ok: true, sent: enriched });
+});
+
 // DELETE /api/friends/:id — Remove a friendship
 app.delete('/api/friends/:id', authMiddleware, (req, res) => {
   const idx = friendships.findIndex(f => f._id === req.params.id);

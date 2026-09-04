@@ -1837,6 +1837,20 @@ function connectToRelay() {
     updateNextTrack(track);
   });
 
+  // ★ Bug E-5a — Notifications temps réel amis
+  socket.on('friend:requestReceived', (data) => {
+    console.log('[Friends] 📩 Demande reçue de', data?.fromName);
+    showToast(`🔔 ${data?.fromEmoji || '👋'} ${data?.fromName || 'Un invité'} veut être ton ami`, 4500);
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    refreshFriendStatuses();
+  });
+  socket.on('friend:requestAccepted', (data) => {
+    console.log('[Friends] ✅ Demande acceptée par', data?.acceptedByName);
+    showToast(`🎉 ${data?.acceptedByName || 'Un invité'} a accepté ta demande d'ami !`, 4500);
+    if (navigator.vibrate) navigator.vibrate([200]);
+    refreshFriendStatuses();
+  });
+
   // ★ Bug J — Patch artwork résolu server-side (fallback DB/Deezer pour tracks iOS Jukebox local)
   socket.on('track:artworkResolved', (data) => {
     if (!state.currentTrack || !data?.artworkURL) return;
@@ -3332,6 +3346,8 @@ function updateTrombinoscope(participants) {
   const key = participants.map(p => p.name).sort().join(',');
   if (state._lastTrombiKey === key) return;
   state._lastTrombiKey = key;
+  // ★ Bug E-3a — refresh statuts amis quand la liste change (nouveaux invités arrivent)
+  refreshFriendStatuses();
   
   state.participants = participants;
   const grid = $('trombi-grid');
@@ -3361,19 +3377,22 @@ function renderTrombi(grid, users) {
     const item = document.createElement('div');
     item.className = 'trombi-item';
     item.style.cursor = 'pointer';
+    item.setAttribute('data-idx', idx); // ★ Bug E-3a — anchor pour refreshTrombiBadges
     const bgColor = u.photo ? 'transparent' : `rgba(59, 130, 246, 0.3)`;
     const content = u.photo
       ? `<img src="${u.photo}" alt="${u.name}">`
       : u.emoji;
     const shortName = u.name.length > 6 ? u.name.substring(0, 6) + '…' : u.name;
     item.innerHTML = `
-      <div class="trombi-avatar" style="background: ${bgColor}">${content}</div>
+      <div class="trombi-avatar" style="background: ${bgColor}; position: relative;">${content}</div>
       <div class="trombi-name">${shortName}</div>
     `;
     // Contact lightbox on tap
     item.addEventListener('click', () => showTrombiContact(idx));
     grid.appendChild(item);
   });
+  // ★ Bug E-3a — poser les pastilles statut après render initial
+  setTimeout(() => refreshTrombiBadges(), 50);
   
   // "VOIR TOUS" button if more than MAX_VISIBLE
   if (remaining > 0) {
@@ -3476,22 +3495,44 @@ function showTrombiContact(idx) {
     vcardBtn.parentNode.insertBefore(friendBtn, vcardBtn.nextSibling);
   }
   
+  // ★ Bug E-3a — supprimer ancien bouton decline si présent (dynamique selon état)
+  const oldDecline = lb.querySelector('.trombi-decline-btn');
+  if (oldDecline) oldDecline.remove();
+
   if (u.isSelf || !u.userId) {
     friendBtn.style.display = 'none';
   } else {
     friendBtn.style.display = 'inline-block';
-    // Check existing friend status
-    const existingStatus = state._friendStatuses?.[u.userId];
-    if (existingStatus === 'pending') {
+    const rel = state._friendStatuses?.[u.userId];
+    const status = rel?.status;
+    if (status === 'pending_sent') {
       friendBtn.textContent = '⏳ DEMANDE ENVOYÉE';
       friendBtn.style.background = 'rgba(102,126,234,0.2)';
       friendBtn.style.color = '#667eea';
       friendBtn.onclick = null;
-    } else if (existingStatus === 'accepted') {
+    } else if (status === 'accepted') {
       friendBtn.textContent = '✅ AMIS';
       friendBtn.style.background = 'rgba(0,224,196,0.15)';
       friendBtn.style.color = '#00e0c4';
       friendBtn.onclick = null;
+    } else if (status === 'pending_received') {
+      // ★ Bug E-3a — 2 boutons Accepter + Refuser
+      friendBtn.textContent = '✅ ACCEPTER LA DEMANDE';
+      friendBtn.style.background = 'linear-gradient(135deg,#00e0c4,#00b8a9)';
+      friendBtn.style.color = '#0a0e1a';
+      friendBtn.onclick = (e) => {
+        e.stopPropagation();
+        acceptFriendRequest(rel.friendshipId, u.name);
+      };
+      const declineBtn = document.createElement('button');
+      declineBtn.className = 'trombi-decline-btn';
+      declineBtn.style.cssText = 'padding:8px 20px;background:rgba(255,59,48,0.12);border:1px solid rgba(255,59,48,0.3);border-radius:10px;font-size:11px;font-weight:800;color:#ff3b30;cursor:pointer;margin-top:6px;';
+      declineBtn.textContent = '✕ REFUSER';
+      declineBtn.onclick = (e) => {
+        e.stopPropagation();
+        declineFriendRequest(rel.friendshipId, u.name);
+      };
+      friendBtn.parentNode.insertBefore(declineBtn, friendBtn.nextSibling);
     } else {
       friendBtn.textContent = '👥 AJOUTER EN AMI';
       friendBtn.style.background = 'linear-gradient(135deg,#667eea,#764ba2)';
@@ -3514,8 +3555,8 @@ function showTrombiContact(idx) {
 function sendFriendRequest(targetUserId, targetName) {
   if (!state.sessionToken || !targetUserId) return;
   if (!state._friendStatuses) state._friendStatuses = {};
-  state._friendStatuses[targetUserId] = 'pending';
-  
+  state._friendStatuses[targetUserId] = { status: 'pending_sent' };
+
   fetch('/api/friends/request', {
     method: 'POST',
     headers: {
@@ -3528,12 +3569,131 @@ function sendFriendRequest(targetUserId, targetName) {
   .then(data => {
     if (data.ok) {
       console.log(`[Friends] ✅ Request sent to ${targetName}`);
+      if (data.friendship?._id) {
+        state._friendStatuses[targetUserId] = { status: 'pending_sent', friendshipId: data.friendship._id };
+      }
     } else {
       console.warn(`[Friends] ⚠️ ${data.error}`);
-      if (data.status === 'accepted') state._friendStatuses[targetUserId] = 'accepted';
+      if (data.status === 'accepted') state._friendStatuses[targetUserId] = { status: 'accepted' };
     }
+    refreshTrombiBadges();
   })
   .catch(err => console.error('[Friends] Request failed:', err));
+}
+
+// ★ Bug E-3a — Fetch statuts amis (list + pending reçues + sent envoyées) et remplit state._friendStatuses
+function refreshFriendStatuses(cb) {
+  if (!state.sessionToken) { cb && cb(); return; }
+  if (!state._friendStatuses) state._friendStatuses = {};
+  const headers = { 'x-session-token': state.sessionToken };
+  Promise.all([
+    fetch('/api/friends/list', { headers }).then(r => r.json()).catch(() => ({ friends: [] })),
+    fetch('/api/friends/pending', { headers }).then(r => r.json()).catch(() => ({ pending: [] })),
+    fetch('/api/friends/sent', { headers }).then(r => r.json()).catch(() => ({ sent: [] }))
+  ]).then(([listData, pendingData, sentData]) => {
+    state._friendStatuses = {};
+    // Accepted friends
+    (listData.friends || []).forEach(f => {
+      state._friendStatuses[f.friendUserId] = { status: 'accepted', friendshipId: f._id };
+    });
+    // Received (I'm the target, someone else asked)
+    (pendingData.pending || []).forEach(p => {
+      state._friendStatuses[p.fromUserId] = {
+        status: 'pending_received',
+        friendshipId: p._id,
+        fromName: p.fromName || null
+      };
+    });
+    // Sent (I asked, other side hasn't replied)
+    (sentData.sent || []).forEach(s => {
+      state._friendStatuses[s.targetUserId] = {
+        status: 'pending_sent',
+        friendshipId: s._id
+      };
+    });
+    refreshTrombiBadges();
+    if (typeof updateProfileBadge === 'function') updateProfileBadge();
+    cb && cb();
+  }).catch(err => { console.warn('[Friends] refreshFriendStatuses fail:', err); cb && cb(); });
+}
+
+// ★ Bug E-3a — Compter les demandes reçues non traitées
+function countPendingReceived() {
+  const s = state._friendStatuses || {};
+  return Object.values(s).filter(v => v?.status === 'pending_received').length;
+}
+
+// ★ Bug E-3a — Refresh badges pastilles sur trombi (re-render juste les pastilles sans réinit HTML)
+function refreshTrombiBadges() {
+  const users = window._trombiAllUsers || [];
+  users.forEach((u, idx) => {
+    if (!u.userId || u.isSelf) return;
+    const st = state._friendStatuses?.[u.userId]?.status;
+    const item = document.querySelector(`.trombi-item[data-idx="${idx}"]`);
+    if (!item) return;
+    let dot = item.querySelector('.trombi-status-dot');
+    if (!dot) {
+      dot = document.createElement('div');
+      dot.className = 'trombi-status-dot';
+      item.querySelector('.trombi-avatar')?.appendChild(dot);
+    }
+    if (st === 'pending_received') {
+      dot.style.cssText = 'position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:#ff3b30;border:2px solid #0a0e1a;box-shadow:0 0 8px rgba(255,59,48,0.5);';
+      dot.textContent = '';
+    } else if (st === 'accepted') {
+      dot.style.cssText = 'position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:#00e0c4;border:2px solid #0a0e1a;';
+      dot.textContent = '';
+    } else if (st === 'pending_sent') {
+      dot.style.cssText = 'position:absolute;top:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:#f59e0b;border:2px solid #0a0e1a;';
+      dot.textContent = '';
+    } else {
+      dot.remove();
+    }
+  });
+}
+
+// ★ Bug E-3a — Accepter une demande d'ami
+function acceptFriendRequest(friendshipId, fromName) {
+  if (!state.sessionToken || !friendshipId) return;
+  fetch('/api/friends/accept', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-session-token': state.sessionToken },
+    body: JSON.stringify({ friendshipId })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      showToast(`✅ Tu es maintenant ami avec ${fromName || 'ce guest'}`, 3500);
+      if (navigator.vibrate) navigator.vibrate([100, 30, 100]);
+      refreshFriendStatuses();
+      // Fermer la sheet detail si ouverte
+      const lb = $('trombi-lightbox');
+      if (lb) lb.style.display = 'none';
+    } else {
+      showToast(`❌ ${data.error || 'Erreur acceptation'}`, 3000);
+    }
+  })
+  .catch(err => { console.error('[Friends] Accept failed:', err); showToast('❌ Erreur réseau', 3000); });
+}
+
+// ★ Bug E-3a — Décliner une demande d'ami
+function declineFriendRequest(friendshipId, fromName) {
+  if (!state.sessionToken || !friendshipId) return;
+  fetch('/api/friends/decline', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-session-token': state.sessionToken },
+    body: JSON.stringify({ friendshipId })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      showToast(`Demande de ${fromName || 'ce guest'} déclinée`, 2500);
+      refreshFriendStatuses();
+      const lb = $('trombi-lightbox');
+      if (lb) lb.style.display = 'none';
+    }
+  })
+  .catch(err => console.error('[Friends] Decline failed:', err));
 }
 
 // Show all contacts in a full-screen overlay
