@@ -699,13 +699,34 @@ async function handleSupabaseSession(session) {
     if (codeToJoin && firstName && email) {
       state.partyCode = codeToJoin.toUpperCase();
       showToast(`✅ Connecté ${firstName}, on te connecte à la soirée...`, 2500);
-      // Utiliser le flow guest:requestJoin standard
-      if (typeof _emitRequestJoin === 'function' && socket && socket.connected) {
-        _emitRequestJoin(firstName, lastName, email);
-      } else {
-        // Fallback : recharger la page pour init socket puis auto-flow
-        console.log('[SSO] Socket pas connecté, showOnboarding pour trigger');
-        if (typeof showOnboarding === 'function') showOnboarding(codeToJoin);
+      // ★ Fix — attendre que le socket soit connecté avant d'émettre guest:requestJoin
+      // (le welcome-back qui apparaissait n'était pas fiable — bouton REJOINDRE parfois inactif)
+      const tryEmit = () => {
+        if (typeof _emitRequestJoin === 'function' && socket && socket.connected) {
+          console.log('[SSO] Socket connecté, emit guest:requestJoin');
+          _emitRequestJoin(firstName, lastName, email);
+          return true;
+        }
+        return false;
+      };
+      if (!tryEmit()) {
+        console.log('[SSO] Socket pas encore connecté, attente...');
+        if (typeof connectToRelay === 'function' && (!socket || !socket.connected)) {
+          try { connectToRelay(); } catch(e) {}
+        }
+        // Poll toutes les 200ms pendant 8s max
+        let attempts = 0;
+        const maxAttempts = 40;
+        const pollInterval = setInterval(() => {
+          attempts++;
+          if (tryEmit()) {
+            clearInterval(pollInterval);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            console.warn('[SSO] Socket toujours pas connecté après 8s — fallback welcome-back');
+            if (typeof showOnboarding === 'function') showOnboarding(codeToJoin);
+          }
+        }, 200);
       }
     } else {
       console.log('[SSO] Pas de code party, retour landing');
