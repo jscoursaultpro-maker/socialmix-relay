@@ -1837,6 +1837,27 @@ function connectToRelay() {
     updateNextTrack(track);
   });
 
+  // ★ Bug J — Patch artwork résolu server-side (fallback DB/Deezer pour tracks iOS Jukebox local)
+  socket.on('track:artworkResolved', (data) => {
+    if (!state.currentTrack || !data?.artworkURL) return;
+    const ctTitle = (state.currentTrack.title || '').toLowerCase().trim();
+    const ctArtist = (state.currentTrack.artist || '').toLowerCase().trim();
+    const dTitle = (data.title || '').toLowerCase().trim();
+    const dArtist = (data.artist || '').toLowerCase().trim();
+    if (ctTitle !== dTitle || ctArtist !== dArtist) return; // track changée entre-temps → ignore
+    state.currentTrack.artworkURL = data.artworkURL;
+    const artworkEl = $('np-artwork');
+    const vinylLabel = $('vinyl-label');
+    if (artworkEl) {
+      artworkEl.innerHTML = `<img src="${data.artworkURL}" style="width:100%;height:100%;object-fit:cover;">`;
+      artworkEl.style.display = 'block';
+    }
+    if (vinylLabel) {
+      vinylLabel.innerHTML = `<img src="${data.artworkURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    }
+    console.log('[Track] Artwork résolu → patch vinyl + np-artwork');
+  });
+
   socket.on('mode:change', (data) => {
     state.mode = data.mode;
     updateDJMode();

@@ -83,6 +83,58 @@ function fallbackHash(title, artist) {
 // Alias retro-compat : fallbackHashNew garde le meme comportement pour ne pas casser d'autres references
 const fallbackHashNew = fallbackHash;
 
+// ★ Bug J — Résolution artwork avec cascade DB → Deezer + cache in-memory (fire-and-forget côté callers)
+const _artworkCache = new Map(); // key: cacheKey, value: { url, ts }
+const _ARTWORK_TTL_MS = 60 * 60 * 1000; // 1h TTL
+
+async function resolveArtwork({ title, artist, isrc, deezerId }) {
+  if (!title || !artist) return null;
+  const cacheKey = isrc || fallbackHash(title, artist);
+  const cached = _artworkCache.get(cacheKey);
+  if (cached && (Date.now() - cached.ts) < _ARTWORK_TTL_MS) return cached.url;
+
+  try {
+    // Étape 1 — Track collection lookup (fallbackHash / isrc / deezerId)
+    const orConditions = [];
+    if (isrc) orConditions.push({ isrc });
+    if (deezerId) orConditions.push({ 'providers.deezer.trackId': String(deezerId) });
+    orConditions.push({ fallbackHash: fallbackHash(title, artist) });
+    const found = await Track.findOne({ $or: orConditions }).select('coverArtURL providers').lean();
+    let url = found?.coverArtURL || null;
+    // Fallback : construire depuis albumId Deezer si dispo
+    if (!url && found?.providers?.deezer?.albumId) {
+      url = `https://api.deezer.com/album/${found.providers.deezer.albumId}/image`;
+    }
+    if (url) {
+      _artworkCache.set(cacheKey, { url, ts: Date.now() });
+      return url;
+    }
+
+    // Étape 2 — Deezer public search (fallback pour tracks underground / iOS Jukebox local files)
+    const q = encodeURIComponent(`${artist} ${title}`);
+    const r = await fetch(`https://api.deezer.com/search/track?q=${q}&limit=1`);
+    if (r.ok) {
+      const data = await r.json();
+      const hit = data.data?.[0];
+      const foundUrl = hit?.album?.cover_xl || hit?.album?.cover_big || hit?.album?.cover_medium || null;
+      if (foundUrl) {
+        _artworkCache.set(cacheKey, { url: foundUrl, ts: Date.now() });
+        // Persist en BDD (fire-and-forget) pour éviter refetch future
+        Track.updateOne(
+          { fallbackHash: fallbackHash(title, artist) },
+          { $set: { coverArtURL: foundUrl } }
+        ).catch(() => {});
+        return foundUrl;
+      }
+    }
+  } catch (e) {
+    console.warn('[resolveArtwork] fail:', e.message);
+  }
+  // Negative cache pour éviter tempête de refetch sur track sans cover trouvable
+  _artworkCache.set(cacheKey, { url: null, ts: Date.now() });
+  return null;
+}
+
 // ─── Genre normalization — unifies editorial_seed + track_metadata genres ─
 const GENRE_MAP = {
   'Electro/Dance': 'Electro', 'Dance':    'Electro', 'Club':        'Electro',
@@ -4235,6 +4287,27 @@ io.on('connection', (socket) => {
     io.to(`guest:${party.code}`).emit('track:update', { ...stripSecret(track), requestedBy });
     console.log(`🎵 [${party.code}] Track: ${track?.title} — ${track?.artist} (by: ${requestedBy.guestName || 'DJ Brain'})`);
 
+    // ★ Bug J — Fire-and-forget résolution artwork si absent (tracks iOS Jukebox local, etc.)
+    const hasArtwork = !!(track?.artworkURL || track?.albumArtworkURL || track?.coverURL || track?.albumCoverURL);
+    if (track && !hasArtwork && track.title && track.artist) {
+      (async () => {
+        const url = await resolveArtwork({
+          title: track.title,
+          artist: track.artist,
+          isrc: track.isrc,
+          deezerId: track.deezerID || track.deezerId
+        });
+        if (url) {
+          io.to(`guest:${party.code}`).emit('track:artworkResolved', {
+            title: track.title,
+            artist: track.artist,
+            artworkURL: url
+          });
+          console.log(`[${party.code}] 🖼️ Artwork résolu pour "${track.title}" → ${url.substring(0, 60)}...`);
+        }
+      })();
+    }
+
     // ★ Task #17 (suite) : Si la track provient d'une suggestion, propager le status 'played' aux guests
     if (requestedBy && requestedBy.source === 'suggestion') {
       const updatedState = buildLightState(party);
@@ -4314,7 +4387,26 @@ io.on('connection', (socket) => {
     
     // Broadcast
     io.to(`guest:${party.code}`).emit('track:update', liveTrack);
-    
+
+    // ★ Bug J — Fire-and-forget résolution artwork si absent (tracks iOS Jukebox local)
+    if (isNewTrack && liveTrack.title && liveTrack.artist && !liveTrack.artworkURL) {
+      (async () => {
+        const url = await resolveArtwork({
+          title: liveTrack.title,
+          artist: liveTrack.artist,
+          isrc: liveTrack.isrc
+        });
+        if (url) {
+          io.to(`guest:${party.code}`).emit('track:artworkResolved', {
+            title: liveTrack.title,
+            artist: liveTrack.artist,
+            artworkURL: url
+          });
+          console.log(`[${party.code}] 🖼️ Artwork résolu (Shazam) pour "${liveTrack.title}"`);
+        }
+      })();
+    }
+
     // Emit the enriched history to guests (including votes)
     const trackVotes = {};
     for (const gId in party.guestVotes) {
