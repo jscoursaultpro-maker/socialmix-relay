@@ -1421,7 +1421,12 @@ function connectToRelay() {
       }
     }
     // ★ Phase 4A — update phase indicator widget
-    if (ps.currentPhase) updatePhaseIndicator(ps.currentPhase);
+    // ★ Fix Bug Benjamin D 04/09 — store currentPhase + phaseStartedAt pour narrative
+    if (ps.currentPhase) {
+      state.currentPhase = ps.currentPhase;
+      if (ps.phaseStartedAt) state.phaseStartedAt = ps.phaseStartedAt;
+      updatePhaseIndicator(ps.currentPhase);
+    }
     
     // ★ Fix Z3: merge party suggestions from server into state.suggestions
     // The server sends ALL party suggestions in party:state (buildLightState L2173).
@@ -2414,49 +2419,103 @@ const PHASES = [
   { key: 'closing',  icon: '🎉', label: 'Fin',       color: 'rgb(140,140,204)', bg: 'rgba(140,140,204,0.2)' },
 ];
 
+// ★ Fix Bug Benjamin D 04/09 — Phase Narrative (remplace timeline dramaturgie)
+// Doctrine phases DJBrain.swift L423-424 : arrival(40) → ambiance(40) → takeoff(30) → groove(70) → party(110) → closing (indefini, bidirectionnel)
+const PHASE_DURATIONS_MIN = {
+  arrival: 40,
+  ambiance: 40,
+  takeoff: 30,
+  groove: 70,
+  party: 110,
+  closing: null  // pas de compte à rebours en closing (bidirectionnalité party ⇄ closing)
+};
+const NEXT_PHASE_LABEL = {
+  arrival: 'Ambiance',
+  ambiance: 'Décollage',
+  takeoff: 'Groove',
+  groove: 'Fête',
+  party: 'Dernières danses',
+  closing: null
+};
+const PHASE_MESSAGES = {
+  arrival: [
+    { maxMin: 3,        text: "Bienvenue à la soirée ! 🎉 Suggère ton titre préféré au DJ (depuis Deezer, Spotify ou Apple Music), ou télécharge l'app AhOuai 📱" },
+    { maxMin: 10,       text: "Les premiers arrivent 🥂 Prends une photo pour immortaliser l'apéro, elle apparaîtra dans le diaporama !" },
+    { maxMin: Infinity, text: "L'apéro bat son plein. Envoie un petit message à chaud dans la soirée 💬" }
+  ],
+  ambiance: [
+    { maxMin: 5,        text: "Tout le monde est là ! 🔥 Vote sur les titres qui passent — BOF, TOP ou LE FEU" },
+    { maxMin: 15,       text: "L'ambiance monte. Envoie une demande d'amis à qui te fait vibrer 👥" },
+    { maxMin: Infinity, text: "Prépare-toi au décollage ✨ Suggère un titre — colle un lien Deezer / Spotify / Apple Music, ou tape un nom !" }
+  ],
+  takeoff: [
+    { maxMin: 5,        text: "Décollage imminent 🚀 Vote LE FEU 🔥 sur ton coup de cœur !" },
+    { maxMin: 15,       text: "La piste s'anime. Prends une photo de tes potes qui bougent 📸" },
+    { maxMin: Infinity, text: "On est bien lancés. Partage ton titre depuis Deezer, Spotify ou Apple Music, il rejoindra la file du DJ 🎵" }
+  ],
+  groove: [
+    { maxMin: 5,        text: "Groove installed 🎶 Tout le monde danse ! Envoie une réaction à chaud 💬" },
+    { maxMin: 15,       text: "L'énergie collective est là. Suggère un titre qui va tuer la piste — depuis Deezer, Spotify ou Apple Music ✨" },
+    { maxMin: Infinity, text: "Le groove monte 🎊 Prends une photo du moment magique !" }
+  ],
+  party: [
+    { maxMin: 10,       text: "🔥 C'est la fête ! Vote LE FEU sur les bangers !" },
+    { maxMin: 20,       text: "Les bangers s'enchaînent, tout le monde chante ! 📸 Prends une photo du chaos !" },
+    { maxMin: Infinity, text: "On atteint le pic 🎉 Envoie une demande d'amis à qui te fait vibrer" }
+  ],
+  closing: [
+    { maxMin: 10,       text: "Le tempo se pose 🌙 Fais-toi plaisir, suggère un titre de folie (Deezer / Spotify / Apple Music) — le DJ va essayer de le caser !" },
+    { maxMin: 30,       text: "On ralentit le rythme 🎵 Suggère ton titre magique pour finir en beauté. Une remontée d'énergie est encore possible 🔥" },
+    { maxMin: Infinity, text: "Encore un dernier titre à partager ? ✨ Envoie-le au DJ, ou télécharge l'app AhOuai pour retrouver la playlist + tes amis 📱" }
+  ]
+};
+
 function renderPhasePills() {
-  const container = $('phasePills');
-  if (!container) return;
-  container.innerHTML = PHASES.map(p => `
-    <div class="phase-pill" data-phase="${p.key}" style="--pill-color:${p.color};--pill-bg:${p.bg};">
-      <div class="phase-pill-circle">${p.icon}</div>
-      <div class="phase-pill-label">${p.label}</div>
-    </div>
-  `).join('');
+  // ★ Retiré Bug Benjamin D 04/09 — timeline dramaturgie remplacée par phase-narrative.
+  // Fonction gardée dormante pour retro-compat éventuelle (pas d'appel actif).
 }
 
-function updatePhaseIndicator(phase) { updatePhaseTimeline(phase); }
+function updatePhaseIndicator(phase) { updatePhaseNarrative(phase); }
+function updatePhaseTimeline(phase) { updatePhaseNarrative(phase); }  // Alias legacy
 
-function updatePhaseTimeline(phase) {
-  if (!phase) return;
-  const key = phase.toLowerCase();
-  const idx = PHASES.findIndex(p => p.key === key);
-  if (idx < 0) return;
+function updatePhaseNarrative(phase) {
+  const container = $('phaseNarrative');
+  if (!container) return;
+  const key = (phase || state.currentPhase || 'arrival').toLowerCase();
+  const messages = PHASE_MESSAGES[key] || PHASE_MESSAGES.arrival;
+  const label = (PHASES.find(p => p.key === key) || {}).label || key;
+  const color = (PHASES.find(p => p.key === key) || {}).color || 'rgb(139,92,246)';
 
-  // Update pills: past / active / future
-  document.querySelectorAll('.phase-pill').forEach((pill, i) => {
-    pill.classList.remove('active', 'past', 'future');
-    if (i < idx) pill.classList.add('past');
-    else if (i === idx) pill.classList.add('active');
-    else pill.classList.add('future');
-  });
+  // Calcul du minutesInPhase depuis phaseStartedAt (sinon 0 = début phase)
+  const startedMs = state.phaseStartedAt ? new Date(state.phaseStartedAt).getTime() : Date.now();
+  const minutesInPhase = Math.max(0, (Date.now() - startedMs) / 60000);
+  const msg = messages.find(m => minutesInPhase < m.maxMin) || messages[messages.length - 1];
 
-  // Progress line width
-  const progress = $('phaseProgress');
-  if (progress) {
-    const pct = idx === 0 ? 0 : (idx / (PHASES.length - 1)) * 100;
-    progress.style.width = `calc(${pct}%)`;
+  // Compte à rebours vers prochaine phase (sauf closing)
+  const durationMin = PHASE_DURATIONS_MIN[key];
+  const nextLabel = NEXT_PHASE_LABEL[key];
+  let countdownHtml = '';
+  if (durationMin && nextLabel) {
+    const remainingRaw = Math.max(0, durationMin - minutesInPhase);
+    const remainingMin = remainingRaw < 5 ? 5 : Math.round(remainingRaw / 5) * 5;
+    countdownHtml = `<div class="phase-narrative-countdown">→ ${nextLabel} dans ~${remainingMin} min</div>`;
   }
 
-  // Labels
-  const nameEl = $('phaseCurrentName');
-  const subEl = $('phaseCurrentSub');
-  if (nameEl) nameEl.textContent = PHASES[idx].label;
-  if (subEl) subEl.textContent = `phase ${idx + 1} sur ${PHASES.length}`;
+  container.innerHTML = `
+    <div class="phase-narrative-header">
+      <span class="phase-narrative-label" style="color:${color};">SOIRÉE EN COURS · ${label.toUpperCase()}</span>
+    </div>
+    <div class="phase-narrative-text">${msg.text}</div>
+    ${countdownHtml}
+  `;
 }
 
-// Init pills at boot
-renderPhasePills();
+// ★ Refresh compte à rebours toutes les 60s pour progression temporelle
+setInterval(() => {
+  if (currentScreen === 'cockpit') {
+    updatePhaseNarrative(state.currentPhase);
+  }
+}, 60000);
 
 function loadTrendingSuggestions() {
   const container = $('suggest-results');

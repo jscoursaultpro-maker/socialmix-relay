@@ -356,6 +356,41 @@ html, body {
   padding: 14px 16px;
   margin-bottom: 12px;
 }
+
+/* ★ Fix Bug Benjamin D 04/09 — Phase Narrative (remplace phase-timeline pour web guest) */
+.phase-narrative {
+  background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(236,72,153,0.06));
+  border: 0.5px solid rgba(139,92,246,0.25);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  min-height: 60px;
+}
+.phase-narrative-header {
+  margin-bottom: 8px;
+}
+.phase-narrative-label {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.phase-narrative-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.9);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.phase-narrative-countdown {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(139,92,246,0.85);
+  letter-spacing: 0.3px;
+  padding-top: 6px;
+  border-top: 0.5px dashed rgba(139,92,246,0.2);
+}
 .phase-timeline-header {
   margin-bottom: 4px;
 }
