@@ -4703,6 +4703,20 @@ io.on('connection', (socket) => {
   });
 
   // ═══════════════════════════════════════════════════════════════════
+  // ★ DEBUG 04/09 — Bug Benjamin fantôme "Demande refusée" alors que serveur approuve.
+  // Handler client-side debug logs (showDeniedScreen trace + window errors).
+  // À retirer une fois la root cause identifiée.
+  // ═══════════════════════════════════════════════════════════════════
+  socket.on('debug:client', (data) => {
+    try {
+      const preview = JSON.stringify(data).slice(0, 800);
+      console.log(`🐛 [DEBUG-CLIENT] socket=${socket.id} ${preview}`);
+    } catch (e) {
+      console.log(`🐛 [DEBUG-CLIENT] socket=${socket.id} (unserializable)`);
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
   // ★ CHANTIER 5 — GUEST REQUEST JOIN (salle d'attente)
   // ═══════════════════════════════════════════════════════════════════
 

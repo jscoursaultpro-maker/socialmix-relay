@@ -870,11 +870,70 @@ function spawnConfetti() {
 
 // ── Show denied screen ──
 function showDeniedScreen(reason) {
+  // ★ DEBUG 04/09 (Bug Benjamin fantôme) — trace qui appelle showDeniedScreen
+  // et push au serveur pour visibilité logs Render (Chrome iOS n'a pas de DevTools remote facile).
+  const stack = (new Error('showDeniedScreen trace')).stack || 'no-stack';
+  console.error('[C5-DEBUG] showDeniedScreen called', { reason, stack });
+  try {
+    if (window.socket && window.socket.emit) {
+      window.socket.emit('debug:client', {
+        event: 'showDeniedScreen',
+        reason: reason || null,
+        stack: String(stack).slice(0, 2000),
+        guestName: state.guestName || null,
+        partyCode: state.partyCode || null,
+        currentScreen: state.chantier5?.screen || null,
+        ua: navigator.userAgent,
+        timestamp: Date.now()
+      });
+    }
+  } catch (e) { /* silent */ }
+
   state.chantier5.screen = 'denied';
   if (state.chantier5.waitingTimer) clearTimeout(state.chantier5.waitingTimer);
   const reasonEl = $('dn-reason');
   if (reasonEl && reason) reasonEl.textContent = reason;
   showScreen('denied');
+}
+
+// ★ DEBUG 04/09 — Global error handlers pour capter les crashes silencieux
+// qui pourraient bloquer une transition vers cockpit et laisser un ancien state.
+if (!window._c5DebugGlobalHandlersInstalled) {
+  window._c5DebugGlobalHandlersInstalled = true;
+  window.addEventListener('error', (e) => {
+    console.error('[C5-DEBUG] window.error', e.message, e.filename, e.lineno);
+    try {
+      if (window.socket && window.socket.emit) {
+        window.socket.emit('debug:client', {
+          event: 'window.error',
+          message: e.message,
+          filename: e.filename,
+          lineno: e.lineno,
+          colno: e.colno,
+          stack: e.error?.stack || null,
+          guestName: state.guestName || null,
+          partyCode: state.partyCode || null,
+          ua: navigator.userAgent,
+          timestamp: Date.now()
+        });
+      }
+    } catch (_) { /* silent */ }
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error('[C5-DEBUG] unhandledrejection', e.reason);
+    try {
+      if (window.socket && window.socket.emit) {
+        window.socket.emit('debug:client', {
+          event: 'unhandledrejection',
+          reason: String(e.reason).slice(0, 500),
+          guestName: state.guestName || null,
+          partyCode: state.partyCode || null,
+          ua: navigator.userAgent,
+          timestamp: Date.now()
+        });
+      }
+    } catch (_) { /* silent */ }
+  });
 }
 
 // ── Setup denied screen ──
