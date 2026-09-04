@@ -426,6 +426,7 @@ html, body {
 .phase-narrative-countdown {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: 5px 14px;
   border-radius: 100px;
   background: var(--phase-bg, rgba(139,92,246,0.18));
@@ -438,6 +439,7 @@ html, body {
   z-index: 1;
   margin-left: 50%;
   transform: translateX(-50%);
+  white-space: nowrap;
 }
 @keyframes phase-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
