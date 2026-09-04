@@ -1117,6 +1117,15 @@ html, body {
 .stream-link.spotify { background: rgba(30,215,96,0.1); color: #1ed760; border: 1px solid rgba(30,215,96,0.12); }
 .stream-link.apple { background: rgba(252,88,103,0.1); color: #fc5867; border: 1px solid rgba(252,88,103,0.12); }
 .stream-link.deezer { background: rgba(153,76,255,0.1); color: #994cff; border: 1px solid rgba(153,76,255,0.12); }
+/* ★ Feature S — Bouton Partager (couleur brand turquoise) */
+.stream-link.share {
+  background: rgba(0,224,195,0.1);
+  color: #00e0c3;
+  border: 1px solid rgba(0,224,195,0.15);
+  font-family: inherit;
+  cursor: pointer;
+}
+.stream-link.share:hover { background: rgba(0,224,195,0.18); }
 .empty-state {
   font-size: 11px; color: var(--text-dim); text-align: center;
   padding: 24px; font-style: italic;

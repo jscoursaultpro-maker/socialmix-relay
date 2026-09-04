@@ -3216,6 +3216,7 @@ function updateHistory() {
           <a class="stream-link spotify" href="https://open.spotify.com/search/${query}" target="_blank">Spotify</a>
           <a class="stream-link apple" href="https://music.apple.com/search?term=${query}" target="_blank">Apple</a>
           <a class="stream-link deezer" href="https://www.deezer.com/search/${query}" target="_blank">Deezer</a>
+          <button type="button" class="stream-link share" onclick="shareHistoryTrack(${i})">🔗 Partager</button>
         </div>
       </div>
     `;
@@ -5206,29 +5207,22 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ─── Share Current Track (viral loop → ahouai.com/track/share) ──────
-function shareCurrentTrack() {
-  const track = state.currentTrack;
+// ─── Share Track (viral loop → ahouai.com/track/[slug]) ──────
+// ★ Feature S — factorisé pour reuse depuis historique (shareHistoryTrack) et cockpit (shareCurrentTrack)
+function _shareTrackData(track) {
   if (!track || !track.title) {
-    showToast('Aucun titre en cours de lecture', 2000);
+    showToast('Aucun titre à partager', 2000);
     return;
   }
-
-  // ★ Fix Bug WhatsApp preview 03/09 : slug = deezerID numeric permet a opengraph-image.tsx
-  // de parser le deezerID (regex ^\d+$) et de fetcher la cover Deezer server-side.
-  // Fallback slug "share" si pas de deezerID (rare, tracks sans provider Deezer).
+  // slug = deezerID numeric → landing peut fetch Deezer server-side (opengraph-image.tsx)
+  // Fallback slug "share" si pas de deezerID (tracks sans provider Deezer / iOS Jukebox local)
   const slug = track.deezerID ? String(track.deezerID) : 'share';
   const shareURL = new URL(`https://ahouai.com/track/${slug}`);
   shareURL.searchParams.set('title', track.title || '');
   shareURL.searchParams.set('artist', track.artist || '');
   if (track.deezerID) shareURL.searchParams.set('deezerID', String(track.deezerID));
-  // Cover: try all possible field names (artworkURL from Shazam, albumArtworkURL from trackHistory, coverURL from suggestions, albumCoverURL from iOS)
-  // ★ Fix Bug cover 03/09 : PAS de fallback URL bidon /track/${id}/image (n'existe pas dans l'API Deezer).
-  // Si aucun cover explicite, la landing page fera le fetch Deezer JSON API pour recuperer album.cover_xl.
   const coverURL = track.artworkURL || track.albumArtworkURL || track.coverURL || track.albumCoverURL || null;
   if (coverURL) shareURL.searchParams.set('cover', coverURL);
-  // ★ Bug 1 fix — always pass deezerID for OG image fallback even if cover is present
-  if (track.deezerID && !shareURL.searchParams.has('deezerID')) shareURL.searchParams.set('deezerID', String(track.deezerID));
   if (track.previewURL) shareURL.searchParams.set('preview', track.previewURL);
   if (track.appleMusicID) shareURL.searchParams.set('appleMusicID', track.appleMusicID);
   if (track.spotifyID) shareURL.searchParams.set('spotifyID', track.spotifyID);
@@ -5245,10 +5239,20 @@ function shareCurrentTrack() {
   } else if (navigator.clipboard) {
     navigator.clipboard.writeText(shareURL.toString()).then(() => {
       showToast('🔗 Lien copié !', 2000);
-    }).catch(() => {
-      showToast('Erreur lors de la copie', 2000);
-    });
+    }).catch(() => showToast('Erreur lors de la copie', 2000));
+  } else {
+    showToast('Partage indisponible sur ce navigateur', 2500);
   }
+}
+
+function shareCurrentTrack() {
+  _shareTrackData(state.currentTrack);
+}
+
+// ★ Feature S — Share depuis un item historique (appelé via onclick inline)
+function shareHistoryTrack(idx) {
+  const track = state.trackHistory?.[idx];
+  _shareTrackData(track);
 }
 
 // ─── Mes données inline (socket-based, no auth required) ────────────
