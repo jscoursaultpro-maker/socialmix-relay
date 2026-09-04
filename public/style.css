@@ -1730,16 +1730,20 @@ html, body {
    ═══════════════════════════════════════════════════════════ */
 
 /* Base screen */
+/* ★ Fix bug fantôme 04/09 — .c5-screen hérite maintenant .screen { display: none }
+   au lieu de forcer display: flex inconditionnel (bug : denied-screen visible en background sur Chrome).
+   Le display: flex est activé UNIQUEMENT via .screen.active (L63) quand un screen est actif.
+   Watch-outs Antigravity : align-items + justify-content CONSERVÉS pour centrage vertical intact. */
 .c5-screen {
   position: fixed;
   inset: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   background: linear-gradient(145deg, #0d0a1f 0%, #0a0e1a 50%, #0a1228 100%);
-  display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 0 0 env(safe-area-inset-bottom, 16px);
+  /* display: flex retiré — hérite .screen { display: none } (L55-56) */
 }
 
 /* Container */
