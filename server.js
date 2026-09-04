@@ -2887,7 +2887,7 @@ app.post('/api/friends/request', authMiddleware, (req, res) => {
   friendships.push(friendship);
   
   // Async persist to MongoDB if available
-  Friendship.create(friendship).catch(() => {});
+  Friendship.create(friendship).catch(err => console.error('[Friends] ❌ Friendship.create fail:', err.message, 'friendship:', friendship._id));
   
   const requesterProfile = findUserProfile(req.userId);
   notifyFriendRequest(targetUserId, req.guestName, requesterProfile?.emoji, friendship._id);
@@ -2916,7 +2916,7 @@ app.post('/api/friends/accept', authMiddleware, (req, res) => {
   Friendship.findOneAndUpdate(
     { userA: friendship.userA, userB: friendship.userB },
     { status: 'accepted', acceptedAt: friendship.acceptedAt }
-  ).catch(() => {});
+  ).catch(err => console.error('[Friends] ❌ accept persist fail:', err.message));
   
   const accepterProfile = findUserProfile(req.userId);
   notifyFriendAccepted(friendship.requestedBy, req.guestName, accepterProfile?.emoji, friendship._id);
@@ -2940,7 +2940,7 @@ app.post('/api/friends/decline', authMiddleware, (req, res) => {
   Friendship.findOneAndUpdate(
     { userA: friendship.userA, userB: friendship.userB },
     { status: 'declined' }
-  ).catch(() => {});
+  ).catch(err => console.error('[Friends] ❌ decline persist fail:', err.message));
   
   console.log(`👥 [Friends] ${req.guestName} declined friendship ${friendshipId}`);
   res.json({ ok: true });
@@ -4759,8 +4759,32 @@ io.on('connection', (socket) => {
       delete party.disconnectTimers[guestName];
     }
 
-    // ★ P0.4: Server-side userId — NEVER trust client-sent data.userId
-    const userId = socket.user?._id?.toString() || 'user_' + randomUUID().replace(/-/g, '').substring(0, 16);
+    // ★ Bug E-fix-3 — Toujours résoudre un vrai User Mongo (ObjectId) via email
+    // Retire fallback synthétique "user_XXX" qui cassait toutes les APIs sociales.
+    let userId;
+    try {
+      let userDoc = await User.findOne({ email: emailRaw.toLowerCase() }).select('_id').lean();
+      if (!userDoc) {
+        const created = await User.create({
+          email: emailRaw.toLowerCase(),
+          emailVerified: false,
+          profile: {
+            firstName: guestName || data.name || 'Guest',
+            lastName: data.lastName || '',
+            emoji: data.emoji || '🎉'
+          },
+          cguAcceptedVersion: data.consentVersion || '2026-08-01',
+          cguAcceptedAt: new Date()
+        });
+        userDoc = { _id: created._id };
+        console.log(`[${code}] 👤 User créé (legacy guest:join): ${emailRaw} → ${userDoc._id}`);
+      }
+      userId = userDoc._id.toString();
+    } catch (err) {
+      console.error(`[${code}] ❌ User.findOne/create fail on guest:join (${emailRaw}):`, err.message);
+      // Fallback ultra-defensive (ne devrait jamais arriver — email validé au dessus L4717)
+      userId = socket.user?._id?.toString() || 'user_' + randomUUID().replace(/-/g, '').substring(0, 16);
+    }
 
     const guest = {
       id: socket.id, userId, name: guestName, emoji: data.emoji || '🎉',
@@ -6751,6 +6775,31 @@ async function boot() {
   app.use(function onError(err, req, res, _next) { // eslint-disable-line no-unused-vars
     res.status(500).json({ error: 'Internal server error', sentryId: res.sentry || null });
   });
+
+  // ★ Bug E-fix-3 — Hydrate friendships in-memory depuis BDD au boot
+  // Sans ça, un restart Render perd toutes les demandes non archivées → système cassé
+  (async () => {
+    try {
+      const dbFriendships = await Friendship.find({}).lean();
+      dbFriendships.forEach(f => {
+        if (!friendships.find(x => x._id === f._id)) {
+          friendships.push({
+            _id: f._id,
+            userA: f.userA,
+            userB: f.userB,
+            status: f.status,
+            requestedBy: f.requestedBy,
+            metAt: f.metAt,
+            createdAt: f.createdAt?.toISOString?.() || f.createdAt,
+            acceptedAt: f.acceptedAt?.toISOString?.() || f.acceptedAt
+          });
+        }
+      });
+      console.log(`👥 [Friends] Hydrated ${dbFriendships.length} friendships from MongoDB`);
+    } catch (err) {
+      console.warn('[Friends] ⚠️ Hydrate friendships fail:', err.message);
+    }
+  })();
 
   // 4. Start HTTP server
   server.listen(PORT, '0.0.0.0', () => {
