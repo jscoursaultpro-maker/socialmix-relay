@@ -111,6 +111,22 @@ function showToast(message, duration = 3000) {
   setTimeout(() => { toast.style.opacity = '0'; }, duration);
 }
 
+// ★ Bug E-4 — Pastille compteur demandes reçues sur avatar cockpit (updateProfileBadge)
+function updateProfileBadge() {
+  const badge = document.getElementById('profile-pending-badge');
+  if (!badge) return;
+  const count = typeof countPendingReceived === 'function' ? countPendingReceived() : 0;
+  if (count > 0) {
+    badge.textContent = count > 9 ? '9+' : String(count);
+    badge.style.display = 'block';
+  } else {
+    badge.style.display = 'none';
+  }
+  // ★ Bug E-4 — Sync aussi un éventuel CTA "Mes amis" dans l'écran profile
+  const friendsCta = document.getElementById('profile-friends-cta-count');
+  if (friendsCta) friendsCta.textContent = count > 0 ? `(${count} demande${count > 1 ? 's' : ''})` : '';
+}
+
 // ★ Quick fix E-5a v2 — Toast clickable pour demande d'ami (tap → SOCIAL HUB + sheet detail)
 function showFriendActionToast(message, targetUserId, duration = 6000) {
   let toast = document.getElementById('friend-action-toast');
