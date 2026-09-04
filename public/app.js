@@ -875,8 +875,8 @@ function showDeniedScreen(reason) {
   const stack = (new Error('showDeniedScreen trace')).stack || 'no-stack';
   console.error('[C5-DEBUG] showDeniedScreen called', { reason, stack });
   try {
-    if (window.socket && window.socket.emit) {
-      window.socket.emit('debug:client', {
+    if (typeof socket !== 'undefined' && socket && socket.emit) {
+      socket.emit('debug:client', {
         event: 'showDeniedScreen',
         reason: reason || null,
         stack: String(stack).slice(0, 2000),
