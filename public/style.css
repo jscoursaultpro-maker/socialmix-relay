@@ -792,8 +792,8 @@ html, body {
   position: relative; overflow: hidden;
   background: linear-gradient(135deg, rgba(30,58,138,0.15), var(--surface), rgba(59,130,246,0.08));
   border: 1px solid rgba(59,130,246,0.15);
-  padding: 16px !important;
-  min-height: 110px;
+  padding: 18px !important;
+  min-height: 118px;
 }
 .now-playing::before {
   content: '';
@@ -882,9 +882,13 @@ html, body {
   font-size: 16px; font-weight: 900; color: var(--text-white);
   margin: 3px 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 220px;
+  max-width: 100%;
 }
-.np-artist { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.np-artist {
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
+}
 .np-meta { display: flex; gap: 6px; margin-top: 6px; }
 .np-badge {
   font-size: 9px; font-weight: 900; color: #3b82f6;
