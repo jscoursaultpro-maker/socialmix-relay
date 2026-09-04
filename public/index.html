@@ -151,7 +151,8 @@
                     <button type="button" id="ob-sso-apple" class="c5-btn" onclick="signInWithProvider('apple')" style="display:none; background:#000; color:#fff; border:1px solid rgba(255,255,255,0.15); padding:12px; align-items:center; justify-content:center; gap:10px;">
                         <span style="font-size:18px;">🍎</span> Continuer avec Apple
                     </button>
-                    <button type="button" id="ob-sso-google" class="c5-btn" onclick="signInWithProvider('google')" style="background:#fff; color:#1f1f1f; border:1px solid rgba(0,0,0,0.15); padding:12px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                    <!-- ★ SSO Google masqué temporairement — bug Safari nav privée "2 clics requis", à débugger demain avec Opus (task #58) -->
+                    <button type="button" id="ob-sso-google" class="c5-btn" onclick="signInWithProvider('google')" style="display:none; background:#fff; color:#1f1f1f; border:1px solid rgba(0,0,0,0.15); padding:12px; align-items:center; justify-content:center; gap:10px;">
                         <span style="font-size:16px;">🌐</span> Continuer avec Google
                     </button>
                 </div>
@@ -983,6 +984,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- ★ SSO web (task #33) — Supabase JS SDK pour Apple/Google OAuth -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
-    <script src="app.js?v=20260904v34"></script>
+    <script src="app.js?v=20260904v35"></script>
 </body>
 </html>
