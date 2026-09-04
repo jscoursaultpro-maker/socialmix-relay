@@ -2542,8 +2542,11 @@ function updatePhaseNarrative(phase) {
   if (!container) return;
   const key = (phase || state.currentPhase || 'arrival').toLowerCase();
   const messages = PHASE_MESSAGES[key] || PHASE_MESSAGES.arrival;
-  const label = (PHASES.find(p => p.key === key) || {}).label || key;
-  const color = (PHASES.find(p => p.key === key) || {}).color || 'rgb(139,92,246)';
+  const phaseData = PHASES.find(p => p.key === key) || {};
+  const label = phaseData.label || key;
+  const color = phaseData.color || 'rgb(139,92,246)';
+  const bg = phaseData.bg || 'rgba(139,92,246,0.18)';
+  const icon = phaseData.icon || '🎵';
 
   // Calcul du minutesInPhase depuis phaseStartedAt (sinon 0 = début phase)
   const startedMs = state.phaseStartedAt ? new Date(state.phaseStartedAt).getTime() : Date.now();
@@ -2560,9 +2563,15 @@ function updatePhaseNarrative(phase) {
     countdownHtml = `<div class="phase-narrative-countdown">→ ${nextLabel} dans ~${remainingMin} min</div>`;
   }
 
+  // ★ Fix Bug K 04/09 — Inject CSS variables + phase icon en watermark background
+  container.style.setProperty('--phase-color', color);
+  container.style.setProperty('--phase-bg', bg);
+  container.setAttribute('data-phase-icon', icon);
+
   container.innerHTML = `
     <div class="phase-narrative-header">
-      <span class="phase-narrative-label" style="color:${color};">SOIRÉE EN COURS · ${label.toUpperCase()}</span>
+      <span class="phase-narrative-dot"></span>
+      <span class="phase-narrative-label">SOIRÉE EN COURS · ${label.toUpperCase()}</span>
     </div>
     <div class="phase-narrative-text">${msg.text}</div>
     ${countdownHtml}

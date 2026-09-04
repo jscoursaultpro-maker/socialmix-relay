@@ -357,39 +357,85 @@ html, body {
   margin-bottom: 12px;
 }
 
-/* ★ Fix Bug Benjamin D 04/09 — Phase Narrative (remplace phase-timeline pour web guest) */
+/* ★ Fix Bug Benjamin D + K 04/09 — Phase Narrative Premium Card
+   Design : card immersive avec dégradé phase + icône watermark + typo mixte.
+   Variables CSS --phase-color / --phase-bg injectées via JS selon phase courante. */
 .phase-narrative {
-  background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(236,72,153,0.06));
-  border: 0.5px solid rgba(139,92,246,0.25);
-  border-radius: 16px;
-  padding: 14px 16px;
+  position: relative;
+  background: linear-gradient(135deg, var(--phase-bg, rgba(139,92,246,0.15)) 0%, rgba(10,14,26,0.4) 100%);
+  border: 1px solid var(--phase-color, rgba(139,92,246,0.4));
+  border-radius: 18px;
+  padding: 16px 18px;
   margin-bottom: 12px;
-  min-height: 60px;
+  min-height: 90px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+/* Icône emoji phase en watermark background — injectée via data-phase-icon attribute */
+.phase-narrative::before {
+  content: attr(data-phase-icon);
+  position: absolute;
+  right: -14px;
+  bottom: -24px;
+  font-size: 96px;
+  opacity: 0.08;
+  pointer-events: none;
+  transform: rotate(-15deg);
+  line-height: 1;
 }
 .phase-narrative-header {
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+.phase-narrative-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--phase-color, #8b5cf6);
+  box-shadow: 0 0 10px var(--phase-color, #8b5cf6);
+  animation: phase-pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
 }
 .phase-narrative-label {
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: 1.4px;
+  letter-spacing: 1.6px;
   text-transform: uppercase;
-  opacity: 0.85;
+  color: var(--phase-color, #a78bfa);
 }
 .phase-narrative-text {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  color: rgba(255,255,255,0.9);
-  line-height: 1.5;
-  margin-bottom: 8px;
+  color: rgba(255,255,255,0.95);
+  line-height: 1.55;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+  text-align: center;
 }
 .phase-narrative-countdown {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 100px;
+  background: var(--phase-bg, rgba(139,92,246,0.18));
+  border: 1px solid var(--phase-color, rgba(139,92,246,0.45));
   font-size: 11px;
   font-weight: 700;
-  color: rgba(139,92,246,0.85);
-  letter-spacing: 0.3px;
-  padding-top: 6px;
-  border-top: 0.5px dashed rgba(139,92,246,0.2);
+  color: var(--phase-color, #a78bfa);
+  letter-spacing: 0.4px;
+  position: relative;
+  z-index: 1;
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+@keyframes phase-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.85); }
 }
 .phase-timeline-header {
   margin-bottom: 4px;
