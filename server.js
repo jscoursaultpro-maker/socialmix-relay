@@ -446,6 +446,20 @@ app.get('/legal/:doc', (req, res) => {
   }
 });
 
+// ─── SSO Web — GET /api/config/supabase ────────────────────────────────
+// ★ SSO web — Expose URL + ANON_KEY publiques pour init SDK Supabase côté client.
+// Safe : ANON_KEY est publique par design (RLS policies enforce data access).
+// Utilisé par web guest pour "Continuer avec Apple/Google".
+app.get('/api/config/supabase', (req, res) => {
+  const url = process.env.SUPABASE_URL || null;
+  const anonKey = process.env.SUPABASE_ANON_KEY || null;
+  if (!url || !anonKey) {
+    return res.status(503).json({ error: 'SSO not configured', enabled: false });
+  }
+  res.set('Cache-Control', 'public, max-age=300'); // 5 min cache
+  res.json({ url, anonKey, enabled: true });
+});
+
 // ─── Supabase Auth — GET /api/me ────────────────────────────────────
 // Validates Bearer JWT from Authorization header, returns Mongo User doc.
 // Used by iOS app to bootstrap user profile after Supabase sign-in.

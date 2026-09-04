@@ -144,6 +144,23 @@
             </div>
 
             <!-- Form -->
+            <!-- ★ SSO web (task #33) — Apple + Google OAuth via Supabase -->
+            <div id="ob-sso-block" style="display:none; margin-bottom:16px;">
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <button type="button" id="ob-sso-apple" class="c5-btn" onclick="signInWithProvider('apple')" style="background:#000; color:#fff; border:1px solid rgba(255,255,255,0.15); padding:12px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                        <span style="font-size:18px;">🍎</span> Continuer avec Apple
+                    </button>
+                    <button type="button" id="ob-sso-google" class="c5-btn" onclick="signInWithProvider('google')" style="background:#fff; color:#1f1f1f; border:1px solid rgba(0,0,0,0.15); padding:12px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                        <span style="font-size:16px;">🌐</span> Continuer avec Google
+                    </button>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px; margin:16px 0 12px; opacity:0.5;">
+                    <div style="flex:1; height:1px; background:rgba(255,255,255,0.15);"></div>
+                    <span style="font-size:10px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,0.5);">OU PAR EMAIL</span>
+                    <div style="flex:1; height:1px; background:rgba(255,255,255,0.15);"></div>
+                </div>
+            </div>
+
             <form id="onboarding-form" class="c5-form" onsubmit="event.preventDefault(); submitOnboarding();">
                 <div class="c5-field-row">
                     <div class="c5-field">
@@ -963,6 +980,8 @@
     <!-- Socket.IO client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="app.js?v=20260904v23"></script>
+    <!-- ★ SSO web (task #33) — Supabase JS SDK pour Apple/Google OAuth -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+    <script src="app.js?v=20260904v24"></script>
 </body>
 </html>

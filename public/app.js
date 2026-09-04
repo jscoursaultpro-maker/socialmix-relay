@@ -582,6 +582,138 @@ async function setupLanding(activeCode) {
 }
 
 // ═══════════════════════════════════════════
+// ★ SSO WEB (task #33) — Supabase OAuth Apple + Google
+// ═══════════════════════════════════════════
+let _supabaseClient = null;
+let _sessionCallbackHandled = false;
+
+async function initSupabaseSSO() {
+  try {
+    if (typeof window.supabase === 'undefined') {
+      console.warn('[SSO] SDK Supabase non chargé (offline ?)');
+      return;
+    }
+    const res = await fetch('/api/config/supabase');
+    if (!res.ok) {
+      console.log('[SSO] Config non dispo (503) — SSO désactivé');
+      return;
+    }
+    const cfg = await res.json();
+    if (!cfg.enabled || !cfg.url || !cfg.anonKey) {
+      console.log('[SSO] Config incomplete — SSO désactivé');
+      return;
+    }
+    _supabaseClient = window.supabase.createClient(cfg.url, cfg.anonKey, {
+      auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
+    });
+    console.log('[SSO] Supabase client initialisé');
+
+    // Afficher les boutons SSO dans onboarding
+    const ssoBlock = document.getElementById('ob-sso-block');
+    if (ssoBlock) ssoBlock.style.display = 'block';
+
+    // Détecter session déjà présente (post-redirect OAuth) ou événement futur
+    const { data: { session } } = await _supabaseClient.auth.getSession();
+    if (session && !_sessionCallbackHandled) {
+      _sessionCallbackHandled = true;
+      handleSupabaseSession(session);
+    }
+    _supabaseClient.auth.onAuthStateChange((event, session) => {
+      console.log('[SSO] Auth event:', event);
+      if (event === 'SIGNED_IN' && session && !_sessionCallbackHandled) {
+        _sessionCallbackHandled = true;
+        handleSupabaseSession(session);
+      }
+    });
+  } catch (err) {
+    console.error('[SSO] initSupabaseSSO fail:', err);
+  }
+}
+
+async function signInWithProvider(provider) {
+  if (!_supabaseClient) {
+    showToast('SSO indisponible, utilise le formulaire', 3500);
+    return;
+  }
+  try {
+    // Preserve party code in URL param pour le retour post-OAuth
+    const currentUrl = new URL(window.location.href);
+    if (state.partyCode && !currentUrl.searchParams.get('code')) {
+      currentUrl.searchParams.set('code', state.partyCode);
+    }
+    const { error } = await _supabaseClient.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: currentUrl.toString() }
+    });
+    if (error) {
+      console.error('[SSO] signIn error:', error);
+      showToast(`❌ ${provider} : ${error.message}`, 4000);
+    }
+  } catch (err) {
+    console.error('[SSO] signInWithProvider fail:', err);
+    showToast('❌ Erreur SSO, réessaie', 3500);
+  }
+}
+
+async function handleSupabaseSession(session) {
+  try {
+    const jwt = session?.access_token;
+    if (!jwt) { console.warn('[SSO] Pas de JWT dans session'); return; }
+    console.log('[SSO] Session OK, fetch /api/me...');
+    const meRes = await fetch('/api/me', { headers: { Authorization: `Bearer ${jwt}` } });
+    if (!meRes.ok) {
+      console.warn('[SSO] /api/me refus:', meRes.status);
+      showToast('⚠️ Auth OK mais profil serveur inaccessible', 4000);
+      return;
+    }
+    const user = await meRes.json();
+    console.log('[SSO] User Mongo récupéré:', user.email, user.userId || user._id);
+
+    // Pré-remplir state
+    const firstName = user.profile?.firstName || user.firstName || session.user?.user_metadata?.given_name || '';
+    const lastName  = user.profile?.lastName  || user.lastName  || session.user?.user_metadata?.family_name || '';
+    const email     = user.email || session.user?.email || '';
+    state.guestName = firstName;
+    state.guestLastName = lastName;
+    state.guestEmail = email;
+    if (user.userId || user._id) state.userId = String(user.userId || user._id);
+
+    // Sauvegarder en localStorage pour welcome-back
+    if (typeof saveC5Profile === 'function') {
+      saveC5Profile({ firstName, lastName, email, ssoProvider: session.user?.app_metadata?.provider });
+    }
+
+    // Auto-join la party si code présent
+    const codeToJoin = state.partyCode || new URL(window.location.href).searchParams.get('code');
+    if (codeToJoin && firstName && email) {
+      state.partyCode = codeToJoin.toUpperCase();
+      showToast(`✅ Connecté ${firstName}, on te connecte à la soirée...`, 2500);
+      // Utiliser le flow guest:requestJoin standard
+      if (typeof _emitRequestJoin === 'function' && socket && socket.connected) {
+        _emitRequestJoin(firstName, lastName, email);
+      } else {
+        // Fallback : recharger la page pour init socket puis auto-flow
+        console.log('[SSO] Socket pas connecté, showOnboarding pour trigger');
+        if (typeof showOnboarding === 'function') showOnboarding(codeToJoin);
+      }
+    } else {
+      console.log('[SSO] Pas de code party, retour landing');
+    }
+  } catch (err) {
+    console.error('[SSO] handleSupabaseSession fail:', err);
+  }
+}
+
+// Init SSO au chargement de la page
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(initSupabaseSSO, 100));
+  } else {
+    setTimeout(initSupabaseSSO, 100);
+  }
+}
+
+// ═══════════════════════════════════════════
 // ★ CHANTIER 5 — ONBOARDING + SALLE D'ATTENTE
 // ═══════════════════════════════════════════
 const C5_PROFILE_KEY = 'ahouai:guestProfile';
