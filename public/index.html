@@ -147,7 +147,8 @@
             <!-- ★ SSO web (task #33) — Apple + Google OAuth via Supabase -->
             <div id="ob-sso-block" style="display:none; margin-bottom:16px;">
                 <div style="display:flex; flex-direction:column; gap:10px;">
-                    <button type="button" id="ob-sso-apple" class="c5-btn" onclick="signInWithProvider('apple')" style="background:#000; color:#fff; border:1px solid rgba(255,255,255,0.15); padding:12px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                    <!-- ★ SSO Apple masqué temporairement — bug "unable to exchange external code" à débugger lundi (Secret Key JWT à régénérer avec Services ID com.ahouai.web) -->
+                    <button type="button" id="ob-sso-apple" class="c5-btn" onclick="signInWithProvider('apple')" style="display:none; background:#000; color:#fff; border:1px solid rgba(255,255,255,0.15); padding:12px; align-items:center; justify-content:center; gap:10px;">
                         <span style="font-size:18px;">🍎</span> Continuer avec Apple
                     </button>
                     <button type="button" id="ob-sso-google" class="c5-btn" onclick="signInWithProvider('google')" style="background:#fff; color:#1f1f1f; border:1px solid rgba(0,0,0,0.15); padding:12px; display:flex; align-items:center; justify-content:center; gap:10px;">
@@ -982,6 +983,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- ★ SSO web (task #33) — Supabase JS SDK pour Apple/Google OAuth -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
-    <script src="app.js?v=20260904v28"></script>
+    <script src="app.js?v=20260904v30"></script>
 </body>
 </html>

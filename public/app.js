@@ -699,25 +699,24 @@ async function handleSupabaseSession(session) {
     if (codeToJoin && firstName && email) {
       state.partyCode = codeToJoin.toUpperCase();
       showToast(`✅ Connecté ${firstName}, on te connecte à la soirée...`, 2500);
-      // ★ Fix v28 — Route via showOnboarding (déclenche welcome-back) + auto-submit dès socket prêt
-      // Rend l'écran welcome-back visible pendant que le socket se connecte, puis submit auto.
+      // ★ Fix v29 (rollback) — Route showOnboarding (pré-remplit form OU affiche welcome-back)
+      // Puis attendre socket + emit directement _emitRequestJoin. Pas d'auto-submit qui boucle.
       if (typeof showOnboarding === 'function') showOnboarding(codeToJoin);
-      // Init socket si pas encore lancé
       if (typeof connectToRelay === 'function' && (!socket || !socket.connected)) {
         try { connectToRelay(); } catch(e) {}
       }
-      // Poll auto-submit welcome-back dès que socket connecté
+      // Poll unique: dès socket ready, emit guest:requestJoin. Une seule fois.
       let attempts = 0;
-      const maxAttempts = 50; // 10s max
+      const maxAttempts = 40; // 8s max
       const pollInterval = setInterval(() => {
         attempts++;
-        if (socket && socket.connected && typeof submitWelcomeBack === 'function') {
+        if (socket && socket.connected && typeof _emitRequestJoin === 'function') {
           clearInterval(pollInterval);
-          console.log('[SSO] Socket connecté, auto-submit welcome-back');
-          submitWelcomeBack();
+          console.log('[SSO] Socket ready, emit guest:requestJoin directement');
+          _emitRequestJoin(firstName, lastName, email);
         } else if (attempts >= maxAttempts) {
           clearInterval(pollInterval);
-          console.warn('[SSO] Socket pas connecté après 10s — user devra cliquer REJOINDRE manuellement');
+          console.warn('[SSO] Socket timeout — user peut cliquer REJOINDRE manuellement');
         }
       }, 200);
     } else {
