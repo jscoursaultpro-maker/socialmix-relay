@@ -2826,19 +2826,21 @@ function joinUserRoom(socket, userId) {
     try { socket.join(`user:${userId}`); } catch(e) {}
   }
 }
-function notifyFriendRequest(targetUserId, fromName, fromEmoji, friendshipId) {
+function notifyFriendRequest(targetUserId, fromName, fromEmoji, friendshipId, fromUserId) {
   if (!targetUserId) return;
   io.to(`user:${targetUserId}`).emit('friend:requestReceived', {
     friendshipId: friendshipId || null,
+    fromUserId: fromUserId || null,     // ★ quick fix toast clickable — permet nav directe
     fromName: fromName || 'Un invité',
     fromEmoji: fromEmoji || '🎉'
   });
   console.log(`[Push] 📩 ${fromName} → user:${targetUserId} (friend:requestReceived)`);
 }
-function notifyFriendAccepted(requesterId, acceptedByName, acceptedByEmoji, friendshipId) {
+function notifyFriendAccepted(requesterId, acceptedByName, acceptedByEmoji, friendshipId, acceptedByUserId) {
   if (!requesterId) return;
   io.to(`user:${requesterId}`).emit('friend:requestAccepted', {
     friendshipId: friendshipId || null,
+    acceptedByUserId: acceptedByUserId || null, // ★ quick fix toast clickable
     acceptedByName: acceptedByName || 'Un invité',
     acceptedByEmoji: acceptedByEmoji || '🎉'
   });
@@ -2869,7 +2871,7 @@ app.post('/api/friends/request', authMiddleware, (req, res) => {
       existing.createdAt = new Date().toISOString();
       existing.acceptedAt = null;
       const reqProfileReact = findUserProfile(req.userId);
-      notifyFriendRequest(targetUserId, req.guestName, reqProfileReact?.emoji, existing._id);
+      notifyFriendRequest(targetUserId, req.guestName, reqProfileReact?.emoji, existing._id, req.userId);
       return res.json({ ok: true, friendship: existing, reactivated: true });
     }
     return res.status(409).json({ error: 'Friendship already exists', status: existing.status });
@@ -2890,7 +2892,7 @@ app.post('/api/friends/request', authMiddleware, (req, res) => {
   Friendship.create(friendship).catch(err => console.error('[Friends] ❌ Friendship.create fail:', err.message, 'friendship:', friendship._id));
   
   const requesterProfile = findUserProfile(req.userId);
-  notifyFriendRequest(targetUserId, req.guestName, requesterProfile?.emoji, friendship._id);
+  notifyFriendRequest(targetUserId, req.guestName, requesterProfile?.emoji, friendship._id, req.userId);
   console.log(`👥 [Friends] ${req.guestName} → request → ${targetUserId}`);
   res.json({ ok: true, friendship });
 });
@@ -2919,7 +2921,7 @@ app.post('/api/friends/accept', authMiddleware, (req, res) => {
   ).catch(err => console.error('[Friends] ❌ accept persist fail:', err.message));
   
   const accepterProfile = findUserProfile(req.userId);
-  notifyFriendAccepted(friendship.requestedBy, req.guestName, accepterProfile?.emoji, friendship._id);
+  notifyFriendAccepted(friendship.requestedBy, req.guestName, accepterProfile?.emoji, friendship._id, req.userId);
   console.log(`👥 [Friends] ${req.guestName} accepted friendship ${friendshipId}`);
   res.json({ ok: true, friendship });
 });

@@ -111,6 +111,39 @@ function showToast(message, duration = 3000) {
   setTimeout(() => { toast.style.opacity = '0'; }, duration);
 }
 
+// ★ Quick fix E-5a v2 — Toast clickable pour demande d'ami (tap → SOCIAL HUB + sheet detail)
+function showFriendActionToast(message, targetUserId, duration = 6000) {
+  let toast = document.getElementById('friend-action-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'friend-action-toast';
+    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#ff3b30,#ff6b35);color:#fff;padding:12px 22px;border-radius:14px;font-size:13px;font-weight:800;z-index:99999;opacity:0;transition:opacity 0.3s;cursor:pointer;box-shadow:0 6px 24px rgba(255,59,48,0.35);max-width:90vw;text-align:center;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.style.opacity = '1';
+  toast.style.pointerEvents = 'auto';
+  toast.onclick = () => {
+    toast.style.opacity = '0';
+    toast.style.pointerEvents = 'none';
+    // Ouvrir SOCIAL HUB
+    if (typeof showScreen === 'function') showScreen('hub');
+    // Attendre le render trombi puis ouvrir la sheet detail de la personne
+    setTimeout(() => {
+      if (!targetUserId) return;
+      const users = window._trombiAllUsers || [];
+      const idx = users.findIndex(u => u.userId === targetUserId);
+      if (idx >= 0 && typeof showTrombiContact === 'function') {
+        showTrombiContact(idx);
+      }
+    }, 350);
+  };
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.pointerEvents = 'none';
+  }, duration);
+}
+
 function showSuggestionToast(message, status) {
   const colors = {
     pending: 'linear-gradient(135deg,#666,#888)',
@@ -1870,10 +1903,12 @@ function connectToRelay() {
     updateNextTrack(track);
   });
 
-  // ★ Bug E-5a — Notifications temps réel amis
+  // ★ Bug E-5a — Notifications temps réel amis (toast clickable → ouvre sheet detail)
   socket.on('friend:requestReceived', (data) => {
-    console.log('[Friends] 📩 Demande reçue de', data?.fromName);
-    showToast(`🔔 ${data?.fromEmoji || '👋'} ${data?.fromName || 'Un invité'} veut être ton ami`, 4500);
+    console.log('[Friends] 📩 Demande reçue de', data?.fromName, 'userId=', data?.fromUserId);
+    const emoji = data?.fromEmoji || '👋';
+    const name = data?.fromName || 'Un invité';
+    showFriendActionToast(`🔔 ${emoji} ${name} veut être ton ami — Répondre →`, data?.fromUserId, 6000);
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     refreshFriendStatuses();
   });
