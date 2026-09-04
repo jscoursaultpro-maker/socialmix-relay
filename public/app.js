@@ -2475,7 +2475,7 @@ const PHASES = [
   { key: 'takeoff',  icon: '⚡', label: 'Décollage', color: 'rgb(255,204,80)',  bg: 'rgba(255,204,80,0.2)'  },
   { key: 'groove',   icon: '🎵', label: 'Groove',    color: 'rgb(255,128,80)',  bg: 'rgba(255,128,80,0.2)'  },
   { key: 'party',    icon: '🔥', label: 'Fête',      color: 'rgb(255,80,140)',  bg: 'rgba(255,80,140,0.2)'  },
-  { key: 'closing',  icon: '🎉', label: 'Fin',       color: 'rgb(140,140,204)', bg: 'rgba(140,140,204,0.2)' },
+  { key: 'closing',  icon: '🎬', label: 'Memories',  color: 'rgb(140,140,204)', bg: 'rgba(140,140,204,0.2)' },
 ];
 
 // ★ Fix Bug Benjamin D 04/09 — Phase Narrative (remplace timeline dramaturgie)
@@ -2493,7 +2493,7 @@ const NEXT_PHASE_LABEL = {
   ambiance: 'Décollage',
   takeoff: 'Groove',
   groove: 'Fête',
-  party: 'Dernières danses',
+  party: 'Memories',
   closing: null
 };
 const PHASE_MESSAGES = {
@@ -2523,9 +2523,9 @@ const PHASE_MESSAGES = {
     { maxMin: Infinity, text: "On atteint le pic 🎉 Envoie une demande d'amis à qui te fait vibrer" }
   ],
   closing: [
-    { maxMin: 10,       text: "Le tempo se pose 🌙 Fais-toi plaisir, suggère un titre de folie (Deezer / Spotify / Apple Music) — le DJ va essayer de le caser !" },
-    { maxMin: 30,       text: "On ralentit le rythme 🎵 Suggère ton titre magique pour finir en beauté. Une remontée d'énergie est encore possible 🔥" },
-    { maxMin: Infinity, text: "Encore un dernier titre à partager ? ✨ Envoie-le au DJ, ou télécharge l'app AhOuai pour retrouver la playlist + tes amis 📱" }
+    { maxMin: 10,       text: "C'est l'heure des Memories 🎬 Balance le titre culte qui va marquer la soirée — le DJ Brain va tout donner pour le caser !" },
+    { maxMin: 30,       text: "Le moment se grave 🎞️ Suggère ton hymne, ton coup de cœur, ton titre culte — une remontée d'énergie est encore possible 🔥" },
+    { maxMin: Infinity, text: "Ce moment restera 📸 Ta dernière suggestion, ta dernière photo — puis retrouve la playlist + tes amis dans l'app AhOuai 📱" }
   ]
 };
 
