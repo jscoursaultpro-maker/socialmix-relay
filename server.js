@@ -4584,7 +4584,7 @@ io.on('connection', (socket) => {
             const newDoc = {
               title,
               artist,
-              genre: '',
+              genre: 'Unknown',
               fallbackHash: newHash,  // ★ Chantier normalize: insert au nouveau format
               source: 'shazam_dj_live',
               suggestable: false,
