@@ -3730,7 +3730,7 @@ io.on('connection', (socket) => {
       const hostIdx = restored.participants.findIndex(p => p.isHost);
       if (hostIdx >= 0) { restored.participants[hostIdx].id = socket.id; restored.participants[hostIdx].connected = true; }
       else {
-        restored.participants.unshift({ id: socket.id, name: hostName, emoji: hostEmoji, partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true });
+        restored.participants.unshift({ id: socket.id, name: hostName, emoji: hostEmoji, userId: socket.user?._id?.toString() || null, partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true });
       }
       parties.set(code, restored);
       socket.partyCode = code;
@@ -3888,7 +3888,7 @@ io.on('connection', (socket) => {
         existing.participants[hostIdx].connected = true;
       } else {
         existing.participants.unshift({
-          id: socket.id, name: hostName, emoji: hostEmoji,
+          id: socket.id, name: hostName, emoji: hostEmoji, userId: socket.user?._id?.toString() || null,
           photo: data.profile?.photo || null,
           phone: data.profile?.phone || '', email: data.profile?.email || '', instagram: data.profile?.instagram || '',
           partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true
@@ -3958,7 +3958,7 @@ io.on('connection', (socket) => {
             restoredParty.participants[hostIdx].connected = true;
           } else {
             restoredParty.participants.unshift({
-              id: socket.id, name: hostName, emoji: hostEmoji,
+              id: socket.id, name: hostName, emoji: hostEmoji, userId: socket.user?._id?.toString() || null,
               photo: data.profile?.photo || null,
               phone: data.profile?.phone || '', email: data.profile?.email || '', instagram: data.profile?.instagram || '',
               partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true
@@ -4028,7 +4028,7 @@ io.on('connection', (socket) => {
     
     // Build host participant
     party.participants.unshift({
-      id: socket.id, name: hostName, emoji: hostEmoji,
+      id: socket.id, name: hostName, emoji: hostEmoji, userId: socket.user?._id?.toString() || null,
       photo: data.profile?.photo || null,
       phone: data.profile?.phone || '', email: data.profile?.email || '', instagram: data.profile?.instagram || '',
       partyCode: code, joinedAt: new Date().toISOString(), isHost: true
