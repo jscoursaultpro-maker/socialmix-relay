@@ -2484,7 +2484,8 @@ function setupVoteButtons() {
     btn.parentNode.replaceChild(newBtn, btn);
     
     newBtn.addEventListener('click', () => {
-      if (state.currentVote) return; // Already voted
+      // ★ fix(bug-78): vote modifiable — switch-only (tap même bouton = no-op)
+      if (state.currentVote === type) return;
       state.currentVote = type;
       updateVoteButtons();
       
@@ -2497,13 +2498,16 @@ function setupVoteButtons() {
           trackTitle: state.currentTrack?.title || 'Titre en cours'
         };
         emitWithAck('guest:vote', voteData);
-        // Track own vote for engagement dashboard
-        state.allVotes.push(voteData);
+        // ★ fix(bug-78): replace previous vote for same track instead of push (avoid double-counting)
+        const existingIdx = state.allVotes.findIndex(v => v.trackTitle === voteData.trackTitle);
+        if (existingIdx >= 0) { state.allVotes[existingIdx] = voteData; }
+        else { state.allVotes.push(voteData); }
         updateEngagementFromVotes();
         populateMissions(); // refresh mission progress
       }
       
-      $('vote-status').textContent = '✅ Vote enregistré';
+      const statusText = state.currentVote ? '✅ Vote modifié' : '✅ Vote enregistré';
+      $('vote-status').textContent = statusText;
       setTimeout(() => { $('vote-status').textContent = ''; }, 3000);
     });
   });

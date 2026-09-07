@@ -4078,6 +4078,56 @@ io.on('connection', (socket) => {
     io.to(`guest:${code}`).emit('participants:update', party.participants);
   });
 
+  // ★ fix(bug-78): commitVotesForTrack — commit votes once at track:next (was: side effects on every vote)
+  // Called from host:trackUpdate (DJ App) and host:liveTrackDetected (DJ Live) when isNewTrack.
+  // Returns voteSnapshot { fireCount, likeCount, mehCount } for trackDoc construction.
+  function commitVotesForTrack(party, snapTitle) {
+    const voteSnapshot = { fireCount: 0, likeCount: 0, mehCount: 0 };
+    const trackEntry = party.trackHistory.find(t =>
+      (t.title || '').toLowerCase() === (snapTitle || '').toLowerCase()
+    );
+    const trackKey = trackEntry?.isrc || fallbackHash(snapTitle, trackEntry?.artist || '');
+
+    for (const gId in party.guestVotes) {
+      if (gId.startsWith('_')) continue; // skip metadata keys
+      const voteType = party.guestVotes[gId][snapTitle];
+      if (!voteType) continue;
+
+      // 1. Aggregate snapshot
+      if (voteType === 'fire') voteSnapshot.fireCount++;
+      else if (voteType === 'like') voteSnapshot.likeCount++;
+      else if (voteType === 'meh') voteSnapshot.mehCount++;
+
+      // 2. addPoints +10 per voter, once (last-write-wins = 1 vote per voter)
+      const guestName = party.guestVotes[gId]._guestName || (gId === 'host' ? 'DJ' : 'Guest');
+      addPoints(party, gId, guestName, 10, `vote ${voteType}: ${snapTitle}`);
+
+      // 3. Feed pendingRatings for HPH aggregation (1 entry per voter, not per change)
+      if (trackKey) {
+        if (!pendingRatings.has(party.code)) pendingRatings.set(party.code, new Map());
+        const partyPending = pendingRatings.get(party.code);
+        if (!partyPending.has(trackKey)) {
+          partyPending.set(trackKey, {
+            feu: 0, cool: 0, bof: 0,
+            isrc: trackEntry?.isrc, title: snapTitle,
+            artist: trackEntry?.artist || '', genre: party._dominantGenre || ''
+          });
+        }
+        const entry = partyPending.get(trackKey);
+        if (voteType === 'fire') entry.feu++;
+        else if (voteType === 'like') entry.cool++;
+        else if (voteType === 'meh') entry.bof++;
+      }
+    }
+
+    // 4. Broadcast leaderboard:update 1× at commit
+    io.to(`guest:${party.code}`).emit('leaderboard:update', party.leaderboard || []);
+    io.to(`host:${party.code}`).emit('leaderboard:update', party.leaderboard || []);
+
+    console.log(`🗳️ [${party.code}] commitVotesForTrack "${snapTitle}" → 🔥${voteSnapshot.fireCount} 👍${voteSnapshot.likeCount} 😒${voteSnapshot.mehCount}`);
+    return voteSnapshot;
+  }
+
   socket.on('host:trackUpdate', (track) => {
     const party = getMutableParty(socket); if (!party) return;
     party.currentTrack = track;
@@ -4207,17 +4257,9 @@ io.on('connection', (socket) => {
         requestedBy: track.requestedBy
       }));
 
-      // ★ A9-7 — Snapshot vote counts at the moment the track is archived
-      // guestVotes: { guestId: { trackTitle: 'fire'|'like'|'meh' } }
-      // Aggregate votes for the PREVIOUS current track (track.title = the one now being archived)
+      // ★ fix(bug-78): commit all votes for the track being archived (addPoints + pendingRatings + leaderboard)
       const snapTitle = (track.title || '').trim();
-      const voteSnapshot = { fireCount: 0, likeCount: 0, mehCount: 0 };
-      for (const gId in party.guestVotes) {
-        const voteType = party.guestVotes[gId][snapTitle];
-        if (voteType === 'fire') voteSnapshot.fireCount++;
-        else if (voteType === 'like') voteSnapshot.likeCount++;
-        else if (voteType === 'meh') voteSnapshot.mehCount++;
-      }
+      const voteSnapshot = commitVotesForTrack(party, snapTitle);
 
       // ★ B4 fix (SECURITY) — Canonical trackDoc whitelist — strips hostSecret + all internal fields.
       // Root cause: { ...track } spread included track.hostSecret (iOS auth field leaked into DB).
@@ -4501,14 +4543,9 @@ io.on('connection', (socket) => {
       // Append to trackHistory (at index 0)
       // ★ A9-6 — inject phase at push time (liveTrack from client has no phase field)
       // ★ A9-7 — snapshot vote counts for the liveTrack being archived
+      // ★ fix(bug-78): commit all votes for the liveTrack being archived
       const liveSnapTitle = (liveTrack.title || '').trim();
-      const liveVoteSnapshot = { fireCount: 0, likeCount: 0, mehCount: 0 };
-      for (const gId in party.guestVotes) {
-        const voteType = party.guestVotes[gId][liveSnapTitle];
-        if (voteType === 'fire') liveVoteSnapshot.fireCount++;
-        else if (voteType === 'like') liveVoteSnapshot.likeCount++;
-        else if (voteType === 'meh') liveVoteSnapshot.mehCount++;
-      }
+      const liveVoteSnapshot = commitVotesForTrack(party, liveSnapTitle);
       party.trackHistory = cappedUnshift(party.trackHistory, {
         ...liveTrack,
         phase: party.currentPhase || 'unknown',
@@ -5406,34 +5443,8 @@ io.on('connection', (socket) => {
     const safeData = { ...data, guestId }; // override client guestId
     io.to(`host:${party.code}`).emit('guest:voted', safeData);
     io.to(`guest:${party.code}`).emit('guest:voted', safeData);
-    if (guestId) addPoints(party, guestId, data.guestName || 'Guest', 10, `vote ${data.type}`);
-    
-    // ★ Bug 7 fix — persist vote counters directly in trackHistory
-    if (data.trackTitle) {
-      const voted = party.trackHistory.find(t =>
-        (t.title || '').toLowerCase() === (data.trackTitle || '').toLowerCase()
-      );
-      if (voted) {
-        if (data.type === 'fire') voted.votesFeu = (voted.votesFeu || 0) + 1;
-        else if (data.type === 'like') voted.votesTop = (voted.votesTop || 0) + 1;
-        else if (data.type === 'meh')  voted.votesBof  = (voted.votesBof  || 0) + 1;
-        party.isDirty = true;  // déclenche flush MongoDB
-      }
-    }
-
-    // ★ Phase 3 — Queue rating for debounced aggregation
-    if (data.type && data.trackTitle) {
-      const trackKey = data.isrc || fallbackHash(data.trackTitle, data.trackArtist || '');
-      if (!pendingRatings.has(party.code)) pendingRatings.set(party.code, new Map());
-      const partyPending = pendingRatings.get(party.code);
-      if (!partyPending.has(trackKey)) {
-        partyPending.set(trackKey, { feu: 0, cool: 0, bof: 0, isrc: data.isrc, title: data.trackTitle, artist: data.trackArtist, genre: party._dominantGenre || '' });
-      }
-      const entry = partyPending.get(trackKey);
-      if (data.type === 'fire') entry.feu++;
-      else if (data.type === 'like') entry.cool++;
-      else if (data.type === 'meh') entry.bof++;
-    }
+    // ★ fix(bug-78): vote modifiable — addPoints, trackHistory counters, pendingRatings
+    // are now deferred to commitVotesForTrack() at track:next. Only storage + broadcast here.
     cb({ ok: true, eventId: data.eventId });
     logEvent({ partyCode: party.code, eventType: 'vote', eventId: data.eventId, guestId, decision: 'accepted' });
   });
@@ -6530,42 +6541,11 @@ io.on('connection', (socket) => {
     io.to(`guest:${party.code}`).emit('vote:received', voteData);
     if (!party.guestVotes['host']) party.guestVotes['host'] = {};
     party.guestVotes['host'][trackTitle] = data.type;
-    addPoints(party, 'host', data.guestName || 'DJ', 10, `vote ${data.type}`);
+    // ★ fix(bug-78): vote modifiable — addPoints, trackHistory counters, pendingRatings
+    // are now deferred to commitVotesForTrack() at track:next. Only storage + broadcast here.
     const vibeMap = { meh: -1, like: 1, fire: 3 };
     party.vibeScore = Math.max(0, party.vibeScore + (vibeMap[data.type] || 0));
     io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: party.genreVotes, vibeScore: party.vibeScore });
-    
-    // ★ Bug 7 fix — persist host vote counters in trackHistory
-    if (trackTitle) {
-      const voted = party.trackHistory.find(t =>
-        (t.title || '').toLowerCase() === (trackTitle || '').toLowerCase()
-      );
-      if (voted) {
-        if (data.type === 'fire') voted.votesFeu = (voted.votesFeu || 0) + 1;
-        else if (data.type === 'like') voted.votesTop = (voted.votesTop || 0) + 1;
-        else if (data.type === 'meh')  voted.votesBof  = (voted.votesBof  || 0) + 1;
-        party.isDirty = true;  // déclenche flush MongoDB
-      }
-    }
-
-    // ★ fix(Chantier1-bis 20/08): feed host votes into pendingRatings for real-time flush
-    // (previously only reconcileAllVotes cron 1h picked them up — host-is-guest doctrine)
-    if (data.type && trackTitle) {
-      const trackEntry = party.trackHistory.find(t =>
-        (t.title || '').toLowerCase() === (trackTitle || '').toLowerCase()
-      );
-      // ★ Chantier normalize: cle RAM pour agregation pendingRatings, utilise le nouveau format
-      const trackKey = trackEntry?.isrc || fallbackHashNew(trackTitle, trackEntry?.artist || data.guestName || '');
-      if (!pendingRatings.has(party.code)) pendingRatings.set(party.code, new Map());
-      const partyPending = pendingRatings.get(party.code);
-      if (!partyPending.has(trackKey)) {
-        partyPending.set(trackKey, { feu: 0, cool: 0, bof: 0, isrc: trackEntry?.isrc, title: trackTitle, artist: trackEntry?.artist || '', genre: party._dominantGenre || '' });
-      }
-      const entry = partyPending.get(trackKey);
-      if (data.type === 'fire') entry.feu++;
-      else if (data.type === 'like') entry.cool++;
-      else if (data.type === 'meh') entry.bof++;
-    }
   });
 
   // ═══════════════════════════════════════════════════════════════════
