@@ -4255,7 +4255,11 @@ io.on('connection', (socket) => {
       };
 
       party.trackHistory = cappedUnshift(party.trackHistory, trackDoc, 500);
-      addPoints(party, 'host', 'DJ', 15, 'nouveau titre : ' + track.title);
+      // ★ fix(bug-70): Option B — credit the suggester, not the host, when a track is played.
+      // DJ Brain auto = 0 pts to anyone. Guest suggestion = +15 to suggester (aggregation by name).
+      if (requestedBy.source === 'suggestion' && requestedBy.guestId) {
+        addPoints(party, requestedBy.guestId, requestedBy.guestName || 'Guest', 15, 'track jouée (suggestion): ' + track.title);
+      }
 
       // ★ Fresh Rotation — record playback for this host
       // Fix(Task #44) 2026-07-16: fallback élargi — HPH toujours créé.
@@ -4510,7 +4514,8 @@ io.on('connection', (socket) => {
         phase: party.currentPhase || 'unknown',
         ...liveVoteSnapshot
       }, 500);
-      addPoints(party, 'host', 'DJ', 20, 'Mix Live Track: ' + liveTrack.title);
+      // ★ fix(bug-70): Option B — host IS the suggester in DJ Live mode. Aligned at +15 for symmetry.
+      addPoints(party, 'host', 'DJ', 15, 'Mix Live Track: ' + liveTrack.title);
     }
     
     party.currentTrack = liveTrack;
