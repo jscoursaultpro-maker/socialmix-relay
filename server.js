@@ -6147,6 +6147,7 @@ io.on('connection', (socket) => {
       };
       
       // ★ A2 fix: PERSIST en collection Photo
+      let photoDocId = null;
       try {
         const photoDoc = await Photo.create({
           partyCode: party.code,
@@ -6161,12 +6162,15 @@ io.on('connection', (socket) => {
           caption: photo.caption || '',
           uploadSource: data.source || 'live',
         });
+        photoDocId = photoDoc._id.toString();
         console.log(`📸 [${party.code}] Photo persisted to MongoDB: ${photoDoc._id}`);
       } catch (err) {
         console.error(`📸 [${party.code}] ❌ Photo persist failed:`, err.message);
       }
       
       // 2. Add to party (using cappedPush)
+      // ★ fix(bug-75): inject Photo._id into party.photos for collection linkage
+      if (photoDocId) photo.id = photoDocId;
       party.photos = cappedPush(party.photos, photo, 200);
       
       // ★ A2 fix: Increment photoCount + mark dirty pour flush
