@@ -3184,6 +3184,57 @@ app.get('/api/host/parties', async (req, res) => {
   }
 });
 
+// ─── GET /api/host/parties/by-user — JWT-auth: all parties for authenticated user ──
+// ★ feat(bug-82): survives app uninstall (JWT in Keychain, hostSecrets in UserDefaults lost)
+// Auth: Bearer JWT (Supabase). Returns active + ended parties by hostUserId.
+// Includes hostSecret so iOS can re-persist for offline/legacy fallback.
+app.get('/api/host/parties/by-user', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'AUTH_MISSING', message: 'Authorization: Bearer <token> required' });
+    }
+    const token   = authHeader.slice(7);
+    const payload = await verifySupabaseJWT(token);
+    const user    = await findOrCreateFromSupabase(payload);
+
+    // ★ fix(20/08 pattern): hostUserId stored as native ObjectId (553+ parties)
+    //   but V1TEST legacy stored as string. Query both formats defensively.
+    let hostUserIdVariants = [user._id.toString()];
+    try { hostUserIdVariants.push(new mongoose.Types.ObjectId(user._id)); } catch (_) {}
+
+    const parties = await Party.find({
+      hostUserId: { $in: hostUserIdVariants },
+      code: { $not: /_archived_/ }
+    })
+      .sort({ createdAt: -1 })
+      .limit(500)
+      .select('code partyName createdAt endedAt participants trackHistory photos hostProfile hostSecret')
+      .lean();
+
+    const result = parties.map(p => ({
+      code: p.code,
+      partyName: p.partyName || '',
+      createdAt: p.createdAt,
+      endedAt: p.endedAt || null,
+      participantCount: (p.participants || []).filter(x => !x.isHost).length,
+      trackCount: (p.trackHistory || []).length,
+      photoCount: (p.photos || []).length,
+      hostProfile: p.hostProfile ? { name: p.hostProfile.name, emoji: p.hostProfile.emoji } : null,
+      hostSecret: p.hostSecret || null
+    }));
+
+    console.log(`[API] /api/host/parties/by-user → ${result.length} parties for user ${user._id}`);
+    res.json({ ok: true, parties: result, count: result.length });
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'AUTH_INVALID', message: err.message });
+    }
+    console.error('[API] ❌ /api/host/parties/by-user error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Helper: find user profile from active parties
 function findUserProfile(userId) {
   for (const party of parties.values()) {
