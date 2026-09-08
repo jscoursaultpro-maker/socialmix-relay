@@ -3235,6 +3235,144 @@ app.get('/api/host/parties/by-user', async (req, res) => {
   }
 });
 
+// ─── GET /api/host/parties/:code/details — JWT-auth: full rich party data for host owner ──
+// ★ feat(bug-82-B1): AfterGlow TIMELINE reconstruction server-driven.
+// Auth: Bearer JWT, verified hostUserId == user._id (strict owner).
+// Returns tracks (HPH + Track lookup), participants + scores, photos, messages, leaderboard.
+// Response maps 1:1 to iOS SavedPartyData struct for PartyArchiveView.
+app.get('/api/host/parties/:code/details', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'AUTH_MISSING', message: 'Authorization: Bearer <token> required' });
+    }
+    const token   = authHeader.slice(7);
+    const payload = await verifySupabaseJWT(token);
+    const user    = await findOrCreateFromSupabase(payload);
+
+    const code = (req.params.code || '').toUpperCase();
+
+    // ★ Strict owner check: hostUserId must match user._id (ObjectId or string variant)
+    let hostUserIdVariants = [user._id.toString()];
+    try { hostUserIdVariants.push(new mongoose.Types.ObjectId(user._id)); } catch (_) {}
+
+    const party = await Party.findOne({
+      code,
+      hostUserId: { $in: hostUserIdVariants }
+    }).lean();
+
+    if (!party) {
+      return res.status(404).json({ error: 'PARTY_NOT_FOUND', message: 'Party not found or not owned by this user' });
+    }
+
+    // ━━━ 1. TRACKS ━━━ (HPH aggregate + Track $lookup — same pattern as /api/afterglow)
+    const hph = await HostPlaybackHistory.aggregate([
+      { $match: { partyCode: code } },
+      { $sort: { playedAt: 1 } },
+      { $lookup: {
+          from: 'tracks',
+          localField: 'trackId',
+          foreignField: '_id',
+          as: '_track'
+        }
+      },
+      { $unwind: { path: '$_track', preserveNullAndEmptyArrays: true } },
+      { $project: {
+          _id: 0,
+          title:    { $ifNull: ['$_track.title', '$title'] },
+          artist:   { $ifNull: ['$_track.artist', '$artist'] },
+          genre:    { $ifNull: ['$_track.genre', ''] },
+          bpm:      { $ifNull: ['$_track.bpm', 0] },
+          playedAt: 1,
+          voteScore: 1,
+          suggestedBy: 1
+        }
+      }
+    ]);
+
+    const tracks = hph.map(h => ({
+      title: h.title || 'Titre inconnu',
+      artist: h.artist || 'Artiste inconnu',
+      genre: h.genre || '',
+      bpm: h.bpm || 0,
+      playedAt: h.playedAt,
+      fireCount: h.voteScore?.feu || 0,
+      likeCount: h.voteScore?.cool || 0,
+      mehCount: h.voteScore?.bof || 0,
+      suggestedBy: h.suggestedBy || null
+    }));
+
+    // ━━━ 2. PARTICIPANTS ━━━ (from Party doc + participantScores merge)
+    const participants = (party.participants || []).map(p => {
+      const scoreEntry = party.participantScores?.[p.name] || party.participantScores?.[p.id];
+      return {
+        name: p.name,
+        emoji: p.emoji || '🎉',
+        isHost: p.isHost || false,
+        joinedAt: p.joinedAt || party.createdAt,
+        voteCount: scoreEntry?.voteCount || 0,
+        photoCount: scoreEntry?.photoCount || 0,
+        points: scoreEntry?.score || 0
+      };
+    });
+
+    // ━━━ 3. PHOTOS ━━━ (from Photo collection — Cloudinary URLs)
+    const photos = await Photo.find({ partyCode: code, deletedAt: null })
+      .sort({ sentAt: 1 }).lean();
+
+    const photoList = photos.map(p => ({
+      url: p.url,
+      guestName: p.guestName || '',
+      sentAt: p.sentAt
+    }));
+
+    // ━━━ 4. LEADERBOARD ━━━ (reconstructed from participantScores, sorted desc)
+    const leaderboard = Object.entries(party.participantScores || {})
+      .map(([name, entry]) => ({
+        name,
+        points: entry?.score || 0
+      }))
+      .filter(e => e.points > 0)
+      .sort((a, b) => b.points - a.points);
+
+    // ━━━ 5. MESSAGES ━━━
+    const messages = (party.messages || []).map(m => ({
+      guestName: m.guestName || m.name || '',
+      message: m.message || m.text || '',
+      guestEmoji: m.guestEmoji || m.emoji || '💬'
+    }));
+
+    // ━━━ 6. GENRE VOTES ━━━
+    const genreVotes = party.genreVotes || party.guestGenreVotes || {};
+
+    console.log(`[API] /api/host/parties/${code}/details → ${tracks.length} tracks, ${participants.length} participants, ${photoList.length} photos`);
+
+    res.json({
+      ok: true,
+      party: {
+        code: party.code,
+        partyName: party.partyName || '',
+        createdAt: party.createdAt,
+        endedAt: party.endedAt || null,
+        hostProfile: party.hostProfile ? { name: party.hostProfile.name, emoji: party.hostProfile.emoji } : null,
+        hostSecret: party.hostSecret || null
+      },
+      tracks,
+      participants,
+      photos: photoList,
+      leaderboard,
+      messages,
+      genreVotes
+    });
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'AUTH_INVALID', message: err.message });
+    }
+    console.error(`[API] ❌ /api/host/parties/${req.params.code}/details error:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Helper: find user profile from active parties
 function findUserProfile(userId) {
   for (const party of parties.values()) {

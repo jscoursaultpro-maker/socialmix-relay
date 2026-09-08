@@ -89,8 +89,9 @@ const PartySchema = new mongoose.Schema({
   minimize: false  // preserve empty objects {}
 });
 
-// TTL index: auto-delete ended parties after 90 days
-PartySchema.index({ endedAt: 1 }, { expireAfterSeconds: 90 * 24 * 3600, partialFilterExpression: { endedAt: { $ne: null } } });
+// ★ feat(bug-82-B1): TTL 90j retirée — préserver historique long-terme (décision Jean-Sé 08/09)
+// L'index TTL existant sur Atlas doit être droppé manuellement : voir scripts/drop-party-ttl-index.mjs
+// PartySchema.index({ endedAt: 1 }, { expireAfterSeconds: 90 * 24 * 3600, ... });  // ← REMOVED
 PartySchema.index({ hostUserId: 1, createdAt: -1 });
 PartySchema.index({ hostUserId: 1, endedAt: -1 });
 PartySchema.index({ 'pendingGuests.userId': 1 }, { sparse: true });  // ★ Chantier 5: fast pending lookup
