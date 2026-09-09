@@ -3367,15 +3367,51 @@ app.get('/api/host/parties/:code/details', async (req, res) => {
       };
     });
 
-    // ━━━ 3. PHOTOS ━━━ (from Photo collection — Cloudinary URLs)
-    const photos = await Photo.find({ partyCode: code, deletedAt: null })
+    // ━━━ 3. PHOTOS ━━━ (union Photo collection + party.photos legacy — Bug #71 fix)
+    // Photo collection = source autoritative pour photos post-fix #79 SHA 92cf2f7 (09/09).
+    // party.photos[] = fallback pour photos orphelines pre-fix (soirées antérieures au 09/09,
+    // notamment host:photo et costume:photo qui n'appelaient pas Photo.create).
+    const photoDocs = await Photo.find({ partyCode: code, deletedAt: null })
       .sort({ sentAt: 1 }).lean();
 
-    const photoList = photos.map(p => ({
+    // Set des URLs déjà couvertes par la Photo collection (déduplication)
+    const seenUrls = new Set(photoDocs.map(p => p.url).filter(Boolean));
+
+    // Étape 1 : normaliser photos de la collection Photo (canonical)
+    const normalizedPhotos = photoDocs.map(p => ({
       url: p.url,
       guestName: p.guestName || '',
-      sentAt: p.sentAt
+      sentAt: p.sentAt,
+      isCostume: p.uploadSource === 'costume',
+      isHost: p.uploadSource === 'host',
+      source: 'collection'
     }));
+
+    // Étape 2 : récupérer les orphelines de party.photos[] non couvertes par la collection
+    const legacyPhotos = (party.photos || [])
+      .filter(p => {
+        const url = p.url || p.dataURL;  // rétro-compat: legacy entries avaient parfois dataURL uniquement
+        return url && !seenUrls.has(url);
+      })
+      .map(p => ({
+        url: p.url || p.dataURL,
+        guestName: p.guestName || '',
+        sentAt: p.sentAt || null,
+        isCostume: !!p.isCostume,
+        isHost: !!p.isHost,
+        source: 'legacy_party_photos'
+      }));
+
+    // Étape 3 : concaténer, trier par sentAt
+    const photoList = [...normalizedPhotos, ...legacyPhotos].sort((a, b) => {
+      const ta = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+      const tb = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+      return ta - tb;
+    });
+
+    if (legacyPhotos.length > 0) {
+      console.log(`[API] /details ${code}: recovered ${legacyPhotos.length} legacy photos from party.photos[] (pre-fix #79 orphans)`);
+    }
 
     // ━━━ 4. LEADERBOARD ━━━ (reconstructed from participantScores, sorted desc)
     const leaderboard = Object.entries(party.participantScores || {})
