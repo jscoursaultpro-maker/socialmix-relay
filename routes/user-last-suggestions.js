@@ -90,7 +90,9 @@ router.get('/', requireAuth, async (req, res) => {
       { hostUserId: userIdStr }
     ]});
 
-    pipeline.push({ $match: { $or: suggMatchOr.length > 0 ? suggMatchOr : [{ 'suggestions.guestName': '___NOMATCH___' }] }});
+    const validDeezerIdCondition = { 'suggestions.deezerID': { $exists: true, $ne: null, $ne: 0 } };
+    const finalMatchOr = (suggMatchOr.length > 0 ? suggMatchOr : [{ 'suggestions.guestName': '___NOMATCH___' }]).map(cond => ({ $and: [cond, validDeezerIdCondition] }));
+    pipeline.push({ $match: { $or: finalMatchOr } });
 
     // Stage 4: Project needed fields
     pipeline.push({ $project: {
@@ -119,19 +121,32 @@ router.get('/', requireAuth, async (req, res) => {
     const results = await Party.aggregate(pipeline);
 
     // Map to response format
-    const suggestions = results.map(r => ({
-      id: r.suggestion.id || r.suggestion.eventId || (r.suggestion.title + '_' + r.suggestion.artist).replace(/\s+/g, '_').toLowerCase(),
-      title: r.suggestion.title || 'Titre inconnu',
-      artist: r.suggestion.artist || 'Artiste inconnu',
-      deezerID: r.suggestion.deezerID || null,
-      coverURL: r.suggestion.coverURL || null,
-      partyCode: r.partyCode,
-      partyDate: r.partyDate,
-      status: r.suggestion.status || 'pending',
-      sentAt: r.suggestion.sentAt || null
-    }));
+    const suggestions = [];
+    let droppedCount = 0;
+    
+    for (const r of results) {
+      if (!r.suggestion.deezerID || r.suggestion.deezerID === 0) {
+        droppedCount++;
+        continue;
+      }
+      suggestions.push({
+        id: r.suggestion.id || r.suggestion.eventId || (r.suggestion.title + '_' + r.suggestion.artist).replace(/\s+/g, '_').toLowerCase(),
+        title: r.suggestion.title || 'Titre inconnu',
+        artist: r.suggestion.artist || 'Artiste inconnu',
+        deezerID: r.suggestion.deezerID,
+        coverURL: r.suggestion.coverURL || null,
+        partyCode: r.partyCode,
+        partyDate: r.partyDate,
+        status: r.suggestion.status || 'pending',
+        sentAt: r.suggestion.sentAt || null
+      });
+    }
 
-    console.log(`[UserLastSuggestions] user=${userName} email=${userEmail} → ${suggestions.length} results`);
+    if (droppedCount > 0) {
+      console.warn(`[UserLastSuggestions] Dropped ${droppedCount} suggestions with missing deezerID (BDD legacy)`);
+    }
+
+    console.log(`[UserLastSuggestions] user=${userName} email=${userEmail} → ${suggestions.length} results (dropped ${droppedCount} with missing deezerID)`);
     return res.json({ suggestions });
   } catch (err) {
     console.error('[UserLastSuggestions] ❌ Error:', err.message);
