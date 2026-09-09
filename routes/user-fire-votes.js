@@ -127,7 +127,11 @@ router.get('/', requireAuth, async (req, res) => {
     fireVotes = fireVotes.slice(0, limit);
 
     console.log(`[UserFireVotes] user=${userName} email=${userEmail} parties=${parties.length} → ${fireVotes.length} tracks`);
-    return res.json({ fireVotes });
+    return res.json({ fireVotes: fireVotes.map(fv => ({
+      id: fv.id, title: fv.title, artist: fv.artist,
+      deezerID: fv.deezerID, coverURL: fv.coverURL,
+      count: fv.count
+    })) });
   } catch (err) {
     console.error('[UserFireVotes] ❌ Error:', err.message);
     return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });

@@ -96,7 +96,18 @@ router.get('/', requireAuth, async (req, res) => {
     pipeline.push({ $project: {
       partyCode: '$code',
       partyDate: '$createdAt',
-      suggestion: '$suggestions'
+      suggestion: {
+        id: '$suggestions.id',
+        eventId: '$suggestions.eventId',
+        title: '$suggestions.title',
+        artist: '$suggestions.artist',
+        deezerID: '$suggestions.deezerID',
+        coverURL: '$suggestions.coverURL',
+        status: '$suggestions.status',
+        sentAt: '$suggestions.sentAt',
+        guestName: '$suggestions.guestName',
+        isHost: '$suggestions.isHost'
+      }
     }});
 
     // Stage 5: Sort by sentAt desc
