@@ -60,8 +60,10 @@ router.get('/', requireAuth, async (req, res) => {
     const partyMatch = {
       $or: [
         { 'participants.email': userEmail },
-        ...(userEmail ? [{ hostEmail: userEmail }] : [])
-      ]
+        { hostEmail: userEmail },
+        { hostUserId: currentUser._id.toString() },
+        { hostUserId: currentUser._id }
+      ].filter(Boolean)
     };
     if (excludeCode) {
       partyMatch.code = { $ne: excludeCode };

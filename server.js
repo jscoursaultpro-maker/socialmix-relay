@@ -4580,9 +4580,21 @@ io.on('connection', (socket) => {
       // host:trackUpdate est émis 2x pour la même track (crossfade re-emit,
       // metadata refresh Apple Music). Compare uniquement au [0] car les doublons
       // arrivent toujours consécutifs.
-      const normTitleForDedup = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').trim();
+      const normTitleForDedup = (t) => {
+        let s = (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        // Strip common suffixes (bonus tracks, remixes, edits)
+        s = s.replace(/\s*[\[\(][^\]\)]*[\]\)]\s*/g, ' '); // enlève (...) et [...]
+        s = s.replace(/\s+-\s+(radio edit|extended mix|original mix|remix|remastered|bonus track|feat\.?.*)$/i, '');
+        s = s.replace(/[^a-z0-9]/g, '').trim();
+        return s;
+      };
       const _lastTitle = party.trackHistory[0]?.title;
-      if (!_lastTitle || normTitleForDedup(_lastTitle) !== normTitleForDedup(trackDoc.title)) {
+      const _lastArtist = party.trackHistory[0]?.artist;
+      const _normLastTitle = _lastTitle ? normTitleForDedup(_lastTitle) : '';
+      const _normNewTitle = normTitleForDedup(trackDoc.title);
+      const _normLastArtist = (_lastArtist || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').trim();
+      const _normNewArtist = (trackDoc.artist || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').trim();
+      if (!_lastTitle || _normLastTitle !== _normNewTitle || _normLastArtist !== _normNewArtist) {
         party.trackHistory = cappedUnshift(party.trackHistory, trackDoc, 500);
       } else {
         console.log(`[${party.code}] 🔄 trackHistory dedup — skip "${trackDoc.title}" (identique au dernier "${_lastTitle}")`);
