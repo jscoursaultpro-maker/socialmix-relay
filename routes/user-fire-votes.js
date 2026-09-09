@@ -59,14 +59,16 @@ router.get('/', requireAuth, async (req, res) => {
     // Storage is a Mixed object `guestVotes: { guestId: { trackTitle: 'feu' } }`.
     // We use a simple JS fallback to aggregate.
     const parties = await Party.find(partyMatch)
-      .select('code createdAt guestVotes trackHistory hostEmail participants')
+      .select('code createdAt guestVotes trackHistory hostEmail hostUserId participants')
       .lean();
 
     const fireVotesMap = new Map(); // key: canonicalTitle, value: { count, lastVotedAt, trackDetails }
 
     for (const party of parties) {
       const gv = party.guestVotes || {};
-      const isHost = party.hostEmail === userEmail;
+      const userIdStr = currentUser._id.toString();
+      const isHost = (userEmail && party.hostEmail === userEmail) 
+        || (party.hostUserId && String(party.hostUserId) === userIdStr);
 
       // Identify user's voter keys in this party
       const userKeys = [];
@@ -124,6 +126,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     fireVotes = fireVotes.slice(0, limit);
 
+    console.log(`[UserFireVotes] user=${userName} email=${userEmail} parties=${parties.length} → ${fireVotes.length} tracks`);
     return res.json({ fireVotes });
   } catch (err) {
     console.error('[UserFireVotes] ❌ Error:', err.message);

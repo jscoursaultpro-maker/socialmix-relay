@@ -73,12 +73,24 @@ router.get('/', requireAuth, async (req, res) => {
     // Stage 2: Unwind suggestions
     pipeline.push({ $unwind: '$suggestions' });
 
-    // Stage 3: Match suggestions by this user's name
-    pipeline.push({ $match: {
-      $or: suggestionMatchConditions.length > 0
-        ? suggestionMatchConditions
-        : [{ 'suggestions.guestName': '___NOMATCH___' }]
-    }});
+    // Stage 3: Match suggestions by this user's name OR host marker (V6 fix)
+    const suggMatchOr = [];
+    if (userName) suggMatchOr.push({ 'suggestions.guestName': userName });
+    if (currentUser.profile?.firstName && currentUser.profile.firstName !== userName) {
+      suggMatchOr.push({ 'suggestions.guestName': currentUser.profile.firstName });
+    }
+    // Host-marked suggestions: guestId='host' OR isHost=true, uniquement pour les parties hostées par ce user
+    const userIdStr = currentUser._id.toString();
+    suggMatchOr.push({ 'suggestions.isHost': true, $or: [
+      { hostUserId: currentUser._id },
+      { hostUserId: userIdStr }
+    ]});
+    suggMatchOr.push({ 'suggestions.guestId': 'host', $or: [
+      { hostUserId: currentUser._id },
+      { hostUserId: userIdStr }
+    ]});
+
+    pipeline.push({ $match: { $or: suggMatchOr.length > 0 ? suggMatchOr : [{ 'suggestions.guestName': '___NOMATCH___' }] }});
 
     // Stage 4: Project needed fields
     pipeline.push({ $project: {
@@ -108,6 +120,7 @@ router.get('/', requireAuth, async (req, res) => {
       sentAt: r.suggestion.sentAt || null
     }));
 
+    console.log(`[UserLastSuggestions] user=${userName} email=${userEmail} → ${suggestions.length} results`);
     return res.json({ suggestions });
   } catch (err) {
     console.error('[UserLastSuggestions] ❌ Error:', err.message);
