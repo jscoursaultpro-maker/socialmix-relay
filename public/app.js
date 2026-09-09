@@ -895,8 +895,18 @@ function submitWelcomeBack() {
                   : `❌ ${res?.message || 'Reconnexion échouée, remplis à nouveau tes infos'}`;
         showToast(msg, 5000);
         if (code !== 'RATE_LIMIT') showOnboardingForm();
+        return;
       }
-      // Succès (res.ok=true) → handlers socket (guest:approved / guest:waitingRoom) basculent d'écran
+      
+      // Succès (res.ok=true) → transition selon le status renvoyé
+      if (res.status === 'approved') {
+        console.log('[WelcomeBack] Auto-approved → entering cockpit');
+        enterCockpitFromOnboarding();
+      } else if (res.status === 'pending') {
+        showWaitingRoom(res.hostFirstName, res.hostPhoto, res.partyName);
+      } else {
+        enterCockpitFromOnboarding();
+      }
     });
   };
 
