@@ -4549,39 +4549,45 @@ io.on('connection', (socket) => {
       // objet JS pur sans _id MongoDB. Fix: résolution lazy via Party.findOne({code}).select('_id'),
       // résultat caché sur party._mongoId pour éviter le re-query à chaque track.
       // Note: IIFE async car socket handler n'est pas async — comportement non-bloquant conservé.
-      if (party.hostUserId) {
-        const _capturedDoc   = trackDoc;
-        const _capturedCode  = party.code;
-        const _capturedPhase = party.currentPhase;
-        const _capturedUID   = party.hostUserId;
+      // ★ Fresh Rotation — record playback for this host
+      // Bug #77 fix — compteurs + retry + log structuré pour éliminer les writes silencieux.
+      const _capturedDoc   = trackDoc;
+      const _capturedCode  = party.code;
+      const _capturedPhase = party.currentPhase;
+      const _capturedUID   = party.hostUserId;
+      
+      if (!_capturedUID) {
+        party.hphCounters.skipped++;
+        console.warn(`[HPH][alert] party=${_capturedCode} skip reason=no_hostUserId title="${_capturedDoc.title}" counters=${JSON.stringify(party.hphCounters)}`);
+      } else {
         // Cache _mongoId pour cette soirée (évite re-query par track)
         if (!party._mongoId) {
-          party._mongoId = Party.findOne({ code: _capturedCode, endedAt: null }).select('_id').lean()  // ★ fix(HPH): filter endedAt:null to avoid code collision with archived parties
+          party._mongoId = Party.findOne({ code: _capturedCode, endedAt: null }).select('_id').lean()
             .then(p => { if (p) party._mongoId = p._id; return p?._id || null; })
-            .catch(() => null);
+            .catch(err => {
+              console.error(`[HPH][alert] party=${_capturedCode} _mongoId lookup failed: ${err.message}`);
+              return null;
+            });
         }
         (async () => {
-          // Résoudre le _mongoId (Promise ou valeur déjà résolue)
           const partyMongoId = (party._mongoId instanceof Promise)
             ? await party._mongoId
             : party._mongoId;
 
           if (!partyMongoId) {
-            console.warn(`[FreshRotation] ⚠️ partyId non résolvable pour soirée ${_capturedCode} — HPH skipped`);
+            party.hphCounters.skipped++;
+            console.warn(`[HPH][alert] party=${_capturedCode} skip reason=no_partyId title="${_capturedDoc.title}" counters=${JSON.stringify(party.hphCounters)}`);
             return;
           }
 
           const _esc = s => (s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const deezerId = _capturedDoc.deezerId || _capturedDoc.trackId;
 
-          // Étape 1 : lookup via deezerID (chemin principal)
           let resolvedTrack = null;
           if (deezerId) {
             resolvedTrack = await Track.findOne({ 'providers.deezer.trackId': Number(deezerId) })
               .select('_id').lean().catch(() => null);
           }
-
-          // Étape 2 : fallback title+artist si deezerID lookup fail OU absent
           if (!resolvedTrack && _capturedDoc.title) {
             const titleRegex  = new RegExp('^' + _esc(_capturedDoc.title.trim()) + '$', 'i');
             const artistFirst = (_capturedDoc.artist || '').split(/[,&]/)[0].trim();
@@ -4590,31 +4596,47 @@ io.on('connection', (socket) => {
             if (artistRegex) fallbackQ.artist = artistRegex;
             resolvedTrack = await Track.findOne(fallbackQ).select('_id').lean().catch(() => null);
             if (!resolvedTrack) {
-              console.warn(`[FreshRotation] ⚠️ Track not in catalogue: "${_capturedDoc.title}" (deezerId=${deezerId || 'none'}) — HPH logged with trackId=null`);
+              console.warn(`[HPH][catalogue-miss] party=${_capturedCode} title="${_capturedDoc.title}" deezerId=${deezerId || 'none'} — HPH créé avec trackId=null`);
             }
           }
 
-          // Étape 3 : créer HPH — toujours, même si trackId=null
-          try {
-            await HostPlaybackHistory.create({
-              hostUserId:          _capturedUID,
-              trackId:             resolvedTrack?._id || null,
-              partyId:             partyMongoId,
-              partyCode:           _capturedCode,           // ★ fix(20/08): was missing → null for all HPH since 18/08
-              deezerTrackId:       deezerId ? Number(deezerId) : null,
-              title:               _capturedDoc.title  || null,
-              artist:              _capturedDoc.artist || null,
-              playedAt:            new Date(),
-              phase:               _capturedPhase || _capturedDoc.phase,
-              wasSuggestedByGuest: !!_capturedDoc.suggestedBy
-            });
-            console.log(`[FreshRotation] ✅ HPH créé: "${_capturedDoc.title}" partyId=${partyMongoId} trackId=${resolvedTrack?._id || 'null'}`);
-          } catch (e) {
-            if (e.code !== 11000) {
-              console.error('[FreshRotation] ⚠️ HostPlaybackHistory create failed:', e.message,
-                { title: _capturedDoc.title, deezerId, hasResolvedTrack: !!resolvedTrack });
+          const hphDoc = {
+            hostUserId:          _capturedUID,
+            trackId:             resolvedTrack?._id || null,
+            partyId:             partyMongoId,
+            partyCode:           _capturedCode,
+            deezerTrackId:       deezerId ? Number(deezerId) : null,
+            title:               _capturedDoc.title  || null,
+            artist:              _capturedDoc.artist || null,
+            playedAt:            new Date(),
+            phase:               _capturedPhase || _capturedDoc.phase,
+            wasSuggestedByGuest: !!_capturedDoc.suggestedBy
+          };
+
+          // Retry 1x avec backoff 500ms si create échoue (transient MongoDB errors)
+          let attempt = 0;
+          let lastError = null;
+          while (attempt < 2) {
+            try {
+              await HostPlaybackHistory.create(hphDoc);
+              party.hphCounters.success++;
+              console.log(`[HPH][ok] party=${_capturedCode} title="${_capturedDoc.title}" trackId=${resolvedTrack?._id || 'null'} attempt=${attempt + 1} counters=${JSON.stringify(party.hphCounters)}`);
+              return;
+            } catch (e) {
+              if (e.code === 11000) {
+                // Doublon — considéré succès (idempotence)
+                party.hphCounters.success++;
+                return;
+              }
+              lastError = e;
+              attempt++;
+              if (attempt < 2) {
+                await new Promise(r => setTimeout(r, 500));
+              }
             }
           }
+          party.hphCounters.failed++;
+          console.error(`[HPH][alert] party=${_capturedCode} CREATE FAILED after 2 attempts title="${_capturedDoc.title}" error="${lastError?.message}" counters=${JSON.stringify(party.hphCounters)}`);
         })();
       }
 
@@ -6817,6 +6839,16 @@ io.on('connection', (socket) => {
       photos: party.photos, participants: party.participants
     });
     console.log(`🎉 [${party.code}] Party ended by host`);
+    
+    const trackCount = (party.trackHistory || []).length;
+    const hphSuccess = party.hphCounters?.success || 0;
+    const delta = trackCount - hphSuccess;
+    if (delta > 0) {
+      console.error(`[HPH][desync-alert] party=${party.code} trackHistory=${trackCount} hphSuccess=${hphSuccess} delta=${delta} skipped=${party.hphCounters?.skipped || 0} failed=${party.hphCounters?.failed || 0}`);
+    } else {
+      console.log(`[HPH][clean] party=${party.code} trackHistory=${trackCount} hphSuccess=${hphSuccess}`);
+    }
+
     await flushEndedParty(party);
 
     // ★ Task #81: Compute moments fire-and-forget (non-blocking)

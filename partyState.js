@@ -64,7 +64,8 @@ export function createPartyState(code, _id = null) {
       lastActivityAt: new Date().toISOString()
     },
     isDirty: true,             // Needs flush to MongoDB
-    lastFlushed: 0             // Timestamp of last DB write
+    lastFlushed: 0,            // Timestamp of last DB write
+    hphCounters: { success: 0, failed: 0, skipped: 0 }
   };
 }
 
