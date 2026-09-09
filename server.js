@@ -554,6 +554,54 @@ app.delete('/api/me', async (req, res) => {
   }
 });
 
+// ─── Supabase Auth — PATCH /api/users/me ────────────────────────────
+// Validates Bearer JWT, met à jour user.profile.{firstName,lastName,emoji}.
+// Appelé par iOS AuthService.pushProfileToServer() lors création/édit profil.
+// Bug #83 fix — endpoint fantôme (iOS appelait 404) → toast "vérifie ta connexion".
+app.patch('/api/users/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'AUTH_MISSING' });
+    }
+    const token   = authHeader.slice(7);
+    const payload = await verifySupabaseJWT(token);
+    const user    = await findOrCreateFromSupabase(payload);
+
+    const { firstName, lastName, emoji } = req.body || {};
+    const updates = {};
+    if (typeof firstName === 'string' && firstName.trim()) updates['profile.firstName'] = firstName.trim().slice(0, 40);
+    if (typeof lastName  === 'string')                     updates['profile.lastName']  = lastName.trim().slice(0, 40);
+    if (typeof emoji     === 'string' && emoji.trim())     updates['profile.emoji']     = emoji.trim().slice(0, 8);
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'NO_FIELDS', message: 'firstName, lastName ou emoji requis' });
+    }
+
+    const { default: User } = await import('./models/User.js');
+    const updated = await User.findByIdAndUpdate(
+      user._id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    );
+
+    console.log(`[/api/users/me PATCH] ✅ profile updated userId=${user._id} fields=${Object.keys(updates).join(',')}`);
+    return res.json({
+      ok: true,
+      profile: updated.profile
+    });
+  } catch (err) {
+    if (err.name === 'AuthError') {
+      return res.status(401).json({ error: err.code, message: err.message });
+    }
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: 'VALIDATION_ERROR', message: err.message });
+    }
+    console.error('[/api/users/me PATCH] Unexpected error:', err.message);
+    return res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+});
+
 // ─── Health check ───────────────────────────────────────────────────
 app.get('/api/status', (req, res) => {
   const codes = [...parties.keys()];
