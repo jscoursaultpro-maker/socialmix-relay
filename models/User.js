@@ -37,6 +37,7 @@ const userSchema = new Schema({
     firstName: { type: String, required: true, trim: true, maxlength: 40 },
     lastName:  { type: String, trim: true, maxlength: 40 },
     emoji: { type: String, default: '🎉' },
+    userEdited: { type: Boolean, default: false },
     photoURL: String,
     handle: { 
       type: String, 

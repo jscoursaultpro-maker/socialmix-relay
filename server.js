@@ -574,6 +574,9 @@ app.patch('/api/users/me', async (req, res) => {
     if (typeof lastName  === 'string')                     updates['profile.lastName']  = lastName.trim().slice(0, 40);
     if (typeof emoji     === 'string' && emoji.trim())     updates['profile.emoji']     = emoji.trim().slice(0, 8);
 
+    // Flag édition manuelle : sanctuarise le profil contre backfill SIWA/Google (Bug #86)
+    updates['profile.userEdited'] = true;
+
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ error: 'NO_FIELDS', message: 'firstName, lastName ou emoji requis' });
     }
