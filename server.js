@@ -6687,10 +6687,41 @@ io.on('connection', (socket) => {
     addPoints(party, 'host', data.guestName || 'DJ', 10, 'message');
   });
 
-  socket.on('host:photo', (data) => {
+  socket.on('host:photo', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    const photo = { dataURL: data.dataURL, guestName: data.guestName || 'Host', sentAt: new Date().toISOString() };
+    const photo = {
+      url: data.dataURL,        // ★ Bug #79 fix: dataURL contient déjà l'URL Cloudinary (cf L3440 comment)
+      dataURL: data.dataURL,    // conservé pour rétro-compat clients existants
+      guestName: data.guestName || 'Host',
+      guestId: party.hostUserId || 'host',
+      sentAt: new Date().toISOString(),
+      isHost: true
+    };
+
+    // ★ Bug #79 fix: Photo.create MongoDB pour indexation/AfterGlow (aligne sur guest:photo SHA 63f255d)
+    try {
+      const photoDoc = await Photo.create({
+        partyCode: party.code,
+        guestName: photo.guestName,
+        guestId: photo.guestId,
+        guestEmoji: data.guestEmoji || '🎧',
+        url: data.dataURL,
+        publicId: data.publicId || '',
+        width: data.width || 0,
+        height: data.height || 0,
+        sizeKB: 0,
+        caption: data.caption || '',
+        uploadSource: 'host',
+      });
+      photo.id = photoDoc._id.toString();
+      console.log(`📸 [${party.code}] host:photo persisted to MongoDB: ${photoDoc._id}`);
+    } catch (err) {
+      console.error(`📸 [${party.code}] ❌ host:photo persist failed:`, err.message);
+    }
+
     if (!addPhotoToParty(party, photo)) return;
+    party.photoCount = (party.photoCount || 0) + 1;
+    party.isDirty = true;
     io.to(`guest:${party.code}`).emit('photo:shared', photo);
     addPoints(party, 'host', data.guestName || 'DJ', 20, 'photo');
   });
@@ -6739,15 +6770,47 @@ io.on('connection', (socket) => {
     io.to(`host:${party.code}`).emit('costume:entries', party.costumeEntries);
   });
 
-  socket.on('costume:photo', (data) => {
+  socket.on('costume:photo', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
     const entry = party.costumeEntries.find(e => e.guestId === data.guestId);
     if (entry) entry.photo = data.photo;
     io.to(`guest:${party.code}`).emit('costume:entries', party.costumeEntries);
     io.to(`host:${party.code}`).emit('costume:entries', party.costumeEntries);
+
     if (data.photo) {
-      const photo = { dataURL: data.photo, guestName: entry?.guestName || 'Guest', sentAt: new Date().toISOString(), isCostume: true };
+      const photo = {
+        url: data.photo,             // ★ Bug #79 fix: data.photo est URL Cloudinary
+        dataURL: data.photo,         // rétro-compat
+        guestName: entry?.guestName || 'Guest',
+        guestId: data.guestId || resolveGuestUserId(party, socket),
+        sentAt: new Date().toISOString(),
+        isCostume: true
+      };
+
+      // ★ Bug #79 fix: Photo.create MongoDB (aligne sur guest:photo SHA 63f255d)
+      try {
+        const photoDoc = await Photo.create({
+          partyCode: party.code,
+          guestName: photo.guestName,
+          guestId: photo.guestId,
+          guestEmoji: entry?.emoji || '🎭',
+          url: data.photo,
+          publicId: data.publicId || '',
+          width: data.width || 0,
+          height: data.height || 0,
+          sizeKB: 0,
+          caption: '',
+          uploadSource: 'costume',
+        });
+        photo.id = photoDoc._id.toString();
+        console.log(`📸 [${party.code}] costume:photo persisted to MongoDB: ${photoDoc._id}`);
+      } catch (err) {
+        console.error(`📸 [${party.code}] ❌ costume:photo persist failed:`, err.message);
+      }
+
       if (addPhotoToParty(party, photo)) {
+        party.photoCount = (party.photoCount || 0) + 1;
+        party.isDirty = true;
         io.to(`host:${party.code}`).emit('guest:photo', photo);
         socket.broadcast.to(`guest:${party.code}`).emit('photo:shared', photo);
       }
