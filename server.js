@@ -48,6 +48,8 @@ import userCrewsRouter from './routes/user-crews.js'; // ★ B2.2: GET /api/user
 import userRelationshipRouter from './routes/user-relationship.js'; // ★ B2.4: GET /api/user/relationship
 import trackSoloVotesRouter from './routes/track-solo-votes.js'; // ★ Track landing: POST /api/track/vote
 import userSuggestionsRouter from './routes/user-suggestions.js'; // ★ Mes suggestions: GET /api/user/me/suggestions
+import userLastSuggestionsRouter from './routes/user-last-suggestions.js';
+import userFireVotesRouter from './routes/user-fire-votes.js';
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
@@ -899,6 +901,8 @@ app.use('/api/user/me/founders-rank', foundersRankRouter);
 
 // ★ Mes suggestions: user's suggestion history across all parties (Supabase JWT auth)
 app.use('/api/user/me/suggestions', userSuggestionsRouter);
+app.use('/api/user/me/last-suggestions', userLastSuggestionsRouter);
+app.use('/api/user/me/fire-votes', userFireVotesRouter);
 
 // ★ B2.1: Public host profile (no auth)
 app.use('/api/profile/host', profileHostRouter);
@@ -5965,6 +5969,21 @@ io.on('connection', (socket) => {
     console.log(`[${party.code}] SUGGEST: "${title}" by ${data.guestName || '?'} -> host has ${hostSockets ? hostSockets.size : 0} socket(s)`);
     cb({ ok: true, eventId: data.eventId });
     logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'accepted' });
+  });
+
+  socket.on('guest:boostSuggestion', async (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    const suggestion = party.suggestions.find(s => s.id === data.suggestionId);
+    if (!suggestion) return;
+    if (!suggestion.boostedBy) suggestion.boostedBy = [];
+    const guestId = resolveGuestUserId(party, socket);
+    if (suggestion.boostedBy.includes(guestId)) return;
+    suggestion.boostedBy.push(guestId);
+    suggestion.boostCount = (suggestion.boostCount || 0) + 1;
+    party.isDirty = true;
+    io.to(`host:${party.code}`).emit('suggestion:boosted', { suggestionId: data.suggestionId, boostCount: suggestion.boostCount });
+    io.to(`guest:${party.code}`).emit('suggestion:boosted', { suggestionId: data.suggestionId, boostCount: suggestion.boostCount });
+    console.log(`[${party.code}] ⚡ boost by ${guestId} on suggestion "${suggestion.title}" → count=${suggestion.boostCount}`);
   });
 
   // FIX FAILLE 3 — Host self-suggestion sync to MongoDB
