@@ -5102,6 +5102,7 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════════
 
   socket.on('guest:join', async (data) => {
+   try {
     // ★ Chantier 5: deprecation warning — legacy clients should migrate to guest:requestJoin
     console.warn(`[DEPRECATED] guest:join called by socket ${socket.id}, should migrate to guest:requestJoin`);
     const code = (data.partyCode || '').toUpperCase();
@@ -5288,6 +5289,10 @@ io.on('connection', (socket) => {
       });
       console.log(`🔄 [${code}] Hydrated pending suggestion (join) for ${guestName}: "${pendingSuggJoin.title}" (pos:${queuePosJoin})`);
     }
+   } catch (err) {
+     console.error(`[guest:join][alert] socket=${socket.id} party=${(data?.partyCode || '').toUpperCase()} unexpected error: ${err.message}`, err.stack);
+     socket.emit('join:error', { code: 'INTERNAL', message: 'Erreur serveur, réessayez.' });
+   }
   });
 
   // ═══════════════════════════════════════════════════════════════════

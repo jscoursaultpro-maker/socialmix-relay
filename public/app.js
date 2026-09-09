@@ -1713,8 +1713,15 @@ function connectToRelay() {
     }
   });
 
+  let _joinAttempts = 0;
+  let _joinWatchdog = null;
+  const MAX_JOIN_ATTEMPTS = 3;
+  const JOIN_TIMEOUT_MS = 8000;
+
   function freshJoin() {
     const consent = getConsent();
+    _joinAttempts++;
+    console.log(`[Join] freshJoin attempt ${_joinAttempts}/${MAX_JOIN_ATTEMPTS}`);
     socket.emit('guest:join', {
       guestId: state.guestId,
       userId: state.userId || null,
@@ -1729,12 +1736,34 @@ function connectToRelay() {
       partyCode: state.partyCode,
       consentVersion: consent?.version || '1.0',
       consentTimestamp: consent?.timestamp || Date.now(),
-      consentAcceptedAt: consent?.acceptedAt || consent?.date || new Date().toISOString()  // ★ fix(#21 RGPD)
+      consentAcceptedAt: consent?.acceptedAt || consent?.date || new Date().toISOString()
     });
+
+    // Bug #72 watchdog — si session:token pas reçu dans 8s, retry ou fallback erreur.
+    if (_joinWatchdog) clearTimeout(_joinWatchdog);
+    _joinWatchdog = setTimeout(() => {
+      console.warn(`[Join] ⚠️ Watchdog fired: no session:token after ${JOIN_TIMEOUT_MS}ms (attempt ${_joinAttempts})`);
+      if (_joinAttempts < MAX_JOIN_ATTEMPTS && socket && socket.connected) {
+        console.log('[Join] 🔄 Retrying freshJoin...');
+        freshJoin();
+      } else {
+        console.error('[Join] ❌ Failed after ' + MAX_JOIN_ATTEMPTS + ' attempts — giving up');
+        showToast('⚠️ Impossible de rejoindre la soirée. Vérifie ta connexion et réessaye.', 8000);
+        if (typeof showScreen === 'function') showScreen('landing');
+        _joinAttempts = 0; // reset for next manual attempt
+      }
+    }, JOIN_TIMEOUT_MS);
   }
 
   // Store session token + userId for reconnection and friends API
   socket.on('session:token', (data) => {
+    // Bug #72 fix — watchdog freshJoin peut être clear, join réussi
+    if (typeof _joinWatchdog !== 'undefined' && _joinWatchdog) {
+      clearTimeout(_joinWatchdog);
+      _joinWatchdog = null;
+    }
+    _joinAttempts = 0;
+
     state.sessionToken = data.sessionToken;
     if (data.userId) state.userId = data.userId;
     saveSession();
@@ -2041,6 +2070,9 @@ function connectToRelay() {
   // Avant ce fix : aucun handler → guest bloqué silencieusement (Sam incident 16/07).
   // Après : toast visible + retour écran profil + focus email.
   socket.on('error:validation', (data) => {
+    if (typeof _joinWatchdog !== 'undefined' && _joinWatchdog) { clearTimeout(_joinWatchdog); _joinWatchdog = null; }
+    _joinAttempts = 0;
+
     const msg = data?.message || 'Un email valide est requis pour rejoindre la soirée.';
     showToast(`⚠️ ${msg}`, 6000);
     console.warn('[Join] ❌ error:validation:', msg);
@@ -2066,8 +2098,20 @@ function connectToRelay() {
 
   // Wrong party code
   socket.on('party:wrongCode', (data) => {
+    if (typeof _joinWatchdog !== 'undefined' && _joinWatchdog) { clearTimeout(_joinWatchdog); _joinWatchdog = null; }
+    _joinAttempts = 0;
     alert(`⛔ ${data?.message || 'Code de soirée incorrect. Vérifie le QR code.'}`);
     showScreen('landing');
+  });
+
+  // Bug #72 — nouveau handler pour crashes serveur post-validation (unblock guest UI).
+  socket.on('join:error', (data) => {
+    if (typeof _joinWatchdog !== 'undefined' && _joinWatchdog) { clearTimeout(_joinWatchdog); _joinWatchdog = null; }
+    _joinAttempts = 0;
+    const msg = data?.message || 'Erreur serveur, réessayez.';
+    console.error('[Join] ❌ join:error:', data?.code || 'unknown', msg);
+    showToast(`⚠️ ${msg}`, 8000);
+    if (typeof showScreen === 'function') showScreen('landing');
   });
 
 
