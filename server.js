@@ -4572,7 +4572,17 @@ io.on('connection', (socket) => {
         // hostSecret, socketId, hostProfile, internal fields: intentionally excluded
       };
 
-      party.trackHistory = cappedUnshift(party.trackHistory, trackDoc, 500);
+      // Bug #87 fix — dedup par title normalisé pour éviter doublons quand
+      // host:trackUpdate est émis 2x pour la même track (crossfade re-emit,
+      // metadata refresh Apple Music). Compare uniquement au [0] car les doublons
+      // arrivent toujours consécutifs.
+      const normTitleForDedup = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').trim();
+      const _lastTitle = party.trackHistory[0]?.title;
+      if (!_lastTitle || normTitleForDedup(_lastTitle) !== normTitleForDedup(trackDoc.title)) {
+        party.trackHistory = cappedUnshift(party.trackHistory, trackDoc, 500);
+      } else {
+        console.log(`[${party.code}] 🔄 trackHistory dedup — skip "${trackDoc.title}" (identique au dernier "${_lastTitle}")`);
+      }
       // ★ fix(bug-70): Option B — credit the suggester, not the host, when a track is played.
       // DJ Brain auto = 0 pts to anyone. Guest suggestion = +15 to suggester (aggregation by name).
       if (requestedBy.source === 'suggestion' && requestedBy.guestId) {
