@@ -6071,10 +6071,6 @@ window.toggleCollapseMore = function(sectionId) {
 
 window.toggleHistoryCollapse = function() {
   isHistoryCollapsed = !isHistoryCollapsed;
-  renderHistory();
+  updateHistory();
 };
 
-const historyToggleBtn = $('historyMoreToggle');
-if (historyToggleBtn) {
-  historyToggleBtn.addEventListener('click', window.toggleHistoryCollapse);
-}
