@@ -6055,6 +6055,10 @@ io.on('connection', (socket) => {
       sentAt:          suggestion.sentAt
     });
 
+    // ★ V6 fix — host gagne 5pts par suggestion, comme les guests (cf. feedback_host_is_guest)
+    // addPoints déclenche automatiquement broadcastLeaderboard
+    addPoints(party, 'host', hostDisplayName, 5, `suggestion: ${title}`);
+
     console.log(`[${party.code}] HOST SUGGEST: "${title}" — ${artist} → broadcast to ${guestRoom}`);
   });
 
