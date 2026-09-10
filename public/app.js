@@ -1638,8 +1638,6 @@ function enterCockpit() {
   updateHistory();
   
   // Hub buttons (top + bottom)
-  $('hub-top-btn').addEventListener('click', () => showScreen('hub'));
-  $('hub-card-btn').addEventListener('click', () => showScreen('hub'));
   
   // Profile edit button → go to profile screen for editing
   // ★ Bug E-3b — Raccourci intelligent : si pending>0, va direct sur Mes amis (économise 1 tap)
@@ -3567,14 +3565,13 @@ function updateHistory() {
     list.appendChild(item);
   });
   
-  // ★ Bug 8 — Pagination button
-  if (moreBtn) {
-    const remaining = total - historyShown;
-    if (remaining > 0) {
-      moreBtn.style.display = 'block';
-      moreBtn.textContent = `Voir plus (${remaining} restant${remaining > 1 ? 's' : ''}) ↓`;
+  // ★ Bug 8 — Pagination button (replaced with CSS collapse)
+  const btn = $('historyMoreToggle');
+  if (btn) {
+    if (total > 3) {
+      btn.style.display = 'block';
     } else {
-      moreBtn.style.display = 'none';
+      btn.style.display = 'none';
     }
   }
   
@@ -3588,12 +3585,6 @@ function updateHistory() {
       if (e.key === 'Enter') { e.preventDefault(); sendGuestMessage(); }
     });
   }
-}
-
-// ★ Bug 8 — Show more history tracks
-function showMoreHistory() {
-  historyShown = Math.min(historyShown + 5, state.trackHistory.length);
-  updateHistory();
 }
 
 // Global function: send guest reaction message (callable from inline onclick)
@@ -4631,7 +4622,7 @@ function populateMissions() {
     },
     {
       icon: '📊', title: 'VOTER UNE TENDANCE',
-      desc: 'Vote ton genre musical dans VOTE TENDANCE. +15 pts !',
+      desc: 'Vote ton genre musical dans VOTE POUR TA TENDANCE. +15 pts !',
       target: 1, current: genreVoted, unit: 'tendance',
       reward: '15 pts', cumulative: false,
       done: genreVoted >= 1
@@ -5914,12 +5905,12 @@ function escHtml(str) {
 function renderMyTops() {
   const container = $('mySugsPreview');
   const list = $('mySugsPreviewList');
-  const moreBtn = $('myTopsMore');
+  const btn = container ? container.querySelector('.collapse-more-btn') : null;
   if (!container || !list || !myTopsData.length) return;
   container.style.display = 'block';
 
-  const visible = myTopsData.slice(0, myTopsShown);
-  list.innerHTML = visible.map(s => {
+  // Render all, CSS handles collapse
+  list.innerHTML = myTopsData.map(s => {
     // ★ Bug 7 — Check if already re-suggested
     const alreadyResuggested = resuggestedTrackIds.has(`${s.deezerID || 0}:${(s.title || '').toLowerCase()}`);
     return `
@@ -5937,30 +5928,21 @@ function renderMyTops() {
         color:${alreadyResuggested ? 'rgba(255,255,255,0.25)' : '#8B5CF6'};font-size:10px;font-weight:700;
       ">${alreadyResuggested ? '✓ Envoyée' : 'Re-suggérer'}</button>
     </div>`;
-  }).join('');
-
   // Pagination button
-  if (moreBtn) {
-    const remaining = myTopsData.length - myTopsShown;
-    if (remaining > 0) {
-      moreBtn.style.display = 'block';
-      moreBtn.textContent = `Voir plus (${remaining} restant${remaining > 1 ? 's' : ''}) ↓`;
+  if (btn) {
+    if (myTopsData.length > 5) {
+      btn.style.display = 'block';
     } else {
-      moreBtn.style.display = 'none';
+      btn.style.display = 'none';
     }
   }
-}
-
-function showMoreTops() {
-  myTopsShown = Math.min(myTopsShown + 5, myTopsData.length);
-  renderMyTops();
 }
 
 // ── TU AS DÉJÀ SUGGÉRÉ (past suggestions) ───────────────────────────
 function renderMySugs() {
   const container = $('mySugsAll');
   const list = $('mySugsAllList');
-  const moreBtn = $('mySugsMore');
+  const btn = container ? container.querySelector('.collapse-more-btn') : null;
   if (!container || !list || !mySugsData.length) return;
   container.style.display = 'block';
 
@@ -6005,21 +5987,13 @@ function renderMySugs() {
   }).join('');
 
   // Pagination button
-  if (moreBtn) {
-    const maxVisible = Math.min(capped.length, MY_SUGS_MAX);
-    const remaining = maxVisible - mySugsShown;
-    if (remaining > 0) {
-      moreBtn.style.display = 'block';
-      moreBtn.textContent = `Voir plus (${remaining} restant${remaining > 1 ? 's' : ''}) ↓`;
+  if (btn) {
+    if (capped.length > 5) {
+      btn.style.display = 'block';
     } else {
-      moreBtn.style.display = 'none';
+      btn.style.display = 'none';
     }
   }
-}
-
-function showMoreSugs() {
-  mySugsShown = Math.min(mySugsShown + 5, MY_SUGS_MAX);
-  renderMySugs();
 }
 
 function resuggestFromHistory(deezerID, title, artist, coverURL) {
@@ -6056,3 +6030,50 @@ function scrollToMySugsAll() {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+
+// ── V6 COLLAPSE UI HELPERS ─────────────────────────
+window.toggleCollapse = function(sectionId) {
+  const container = $(sectionId);
+  if (!container) return;
+  const content = container.querySelector('.collapse-content');
+  const chevron = container.querySelector('.collapse-chevron');
+  if (!content) return;
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    container.classList.add('collapsed-partial');
+    if (chevron) chevron.style.transform = 'rotate(90deg)';
+  } else {
+    content.style.display = 'none';
+    container.classList.remove('collapsed-partial');
+    if (chevron) chevron.style.transform = 'rotate(0deg)';
+    const btn = container.querySelector('.collapse-more-btn');
+    if (btn) btn.textContent = 'Voir tous ↓';
+  }
+};
+
+window.toggleCollapseMore = function(sectionId) {
+  const container = $(sectionId);
+  if (!container) return;
+  const btn = container.querySelector('.collapse-more-btn');
+  if (container.classList.contains('collapsed-partial')) {
+    container.classList.remove('collapsed-partial');
+    if (btn) btn.textContent = 'Réduire ↑';
+  } else {
+    container.classList.add('collapsed-partial');
+    if (btn) btn.textContent = 'Voir tous ↓';
+  }
+};
+
+window.toggleHistoryMore = function() {
+  const container = $('history-container');
+  if (!container) return;
+  const btn = $('historyMoreToggle');
+  if (container.classList.contains('history-collapsed')) {
+    container.classList.remove('history-collapsed');
+    if (btn) btn.textContent = 'Réduire ↑';
+  } else {
+    container.classList.add('history-collapsed');
+    if (btn) btn.textContent = 'Afficher tout ↓';
+  }
+};

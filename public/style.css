@@ -2393,3 +2393,10 @@ html, body {
   position: relative;
   z-index: 1;
 }
+
+
+/* ═══ COLLAPSE UI (V6) ═══ */
+.collapsed-full { display: none !important; }
+.collapsed-partial .collapse-item:nth-child(n+6) { display: none !important; }
+.history-collapsed .history-item:nth-child(n+4) { display: none !important; }
+

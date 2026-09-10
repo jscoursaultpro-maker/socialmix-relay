@@ -495,20 +495,6 @@
             <span class="diapo-badge hidden" id="diapo-count">0</span>
         </button>
 
-        <!-- Social Hub Quick Access -->
-        <button id="hub-top-btn" class="social-hub-btn" style="
-            width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;
-            background:linear-gradient(135deg,rgba(0,210,255,0.12),rgba(138,43,226,0.08));
-            border:1px solid rgba(0,210,255,0.2);border-radius:12px;cursor:pointer;
-            backdrop-filter:blur(10px);margin-bottom:10px;
-        ">
-            <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#00d2ff,#8a2be2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🎭</div>
-            <div style="flex:1;text-align:left;">
-                <div style="font-size:11px;font-weight:900;color:#fff;letter-spacing:1px;">SOCIAL HUB</div>
-                <div style="font-size:8px;color:rgba(255,255,255,0.4);font-weight:500;">Photos · Contacts · Missions</div>
-            </div>
-        </button>
-
         <!-- ★ Phase Narrative (fix Bug Benjamin D 04/09 — remplace timeline dramaturgie
              par mini-narration évolutive avec CTA fonctionnels selon phase + compte à rebours doctrine).
              Contenu injecté par updatePhaseNarrative() au socket party:state + refresh 60s. -->
@@ -596,24 +582,6 @@
             <div class="vote-status" id="vote-status"></div>
         </div>
 
-        <!-- ★ Mes fire votes preview (top 5, loaded via socket) -->
-        <div id="mySugsPreview" class="card" style="display:none;padding:14px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-                <div style="display:flex;align-items:center;gap:6px;">
-                    <span style="font-size:14px;">🔥</span>
-                    <span style="font-size:10px;font-weight:800;color:#8B5CF6;letter-spacing:1px;">TES DERNIERS TOPS</span>
-                </div>
-            </div>
-            <div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:10px;">Tes coups de cœur en soirée</div>
-            <div id="mySugsPreviewList"></div>
-            <button id="myTopsMore" onclick="showMoreTops()" style="
-                display:none;width:100%;margin-top:8px;padding:12px;
-                text-align:center;cursor:pointer;font-size:12px;font-weight:500;
-                color:rgba(139,92,246,0.7);background:transparent;
-                border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
-            ">Voir plus ↓</button>
-        </div>
-
         <!-- Suggest Track — avant le trending pour éviter les sauts de layout -->
         <div class="card suggest-section">
             <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;">
@@ -644,19 +612,46 @@
             <div id="suggest-hint" style="text-align:center;padding:6px 0;font-size:10px;color:rgba(255,255,255,0.3);font-weight:500;">
                 💡 Tape un titre ou un artiste, ou clique sur Explorer
             </div>
-            <!-- ★ Past suggestions (full list, inline) -->
-            <div id="mySugsAll" style="display:none;margin-top:12px;border-top:1px solid rgba(139,92,246,0.1);padding-top:12px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        </div>
+
+        <!-- ★ Past suggestions (full list) -->
+        <div id="mySugsAll" class="card" style="display:none;padding:14px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);margin-bottom:12px;">
+            <div class="collapse-header" onclick="toggleCollapse('mySugsAll')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:2px;">
+                <div style="display:flex;align-items:center;gap:6px;">
                     <span style="font-size:10px;font-weight:800;color:#8B5CF6;letter-spacing:1px;">🎵 TU AS DÉJÀ SUGGÉRÉ</span>
-                    <span style="font-size:9px;color:rgba(255,255,255,0.3);font-weight:500;">Tap pour re-suggérer</span>
                 </div>
+                <div class="collapse-chevron" style="font-size:10px;color:rgba(139,92,246,0.8);transition:transform 0.2s;">▶</div>
+            </div>
+            <div class="collapse-content" style="display:none;transition:all 0.2s ease-in-out;">
+                <div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:10px;margin-top:4px;">Tap pour re-suggérer</div>
                 <div id="mySugsAllList"></div>
-                <button id="mySugsMore" onclick="showMoreSugs()" style="
+                <button class="collapse-more-btn" onclick="toggleCollapseMore('mySugsAll')" style="
                     display:none;width:100%;margin-top:8px;padding:12px;
                     text-align:center;cursor:pointer;font-size:12px;font-weight:500;
                     color:rgba(139,92,246,0.7);background:transparent;
                     border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
-                ">Voir plus ↓</button>
+                ">Voir tous ↓</button>
+            </div>
+        </div>
+
+        <!-- ★ Mes fire votes preview -->
+        <div id="mySugsPreview" class="card" style="display:none;padding:14px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);margin-bottom:12px;">
+            <div class="collapse-header" onclick="toggleCollapse('mySugsPreview')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:2px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:14px;">🔥</span>
+                    <span style="font-size:10px;font-weight:800;color:#8B5CF6;letter-spacing:1px;">TES DERNIERS TOPS</span>
+                </div>
+                <div class="collapse-chevron" style="font-size:10px;color:rgba(139,92,246,0.8);transition:transform 0.2s;">▶</div>
+            </div>
+            <div class="collapse-content" style="display:none;transition:all 0.2s ease-in-out;">
+                <div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:10px;margin-top:4px;">Tes coups de cœur en soirée</div>
+                <div id="mySugsPreviewList"></div>
+                <button class="collapse-more-btn" onclick="toggleCollapseMore('mySugsPreview')" style="
+                    display:none;width:100%;margin-top:8px;padding:12px;
+                    text-align:center;cursor:pointer;font-size:12px;font-weight:500;
+                    color:rgba(139,92,246,0.7);background:transparent;
+                    border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
+                ">Voir tous ↓</button>
             </div>
         </div>
 
@@ -664,7 +659,7 @@
         <div class="card trends-section">
             <div class="section-header">
                 <span class="section-icon">📊</span>
-                <span class="section-title">VOTE TENDANCE</span>
+                <span class="section-title">VOTE POUR TA TENDANCE</span>
             </div>
             <div class="genre-grid" id="genre-grid"></div>
         </div>
@@ -699,12 +694,12 @@
             <div id="history-list" class="history-list">
                 <div class="empty-state">Aucun titre joué pour le moment</div>
             </div>
-            <button id="historyMore" onclick="showMoreHistory()" style="
+            <button id="historyMoreToggle" onclick="toggleHistoryMore()" style="
                 display:none;width:100%;margin-top:8px;padding:12px;
                 text-align:center;cursor:pointer;font-size:12px;font-weight:500;
                 color:rgba(139,92,246,0.7);background:transparent;
                 border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
-            ">Voir plus ↓</button>
+            ">Afficher tout ↓</button>
         </div>
 
         <!-- Social Hub Shortcut (Bottom) -->
