@@ -3514,11 +3514,13 @@ function updateHistory() {
     else if (v.type === 'meh') localVotes[t].meh++;
   });
   
-  // ★ Bug 8 — Paginated display
-  const visible = state.trackHistory.slice(0, historyShown);
-  visible.forEach((track, i) => {
+  // ★ Bug 8 — History collapse (display all, hide > 3 via class)
+  state.trackHistory.forEach((track, i) => {
     const item = document.createElement('div');
     item.className = 'history-item';
+    if (i >= 3 && isHistoryCollapsed) {
+      item.classList.add('history-item-hidden');
+    }
     const query = encodeURIComponent(`${track.artist} ${track.title}`);
     const genreBadge = track.genre ? `<span style="font-size:8px;font-weight:700;color:#00d2ff;background:rgba(0,210,255,0.1);padding:1px 6px;border-radius:4px;margin-left:6px;">${track.genre}</span>` : '';
     
@@ -3565,11 +3567,12 @@ function updateHistory() {
     list.appendChild(item);
   });
   
-  // ★ Bug 8 — Pagination button (replaced with CSS collapse)
+  // ★ Bug 8 — History toggle button
   const btn = $('historyMoreToggle');
   if (btn) {
     if (total > 3) {
       btn.style.display = 'block';
+      btn.textContent = isHistoryCollapsed ? 'Afficher tout ↓' : 'Réduire ↑';
     } else {
       btn.style.display = 'none';
     }
@@ -5859,7 +5862,7 @@ let mySugsData = [];       // suggestions pool (max 50 from backend)
 let myTopsShown = 5;       // currently displayed count
 let mySugsShown = 5;       // currently displayed count
 const MY_SUGS_MAX = 15;    // hard cap for suggestions
-let historyShown = 5;      // ★ Bug 8 — history pagination
+let isHistoryCollapsed = true; // ★ Bug 8 — history collapse
 const resuggestedTrackIds = new Set(); // ★ Bug 7 — tracks already re-suggested this session
 
 function loadMyData() {
@@ -6066,15 +6069,12 @@ window.toggleCollapseMore = function(sectionId) {
   }
 };
 
-window.toggleHistoryMore = function() {
-  const container = $('history-container');
-  if (!container) return;
-  const btn = $('historyMoreToggle');
-  if (container.classList.contains('history-collapsed')) {
-    container.classList.remove('history-collapsed');
-    if (btn) btn.textContent = 'Réduire ↑';
-  } else {
-    container.classList.add('history-collapsed');
-    if (btn) btn.textContent = 'Afficher tout ↓';
-  }
+window.toggleHistoryCollapse = function() {
+  isHistoryCollapsed = !isHistoryCollapsed;
+  renderHistory();
 };
+
+const historyToggleBtn = $('historyMoreToggle');
+if (historyToggleBtn) {
+  historyToggleBtn.addEventListener('click', window.toggleHistoryCollapse);
+}
