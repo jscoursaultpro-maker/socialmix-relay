@@ -5928,6 +5928,7 @@ function renderMyTops() {
         color:${alreadyResuggested ? 'rgba(255,255,255,0.25)' : '#8B5CF6'};font-size:10px;font-weight:700;
       ">${alreadyResuggested ? '✓ Envoyée' : 'Re-suggérer'}</button>
     </div>`;
+  }).join('');
   // Pagination button
   if (btn) {
     if (myTopsData.length > 5) {
