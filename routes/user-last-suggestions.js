@@ -94,6 +94,12 @@ router.get('/', requireAuth, async (req, res) => {
     const finalMatchOr = (suggMatchOr.length > 0 ? suggMatchOr : [{ 'suggestions.guestName': '___NOMATCH___' }]).map(cond => ({ $and: [cond, validDeezerIdCondition] }));
     pipeline.push({ $match: { $or: finalMatchOr } });
 
+    // UX-2: Exclude fake titles/artists
+    pipeline.push({ $match: { 
+      'suggestions.title': { $exists: true, $nin: [null, "", "Titre en cours"] },
+      'suggestions.artist': { $exists: true, $nin: [null, "", "Artiste inconnu"] }
+    }});
+
     // Stage 4: Project needed fields
     pipeline.push({ $project: {
       partyCode: '$code',
@@ -112,7 +118,26 @@ router.get('/', requireAuth, async (req, res) => {
       }
     }});
 
-    // Stage 5: Sort by sentAt desc
+    // Stage 5: Sort by sentAt desc (before group to keep the most recent)
+    pipeline.push({ $sort: { 'suggestion.sentAt': -1 } });
+
+    // UX-3: Deduplicate by deezerID or (title|artist)
+    pipeline.push({
+      $group: {
+        _id: {
+          $cond: {
+            if: { $and: [{ $ne: ['$suggestion.deezerID', null] }, { $ne: ['$suggestion.deezerID', 0] }] },
+            then: { $toString: '$suggestion.deezerID' },
+            else: { $toLower: { $concat: [{ $trim: { input: "$suggestion.title" } }, "|", { $trim: { input: "$suggestion.artist" } }] } }
+          }
+        },
+        doc: { $first: "$$ROOT" }
+      }
+    });
+
+    pipeline.push({ $replaceRoot: { newRoot: "$doc" } });
+
+    // Re-sort after grouping
     pipeline.push({ $sort: { 'suggestion.sentAt': -1 } });
 
     // Stage 6: Limit
@@ -121,7 +146,7 @@ router.get('/', requireAuth, async (req, res) => {
     const results = await Party.aggregate(pipeline);
 
     // Map to response format
-    const suggestions = [];
+    let suggestions = [];
     let droppedCount = 0;
     
     for (const r of results) {
@@ -144,6 +169,28 @@ router.get('/', requireAuth, async (req, res) => {
 
     if (droppedCount > 0) {
       console.warn(`[UserLastSuggestions] Dropped ${droppedCount} suggestions with missing deezerID (BDD legacy)`);
+    }
+
+    // UX-4: Exclude tracks already suggested in the current party
+    const activePartyCode = req.query.partyCode || req.query.excludeCode;
+    if (activePartyCode) {
+      const activeParty = await Party.findOne({ code: activePartyCode }).lean();
+      if (activeParty && activeParty.suggestions) {
+        const userIdStr = currentUser._id.toString();
+        const alreadySuggestedKeys = new Set(
+          activeParty.suggestions
+            .filter(s => String(s.guestId) === userIdStr || String(s.userId) === userIdStr || String(s.suggestedByUserId) === userIdStr || s.guestName === userName)
+            .map(s => {
+              if (s.deezerID && s.deezerID !== 0) return String(s.deezerID);
+              return s.title && s.artist ? (s.title.toLowerCase().trim() + '|' + s.artist.toLowerCase().trim()) : null;
+            })
+            .filter(Boolean)
+        );
+        suggestions = suggestions.filter(s => {
+          const key = (s.deezerID && s.deezerID !== 0) ? String(s.deezerID) : (s.title.toLowerCase().trim() + '|' + s.artist.toLowerCase().trim());
+          return !alreadySuggestedKeys.has(key);
+        });
+      }
     }
 
     console.log(`[UserLastSuggestions] user=${userName} email=${userEmail} → ${suggestions.length} results (dropped ${droppedCount} with missing deezerID)`);

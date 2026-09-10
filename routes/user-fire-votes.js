@@ -92,22 +92,31 @@ router.get('/', requireAuth, async (req, res) => {
           if (voteType === 'fire' || voteType === 'feu') {
             const normTitle = trackTitle.toLowerCase().trim();
             
-            // Try to find track details from trackHistory
             const historyEntry = party.trackHistory?.find(t => t.title && t.title.toLowerCase().trim() === normTitle);
             
-            if (!fireVotesMap.has(normTitle)) {
-              fireVotesMap.set(normTitle, {
-                id: historyEntry?.deezerId?.toString() || historyEntry?.trackId || normTitle,
-                title: historyEntry?.title || trackTitle,
-                artist: historyEntry?.artist || 'Artiste inconnu',
-                deezerID: historyEntry?.deezerId || null,
+            const title = historyEntry?.title || trackTitle;
+            const artist = historyEntry?.artist || 'Artiste inconnu';
+            
+            // UX-2: Exclude fake titles/artists
+            if (!title || title === "Titre en cours" || title === "Artiste inconnu" || artist === "Artiste inconnu") continue;
+
+            // UX-3: Deduplicate by deezerID or (title|artist)
+            const deezerID = historyEntry?.deezerId || null;
+            const groupKey = deezerID ? String(deezerID) : (title.toLowerCase().trim() + '|' + artist.toLowerCase().trim());
+
+            if (!fireVotesMap.has(groupKey)) {
+              fireVotesMap.set(groupKey, {
+                id: deezerID ? String(deezerID) : (historyEntry?.trackId || groupKey),
+                title: title,
+                artist: artist,
+                deezerID: deezerID,
                 coverURL: historyEntry?.albumArtworkURL || historyEntry?.coverURL || null,
                 count: 0,
                 lastVotedAt: new Date(0)
               });
             }
             
-            const entry = fireVotesMap.get(normTitle);
+            const entry = fireVotesMap.get(groupKey);
             entry.count += 1;
             const partyDate = new Date(party.createdAt || 0);
             if (partyDate > entry.lastVotedAt) {
