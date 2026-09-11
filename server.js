@@ -3260,23 +3260,32 @@ app.get('/api/host/parties/by-user', async (req, res) => {
     let hostUserIdVariants = [user._id.toString()];
     try { hostUserIdVariants.push(new mongoose.Types.ObjectId(user._id)); } catch (_) {}
 
-    const parties = await Party.find({
-      hostUserId: { $in: hostUserIdVariants },
-      code: { $not: /_archived_/ }
-    })
-      .sort({ createdAt: -1 })
-      .limit(500)
-      .select('code partyName createdAt endedAt participants trackHistory photos hostProfile hostSecret')
-      .lean();
+    const parties = await Party.aggregate([
+      { $match: { hostUserId: { $in: hostUserIdVariants }, code: { $not: /_archived_/ } } },
+      { $sort: { createdAt: -1 } },
+      { $limit: 50 },
+      { $project: {
+          code: 1,
+          partyName: 1,
+          createdAt: 1,
+          endedAt: 1,
+          hostProfile: 1,
+          hostSecret: 1,
+          participantCount: { $size: { $ifNull: ["$participants", []] } },
+          trackCount: { $size: { $ifNull: ["$trackHistory", []] } },
+          photoCount: { $size: { $ifNull: ["$photos", []] } }
+        }
+      }
+    ]);
 
     const result = parties.map(p => ({
       code: p.code,
       partyName: p.partyName || '',
       createdAt: p.createdAt,
       endedAt: p.endedAt || null,
-      participantCount: (p.participants || []).filter(x => !x.isHost).length,
-      trackCount: (p.trackHistory || []).length,
-      photoCount: (p.photos || []).length,
+      participantCount: p.participantCount || 0,
+      trackCount: p.trackCount || 0,
+      photoCount: p.photoCount || 0,
       hostProfile: p.hostProfile ? { name: p.hostProfile.name, emoji: p.hostProfile.emoji } : null,
       hostSecret: p.hostSecret || null
     }));
