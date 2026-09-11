@@ -40,7 +40,7 @@ router.get('/', requireAuth, async (req, res) => {
       return res.json({ fireVotes: [] });
     }
 
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 15, 1), 50);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 15, 1), 500);
     const excludeCode = req.query.excludeCode;
 
     // Build match condition for parties where this user participated

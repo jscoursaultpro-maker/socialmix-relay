@@ -3262,8 +3262,9 @@ app.get('/api/host/parties/by-user', async (req, res) => {
 
     const parties = await Party.aggregate([
       { $match: { hostUserId: { $in: hostUserIdVariants }, code: { $not: /_archived_/ } } },
+      { $match: { $expr: { $and: [ { $gte: [ { $size: { $ifNull: ["$participants", []] } }, 3 ] }, { $gte: [ { $size: { $ifNull: ["$trackHistory", []] } }, 20 ] } ] } } },
       { $sort: { createdAt: -1 } },
-      { $limit: 50 },
+      { $limit: 500 },
       { $project: {
           code: 1,
           partyName: 1,
