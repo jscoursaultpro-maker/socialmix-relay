@@ -495,6 +495,12 @@
             <span class="diapo-badge hidden" id="diapo-count">0</span>
         </button>
 
+        <!-- ★ New: Social Hub quick access -->
+        <button id="btn-launch-social-hub" class="diapo-cockpit-btn" onclick="if(typeof showScreen==='function') showScreen('hub')">
+            <span class="diapo-icon">📱</span>
+            <span class="diapo-label">Voir le Social Hub</span>
+        </button>
+
         <!-- ★ Phase Narrative (fix Bug Benjamin D 04/09 — remplace timeline dramaturgie
              par mini-narration évolutive avec CTA fonctionnels selon phase + compte à rebours doctrine).
              Contenu injecté par updatePhaseNarrative() au socket party:state + refresh 60s. -->
@@ -703,7 +709,7 @@
         </div>
 
         <!-- Social Hub Shortcut (Bottom) -->
-        <button id="hub-card-btn" class="social-hub-btn" style="
+        <button id="hub-card-btn" class="social-hub-btn" onclick="if(typeof showScreen==='function') showScreen('hub')" style="
             width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;
             background:linear-gradient(135deg,rgba(0,210,255,0.12),rgba(138,43,226,0.08));
             border:1px solid rgba(0,210,255,0.2);border-radius:12px;cursor:pointer;

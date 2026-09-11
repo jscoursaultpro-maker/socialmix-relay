@@ -1638,7 +1638,7 @@ function enterCockpit() {
   updateHistory();
   
   // Hub buttons (top + bottom)
-  
+  if ($('hub-card-btn')) $('hub-card-btn').addEventListener('click', () => showScreen('hub'));
   // Profile edit button → go to profile screen for editing
   // ★ Bug E-3b — Raccourci intelligent : si pending>0, va direct sur Mes amis (économise 1 tap)
   $('edit-profile-btn').addEventListener('click', () => {
