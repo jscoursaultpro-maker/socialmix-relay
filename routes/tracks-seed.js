@@ -49,6 +49,9 @@ const SEED_PROJECTION = {
   updatedAt: 1,
 };
 
+let cachedSeedPayload = null;
+let cachedSeedVersion = null;
+
 /**
  * GET /api/tracks/seed
  * Query params:
@@ -73,17 +76,28 @@ router.get('/', async (req, res) => {
       });
     }
 
+    if (cachedSeedVersion === currentVersion && cachedSeedPayload !== null) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.send(cachedSeedPayload);
+    }
+
     // Full dump (V1 simplifiée — diff smart sera V1.1)
     const tracks = await Track.find({})
       .select(SEED_PROJECTION)
       .lean();
 
-    res.json({
+    const payload = {
       version: currentVersion,
       serverTime: new Date().toISOString(),
       count: tracks.length,
       tracks,
-    });
+    };
+    
+    cachedSeedPayload = JSON.stringify(payload);
+    cachedSeedVersion = currentVersion;
+
+    res.setHeader('Content-Type', 'application/json');
+    res.send(cachedSeedPayload);
   } catch (err) {
     console.error(`[TracksSeed] ❌ ${err.message}`);
     res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message });

@@ -9,9 +9,11 @@ const PartySchema = new mongoose.Schema({
   currentTrack:     { type: mongoose.Schema.Types.Mixed, default: null },
   nextTrack:        { type: mongoose.Schema.Types.Mixed, default: null },
   trackHistory:     [mongoose.Schema.Types.Mixed],
+  trackCount:       { type: Number, default: 0 },
   genreVotes:       { type: mongoose.Schema.Types.Mixed, default: {} },
   vibeScore:        { type: Number, default: 0 },
   participants:     [mongoose.Schema.Types.Mixed],
+  participantCount: { type: Number, default: 0 },
   // ★ Chantier 5: Salle d'attente — pending guests awaiting host approval
   pendingGuests: [{
     userId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -95,5 +97,16 @@ const PartySchema = new mongoose.Schema({
 PartySchema.index({ hostUserId: 1, createdAt: -1 });
 PartySchema.index({ hostUserId: 1, endedAt: -1 });
 PartySchema.index({ 'pendingGuests.userId': 1 }, { sparse: true });  // ★ Chantier 5: fast pending lookup
+
+// Maintain counts automatically
+PartySchema.pre('save', function(next) {
+  if (this.isModified('participants')) {
+    this.participantCount = this.participants ? this.participants.length : 0;
+  }
+  if (this.isModified('trackHistory')) {
+    this.trackCount = this.trackHistory ? this.trackHistory.length : 0;
+  }
+  next();
+});
 
 export default mongoose.model('Party', PartySchema);

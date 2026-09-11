@@ -2887,6 +2887,23 @@ app.get('/api/state', (req, res) => {
   res.json(first ? buildLightState(first) : { code: null, participants: [] });
 });
 
+// ─── Supabase Auth Middleware (Bearer JWT) ────────────────────────
+async function requireSupabaseAuth(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'AUTH_MISSING', message: 'Authorization: Bearer <token> required' });
+    }
+    const token = authHeader.slice(7);
+    const payload = await verifySupabaseJWT(token);
+    req.user = payload; // Add user info to request
+    next();
+  } catch (err) {
+    console.error('[requireSupabaseAuth] error:', err.message);
+    res.status(401).json({ error: 'AUTH_INVALID', message: 'Invalid or expired token' });
+  }
+}
+
 // ─── Auth Middleware (session token) ────────────────────────────────
 function authMiddleware(req, res, next) {
   const token = req.headers['x-session-token'];
@@ -3036,7 +3053,7 @@ app.post('/api/friends/decline', authMiddleware, (req, res) => {
 });
 
 // GET /api/friends/list — My accepted friends
-app.get('/api/friends/list', authMiddleware, (req, res) => {
+app.get('/api/friends/list', requireSupabaseAuth, (req, res) => {
   const friends = friendships.filter(f =>
     (f.userA === req.userId || f.userB === req.userId) && f.status === 'accepted'
   );
@@ -3060,7 +3077,7 @@ app.get('/api/friends/list', authMiddleware, (req, res) => {
 });
 
 // GET /api/friends/pending — Received friend requests
-app.get('/api/friends/pending', authMiddleware, (req, res) => {
+app.get('/api/friends/pending', requireSupabaseAuth, (req, res) => {
   const pending = friendships.filter(f =>
     (f.userA === req.userId || f.userB === req.userId) &&
     f.status === 'pending' &&
@@ -3084,7 +3101,7 @@ app.get('/api/friends/pending', authMiddleware, (req, res) => {
 });
 
 // ★ Bug E-3a — GET /api/friends/sent — My outgoing (still pending) friend requests
-app.get('/api/friends/sent', authMiddleware, (req, res) => {
+app.get('/api/friends/sent', requireSupabaseAuth, (req, res) => {
   const sent = friendships.filter(f =>
     f.requestedBy === req.userId && f.status === 'pending'
   );
@@ -3262,7 +3279,7 @@ app.get('/api/host/parties/by-user', async (req, res) => {
 
     const parties = await Party.aggregate([
       { $match: { hostUserId: { $in: hostUserIdVariants }, code: { $not: /_archived_/ } } },
-      { $match: { $expr: { $and: [ { $gte: [ { $size: { $ifNull: ["$participants", []] } }, 3 ] }, { $gte: [ { $size: { $ifNull: ["$trackHistory", []] } }, 20 ] } ] } } },
+      { $match: { participantCount: { $gte: 3 }, trackCount: { $gte: 20 } } },
       { $sort: { createdAt: -1 } },
       { $limit: 500 },
       { $project: {
