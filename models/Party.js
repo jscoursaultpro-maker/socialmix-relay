@@ -85,7 +85,11 @@ const PartySchema = new mongoose.Schema({
     queueSnapshot: [mongoose.Schema.Types.Mixed],
     savedAt: { type: Date, default: null },
     deviceId: String
-  }
+  },
+  // ★ V7 feat(afterglow): JustPlay opt-in — parties created via "Just Play" are excluded
+  // from AfterGlow unless explicitly saved by the host (mid-party rename or end-party opt-in).
+  isJustPlay:        { type: Boolean, default: false },
+  savedToAfterglow:  { type: Boolean, default: false }
 }, {
   timestamps: false,
   minimize: false  // preserve empty objects {}

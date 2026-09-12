@@ -51,6 +51,7 @@ import trackSoloVotesRouter from './routes/track-solo-votes.js'; // ★ Track la
 import userSuggestionsRouter from './routes/user-suggestions.js'; // ★ Mes suggestions: GET /api/user/me/suggestions
 import userLastSuggestionsRouter from './routes/user-last-suggestions.js';
 import userFireVotesRouter from './routes/user-fire-votes.js';
+import partyActionsRouter from './routes/party-actions.js'; // ★ V7: JustPlay opt-in endpoints
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
@@ -942,6 +943,9 @@ app.use('/api/user/relationship', userRelationshipRouter);
 
 // ★ Track landing page: anonymous solo votes (no auth, rate-limited by IP)
 app.use('/api/track', trackSoloVotesRouter);
+
+// ★ V7: JustPlay AfterGlow opt-in (rename mid-party + save-to-afterglow end-party)
+app.use('/api/host/parties', partyActionsRouter);
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
@@ -3302,7 +3306,9 @@ app.get('/api/host/parties/by-user', async (req, res) => {
 
     const parties = await Party.aggregate([
       { $match: { hostUserId: { $in: hostUserIdVariants }, code: { $not: /_archived_/ } } },
-      { $match: { participantCount: { $gte: 3 }, trackCount: { $gte: 20 } } },
+      { $match: { participantCount: { $gte: 3 }, trackCount: { $gte: 20 },
+        $or: [ { isJustPlay: { $ne: true } }, { savedToAfterglow: true } ]
+      } },
       { $sort: { createdAt: -1 } },
       { $limit: 500 },
       { $project: {
@@ -4379,6 +4385,8 @@ io.on('connection', (socket) => {
     // ── TASK 3 (#WT): Write-through host + partyName to MongoDB immediately on party creation ──
     // Guards against Render crash before first dirty-flush. Non-blocking fire-and-forget.
     const partyName = data.partyName || data.welcomeText || '';
+    const isJustPlay = data.isJustPlay === true;
+    party.isJustPlay = isJustPlay;
     Party.findOneAndUpdate(
       { code },
       { $setOnInsert: {
@@ -4386,6 +4394,7 @@ io.on('connection', (socket) => {
           createdAt: new Date(),
           hostSecret: party.hostSecret,
           partyName: partyName,
+          isJustPlay: isJustPlay,
           hostProfile: party.hostProfile,
           hostUserId: party.hostUserId || null,
           streamingProvider: party.streamingProvider || null,  // ★ Task #81
