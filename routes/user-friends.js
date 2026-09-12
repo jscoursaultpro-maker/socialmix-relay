@@ -41,9 +41,13 @@ router.post('/request/:targetUserId', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(targetId)) return res.status(400).json({ error: 'INVALID_ID' });
     if (currentUser._id.toString() === targetId) return res.status(400).json({ error: 'CANNOT_REQUEST_SELF' });
     
-    const target = await User.findById(targetId).select('preferences.profilePublic isBanned isDeleted').lean();
+    const target = await User.findById(targetId).select('isBanned isDeleted blockedUsers').lean();
     if (!target || target.isBanned || target.isDeleted) return res.status(404).json({ error: 'USER_NOT_FOUND' });
-    if (!target.preferences?.profilePublic) return res.status(403).json({ error: 'USER_NOT_PUBLIC' });
+    // ★ V7 privacy-first: allow friend requests to non-public users (cover CTA).
+    // blockedUsers still prevents harassment.
+    if (target.blockedUsers?.some(b => b.toString() === currentUser._id.toString())) {
+      return res.status(404).json({ error: 'USER_NOT_FOUND' });
+    }
     
     // Check if already friends
     if (currentUser.friends?.some(f => f.userId?.toString() === targetId)) {

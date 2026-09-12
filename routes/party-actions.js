@@ -100,4 +100,36 @@ router.patch('/:code/rename', requireAuth, async (req, res) => {
   }
 });
 
+// ── PATCH /:code/visibility ─────────────────────────────────────────
+// ★ V7 feat(privacy): Set party visibility level.
+const VALID_VISIBILITY = ['public', 'friends', 'private'];
+
+router.patch('/:code/visibility', requireAuth, async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { visibility } = req.body || {};
+    const userId = req.currentUser._id.toString();
+
+    if (!visibility || !VALID_VISIBILITY.includes(visibility)) {
+      return res.status(400).json({ error: 'INVALID_VISIBILITY', message: `Must be one of: ${VALID_VISIBILITY.join(', ')}` });
+    }
+
+    const party = await Party.findOne({ code });
+    if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
+
+    if (!party.hostUserId || party.hostUserId.toString() !== userId) {
+      return res.status(403).json({ error: 'NOT_HOST', message: 'Only the host can change visibility' });
+    }
+
+    party.visibility = visibility;
+    await party.save();
+
+    console.log(`[PartyActions] ✅ Party ${code} visibility → ${visibility} by host ${userId}`);
+    return res.json({ ok: true, visibility });
+  } catch (err) {
+    console.error('[PartyActions] ❌ visibility error:', err.message);
+    return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
+  }
+});
+
 export default router;

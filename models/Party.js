@@ -89,7 +89,9 @@ const PartySchema = new mongoose.Schema({
   // ★ V7 feat(afterglow): JustPlay opt-in — parties created via "Just Play" are excluded
   // from AfterGlow unless explicitly saved by the host (mid-party rename or end-party opt-in).
   isJustPlay:        { type: Boolean, default: false },
-  savedToAfterglow:  { type: Boolean, default: false }
+  savedToAfterglow:  { type: Boolean, default: false },
+  // ★ V7 feat(privacy): per-party visibility — controls who can see full AfterGlow.
+  visibility:        { type: String, enum: ['public', 'friends', 'private'], default: 'friends' }
 }, {
   timestamps: false,
   minimize: false  // preserve empty objects {}

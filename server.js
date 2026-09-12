@@ -2535,13 +2535,82 @@ app.post('/api/party/:code/resume', async (req, res) => {
   }
 });
 
-// ★ Task #81: GET /api/afterglow/:base62 — Public afterglow endpoint (rate-limit ready)
+// ★ Task #81 + V7 privacy: GET /api/afterglow/:base62 — Tiered access afterglow endpoint
 app.get('/api/afterglow/:base62', async (req, res) => {
   try {
     const hexId = decodeToObjectId(req.params.base62);
     const party = await Party.findById(hexId).lean();
     if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
+
+    // ★ V7: JustPlay unsaved = pure 404 (host chose "no memory")
+    if (party.isJustPlay === true && party.savedToAfterglow !== true) {
+      return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
+    }
+
     if (!party.endedAt) return res.status(403).json({ error: 'PARTY_STILL_LIVE' });
+
+    // ★ V7 privacy: Optional auth — extract userId if token present
+    let reqUserId = null;
+    try {
+      const authHeader = req.headers.authorization || '';
+      if (authHeader.startsWith('Bearer ')) {
+        const payload = await verifySupabaseJWT(authHeader.slice(7));
+        const user = await findOrCreateFromSupabase(payload);
+        if (user) reqUserId = user._id.toString();
+      }
+    } catch (_) { /* anonymous — no auth = cover only */ }
+
+    // ★ V7 privacy: Calculate access level
+    const hostId = party.hostUserId?.toString() || null;
+    const visibility = party.visibility || 'friends';
+    let accessLevel = 'cover';
+
+    if (reqUserId) {
+      if (reqUserId === hostId) {
+        accessLevel = 'full';
+      } else if ((party.participants || []).some(p =>
+        p.userId === reqUserId || p.id === reqUserId || (p.userId && p.userId.toString() === reqUserId)
+      )) {
+        accessLevel = 'full'; // past participant — always full access
+      } else if (visibility === 'public') {
+        accessLevel = 'full';
+      } else if (visibility === 'friends' && hostId) {
+        const hostUser = await User.findById(hostId).select('friends').lean();
+        if (hostUser?.friends?.some(f => f.userId?.toString() === reqUserId)) {
+          accessLevel = 'full';
+        }
+      }
+      // visibility === 'private' → stays 'cover' for non-host non-participant
+    }
+
+    // ★ V7 privacy: Cover-only response (SEO metadata preserved)
+    if (accessLevel === 'cover') {
+      const coverPhoto = await Photo.findOne({ partyCode: party.code, deletedAt: null })
+        .sort({ sentAt: -1 }).select('url').lean();
+      const hostUser = hostId ? await User.findOne({ _id: hostId }).select('profile.handle profile.firstName profile.emoji').lean() : null;
+
+      return res.json({
+        isPrivate: true,
+        cover: {
+          partyName: party.partyName || null,
+          createdAt: party.createdAt,
+          endedAt: party.endedAt,
+          participantCount: party.participantCount || (party.participants || []).length,
+          trackCount: party.trackCount || (party.trackHistory || []).length,
+          photoCount: party.photoCount || 0,
+          coverImage: coverPhoto?.url || null,
+          host: {
+            _id: hostId,
+            handle: hostUser?.profile?.handle || null,
+            firstName: hostUser?.profile?.firstName || party.hostProfile?.name || null,
+            avatar: hostUser?.profile?.emoji || party.hostProfile?.emoji || null
+          }
+        },
+        canRequestAccess: !!(reqUserId && reqUserId !== hostId)
+      });
+    }
+
+    // ★ accessLevel === 'full' → existing complete payload below
 
     // Aggregate track data from HPH with $lookup to Track collection for title/artist/artwork
     // ★ Fix(AfterGlow B1): HPH stores trackId ref but title/artist may be null (pre-Task #44 parties).
