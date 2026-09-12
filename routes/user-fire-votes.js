@@ -171,7 +171,10 @@ router.get('/', requireAuth, async (req, res) => {
         $group: {
           _id: {
             $cond: {
-              if: { $ne: [{ $type: "$filteredTrackHistory.deezerId" }, "missing"] },
+              if: { $and: [
+                { $ne: [{ $type: "$filteredTrackHistory.deezerId" }, "missing"] },
+                { $ne: [{ $type: "$filteredTrackHistory.deezerId" }, "null"] }
+              ]},
               then: { $toString: "$filteredTrackHistory.deezerId" },
               else: {
                 $concat: [
