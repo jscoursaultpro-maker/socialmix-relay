@@ -44,6 +44,16 @@ router.get('/', requireAuth, async (req, res) => {
     const excludeCode = req.query.excludeCode;
     const _idStr = currentUser._id.toString();
 
+    // Helper: Normalize text for deduplication
+    const normalizeText = (text) => {
+      if (!text) return "";
+      let s = String(text);
+      s = s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+      s = s.replace(/[\(\[].*?[\)\]]/g, ""); // Strip anything in parentheses/brackets
+      s = s.replace(/\b(feat\.?|ft\.?|remix|edit|version|remaster|master)\b.*/g, "");
+      return s.trim();
+    };
+
     // Build match condition for parties where this user participated
     const partyMatch = {
       $or: [
@@ -191,8 +201,39 @@ router.get('/', requireAuth, async (req, res) => {
 
     const aggResult = await Party.aggregate(aggPipeline);
 
-    console.log(`[UserFireVotes] user=${userName} email=${userEmail} → ${aggResult.length} tracks (took ${Date.now() - startAgg}ms)`);
-    return res.json({ fireVotes: aggResult.map(fv => ({
+    // Deduping the result from MongoDB
+    const dedupMap = new Map();
+    for (const track of aggResult) {
+      const normTitle = normalizeText(track.title);
+      const normArtist = normalizeText(track.artist);
+      const key = `${normTitle}|${normArtist}`;
+
+      if (!dedupMap.has(key)) {
+        dedupMap.set(key, { ...track });
+      } else {
+        const existing = dedupMap.get(key);
+        existing.count += track.count;
+        if (new Date(track.lastVotedAt) > new Date(existing.lastVotedAt)) {
+          existing.lastVotedAt = track.lastVotedAt;
+          existing.title = track.title;
+          existing.artist = track.artist;
+        }
+        if (!existing.coverURL && track.coverURL) {
+          existing.coverURL = track.coverURL;
+        }
+      }
+    }
+
+    let fireVotes = Array.from(dedupMap.values());
+    fireVotes.sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return new Date(b.lastVotedAt) - new Date(a.lastVotedAt);
+    });
+
+    fireVotes = fireVotes.slice(0, limit);
+
+    console.log(`[UserFireVotes] user=${userName} email=${userEmail} → agg ${aggResult.length} tracks, deduped ${fireVotes.length} tracks (took ${Date.now() - startAgg}ms)`);
+    return res.json({ fireVotes: fireVotes.map(fv => ({
       id: fv.id, title: fv.title, artist: fv.artist,
       deezerID: fv.deezerID, coverURL: fv.coverURL,
       count: fv.count

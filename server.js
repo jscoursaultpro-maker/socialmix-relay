@@ -791,6 +791,11 @@ app.get('/debug-sentry', function debugSentryHandler(req, res) {
 
 // GET /api/tracks/snapshot — DJ Brain cache (utilisé au démarrage de soirée)
 // Règle : réponse < 3s garantie par timeout côté iOS. Si Mongo KO → fallback JSON.
+
+const snapshotCachePayload = new Map();
+const snapshotCacheTime = new Map();
+const SNAPSHOT_TTL = 5 * 60 * 1000; // 5 minutes
+
 app.get('/api/tracks/snapshot', async (req, res) => {
   try {
     const genres   = req.query.genres ? req.query.genres.split(',') : [];
@@ -806,6 +811,12 @@ app.get('/api/tracks/snapshot', async (req, res) => {
     filter.isBlocked  = { $ne: true };
     filter.suggestable = { $ne: false };
 
+    const cacheKey = `${limit}-${adminOnly}-${genres.join(',')}`;
+    const now = Date.now();
+    if (snapshotCacheTime.has(cacheKey) && (now - snapshotCacheTime.get(cacheKey) < SNAPSHOT_TTL)) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.send(snapshotCachePayload.get(cacheKey));
+    }
 
     const tracks = await Track.find(filter)
       .sort({ adminQualified: -1, 'performance.feuRatio': -1, 'performance.totalPlays': -1 })
@@ -813,8 +824,14 @@ app.get('/api/tracks/snapshot', async (req, res) => {
       .select('isrc fallbackHash title artist genre bpm energy coverArtURL providers availableOn source adminQualified tags partyMoment suggestCount performance.totalPlays performance.feuRatio performance.avgVibeAtPlay performance.genreContexts performance.hourBuckets')
       .lean();
 
-    console.log(`[API] 📊 Snapshot: ${tracks.length} tracks (genres: ${genres.join(',') || 'all'}, adminOnly: ${adminOnly})`);
-    res.json({ tracks, count: tracks.length, generatedAt: new Date().toISOString() });
+    console.log(`[API] 📊 Snapshot: ${tracks.length} tracks (genres: ${genres.join(',') || 'all'}, adminOnly: ${adminOnly}) (MISS)`);
+    
+    const payload = JSON.stringify({ tracks, count: tracks.length, generatedAt: new Date().toISOString() });
+    snapshotCachePayload.set(cacheKey, payload);
+    snapshotCacheTime.set(cacheKey, now);
+
+    res.setHeader('Content-Type', 'application/json');
+    res.send(payload);
   } catch (err) {
     console.error('[API] ❌ Snapshot error:', err.message);
     res.status(500).json({ error: 'Failed to fetch snapshot' });
@@ -2896,9 +2913,15 @@ async function requireSupabaseAuth(req, res, next) {
     }
     const token = authHeader.slice(7);
     const payload = await verifySupabaseJWT(token);
-    req.user = payload; // Add user info to request
+    const user = await findOrCreateFromSupabase(payload);
+    req.user = payload; // Keep for legacy compatibility if needed
+    req.currentUser = user;
+    req.userId = user._id.toString();
     next();
   } catch (err) {
+    if (err.name === 'AuthError') {
+      return res.status(401).json({ error: 'AUTH_FAILED', message: err.message });
+    }
     console.error('[requireSupabaseAuth] error:', err.message);
     res.status(401).json({ error: 'AUTH_INVALID', message: 'Invalid or expired token' });
   }
