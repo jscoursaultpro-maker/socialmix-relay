@@ -42,13 +42,14 @@ router.get('/', requireAuth, async (req, res) => {
 
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 15, 1), 500);
     const excludeCode = req.query.excludeCode;
+    const _idStr = currentUser._id.toString();
 
     // Build match condition for parties where this user participated
     const partyMatch = {
       $or: [
         { 'participants.email': userEmail },
         { hostEmail: userEmail },
-        { hostUserId: currentUser._id.toString() },
+        { hostUserId: _idStr },
         { hostUserId: currentUser._id }
       ].filter(Boolean)
     };
@@ -56,87 +57,142 @@ router.get('/', requireAuth, async (req, res) => {
       partyMatch.code = { $ne: excludeCode };
     }
 
-    // Storage is a Mixed object `guestVotes: { guestId: { trackTitle: 'feu' } }`.
-    // We use a simple JS fallback to aggregate.
-    const parties = await Party.find(partyMatch)
-      .select('code createdAt guestVotes trackHistory hostEmail hostUserId participants')
-      .lean();
-
-    const fireVotesMap = new Map(); // key: canonicalTitle, value: { count, lastVotedAt, trackDetails }
-
-    for (const party of parties) {
-      const gv = party.guestVotes || {};
-      const userIdStr = currentUser._id.toString();
-      const isHost = (userEmail && party.hostEmail === userEmail) 
-        || (party.hostUserId && String(party.hostUserId) === userIdStr);
-
-      // Identify user's voter keys in this party
-      const userKeys = [];
-      if (isHost && gv['host']) userKeys.push('host');
-      
-      for (const [key, votes] of Object.entries(gv)) {
-        if (key === 'host') continue;
-        if (votes._guestName === userName || votes._guestName === currentUser.profile?.firstName) {
-          userKeys.push(key);
-        } else {
-          // Check if key matches a participant with the same email
-          const p = party.participants?.find(p => (p.userId === key || p.id === key) && p.email === userEmail);
-          if (p) userKeys.push(key);
+    const startAgg = Date.now();
+    const aggPipeline = [
+      { $match: partyMatch },
+      {
+        $project: {
+          createdAt: 1,
+          hostEmail: 1,
+          hostUserId: 1,
+          participants: 1,
+          guestVotesArray: { $objectToArray: { $ifNull: ["$guestVotes", {}] } },
+          "trackHistory.title": 1,
+          "trackHistory.artist": 1,
+          "trackHistory.deezerId": 1,
+          "trackHistory.trackId": 1,
+          "trackHistory.albumArtworkURL": 1,
+          "trackHistory.coverURL": 1
         }
-      }
-
-      for (const key of userKeys) {
-        const votes = gv[key] || {};
-        for (const [trackTitle, voteType] of Object.entries(votes)) {
-          if (trackTitle === '_guestName') continue;
-          if (voteType === 'fire' || voteType === 'feu') {
-            const normTitle = trackTitle.toLowerCase().trim();
-            
-            const historyEntry = party.trackHistory?.find(t => t.title && t.title.toLowerCase().trim() === normTitle);
-            
-            const title = historyEntry?.title || trackTitle;
-            const artist = historyEntry?.artist || 'Artiste inconnu';
-            
-            // UX-2: Exclude fake titles/artists
-            if (!title || title === "Titre en cours" || title === "Artiste inconnu" || artist === "Artiste inconnu") continue;
-
-            // UX-3: Deduplicate by deezerID or (title|artist)
-            const deezerID = historyEntry?.deezerId || null;
-            const groupKey = deezerID ? String(deezerID) : (title.toLowerCase().trim() + '|' + artist.toLowerCase().trim());
-
-            if (!fireVotesMap.has(groupKey)) {
-              fireVotesMap.set(groupKey, {
-                id: deezerID ? String(deezerID) : (historyEntry?.trackId || groupKey),
-                title: title,
-                artist: artist,
-                deezerID: deezerID,
-                coverURL: historyEntry?.albumArtworkURL || historyEntry?.coverURL || null,
-                count: 0,
-                lastVotedAt: new Date(0)
-              });
-            }
-            
-            const entry = fireVotesMap.get(groupKey);
-            entry.count += 1;
-            const partyDate = new Date(party.createdAt || 0);
-            if (partyDate > entry.lastVotedAt) {
-              entry.lastVotedAt = partyDate;
+      },
+      // Extract fire voted titles for this user BEFORE unwind
+      {
+        $addFields: {
+          fireTrackTitles: {
+            $reduce: {
+              input: {
+                $map: {
+                  input: {
+                    $filter: {
+                      input: "$guestVotesArray",
+                      as: "gv",
+                      cond: {
+                        $or: [
+                          { $and: [
+                              { $eq: ["$$gv.k", "host"] },
+                              { $or: [
+                                  { $eq: ["$hostEmail", userEmail] },
+                                  { $eq: [{ $toString: "$hostUserId" }, _idStr] }
+                              ]}
+                          ]},
+                          { $eq: ["$$gv.k", _idStr] },
+                          { $eq: ["$$gv.v._guestName", userName] },
+                          { $in: ["$$gv.k", {
+                              $map: {
+                                input: {
+                                  $filter: {
+                                    input: { $ifNull: ["$participants", []] },
+                                    as: "p",
+                                    cond: { $eq: ["$$p.email", userEmail] }
+                                  }
+                                },
+                                as: "pMatch",
+                                in: { $ifNull: ["$$pMatch.userId", "$$pMatch.id"] }
+                              }
+                          }]}
+                        ]
+                      }
+                    }
+                  },
+                  as: "validGv",
+                  in: {
+                    $map: {
+                      input: {
+                        $filter: {
+                          input: { $objectToArray: "$$validGv.v" },
+                          as: "voteItem",
+                          cond: { $in: ["$$voteItem.v", ["fire", "feu"]] }
+                        }
+                      },
+                      as: "fireItem",
+                      in: { $toLower: { $trim: { input: "$$fireItem.k" } } }
+                    }
+                  }
+                }
+              },
+              initialValue: [],
+              in: { $concatArrays: ["$$value", "$$this"] }
             }
           }
         }
-      }
-    }
+      },
+      // Filter out parties where the user didn't fire vote any tracks
+      { $match: { "fireTrackTitles.0": { $exists: true } } },
+      // Filter trackHistory array BEFORE unwind to only keep fire voted tracks!
+      {
+        $addFields: {
+          filteredTrackHistory: {
+            $filter: {
+              input: { $ifNull: ["$trackHistory", []] },
+              as: "t",
+              cond: {
+                $in: [ 
+                  { $toLower: { $trim: { input: { $ifNull: ["$$t.title", ""] } } } }, 
+                  "$fireTrackTitles" 
+                ]
+              }
+            }
+          }
+        }
+      },
+      { $project: { trackHistory: 0 } }, // Save memory
+      { $unwind: "$filteredTrackHistory" },
+      {
+        $group: {
+          _id: {
+            $cond: {
+              if: { $ne: [{ $type: "$filteredTrackHistory.deezerId" }, "missing"] },
+              then: { $toString: "$filteredTrackHistory.deezerId" },
+              else: {
+                $concat: [
+                  { $toLower: { $trim: { input: { $ifNull: ["$filteredTrackHistory.title", "Inconnu"] } } } },
+                  "|",
+                  { $toLower: { $trim: { input: { $ifNull: ["$filteredTrackHistory.artist", "Artiste inconnu"] } } } }
+                ]
+              }
+            }
+          },
+          id: { $first: { $ifNull: [{ $toString: "$filteredTrackHistory.deezerId" }, "$filteredTrackHistory.trackId", "$_id"] } },
+          title: { $first: "$filteredTrackHistory.title" },
+          artist: { $first: "$filteredTrackHistory.artist" },
+          deezerID: { $first: "$filteredTrackHistory.deezerId" },
+          coverURL: { $first: { $ifNull: ["$filteredTrackHistory.albumArtworkURL", "$filteredTrackHistory.coverURL"] } },
+          count: { $sum: 1 },
+          lastVotedAt: { $max: "$createdAt" }
+        }
+      },
+      { $match: { 
+          title: { $nin: ["Titre en cours", "Artiste inconnu", null] },
+          artist: { $ne: "Artiste inconnu" }
+      }},
+      { $sort: { count: -1, lastVotedAt: -1 } },
+      { $limit: limit }
+    ];
 
-    let fireVotes = Array.from(fireVotesMap.values());
-    fireVotes.sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
-      return b.lastVotedAt - a.lastVotedAt;
-    });
+    const aggResult = await Party.aggregate(aggPipeline);
 
-    fireVotes = fireVotes.slice(0, limit);
-
-    console.log(`[UserFireVotes] user=${userName} email=${userEmail} parties=${parties.length} → ${fireVotes.length} tracks`);
-    return res.json({ fireVotes: fireVotes.map(fv => ({
+    console.log(`[UserFireVotes] user=${userName} email=${userEmail} → ${aggResult.length} tracks (took ${Date.now() - startAgg}ms)`);
+    return res.json({ fireVotes: aggResult.map(fv => ({
       id: fv.id, title: fv.title, artist: fv.artist,
       deezerID: fv.deezerID, coverURL: fv.coverURL,
       count: fv.count
