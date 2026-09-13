@@ -79,6 +79,19 @@ router.post('/request/:targetUserId', async (req, res) => {
     
     res.json({ status: 'pending', targetHandle: target.profile?.handle || null, sentAt: now });
     
+    // ★ V7: Emit socket event to target user
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${targetId}`).emit('friend:requestReceived', {
+          fromUserId: currentUser._id.toString(),
+          fromName: currentUser.profile?.firstName || 'Un invité',
+          fromEmoji: currentUser.profile?.emoji || '🎉'
+        });
+        console.log(`[Push] 📩 ${currentUser.profile?.firstName} → user:${targetId} (friend:requestReceived)`);
+      }
+    } catch (e) { /* non-fatal */ }
+    
   } catch (err) {
     console.error('[API] ❌ POST /api/user/friends/request error:', err.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
@@ -115,6 +128,19 @@ router.post('/accept/:fromUserId', async (req, res) => {
     ]);
     
     res.json({ status: 'friends', friendedAt: now });
+    
+    // ★ V7: Emit socket event to requester
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${fromId}`).emit('friend:requestAccepted', {
+          acceptedByUserId: currentUser._id.toString(),
+          acceptedByName: currentUser.profile?.firstName || 'Un invité',
+          acceptedByEmoji: currentUser.profile?.emoji || '🎉'
+        });
+        console.log(`[Push] ✅ ${currentUser.profile?.firstName} → user:${fromId} (friend:requestAccepted)`);
+      }
+    } catch (e) { /* non-fatal */ }
     
   } catch (err) {
     console.error('[API] ❌ POST /api/user/friends/accept error:', err.message);
@@ -203,6 +229,30 @@ router.get('/', async (req, res) => {
     
   } catch (err) {
     console.error('[API] ❌ GET /api/user/friends error:', err.message);
+    res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
+  }
+});
+
+// ★ V7: GET /handle/:handle — Search user by handle
+router.get('/handle/:handle', async (req, res) => {
+  try {
+    const handle = req.params.handle.toLowerCase().trim();
+    const user = await User.findOne({ 'profile.handle': handle })
+      .select('profile.firstName profile.handle profile.emoji isBanned isDeleted')
+      .lean();
+    
+    if (!user || user.isBanned || user.isDeleted) {
+      return res.status(404).json({ error: 'NOT_FOUND' });
+    }
+    
+    res.json({
+      _id: user._id,
+      handle: user.profile?.handle || null,
+      firstName: user.profile?.firstName || null,
+      emoji: user.profile?.emoji || null
+    });
+  } catch (err) {
+    console.error('[API] ❌ GET /api/user/friends/handle error:', err.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
   }
 });

@@ -314,6 +314,9 @@ const io = new Server(server, {
 // V0 clients without token: socket.user = null (backward compat preserved).
 io.use(socketAuth);
 
+// ★ V7: Share io with Express routes (for socket emissions from REST handlers)
+app.set('io', io);
+
 // ─── Multi-Party State ──────────────────────────────────────────────
 const parties = new Map();           // code → PartyState
 const partyCleanupTimers = new Map(); // code → setTimeout ID
