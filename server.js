@@ -4458,7 +4458,9 @@ io.on('connection', (socket) => {
     // Guards against Render crash before first dirty-flush. Non-blocking fire-and-forget.
     const partyName = data.partyName || data.welcomeText || '';
     const isJustPlay = data.isJustPlay === true;
+    const visibility = data.visibility || 'friends';  // ★ V7: party visibility from iOS
     party.isJustPlay = isJustPlay;
+    party.visibility = visibility;
     Party.findOneAndUpdate(
       { code },
       { $setOnInsert: {
@@ -4473,6 +4475,7 @@ io.on('connection', (socket) => {
           trackHistory: [],
           participants: party.participants,
           suggestions: [],
+          visibility: visibility,  // ★ V7: party visibility
           lifecycle: party.lifecycle
         }
       },
