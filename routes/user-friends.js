@@ -173,6 +173,43 @@ router.post('/decline/:fromUserId', async (req, res) => {
   }
 });
 
+// ─── DELETE /request/:targetUserId — Cancel sent friend request ──────
+router.delete('/request/:targetUserId', async (req, res) => {
+  try {
+    const currentUser = req.currentUser;
+    const targetId = req.params.targetUserId;
+    
+    if (!mongoose.Types.ObjectId.isValid(targetId)) return res.status(400).json({ error: 'INVALID_ID' });
+    
+    // Remove from sender's sent + receiver's received (symmetric)
+    await Promise.all([
+      User.findByIdAndUpdate(currentUser._id, {
+        $pull: { 'pendingRequests.sent': { userId: new mongoose.Types.ObjectId(targetId) } }
+      }),
+      User.findByIdAndUpdate(targetId, {
+        $pull: { 'pendingRequests.received': { userId: currentUser._id } }
+      })
+    ]);
+    
+    res.json({ status: 'cancelled' });
+    
+    // ★ V7: Emit socket event so target cleans pending UI in real-time
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${targetId}`).emit('friend:requestCancelled', {
+          fromUserId: currentUser._id.toString()
+        });
+        console.log(`[Push] 🚫 ${currentUser.profile?.firstName} → user:${targetId} (friend:requestCancelled)`);
+      }
+    } catch (e) { /* non-fatal */ }
+    
+  } catch (err) {
+    console.error('[API] ❌ DELETE /api/user/friends/request error:', err.message);
+    res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
+  }
+});
+
 // ─── DELETE /:friendUserId — Unfriend ────────────────────────────────
 router.delete('/:friendUserId', async (req, res) => {
   try {
