@@ -66,7 +66,7 @@ router.get('/status', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/intent', async (req, res) => {
   try {
     const rawEmail = String(req.body.email || '').trim().toLowerCase();
     const userId = req.body.userId ? String(req.body.userId) : null;

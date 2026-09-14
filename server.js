@@ -923,7 +923,7 @@ app.use('/api/tracks/seed', compression(), tracksSeedRouter);
 
 // ★ Task #81: Founders program — opt-in, 2500 slots, Supabase JWT auth
 app.use('/api/user/me/founders-rank', foundersRankRouter);
-app.use('/api/founders/intent', foundersIntentRouter);
+app.use('/api/founders', foundersIntentRouter);
 
 // ★ Mes suggestions: user's suggestion history across all parties (Supabase JWT auth)
 app.use('/api/user/me/suggestions', userSuggestionsRouter);
