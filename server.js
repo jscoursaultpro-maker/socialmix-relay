@@ -54,6 +54,7 @@ import userLastSuggestionsRouter from './routes/user-last-suggestions.js';
 import userFireVotesRouter from './routes/user-fire-votes.js';
 import partyActionsRouter from './routes/party-actions.js'; // ★ V7: JustPlay opt-in endpoints
 import userVotesRouter from './routes/user-votes.js'; // ★ V1: Provider vote (Deezer gated)
+import userClaimGuestRouter from './routes/user-claim-guest.js'; // ★ Claim Guest Data
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 
 const __filename = fileURLToPath(import.meta.url);
@@ -955,6 +956,7 @@ app.use('/api/host/parties', partyActionsRouter);
 
 // ★ V1: Provider vote (Deezer gated, extensible Qobuz/Tidal)
 app.use('/api/user/vote', userVotesRouter);
+app.use('/api/users/claim-guest-data', userClaimGuestRouter);
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
