@@ -28,6 +28,7 @@ import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
 import adminUsersRouter from './routes/admin/users.js';
 import adminGuestsRouter from './routes/admin/guests.js';
 import adminBatchRouter from './routes/admin/batch.js';
+import adminFoundersRouter from './routes/admin/founders.js';
 import * as Sentry from '@sentry/node'; // ★ feat(sentry): Express error handler
 import { socketAuth } from './middleware/socketAuth.js'; // ★ Supabase auth middleware
 import { verifySupabaseJWT } from './lib/supabaseAuth.js';  // ★ for HTTP routes
@@ -915,6 +916,7 @@ app.get('/api/tracks/:id/providers', async (req, res) => {
 app.use('/api/admin/users', adminAuth, adminUsersRouter);
 app.use('/api/admin/guests', adminAuth, adminGuestsRouter);
 app.use('/api/admin/batch', adminAuth, adminBatchRouter);
+app.use('/api/admin/founders', adminAuth, adminFoundersRouter);
 
 // ★ Chantier 2: Public Track catalogue seed (no auth — public data)
 app.use('/api/tracks/seed', compression(), tracksSeedRouter);
