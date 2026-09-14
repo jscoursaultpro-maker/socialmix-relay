@@ -161,6 +161,7 @@ export async function findOrCreateFromSupabase(payload) {
         );
         if (linked) {
           console.log(`[userService] 🔗 Linked legacy user sub:${supabaseUserId.substring(0, 8)}… (provider: ${provider})`);
+          await autoRescueGuestParticipations(linked, email);
           return linked;
         }
       } else if (existingDoc.supabaseUserId !== supabaseUserId) {
@@ -193,9 +194,16 @@ export async function findOrCreateFromSupabase(payload) {
         );
         if (merged) {
           console.log(`[userService] Merged Apple SSO ${oldSupabaseUserId} → ${supabaseUserId} for email ${email}`);
+          await autoRescueGuestParticipations(merged, email);
           return merged;
         }
       }
+    }
+    
+    // Si email existe mais ni B1 ni B2 (e.g. supabaseUserId identique), on peut quand même tenter le rescue
+    if (existingDoc && existingDoc.supabaseUserId === supabaseUserId) {
+      await autoRescueGuestParticipations(existingDoc, email);
+      return existingDoc;
     }
   }
 
@@ -279,5 +287,99 @@ export async function migrateDataFromOrphanUser(orphanUserId, targetUserId) {
     console.log(`[userService] Migrated orphan data from ${orphanUserId} to ${targetUserId}`);
   } catch (error) {
     console.error(`[userService] Error migrating data from orphan user ${orphanUserId}:`, error);
+  }
+}
+
+/**
+ * Helper: Auto-rescue orphaned participations using Admin Hub logic
+ * (Match GuestSession by email case-insensitive)
+ */
+async function autoRescueGuestParticipations(userDoc, email) {
+  if (!email) return;
+  const mongoose = (await import('mongoose')).default;
+  const db = mongoose.connection.db;
+  
+  try {
+    const GuestSession = (await import('../models/GuestSession.js')).default;
+    // 1. Match Hub: find GuestSessions matching this email (case-insensitive)
+    const sessions = await GuestSession.find({ email: new RegExp('^' + email + '$', 'i') });
+    if (!sessions || sessions.length === 0) return;
+    
+    // 2. Extract orphan userIds and sessionTokens
+    const orphanUserIds = [...new Set(sessions.map(s => s.userId).filter(Boolean))];
+    const orphanSessionTokens = [...new Set(sessions.map(s => s.sessionToken).filter(Boolean))];
+    
+    if (orphanUserIds.length === 0 && orphanSessionTokens.length === 0) return;
+    
+    // SAFEGUARD: Check if any orphan userId belongs to a DIFFERENT real user
+    const safeOrphanUserIds = [];
+    for (const oid of orphanUserIds) {
+      if (mongoose.Types.ObjectId.isValid(oid)) {
+        const existingRealUser = await db.collection('users').findOne({ _id: new mongoose.Types.ObjectId(oid) });
+        if (existingRealUser && existingRealUser._id.toString() !== userDoc._id.toString()) {
+          console.warn(`[rescue] ⚠️ Ambiguous match: orphanUserId ${oid} belongs to real user ${existingRealUser._id}. Skipping.`);
+          return; // Skip the entire rescue if we detect cross-contamination
+        }
+      }
+      safeOrphanUserIds.push(oid);
+    }
+    
+    // SAFEGUARD: Limit to 500 max documents updated to avoid runaway
+    const query = {
+      $or: [
+        { 'participants.userId': { $in: safeOrphanUserIds } },
+        { 'participants.sessionToken': { $in: orphanSessionTokens } },
+        { 'participants.email': new RegExp('^' + email + '$', 'i') } // Bonus: match if email is directly in participant
+      ]
+    };
+    
+    const partiesToUpdate = await db.collection('parties')
+      .find(query)
+      .project({ _id: 1 })
+      .limit(500)
+      .toArray();
+      
+    if (partiesToUpdate.length > 0) {
+      const partyIds = partiesToUpdate.map(p => p._id);
+      
+      const r1 = await db.collection('parties').updateMany(
+        { _id: { $in: partyIds }, 'participants.userId': { $in: safeOrphanUserIds } },
+        { $set: { 'participants.$.userId': userDoc._id.toString() } }
+      );
+      
+      const r2 = await db.collection('parties').updateMany(
+        { _id: { $in: partyIds }, 'participants.sessionToken': { $in: orphanSessionTokens } },
+        { $set: { 'participants.$.userId': userDoc._id.toString() } }
+      );
+
+      const r3 = await db.collection('parties').updateMany(
+        { _id: { $in: partyIds }, 'participants.email': new RegExp('^' + email + '$', 'i') },
+        { $set: { 'participants.$.userId': userDoc._id.toString() } }
+      );
+      
+      console.log(`[rescue] User ${userDoc._id} (${email}) matched ${partiesToUpdate.length} participations via [GuestSession email match]`);
+    }
+    
+    // Update suggestions & fire_votes directly (using the safe identifiers)
+    await db.collection('suggestions').updateMany(
+      { userId: { $in: safeOrphanUserIds } },
+      { $set: { userId: userDoc._id.toString() } }
+    );
+    await db.collection('suggestions').updateMany(
+      { sessionToken: { $in: orphanSessionTokens } },
+      { $set: { userId: userDoc._id.toString() } }
+    );
+    
+    await db.collection('fire_votes').updateMany(
+      { userId: { $in: safeOrphanUserIds } },
+      { $set: { userId: userDoc._id.toString() } }
+    );
+    await db.collection('fire_votes').updateMany(
+      { sessionToken: { $in: orphanSessionTokens } },
+      { $set: { userId: userDoc._id.toString() } }
+    );
+    
+  } catch (err) {
+    console.error(`[rescue] Error rescuing participations for ${email}:`, err);
   }
 }
