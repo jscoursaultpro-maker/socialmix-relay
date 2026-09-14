@@ -57,6 +57,12 @@ const userSchema = new Schema({
     seenAt: Date
   }],
   
+  // === PROVIDER VOTES (V1 gated providers) ===
+  votedProviders: [{
+    type: String,
+    enum: ['deezer', 'qobuz', 'tidal']
+  }],
+  
   // === SOIRÉES (denormalisé pour fast queries) ===
   partiesAttended: [{
     partyId: { type: Schema.Types.ObjectId, ref: 'Party' },
