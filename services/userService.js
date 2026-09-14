@@ -148,20 +148,54 @@ export async function findOrCreateFromSupabase(payload) {
     return user;
   }
 
-  // ── Path B: legacy V0 user — atomic link by email ───────────────────────
-  // findOneAndUpdate with $exists:false guard prevents race condition:
-  // if two concurrent requests try to link the same email, only one succeeds;
-  // the other falls through to Path C (create), which will fail on unique index
-  // and can retry Path A on the next request (supabaseUserId now set).
-  if (email) {
-    const linked = await User.findOneAndUpdate(
-      { email, supabaseUserId: { $exists: false } },
-      { $set: { supabaseUserId, authProvider: provider, emailVerified, lastSeenAt: new Date() } },
-      { new: true }
-    );
-    if (linked) {
-      console.log(`[userService] 🔗 Linked legacy user sub:${supabaseUserId.substring(0, 8)}… (provider: ${provider})`);
-      return linked;
+  // ── Path B: merge by email ───────────────────────────────────────────────
+  if (email && emailVerified) {
+    const existingDoc = await User.findOne({ email });
+    if (existingDoc) {
+      if (!existingDoc.supabaseUserId) {
+        // Sous-cas B1 : doc.supabaseUserId absent
+        const linked = await User.findOneAndUpdate(
+          { _id: existingDoc._id },
+          { $set: { supabaseUserId, authProvider: provider, emailVerified, lastSeenAt: new Date() } },
+          { new: true }
+        );
+        if (linked) {
+          console.log(`[userService] 🔗 Linked legacy user sub:${supabaseUserId.substring(0, 8)}… (provider: ${provider})`);
+          return linked;
+        }
+      } else if (existingDoc.supabaseUserId !== supabaseUserId) {
+        // Sous-cas B2 : doc.supabaseUserId présent MAIS différent → MERGE
+        const oldSupabaseUserId = existingDoc.supabaseUserId;
+        const mergedSupabaseUserIds = existingDoc.mergedSupabaseUserIds || [];
+        if (!mergedSupabaseUserIds.includes(oldSupabaseUserId)) {
+          mergedSupabaseUserIds.push(oldSupabaseUserId);
+        }
+
+        const targetUserId = existingDoc._id;
+        const orphans = await User.find({ email, _id: { $ne: targetUserId } });
+        for (const orphan of orphans) {
+          await migrateDataFromOrphanUser(orphan._id, targetUserId);
+        }
+
+        const merged = await User.findOneAndUpdate(
+          { _id: existingDoc._id },
+          { 
+            $set: { 
+              supabaseUserId, 
+              authProvider: provider, 
+              emailVerified, 
+              lastSeenAt: new Date(),
+              mergedSupabaseUserIds,
+              mergedAt: new Date()
+            } 
+          },
+          { new: true }
+        );
+        if (merged) {
+          console.log(`[userService] Merged Apple SSO ${oldSupabaseUserId} → ${supabaseUserId} for email ${email}`);
+          return merged;
+        }
+      }
     }
   }
 
@@ -191,4 +225,59 @@ export async function findOrCreateFromSupabase(payload) {
   await newUser.save();
   console.log(`[userService] ✨ Created new user sub:${supabaseUserId.substring(0, 8)}… (provider: ${provider})`);
   return newUser;
+}
+
+/**
+ * Helper: Migrate data from an orphan user to a target user and soft-delete the orphan.
+ */
+export async function migrateDataFromOrphanUser(orphanUserId, targetUserId) {
+  const mongoose = (await import('mongoose')).default;
+  const db = mongoose.connection.db;
+
+  try {
+    // 1. parties
+    await db.collection('parties').updateMany(
+      { 'participants.userId': orphanUserId.toString() },
+      { $set: { 'participants.$.userId': targetUserId.toString() } }
+    );
+    await db.collection('parties').updateMany(
+      { 'participants.userId': orphanUserId },
+      { $set: { 'participants.$.userId': targetUserId } }
+    );
+
+    // 2. fire_votes
+    await db.collection('fire_votes').updateMany(
+      { userId: orphanUserId },
+      { $set: { userId: targetUserId } }
+    );
+    await db.collection('fire_votes').updateMany(
+      { userId: orphanUserId.toString() },
+      { $set: { userId: targetUserId.toString() } }
+    );
+
+    // 3. suggestions
+    await db.collection('suggestions').updateMany(
+      { userId: orphanUserId },
+      { $set: { userId: targetUserId } }
+    );
+    await db.collection('suggestions').updateMany(
+      { userId: orphanUserId.toString() },
+      { $set: { userId: targetUserId.toString() } }
+    );
+
+    // 4. Soft delete orphan
+    await User.updateOne(
+      { _id: orphanUserId },
+      { 
+        $set: { 
+          deletedByMerge: true, 
+          deletedAt: new Date(), 
+          mergedInto: targetUserId 
+        } 
+      }
+    );
+    console.log(`[userService] Migrated orphan data from ${orphanUserId} to ${targetUserId}`);
+  } catch (error) {
+    console.error(`[userService] Error migrating data from orphan user ${orphanUserId}:`, error);
+  }
 }
