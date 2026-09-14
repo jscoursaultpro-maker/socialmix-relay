@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ahouai — Founders Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .stats-bar { display: flex; gap: 15px; font-size: 0.95rem; color: #9ca3af; }
+    .stats-bar span { background: #1f2937; padding: 6px 12px; border-radius: 8px; }
+    .actions-bar { display: flex; gap: 10px; }
+    .table-container { background: #1f2937; border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 12px 16px; border-bottom: 1px solid #374151; }
+    th { background: #111827; color: #9ca3af; font-weight: 500; font-size: 0.85rem; text-transform: uppercase; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover { background: #374151; }
+    .btn-action { background: none; border: none; color: #9ca3af; cursor: pointer; padding: 4px; border-radius: 4px; }
+    .btn-action:hover { color: #fff; background: #4b5563; }
+  </style>
+</head>
+<body>
+  <div id="app" class="screen active">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <span class="logo-icon">🎧</span>
+        <span class="logo-text">Ahouai</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="/admin/index.html" class="nav-link">
+          <span class="nav-icon">📊</span><span>Dashboard</span>
+        </a></li>
+        <li><a href="/admin/users.html" class="nav-link">
+          <span class="nav-icon">👥</span><span>Users Management</span>
+        </a></li>
+        <li><a href="#" class="nav-link active">
+          <span class="nav-icon">✨</span><span>Founders Monitor</span>
+        </a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="/admin/hub.html" class="btn-ghost" style="display: block; text-align: center; text-decoration: none;">Retour Hub</a>
+      </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h2>Founders — Monitor</h2>
+        <p class="page-sub">Suivi de la waitlist des 2500 pionniers</p>
+      </div>
+
+      <div class="top-bar">
+        <div class="stats-bar">
+          <span id="stat-total">Total: -- / --</span>
+        </div>
+        <div class="actions-bar">
+          <input type="search" id="search-input" placeholder="🔍 Filtrer email, source..." class="input" />
+          <button class="btn btn-secondary" onclick="loadFounders()">Rafraîchir</button>
+          <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+          <button class="btn btn-secondary" onclick="logout()">Se déconnecter</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th># Position</th>
+              <th>Email</th>
+              <th>User ID</th>
+              <th>Inscrit le</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="founders-tbody">
+            <!-- Data will be injected here -->
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const API_URL = '/api/admin/founders/list';
+    
+    // Auth check
+    const adminToken = localStorage.getItem('socialmix_admin_token') || localStorage.getItem('adminToken');
+    if (!adminToken) {
+      window.location.href = '/admin/hub';
+    }
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-Admin-Token': adminToken,
+      'Authorization': `Bearer ${adminToken}`
+    };
+
+    const tbody = document.getElementById('founders-tbody');
+    const statTotal = document.getElementById('stat-total');
+    const searchInput = document.getElementById('search-input');
+    
+    let foundersList = [];
+
+    searchInput.addEventListener('input', renderTable);
+
+    async function loadFounders() {
+      try {
+        const res = await fetch(API_URL, { headers });
+        
+        if (res.status === 401) {
+          logout();
+          return;
+        }
+        
+        const data = await res.json();
+        foundersList = data.list || [];
+        
+        statTotal.textContent = `${data.total} / ${data.cap} places`;
+        
+        renderTable();
+      } catch (err) {
+        console.error('Error loading founders:', err);
+      }
+    }
+
+    function renderTable() {
+      const search = searchInput.value.toLowerCase();
+      let filtered = foundersList;
+      
+      if (search) {
+        filtered = foundersList.filter(f => 
+          (f.email || '').toLowerCase().includes(search) || 
+          (f.source || '').toLowerCase().includes(search) ||
+          (f.userId || '').toLowerCase().includes(search)
+        );
+      }
+
+      tbody.innerHTML = '';
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Aucun founder trouvé</td></tr>';
+        return;
+      }
+      
+      filtered.forEach(founder => {
+        const date = new Date(founder.createdAt).toLocaleString('fr-FR');
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>#${founder.position}</td>
+          <td>${founder.email}</td>
+          <td>${founder.userId || '--'}</td>
+          <td>${date}</td>
+          <td>${founder.source || '--'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function exportCSV() {
+      if (!foundersList.length) return;
+      
+      const header = ["Position", "Email", "User ID", "Inscrit le", "Source"];
+      const rows = foundersList.map(f => [
+        f.position,
+        f.email,
+        f.userId || '',
+        new Date(f.createdAt).toISOString(),
+        f.source || ''
+      ]);
+      
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + [header, ...rows].map(e => e.join(",")).join("\n");
+        
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `founders_export_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    function logout() {
+      ['adminToken','sm_admin_token','monitor_token','socialmix_admin_token'].forEach(k => localStorage.removeItem(k));
+      window.location.href = '/admin/hub';
+    }
+
+    // Init
+    loadFounders();
+  </script>
+</body>
+</html>
