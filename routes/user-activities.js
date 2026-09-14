@@ -4,18 +4,18 @@
  * Returns the timeline of guest activities ("Sorties" in iOS Afterglow).
  */
 import express from 'express';
-import { verifyUser } from '../middleware/auth.js';
+import { authJWT } from '../middleware/authJWT.js';
 import Party from '../models/Party.js';
 
 const router = express.Router();
 
 // Apply auth middleware to all routes
-router.use(verifyUser);
+router.use(authJWT);
 
 // ─── GET /api/user/activities — Fetch all guest participations ───────
 router.get('/', async (req, res) => {
   try {
-    const user = req.currentUser;
+    const user = req.user;
     if (!user) {
       return res.status(401).json({ error: 'UNAUTHORIZED' });
     }
