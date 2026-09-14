@@ -145,6 +145,14 @@ export async function findOrCreateFromSupabase(payload) {
     if (hasProfileUpdates) {
       user = await User.findById(user._id);
     }
+
+    // Trigger auto-rescue if not done yet
+    if (!user.rescueDone) {
+      await autoRescueGuestParticipations(user, email);
+      await User.updateOne({ _id: user._id }, { $set: { rescueDone: true } });
+      user.rescueDone = true;
+    }
+
     return user;
   }
 
@@ -294,7 +302,7 @@ export async function migrateDataFromOrphanUser(orphanUserId, targetUserId) {
  * Helper: Auto-rescue orphaned participations using Admin Hub logic
  * (Match GuestSession by email case-insensitive)
  */
-async function autoRescueGuestParticipations(userDoc, email) {
+export async function autoRescueGuestParticipations(userDoc, email) {
   if (!email) return;
   const mongoose = (await import('mongoose')).default;
   const db = mongoose.connection.db;

@@ -1,6 +1,7 @@
 import express from 'express';
 import User from '../../models/User.js';
 import AuthToken from '../../models/AuthToken.js';
+import { autoRescueGuestParticipations } from '../../services/userService.js';
 
 const router = express.Router();
 
@@ -162,6 +163,22 @@ router.post('/:id/force-logout', async (req, res) => {
     
     await AuthToken.deleteMany({ userId: user._id });
     res.json({ message: 'User logged out and tokens invalidated' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/users/:id/force-rescue
+router.post('/:id/force-rescue', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    await autoRescueGuestParticipations(user, user.email);
+    user.rescueDone = true;
+    await user.save();
+    
+    res.json({ message: 'Rescue triggered successfully', user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
