@@ -5876,7 +5876,7 @@ function loadMyData() {
   if (!socket || !socket.connected || !state.guestName || _myDataLoaded) return;
   _myDataLoaded = true;
 
-  // 1. Fire votes (TES DERNIERS TOPS)
+  // 1. Fire votes (MES TITRES PRÉFÉRÉS)
   socket.emit('guest:getMyFireVotes', {
     guestId: state.guestId,
     guestName: state.guestName,
@@ -5887,7 +5887,7 @@ function loadMyData() {
     renderMyTops();
   });
 
-  // 2. Suggestions (TU AS DÉJÀ SUGGÉRÉ)
+  // 2. Suggestions (MES SUGGESTIONS PRÉFÉRÉES)
   socket.emit('guest:getMySuggestions', {
     guestId: state.guestId,
     guestName: state.guestName,
@@ -5911,7 +5911,7 @@ function escHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// ── TES DERNIERS TOPS (fire votes) ──────────────────────────────────
+// ── MES TITRES PRÉFÉRÉS (fire votes) ──────────────────────────────────
 function renderMyTops() {
   const container = $('mySugsPreview');
   const list = $('mySugsPreviewList');
@@ -5949,7 +5949,7 @@ function renderMyTops() {
   }
 }
 
-// ── TU AS DÉJÀ SUGGÉRÉ (past suggestions) ───────────────────────────
+// ── MES SUGGESTIONS PRÉFÉRÉES (past suggestions) ───────────────────────────
 function renderMySugs() {
   const container = $('mySugsAll');
   const list = $('mySugsAllList');
