@@ -3,7 +3,7 @@ import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
 import { findOrCreateFromSupabase } from '../services/userService.js';
 import Party from '../models/Party.js';
 import HostPlaybackHistory from '../models/HostPlaybackHistory.js';
-import PartyPhoto from '../models/PartyPhoto.js';
+import { Photo } from '../models/Photo.js';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -85,9 +85,9 @@ router.get('/:code/details', async (req, res) => {
     }));
 
     // 3. PHOTOS
-    const photos = await PartyPhoto.find({ partyCode: code }).sort({ createdAt: -1 }).lean();
+    const photos = await Photo.find({ partyCode: code }).sort({ createdAt: -1 }).lean();
     const photoList = photos.map(ph => ({
-      thumbnailDataURL: ph.thumbnailUrl || ph.originalUrl,
+      thumbnailDataURL: ph.url || ph.originalUrl || '',
       guestName: ph.guestName || 'Invité',
       sentAt: ph.createdAt
     }));
