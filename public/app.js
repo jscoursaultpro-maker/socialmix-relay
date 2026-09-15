@@ -5739,14 +5739,13 @@ function updateDiapoButton() {
 
   if (count === 0) {
     if (icon) icon.textContent = '📸';
-    if (label) label.textContent = 'Ajoute tes photos dans le social hub';
+    if (label) label.textContent = 'Prends des photos';
     if (badge) badge.classList.add('hidden');
     btn.classList.remove('disabled');
     btn.onclick = scrollToPhotosSection;
   } else {
     if (icon) icon.textContent = '🎞️';
-    const noun = count === 1 ? '1 souvenir à voir' : `${count} souvenirs à voir`;
-    if (label) label.textContent = noun;
+    if (label) label.textContent = 'Lance le diaporama';
     if (badge) { badge.textContent = count; badge.classList.remove('hidden'); }
     btn.classList.remove('disabled');
     btn.onclick = handleDiapoBtnClick;
@@ -5756,9 +5755,17 @@ function updateDiapoButton() {
 function scrollToPhotosSection() {
   showScreen('hub');
   setTimeout(() => {
-    const picker = $('camera-photo-input');
-    if (picker) picker.click();
-  }, 400);
+    const gallerySection = $('section-galerie-photos');
+    if (gallerySection) {
+      // Find the scrollable container (e.g. socialhub-screen)
+      const container = $('socialhub-screen');
+      if (container) {
+        container.scrollTo({ top: gallerySection.offsetTop - 80, behavior: 'smooth' });
+      } else {
+        gallerySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, 100);
 }
 
 /** Update counter in diaporama if modal is open */
