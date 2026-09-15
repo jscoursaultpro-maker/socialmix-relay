@@ -61,7 +61,11 @@ router.get('/', async (req, res) => {
         $match: { 
           'participants.userId': user._id.toString(),
           hostUserId: { $ne: user._id.toString() }, // Avoid returning hosted parties as club activities
-          code: { $not: /_archived_/ }
+          code: { $not: /_archived_/ },
+          $or: [
+            { isJustPlay: { $ne: true } },
+            { savedToAfterglow: true }
+          ]
         } 
       },
       { $sort: { createdAt: -1 } },
