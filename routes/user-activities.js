@@ -10,6 +10,9 @@ import Party from '../models/Party.js';
 
 const router = express.Router();
 
+// ★ Phase 2: RAM cache (5 min) for /activities to prevent 40s cold-start timeouts
+const activitiesCache = new Map();
+
 // Middleware: extract authenticated user from JWT
 async function requireAuth(req, res, next) {
   try {
@@ -40,6 +43,15 @@ router.get('/', async (req, res) => {
     const user = req.currentUser;
     if (!user) {
       return res.status(401).json({ error: 'UNAUTHORIZED' });
+    }
+
+    const userIdStr = user._id.toString();
+
+    // ★ Check RAM cache
+    const cached = activitiesCache.get(userIdStr);
+    if (cached && cached.expiresAt > Date.now()) {
+      console.log(`[activities] 🔥 Cache hit for user ${userIdStr}`);
+      return res.json({ ok: true, activities: cached.data });
     }
 
     // Find parties where the user is a participant (excluding those they hosted just to be clean, 
@@ -111,6 +123,13 @@ router.get('/', async (req, res) => {
         topGenre
       };
     });
+
+    // ★ Store in RAM cache (TTL 5 mins)
+    activitiesCache.set(userIdStr, {
+      data: activities,
+      expiresAt: Date.now() + 300000
+    });
+    console.log(`[activities] 💾 Cache stored for user ${userIdStr}`);
 
     res.json({ ok: true, activities });
     

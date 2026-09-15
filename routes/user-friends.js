@@ -239,9 +239,9 @@ router.delete('/:friendUserId', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const currentUser = await User.findById(req.currentUser._id)
-      .populate('friends.userId', 'profile.firstName profile.handle profile.emoji')
-      .populate('pendingRequests.sent.userId', 'profile.firstName profile.handle profile.emoji')
-      .populate('pendingRequests.received.userId', 'profile.firstName profile.handle profile.emoji')
+      .populate('friends.userId', 'profile.firstName profile.handle profile.emoji foundersRank')
+      .populate('pendingRequests.sent.userId', 'profile.firstName profile.handle profile.emoji foundersRank')
+      .populate('pendingRequests.received.userId', 'profile.firstName profile.handle profile.emoji foundersRank')
       .lean();
     
     const formatUserList = (list) => {
@@ -253,6 +253,7 @@ router.get('/', async (req, res) => {
           handle: u.profile?.handle || null,
           name: u.profile?.firstName || null,
           emoji: u.profile?.emoji || null,
+          isFounder: (u.foundersRank != null && u.foundersRank > 0),
           timestamp: item.friendedAt || item.requestedAt || null
         };
       }).filter(Boolean);
@@ -275,7 +276,7 @@ router.get('/handle/:handle', async (req, res) => {
   try {
     const handle = req.params.handle.toLowerCase().trim();
     const user = await User.findOne({ 'profile.handle': handle })
-      .select('profile.firstName profile.handle profile.emoji isBanned isDeleted')
+      .select('profile.firstName profile.handle profile.emoji isBanned isDeleted foundersRank')
       .lean();
     
     if (!user || user.isBanned || user.isDeleted) {
@@ -286,7 +287,8 @@ router.get('/handle/:handle', async (req, res) => {
       _id: user._id,
       handle: user.profile?.handle || null,
       firstName: user.profile?.firstName || null,
-      emoji: user.profile?.emoji || null
+      emoji: user.profile?.emoji || null,
+      isFounder: (user.foundersRank != null && user.foundersRank > 0)
     });
   } catch (err) {
     console.error('[API] ❌ GET /api/user/friends/handle error:', err.message);

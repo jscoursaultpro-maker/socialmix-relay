@@ -104,6 +104,7 @@ PartySchema.index({ hostUserId: 1, createdAt: -1 });
 PartySchema.index({ hostUserId: 1, endedAt: -1 });
 PartySchema.index({ 'pendingGuests.userId': 1 }, { sparse: true });  // ★ Chantier 5: fast pending lookup
 PartySchema.index({ code: 1, 'participants.userId': 1 }); // ★ Guest fetch index
+PartySchema.index({ 'participants.userId': 1, createdAt: -1 }); // ★ Perf /activities index
 
 // Maintain counts automatically
 PartySchema.pre('save', function(next) {

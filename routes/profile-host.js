@@ -24,6 +24,8 @@ router.get('/:handle', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'NOT_FOUND' });
     if (user.isBanned || user.isDeleted) return res.status(404).json({ error: 'NOT_FOUND' });
     
+    const isFounder = (user.foundersRank != null && user.foundersRank > 0);
+    
     const userId = user._id.toString();
 
     // ★ V7 privacy: Optional auth — extract viewer userId if token present
@@ -96,6 +98,7 @@ router.get('/:handle', async (req, res) => {
           handle: user.profile?.handle || null,
           firstName: user.profile?.firstName || null,
           avatar: user.profile?.emoji || null,
+          isFounder,
           totalPartiesCount: partiesCount,
           dominantGenre
         },
@@ -113,6 +116,7 @@ router.get('/:handle', async (req, res) => {
       handle: user.profile?.handle,
       name: user.profile?.firstName || 'Hôte',
       emoji: user.profile?.emoji || null,
+      isFounder,
       memberSince: user.createdAt,
       stats,
       parties: parties.slice(0, 50),  // Cap at 50 most recent

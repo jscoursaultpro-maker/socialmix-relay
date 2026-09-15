@@ -4,6 +4,7 @@ import { findOrCreateFromSupabase } from '../services/userService.js';
 import Party from '../models/Party.js';
 import HostPlaybackHistory from '../models/HostPlaybackHistory.js';
 import { Photo } from '../models/Photo.js';
+import User from '../models/User.js';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -74,15 +75,33 @@ router.get('/:code/details', async (req, res) => {
     }));
 
     // 2. PARTICIPANTS
-    const participants = (party.participants || []).map(p => ({
-      name: p.name,
-      emoji: p.emoji || '🎉',
-      isHost: p.userId === party.hostUserId,
-      joinedAt: p.joinedAt || party.createdAt,
-      voteCount: p.voteCount || 0,
-      photoCount: p.photoCount || 0,
-      points: p.points || 0
-    }));
+    // Batch lookup foundersRank for all participants
+    const participantUserIds = (party.participants || [])
+      .map(p => p.userId)
+      .filter(id => id && mongoose.Types.ObjectId.isValid(id.toString()));
+      
+    const usersForFounders = await User.find({ _id: { $in: participantUserIds } })
+      .select('foundersRank')
+      .lean();
+      
+    const founderMap = {};
+    for (const u of usersForFounders) {
+      founderMap[u._id.toString()] = (u.foundersRank != null && u.foundersRank > 0);
+    }
+
+    const participants = (party.participants || []).map(p => {
+      const isFounder = p.userId ? (founderMap[p.userId.toString()] || false) : false;
+      return {
+        name: p.name,
+        emoji: p.emoji || '🎉',
+        isHost: p.userId === party.hostUserId,
+        isFounder,
+        joinedAt: p.joinedAt || party.createdAt,
+        voteCount: p.voteCount || 0,
+        photoCount: p.photoCount || 0,
+        points: p.points || 0
+      };
+    });
 
     // 3. PHOTOS
     const photos = await Photo.find({ partyCode: code }).sort({ createdAt: -1 }).lean();
