@@ -103,6 +103,7 @@ const PartySchema = new mongoose.Schema({
 PartySchema.index({ hostUserId: 1, createdAt: -1 });
 PartySchema.index({ hostUserId: 1, endedAt: -1 });
 PartySchema.index({ 'pendingGuests.userId': 1 }, { sparse: true });  // ★ Chantier 5: fast pending lookup
+PartySchema.index({ code: 1, 'participants.userId': 1 }); // ★ Guest fetch index
 
 // Maintain counts automatically
 PartySchema.pre('save', function(next) {

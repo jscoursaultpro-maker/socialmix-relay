@@ -63,6 +63,9 @@ router.get('/', async (req, res) => {
           hostProfile: 1,
           participantCount: { $size: { $ifNull: ["$participants", []] } },
           trackCount: { $size: { $ifNull: ["$trackHistory", []] } },
+          startedAt: 1,
+          endedAt: 1,
+          genres: "$trackHistory.genre"
           // get the most voted track as topTrack if needed, but we can just leave it null for now
           // as iOS handles optional topTrack
         }
@@ -70,6 +73,30 @@ router.get('/', async (req, res) => {
     ]);
 
     const activities = parties.map(p => {
+      // Calculate durationMin
+      let durationMin = p.trackCount * 3;
+      if (p.startedAt && p.endedAt) {
+        durationMin = Math.round((new Date(p.endedAt).getTime() - new Date(p.startedAt).getTime()) / 60000);
+      }
+      
+      // Calculate topGenre
+      let topGenre = null;
+      if (p.genres && p.genres.length > 0) {
+        const counts = {};
+        for (const g of p.genres) {
+          if (g && typeof g === 'string') {
+            counts[g] = (counts[g] || 0) + 1;
+          }
+        }
+        let maxCount = 0;
+        for (const g in counts) {
+          if (counts[g] > maxCount) {
+            maxCount = counts[g];
+            topGenre = g;
+          }
+        }
+      }
+
       // Map to iOS PartyActivity struct
       return {
         id: p.code,
@@ -79,7 +106,9 @@ router.get('/', async (req, res) => {
         trackCount: p.trackCount || 0,
         guestCount: p.participantCount || 0,
         topTrack: null,
-        venueName: p.hostProfile ? p.hostProfile.name : null
+        venueName: p.hostProfile ? p.hostProfile.name : null,
+        durationMin,
+        topGenre
       };
     });
 
