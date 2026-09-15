@@ -889,12 +889,12 @@ html, body {
   font-size: 16px; font-weight: 900; color: var(--text-white);
   margin: 3px 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 100%;
+  max-width: 200px;
 }
 .np-artist {
   font-size: 12px; font-weight: 600; color: var(--text-secondary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 100%;
+  max-width: 200px;
 }
 .np-meta { display: flex; gap: 6px; margin-top: 6px; }
 .np-badge {
@@ -1458,7 +1458,7 @@ html, body {
    RESPONSIVE
    ═══════════════════════════════════════════ */
 @media (max-width: 400px) {
-  .np-title { max-width: 160px; font-size: 14px; }
+  .np-title, .np-artist { max-width: 160px; font-size: 14px; }
   .vote-icon { font-size: 20px; }
   .vote-btn { padding: 12px 6px; }
   .genre-grid { gap: 4px; }

@@ -3267,7 +3267,7 @@ function renderGuestSuggestions() {
   if (mine.length > 0) {
     const header = document.createElement('div');
     header.style.cssText = 'font-size:9px;font-weight:800;color:rgba(255,255,255,0.35);letter-spacing:0.5px;margin:4px 0 6px;';
-    header.textContent = 'MES SUGGESTIONS';
+    header.textContent = 'MES SUGGESTIONS PRÉFÉRÉES';
     list.appendChild(header);
 
     mine.forEach(sugg => {
