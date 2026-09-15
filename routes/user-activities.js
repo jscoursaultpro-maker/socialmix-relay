@@ -4,18 +4,40 @@
  * Returns the timeline of guest activities ("Sorties" in iOS Afterglow).
  */
 import express from 'express';
-import { authJWT } from '../middleware/authJWT.js';
+import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
+import { findOrCreateFromSupabase } from '../services/userService.js';
 import Party from '../models/Party.js';
 
 const router = express.Router();
 
+// Middleware: extract authenticated user from JWT
+async function requireAuth(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'AUTH_MISSING', message: 'Authorization: Bearer <token> required' });
+    }
+    const token = authHeader.slice(7);
+    const payload = await verifySupabaseJWT(token);
+    const user = await findOrCreateFromSupabase(payload);
+    req.currentUser = user;
+    next();
+  } catch (err) {
+    if (err.name === 'AuthError') {
+      return res.status(401).json({ error: 'AUTH_FAILED', message: err.message });
+    }
+    return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
+  }
+}
+
 // Apply auth middleware to all routes
-router.use(authJWT);
+router.use(requireAuth);
 
 // ─── GET /api/user/activities — Fetch all guest participations ───────
 router.get('/', async (req, res) => {
   try {
-    const user = req.user;
+    console.log('[activities] userId=', req.currentUser?._id?.toString());
+    const user = req.currentUser;
     if (!user) {
       return res.status(401).json({ error: 'UNAUTHORIZED' });
     }
