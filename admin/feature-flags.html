@@ -162,12 +162,12 @@
     let pendingToggle = null;
 
     function hubLogout() {
-      localStorage.removeItem('ahouai_admin_token');
+      localStorage.removeItem('adminToken');
       window.location.href = '/admin/hub.html';
     }
 
     function getToken() {
-      return localStorage.getItem('ahouai_admin_token');
+      return localStorage.getItem('adminToken');
     }
 
     async function loadFlags() {
