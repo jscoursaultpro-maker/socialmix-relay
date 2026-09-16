@@ -187,6 +187,62 @@ function adminAuth(req, res, next) {
   next();
 }
 
+// ─── Feature Flags ────────────────────────────────────────────────────────────
+let globalFeatureFlagsCache = null;
+
+const DEFAULT_FEATURE_FLAGS = {
+  socialHub: true,
+  photos: true,
+  diaporama: true,
+  suggestions: true,
+  tendanceLive: true,
+  fireVotes: true,
+  afterGlow: true,
+  foundersProgram: true,
+  justPlayMode: true,
+  qrScan: true,
+  costumePodium: true,
+  friendsFeed: true,
+  spotifyProvider: true,
+  deezerProvider: false,
+  appleMusicProvider: true,
+  partyArchive: true
+};
+
+async function initFeatureFlags() {
+  try {
+    const db = mongoose.connection.db;
+    if (!db) {
+      console.warn('[FeatureFlags] ⚠️ MongoDB not connected yet');
+      globalFeatureFlagsCache = { ...DEFAULT_FEATURE_FLAGS };
+      return;
+    }
+    const doc = await db.collection('feature_flags').findOne({ _id: 'global' });
+    if (!doc) {
+      console.log('[FeatureFlags] Initializing default flags in MongoDB');
+      await db.collection('feature_flags').insertOne({
+        _id: 'global',
+        flags: DEFAULT_FEATURE_FLAGS,
+        updatedAt: new Date()
+      });
+      globalFeatureFlagsCache = { ...DEFAULT_FEATURE_FLAGS };
+    } else {
+      console.log('[FeatureFlags] Loaded from MongoDB');
+      globalFeatureFlagsCache = { ...DEFAULT_FEATURE_FLAGS, ...doc.flags };
+      // Sync any missing flags
+      if (Object.keys(DEFAULT_FEATURE_FLAGS).some(k => doc.flags[k] === undefined)) {
+        await db.collection('feature_flags').updateOne(
+          { _id: 'global' },
+          { $set: { flags: globalFeatureFlagsCache, updatedAt: new Date() } }
+        );
+      }
+    }
+  } catch (err) {
+    console.error('[FeatureFlags] DB Init error:', err);
+    globalFeatureFlagsCache = { ...DEFAULT_FEATURE_FLAGS };
+  }
+}
+
 
 // ─── Seed editorial catalog into MongoDB ────────────────────────────
 async function seedEditorialCatalog() {
@@ -982,6 +1038,52 @@ app.post('/api/admin/auth', (req, res) => {
   // Tokens expirent après 24h
   setTimeout(() => ADMIN_TOKENS.delete(token), 24 * 60 * 60 * 1000);
   res.json({ token });
+});
+
+// GET /api/feature-flags — read-only public endpoint
+app.get('/api/feature-flags', (req, res) => {
+  res.json(globalFeatureFlagsCache || DEFAULT_FEATURE_FLAGS);
+});
+
+// GET /api/admin/feature-flags — admin read (redundant but consistent)
+app.get('/api/admin/feature-flags', adminAuth, (req, res) => {
+  res.json(globalFeatureFlagsCache || DEFAULT_FEATURE_FLAGS);
+});
+
+// PATCH /api/admin/feature-flags — update a flag
+app.patch('/api/admin/feature-flags', adminAuth, async (req, res) => {
+  try {
+    const { flagName, value } = req.body;
+    if (flagName === undefined || value === undefined) {
+      return res.status(400).json({ error: 'Missing flagName or value' });
+    }
+    if (!(flagName in DEFAULT_FEATURE_FLAGS)) {
+      return res.status(400).json({ error: 'Unknown feature flag' });
+    }
+
+    const newVal = !!value;
+    globalFeatureFlagsCache[flagName] = newVal;
+    
+    const db = mongoose.connection.db;
+    if (db) {
+      await db.collection('feature_flags').updateOne(
+        { _id: 'global' },
+        { 
+          $set: { 
+            [`flags.${flagName}`]: newVal,
+            updatedAt: new Date()
+          } 
+        },
+        { upsert: true }
+      );
+    }
+    
+    io.emit('featureFlags:updated', globalFeatureFlagsCache);
+    res.json({ success: true, flags: globalFeatureFlagsCache });
+  } catch (err) {
+    console.error('[FeatureFlags] Patch error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // GET /api/admin/tracks — liste paginée avec filtres
@@ -7297,6 +7399,7 @@ io.on('connection', (socket) => {
 async function boot() {
   // 1. Connect to MongoDB (optional)
   await connectDB();
+  await initFeatureFlags();
 
   // 2. Restore active parties from DB
   await restoreParties(parties);

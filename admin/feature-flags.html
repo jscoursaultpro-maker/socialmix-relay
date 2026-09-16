@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AhOuai — Feature Flags</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0a0a0f; color: #f1f1f3;
+      font-size: 14px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #hub-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 40px 0; width: 100%; box-sizing: border-box; }
+    .back-btn {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; border-radius: 8px; padding: 6px 14px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 600; transition: background 0.2s; text-decoration: none;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.2); }
+    #hub-header button {
+      background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171; border-radius: 8px; padding: 6px 14px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 600; transition: background 0.2s;
+    }
+    #hub-header button:hover { background: rgba(239,68,68,0.25); }
+
+    .hub-container {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 32px 40px 60px; max-width: 900px; margin: 0 auto;
+    }
+    .hub-container h1 {
+      font-size: 2rem; font-weight: 900; margin-bottom: 4px;
+      background: linear-gradient(135deg, #fff, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .subtitle { color: #9ca3af; font-size: 1.05rem; margin-bottom: 32px; text-align: center; }
+
+    .sub-section {
+      background: #13131a; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; padding: 24px; margin-bottom: 20px; width: 100%;
+    }
+    .sub-section h3 {
+      font-size: 1rem; font-weight: 700; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .flag-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .flag-item:last-child { border-bottom: none; }
+    
+    .flag-info { flex: 1; padding-right: 20px; }
+    .flag-title { font-weight: 600; font-size: 1.05rem; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .flag-desc { color: #9ca3af; font-size: 0.85rem; }
+    
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative; display: inline-block; width: 50px; height: 28px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #374151; transition: .3s; border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px;
+      background-color: white; transition: .3s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: #22c55e; }
+    input:checked + .slider:before { transform: translateX(22px); }
+    input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+
+    #loading { text-align: center; color: #6b7280; font-size: 1rem; margin: 40px 0; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-box {
+      background: #1f2937; border: 1px solid #374151; border-radius: 16px;
+      padding: 30px; width: 100%; max-width: 400px; text-align: center;
+    }
+    .modal-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 12px; color: #f87171; }
+    .modal-desc { color: #d1d5db; margin-bottom: 24px; font-size: 0.95rem; }
+    .modal-actions { display: flex; gap: 12px; justify-content: center; }
+    .btn-cancel {
+      background: rgba(255,255,255,0.1); border: none; color: #fff;
+      border-radius: 8px; padding: 10px 18px; cursor: pointer; font-weight: 600;
+    }
+    .btn-confirm {
+      background: #ef4444; border: none; color: #fff;
+      border-radius: 8px; padding: 10px 18px; cursor: pointer; font-weight: 600;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: #22c55e; color: white; padding: 12px 24px; border-radius: 8px;
+      font-weight: 600; font-size: 0.9rem; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 2000; display: flex; align-items: center; gap: 8px;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <div id="hub-header">
+    <a href="/admin/hub.html" class="back-btn">‹ Retour au Hub</a>
+    <button onclick="hubLogout()">⎋ Déconnexion</button>
+  </div>
+
+  <div class="hub-container">
+    <h1>🎚️ Feature Flags</h1>
+    <p class="subtitle">Activer / désactiver des fonctionnalités globalement pour tous les utilisateurs</p>
+
+    <div id="loading">Chargement des flags...</div>
+    <div id="flags-container" style="display:none; width:100%;"></div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal-box">
+      <div class="modal-title">⚠️ Attention</div>
+      <div class="modal-desc" id="confirm-desc">Tu es sur le point de désactiver une fonctionnalité importante. Es-tu sûr ?</div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+        <button class="btn-confirm" id="confirm-btn">Désactiver</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast">✅ Sauvegardé avec succès</div>
+
+  <script>
+    const FLAG_DEFINITIONS = [
+      { id: 'socialHub', name: 'Social Hub', desc: 'Le Social Hub global côté guest (photos, réactions, engagement)', group: 'Guest Web / iOS', critical: true },
+      { id: 'photos', name: 'Photos', desc: 'Fonctionnalité d\'upload et partage de photos', group: 'Guest Web / iOS', critical: true },
+      { id: 'suggestions', name: 'Suggestions de titres', desc: 'Permettre aux guests de suggérer des titres', group: 'Guest Web / iOS' },
+      { id: 'tendanceLive', name: 'Tendance Live', desc: 'Vote pour la tendance / genre musical en cours', group: 'Guest Web / iOS' },
+      { id: 'fireVotes', name: 'Votes Bof/Top/Fire', desc: 'Boutons d\'interaction sur les tracks', group: 'Guest Web / iOS' },
+      { id: 'afterGlow', name: 'AfterGlow', desc: 'L\'expérience récapitulative AfterGlow de fin de soirée', group: 'Guest Web / iOS' },
+      { id: 'foundersProgram', name: 'Founders Program', desc: 'Affichage des badges et avantages du Founders Program', group: 'Global' },
+      { id: 'partyArchive', name: 'Historique des soirées', desc: 'Accès à l\'historique de ses soirées terminées', group: 'Guest iOS' },
+      { id: 'qrScan', name: 'Scanner QR Code', desc: 'Scanner de QR Code natif pour rejoindre une soirée', group: 'Guest iOS' },
+      { id: 'friendsFeed', name: 'Flux des Amis', desc: 'Flux d\'activités des amis dans le Hub', group: 'Guest iOS' },
+      { id: 'diaporama', name: 'Mode Diaporama', desc: 'Affichage du mode Diaporama sur l\'écran du Host', group: 'Host iOS' },
+      { id: 'justPlayMode', name: 'Just Play Mode', desc: 'Mode Host passif sans interaction Guest', group: 'Host iOS' },
+      { id: 'costumePodium', name: 'Podium Costumes', desc: 'Mini-jeu concours de costumes / podium', group: 'Host iOS' },
+      { id: 'spotifyProvider', name: 'Source Spotify', desc: 'Intégration de la source Spotify', group: 'Providers' },
+      { id: 'deezerProvider', name: 'Source Deezer', desc: 'Intégration de la source Deezer', group: 'Providers' },
+      { id: 'appleMusicProvider', name: 'Source Apple Music', desc: 'Intégration de la source Apple Music', group: 'Providers' }
+    ];
+
+    let currentFlags = {};
+    let pendingToggle = null;
+
+    function hubLogout() {
+      localStorage.removeItem('ahouai_admin_token');
+      window.location.href = '/admin/hub.html';
+    }
+
+    function getToken() {
+      return localStorage.getItem('ahouai_admin_token');
+    }
+
+    async function loadFlags() {
+      const token = getToken();
+      if (!token) {
+        window.location.href = '/admin/hub.html';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/feature-flags', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.status === 401 || res.status === 403) {
+          hubLogout();
+          return;
+        }
+        
+        const flags = await res.json();
+        currentFlags = flags;
+        renderFlags();
+        
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('flags-container').style.display = 'block';
+      } catch (err) {
+        console.error('Error loading flags', err);
+        document.getElementById('loading').textContent = 'Erreur de chargement. Recharge la page.';
+      }
+    }
+
+    function renderFlags() {
+      const container = document.getElementById('flags-container');
+      container.innerHTML = '';
+
+      // Group flags
+      const groups = {};
+      FLAG_DEFINITIONS.forEach(def => {
+        if (!groups[def.group]) groups[def.group] = [];
+        groups[def.group].push(def);
+      });
+
+      for (const [groupName, flags] of Object.entries(groups)) {
+        const section = document.createElement('div');
+        section.className = 'sub-section';
+        
+        const title = document.createElement('h3');
+        title.textContent = `📁 ${groupName}`;
+        section.appendChild(title);
+
+        flags.forEach(def => {
+          const val = currentFlags[def.id] !== undefined ? currentFlags[def.id] : true;
+          
+          const item = document.createElement('div');
+          item.className = 'flag-item';
+          
+          const badgeHtml = def.critical ? '<span style="font-size:0.7rem; background:rgba(239,68,68,0.2); color:#f87171; padding:2px 6px; border-radius:4px;">CRITIQUE</span>' : '';
+          
+          item.innerHTML = `
+            <div class="flag-info">
+              <div class="flag-title">${def.name} ${badgeHtml}</div>
+              <div class="flag-desc">${def.desc}</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-${def.id}" ${val ? 'checked' : ''} onchange="handleToggle('${def.id}', this.checked, ${def.critical})">
+              <span class="slider"></span>
+            </label>
+          `;
+          section.appendChild(item);
+        });
+
+        container.appendChild(section);
+      }
+    }
+
+    function handleToggle(flagId, newValue, isCritical) {
+      if (!newValue && isCritical) {
+        // Prevent immediate toggle
+        document.getElementById(`toggle-${flagId}`).checked = true; // revert visually
+        
+        pendingToggle = { flagId, newValue };
+        const def = FLAG_DEFINITIONS.find(d => d.id === flagId);
+        document.getElementById('confirm-desc').innerHTML = `Tu es sur le point de désactiver <b>${def.name}</b>.<br><br>Ceci impactera immédiatement l'expérience des utilisateurs en production.`;
+        document.getElementById('confirm-modal').style.display = 'flex';
+      } else {
+        updateFlag(flagId, newValue);
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('confirm-modal').style.display = 'none';
+      pendingToggle = null;
+    }
+
+    document.getElementById('confirm-btn').addEventListener('click', () => {
+      if (pendingToggle) {
+        const { flagId, newValue } = pendingToggle;
+        document.getElementById(`toggle-${flagId}`).checked = newValue; // set visually
+        updateFlag(flagId, newValue);
+        closeModal();
+      }
+    });
+
+    async function updateFlag(flagName, value) {
+      const toggleEl = document.getElementById(`toggle-${flagName}`);
+      toggleEl.disabled = true; // Disable during request
+
+      try {
+        const res = await fetch('/api/admin/feature-flags', {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}` 
+          },
+          body: JSON.stringify({ flagName, value })
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          currentFlags = data.flags;
+          showToast();
+        } else {
+          throw new Error('Patch failed');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Erreur lors de la mise à jour');
+        toggleEl.checked = !value; // revert
+      } finally {
+        toggleEl.disabled = false;
+      }
+    }
+
+    let toastTimeout;
+    function showToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    window.addEventListener('DOMContentLoaded', loadFlags);
+  </script>
+</body>
+</html>
