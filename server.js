@@ -665,8 +665,10 @@ app.get('/api/tracks/freshness/:hostUserId', async (req, res) => {
     const now = Date.now();
     const cached = freshnessCache.get(cacheKey);
     if (cached && cached.expiresAt > now) {
+      console.log(`[Cache] HIT /freshness userId=${hostUserId}`);
       return res.json(cached.data);
     }
+    console.log(`[Cache] MISS /freshness userId=${hostUserId}`);
 
     const hostUser = await User.findById(hostUserId).select('settings').lean();
     const isEnabled = hostUser?.settings?.antiRepetition !== false;
@@ -801,9 +803,8 @@ app.get('/debug-sentry', function debugSentryHandler(req, res) {
 // GET /api/tracks/snapshot — DJ Brain cache (utilisé au démarrage de soirée)
 // Règle : réponse < 3s garantie par timeout côté iOS. Si Mongo KO → fallback JSON.
 
-const snapshotCachePayload = new Map();
-const snapshotCacheTime = new Map();
-const SNAPSHOT_TTL = 5 * 60 * 1000; // 5 minutes
+const snapshotCache = new Map();
+const SNAPSHOT_TTL = 300000; // 5 minutes
 
 app.get('/api/tracks/snapshot', async (req, res) => {
   try {
@@ -822,10 +823,13 @@ app.get('/api/tracks/snapshot', async (req, res) => {
 
     const cacheKey = `${limit}-${adminOnly}-${genres.join(',')}`;
     const now = Date.now();
-    if (snapshotCacheTime.has(cacheKey) && (now - snapshotCacheTime.get(cacheKey) < SNAPSHOT_TTL)) {
+    const cached = snapshotCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      console.log(`[Cache] HIT /snapshot limit=${limit} admin=${adminOnly}`);
       res.setHeader('Content-Type', 'application/json');
-      return res.send(snapshotCachePayload.get(cacheKey));
+      return res.send(cached.data);
     }
+    console.log(`[Cache] MISS /snapshot limit=${limit} admin=${adminOnly}`);
 
     const tracks = await Track.find(filter)
       .sort({ adminQualified: -1, 'performance.feuRatio': -1, 'performance.totalPlays': -1 })
@@ -833,11 +837,10 @@ app.get('/api/tracks/snapshot', async (req, res) => {
       .select('isrc fallbackHash title artist genre bpm energy coverArtURL providers availableOn source adminQualified tags partyMoment suggestCount performance.totalPlays performance.feuRatio performance.avgVibeAtPlay performance.genreContexts performance.hourBuckets')
       .lean();
 
-    console.log(`[API] 📊 Snapshot: ${tracks.length} tracks (genres: ${genres.join(',') || 'all'}, adminOnly: ${adminOnly}) (MISS)`);
+    console.log(`[API] 📊 Snapshot: ${tracks.length} tracks (genres: ${genres.join(',') || 'all'}, adminOnly: ${adminOnly})`);
     
     const payload = JSON.stringify({ tracks, count: tracks.length, generatedAt: new Date().toISOString() });
-    snapshotCachePayload.set(cacheKey, payload);
-    snapshotCacheTime.set(cacheKey, now);
+    snapshotCache.set(cacheKey, { data: payload, expiresAt: now + SNAPSHOT_TTL });
 
     res.setHeader('Content-Type', 'application/json');
     res.send(payload);
