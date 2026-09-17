@@ -58,6 +58,7 @@ import userFireVotesRouter from './routes/user-fire-votes.js';
 import partyActionsRouter from './routes/party-actions.js'; // ★ V7: JustPlay opt-in endpoints
 import partyJoinRouter from './routes/party-join.js'; // ★ Sprint E1: Join requests
 import partySettingsRouter from './routes/party-settings.js'; // ★ Sprint X1: Party settings
+import userSettingsRouter from './routes/user-settings.js'; // ★ Sprint X3: User settings
 import userVotesRouter from './routes/user-votes.js'; // ★ V1: Provider vote (Deezer gated)
 import userClaimGuestRouter from './routes/user-claim-guest.js'; // ★ Claim Guest Data
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
@@ -556,6 +557,7 @@ app.get('/api/me', async (req, res) => {
       isDeleted:     user.isDeleted,
       createdAt:     user.createdAt,
       lastSeenAt:    user.lastSeenAt,
+      settings:      user.settings,
     };
     
     // Check Pre-Founder intent
@@ -1038,6 +1040,7 @@ app.use('/api/party', partySettingsRouter);
 
 // ★ V1: Provider vote (Deezer gated, extensible Qobuz/Tidal)
 app.use('/api/user/vote', userVotesRouter);
+app.use('/api/user', userSettingsRouter); // ★ Sprint X3: User settings
 app.use('/api/users/claim-guest-data', userClaimGuestRouter);
 
 // POST /api/admin/auth — obtenir un token admin

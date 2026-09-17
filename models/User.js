@@ -135,7 +135,8 @@ const userSchema = new Schema({
   
   // === SETTINGS ===
   settings: {
-    antiRepetition: { type: Boolean, default: true }
+    antiRepetition: { type: Boolean, default: true },
+    allowPublicMode: { type: Boolean, default: false } // ★ Sprint X3: Opt-in for public party visibility
   },
   
   // === DEVICES (capture iOS IDFV pour futures sessions) ===
