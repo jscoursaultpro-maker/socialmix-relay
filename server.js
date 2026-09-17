@@ -41,6 +41,7 @@ import { reconcileAllVotes } from './services/voteReconciliation.js'; // ★ Tas
 import Meta, { bumpSeedVersion, getSeedVersion } from './models/Meta.js'; // ★ Chantier 2: seed versioning
 import tracksSeedRouter from './routes/tracks-seed.js'; // ★ Chantier 2: GET /api/tracks/seed
 import foundersRankRouter from './routes/founders-rank.js'; // ★ Task #81: GET+POST /api/user/me/founders-rank
+import { fetchUserFoundersData } from './utils/founders.js'; // ★ Prompt 2a: Founders enrichment
 import foundersIntentRouter from './routes/founders-intent.js';
 import profileHostRouter from './routes/profile-host.js'; // ★ B2.1: GET /api/profile/host/:handle
 import profileGuestRouter from './routes/profile-guest.js'; // ★ B2.1: GET /api/profile/guest/:handle
@@ -4026,7 +4027,10 @@ function buildLightState(party, isHost = false) {
     connected: p.connected !== false,
     partyCode: p.partyCode,
     joinedAt: p.joinedAt,
-    photo: p.photo
+    photo: p.photo,
+    foundersRank: p.foundersRank || null,
+    foundersIntentSubmitted: p.foundersIntentSubmitted || false,
+    foundersIntentPosition: p.foundersIntentPosition || null
   }));
 
   // Cap track history: full for host (AfterGlow), last 50 for guests (network safety + late-joiner vibe)
@@ -5516,13 +5520,19 @@ io.on('connection', (socket) => {
       userId = socket.user?._id?.toString() || 'user_' + randomUUID().replace(/-/g, '').substring(0, 16);
     }
 
+    // ★ Fetch founders data to cache in RAM
+    const foundersData = await fetchUserFoundersData(userId);
+
     const guest = {
       id: socket.id, userId, name: guestName, emoji: data.emoji || '🎉',
       photo: data.photo || null, phone: data.phone || '', email: data.email || '', instagram: data.instagram || '',
       partyCode: code, joinedAt: new Date().toISOString(),
       consentVersion: data.consentVersion || '1.0',
       consentTimestamp: data.consentTimestamp || Date.now(),
-      sessionToken, connected: true
+      sessionToken, connected: true,
+      foundersRank: foundersData.foundersRank,
+      foundersIntentSubmitted: foundersData.foundersIntentSubmitted,
+      foundersIntentPosition: foundersData.foundersIntentPosition
     };
     // Remove any existing entry with same name OR same userId (prevents duplicates on reconnect)
     // IMPORTANT: Never remove the host entry even if name matches
@@ -6072,7 +6082,16 @@ io.on('connection', (socket) => {
       party.guestVotes[guestId]._guestName = data.guestName;
     }
     party.guestVotes[guestId][data.trackId || 'current'] = data.type;
-    const safeData = { ...data, guestId }; // override client guestId
+    
+    // ★ Inject founders fields from RAM cache
+    const participantCache = party.participants.find(p => p.userId === guestId || p.id === socket.id) || {};
+    const safeData = { 
+      ...data, 
+      guestId,
+      foundersRank: participantCache.foundersRank || null,
+      foundersIntentSubmitted: participantCache.foundersIntentSubmitted || false,
+      foundersIntentPosition: participantCache.foundersIntentPosition || null
+    }; // override client guestId
     io.to(`host:${party.code}`).emit('guest:voted', safeData);
     io.to(`guest:${party.code}`).emit('guest:voted', safeData);
     // ★ fix(bug-78): vote modifiable — addPoints, trackHistory counters, pendingRatings
@@ -6113,10 +6132,16 @@ io.on('connection', (socket) => {
       delete party.guestGenreVoteExpiry[voterKey];
     }
     const totals = recomputeGenreVotes(party);
+    
+    // ★ Inject founders fields from RAM cache
+    const participantCache = party.participants.find(p => p.userId === guestId || p.id === socket.id) || {};
     io.to(`host:${party.code}`).emit('guest:genreVoted', {
       ...data,
       guestId, // override client guestId
-      expiresAt: party.guestGenreVoteExpiry[voterKey] || null
+      expiresAt: party.guestGenreVoteExpiry[voterKey] || null,
+      foundersRank: participantCache.foundersRank || null,
+      foundersIntentSubmitted: participantCache.foundersIntentSubmitted || false,
+      foundersIntentPosition: participantCache.foundersIntentPosition || null
     });
     io.to(`guest:${party.code}`).emit('votes:update', { genreVotes: totals });
     io.to(`host:${party.code}`).emit('votes:update', { genreVotes: totals });
@@ -6184,6 +6209,9 @@ io.on('connection', (socket) => {
       });
     }
 
+    // ★ Fetch founders data from RAM cache (participant lookup)
+    const participantCache = party.participants.find(p => p.userId === guestId || p.id === socket.id) || {};
+
     // 3. Enregistrer la suggestion
     const suggestion = {
       ...data,
@@ -6193,7 +6221,10 @@ io.on('connection', (socket) => {
       queuedAt: null, playingAt: null, playedAt: null, dismissedAt: null,
       socketId: socket.id,
       boostCount: 0,          // ★ boost: compteur
-      boostedBy: []           // ★ boost: [guestId] anti-double/auto
+      boostedBy: [],          // ★ boost: [guestId] anti-double/auto
+      foundersRank: participantCache.foundersRank || null,
+      foundersIntentSubmitted: participantCache.foundersIntentSubmitted || false,
+      foundersIntentPosition: participantCache.foundersIntentPosition || null
     };
     party.suggestions = cappedPush(party.suggestions, suggestion, 200);
     const hostRoom = `host:${party.code}`;

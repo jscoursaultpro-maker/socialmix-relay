@@ -7,6 +7,7 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
 import { encodeObjectId } from '../utils/base62.js';
+import { fetchUserFoundersData } from '../utils/founders.js';
 
 const router = Router();
 
@@ -127,6 +128,9 @@ router.get('/:handle', async (req, res) => {
         });
     }
     
+    // ─── Founders Data ───────────────────────────────────────────────
+    const foundersData = await fetchUserFoundersData(user._id);
+
     // ─── Response ────────────────────────────────────────────────────
     res.json({
       userId: user._id,
@@ -134,6 +138,9 @@ router.get('/:handle', async (req, res) => {
       name: firstName,
       emoji: user.profile?.emoji || null,
       memberSince: user.createdAt,
+      foundersRank: foundersData.foundersRank,
+      foundersIntentSubmitted: foundersData.foundersIntentSubmitted,
+      foundersIntentPosition: foundersData.foundersIntentPosition,
       stats: {
         totalPartiesAttended,
         totalTracksSuggested,
