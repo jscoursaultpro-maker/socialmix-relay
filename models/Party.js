@@ -92,6 +92,9 @@ const PartySchema = new mongoose.Schema({
   savedToAfterglow:  { type: Boolean, default: false },
   // ★ V7 feat(privacy): per-party visibility — controls who can see full AfterGlow.
   visibility:        { type: String, enum: ['public', 'friends', 'private'], default: 'private' },
+  // ★ Sprint X2: AfterGlow Privacy
+  afterglowSaved:      { type: Boolean, default: true },
+  afterglowVisibility: { type: String, enum: ['invisible', 'private', 'friends', 'public'], default: null }, // null = inherit from visibility
   // ★ Sprint E1: Join Requests for friends/public parties
   joinRequests: [{
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

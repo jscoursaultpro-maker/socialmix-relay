@@ -62,6 +62,7 @@ import userSettingsRouter from './routes/user-settings.js'; // ★ Sprint X3: Us
 import userVotesRouter from './routes/user-votes.js'; // ★ V1: Provider vote (Deezer gated)
 import userClaimGuestRouter from './routes/user-claim-guest.js'; // ★ Claim Guest Data
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
+import { resolvePhotoAccess, filterPhotosForUser } from './utils/photoVisibility.js'; // ★ Sprint X2
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -2617,7 +2618,30 @@ app.get('/api/resolve-shortlink', async (req, res) => {
 app.get('/api/party/:code/photos', async (req, res) => {
   try {
     const { code } = req.params;
-    const photos = await Photo.find({ 
+    const party = await Party.findOne({ code: code.toUpperCase() }).lean();
+    if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
+
+    let reqUserId = null;
+    try {
+      const authHeader = req.headers.authorization || '';
+      if (authHeader.startsWith('Bearer ')) {
+        const payload = await verifySupabaseJWT(authHeader.slice(7));
+        const user = await findOrCreateFromSupabase(payload);
+        if (user) reqUserId = user._id.toString();
+      }
+    } catch (_) {}
+
+    const hostId = party.hostUserId?.toString() || null;
+    let hostUser = null;
+    if (hostId) hostUser = await User.findById(hostId).select('friends').lean();
+    
+    const accessLevel = resolvePhotoAccess(reqUserId, party, hostUser);
+    
+    if (accessLevel === 'nothing') {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'Photos non disponibles' });
+    }
+
+    let photos = await Photo.find({ 
       partyCode: code.toUpperCase(),
       deletedAt: null
     })
@@ -2625,7 +2649,9 @@ app.get('/api/party/:code/photos', async (req, res) => {
     .limit(500)
     .lean();
     
-    res.json({ success: true, count: photos.length, photos });
+    photos = filterPhotosForUser(photos, accessLevel, party.coverPhotoId);
+    
+    res.json({ success: true, count: photos.length, photoAccess: accessLevel, photos });
   } catch (err) {
     console.error('[Photos GET] error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -2704,29 +2730,17 @@ app.get('/api/afterglow/:base62', async (req, res) => {
 
     // ★ V7 privacy: Calculate access level
     const hostId = party.hostUserId?.toString() || null;
-    const visibility = party.visibility || 'friends';
-    let accessLevel = 'cover';
+    let hostUser = null;
+    if (hostId) hostUser = await User.findById(hostId).select('friends').lean();
+    
+    const accessLevel = resolvePhotoAccess(reqUserId, party, hostUser);
 
-    if (reqUserId) {
-      if (reqUserId === hostId) {
-        accessLevel = 'full';
-      } else if ((party.participants || []).some(p =>
-        p.userId === reqUserId || p.id === reqUserId || (p.userId && p.userId.toString() === reqUserId)
-      )) {
-        accessLevel = 'full'; // past participant — always full access
-      } else if (visibility === 'public') {
-        accessLevel = 'full';
-      } else if (visibility === 'friends' && hostId) {
-        const hostUser = await User.findById(hostId).select('friends').lean();
-        if (hostUser?.friends?.some(f => f.userId?.toString() === reqUserId)) {
-          accessLevel = 'full';
-        }
-      }
-      // visibility === 'private' → stays 'cover' for non-host non-participant
+    if (accessLevel === 'nothing') {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'AfterGlow non disponible' });
     }
 
     // ★ V7 privacy: Cover-only response (SEO metadata preserved)
-    if (accessLevel === 'cover') {
+    if (accessLevel === 'cover-only') {
       const coverPhoto = await Photo.findOne({ partyCode: party.code, deletedAt: null })
         .sort({ sentAt: -1 }).select('url').lean();
       const hostUser = hostId ? await User.findOne({ _id: hostId }).select('profile.handle profile.firstName profile.emoji').lean() : null;
@@ -2787,8 +2801,11 @@ app.get('/api/afterglow/:base62', async (req, res) => {
     ]);
 
     // Photos from Photo collection (Cloudinary CDN URLs only)
-    const photos = await Photo.find({ partyCode: party.code, deletedAt: null })
+    let photos = await Photo.find({ partyCode: party.code, deletedAt: null })
       .sort({ sentAt: -1 }).lean();
+    
+    // ★ Sprint X2: Filter photos based on resolved accessLevel
+    photos = filterPhotosForUser(photos, accessLevel, party.coverPhotoId);
 
     // Build guest stats from participantScores (RGPD: prénom + emoji only)
     const guests = (party.participants || [])
@@ -2848,6 +2865,7 @@ app.get('/api/afterglow/:base62', async (req, res) => {
           emoji: party.hostProfile?.emoji || null
         }
       },
+      photoAccess: accessLevel, // ★ Sprint X2
       tracks,
       guests,
       moments: party.moments || [],
@@ -3707,6 +3725,13 @@ app.get('/api/host/parties/:code/details', async (req, res) => {
 
     console.log(`[API] /api/host/parties/${code}/details → ${tracks.length} tracks, ${participants.length} participants, ${photoList.length} photos`);
 
+    const reqUserId = user._id.toString();
+    const hostUser = await User.findById(party.hostUserId).select('friends').lean();
+    const accessLevel = resolvePhotoAccess(reqUserId, party, hostUser);
+    
+    // Pour un host, l'accessLevel sera 'full', mais par sécurité on l'applique
+    const finalPhotoList = filterPhotosForUser(photoList, accessLevel, party.coverPhotoId);
+
     res.json({
       ok: true,
       party: {
@@ -3717,9 +3742,10 @@ app.get('/api/host/parties/:code/details', async (req, res) => {
         hostProfile: party.hostProfile ? { name: party.hostProfile.name, emoji: party.hostProfile.emoji } : null,
         hostSecret: party.hostSecret || null
       },
+      photoAccess: accessLevel, // ★ Sprint X2
       tracks,
       participants,
-      photos: photoList,
+      photos: finalPhotoList,
       leaderboard,
       messages,
       genreVotes

@@ -6,6 +6,7 @@ import { Photo } from '../models/Photo.js';
 import express from 'express';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
+import { resolvePhotoAccess, filterPhotosForUser } from '../utils/photoVisibility.js';
 
 import FoundersIntent from '../models/FoundersIntent.js';
 
@@ -151,6 +152,25 @@ router.get('/:code/details', async (req, res) => {
       }
     }
 
+    const reqUserId = user._id.toString();
+    const hostUser = await User.findById(party.hostUserId).select('friends').lean();
+    const accessLevel = resolvePhotoAccess(reqUserId, party, hostUser);
+    
+    // Si l'utilisateur n'a accès à rien, on pourrait renvoyer 403,
+    // mais comme c'est "Mes Soirées" (participations), l'accessLevel sera normalement 'full'.
+    // Cependant, le règles engine garantit qu'on est sûr.
+    if (accessLevel === 'nothing') {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'AfterGlow non disponible' });
+    }
+    
+    // Remapper photoList avec l'ID pour que filterPhotosForUser fonctionne sur la coverPhotoId
+    // Attention: filterPhotosForUser se base sur _id ou id de la photo.
+    // Or dans user-participations.js, photoList contient thumbnailDataURL etc.,
+    // ce n'est pas le format natif. Mais comme accessLevel = 'full' pour un participant, 
+    // filterPhotosForUser renverra photoList directement.
+    // On l'applique par sécurité.
+    const finalPhotoList = filterPhotosForUser(photoList, accessLevel, party.coverPhotoId);
+
     res.json({
       party: {
         partyName: party.partyName || 'Sortie nocturne',
@@ -162,9 +182,10 @@ router.get('/:code/details', async (req, res) => {
         },
         createdAt: party.createdAt
       },
+      photoAccess: accessLevel, // ★ Sprint X2
       tracks,
       participants,
-      photos: photoList,
+      photos: finalPhotoList,
       messages: party.messages || [],
       leaderboard: [],
       genreVotes: {},

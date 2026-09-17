@@ -126,4 +126,68 @@ router.get('/:code/settings', async (req, res) => {
   }
 });
 
+// PATCH /api/party/:code/afterglow-visibility
+router.patch('/:code/afterglow-visibility', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { hostSecret, afterglowVisibility } = req.body || {};
+
+    if (!hostSecret) return res.status(401).json({ error: 'MISSING_HOST_SECRET' });
+    
+    // We allow patching afterglow visibility even for ended parties
+    const party = await Party.findOne({ code });
+    if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
+
+    if (party.hostSecret !== hostSecret) {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'Invalid host secret' });
+    }
+
+    if (!['invisible', 'private', 'friends', 'public'].includes(afterglowVisibility)) {
+      return res.status(400).json({ error: 'INVALID_VISIBILITY' });
+    }
+
+    party.afterglowVisibility = afterglowVisibility;
+    await party.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(code).emit('party:afterglowVisibilityUpdated', party.afterglowVisibility);
+    }
+
+    res.json({ success: true, afterglowVisibility: party.afterglowVisibility });
+  } catch (err) {
+    console.error(`PATCH /api/party/:code/afterglow-visibility error:`, err);
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+});
+
+// PATCH /api/party/:code/afterglow-saved
+router.patch('/:code/afterglow-saved', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { hostSecret, afterglowSaved } = req.body || {};
+
+    if (!hostSecret) return res.status(401).json({ error: 'MISSING_HOST_SECRET' });
+    
+    const party = await Party.findOne({ code });
+    if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
+
+    if (party.hostSecret !== hostSecret) {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'Invalid host secret' });
+    }
+
+    if (typeof afterglowSaved !== 'boolean') {
+      return res.status(400).json({ error: 'INVALID_SAVED_FLAG' });
+    }
+
+    party.afterglowSaved = afterglowSaved;
+    await party.save();
+
+    res.json({ success: true, afterglowSaved: party.afterglowSaved });
+  } catch (err) {
+    console.error(`PATCH /api/party/:code/afterglow-saved error:`, err);
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+});
+
 export default router;
