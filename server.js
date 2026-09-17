@@ -56,6 +56,7 @@ import userSuggestionsRouter from './routes/user-suggestions.js'; // ★ Mes sug
 import userLastSuggestionsRouter from './routes/user-last-suggestions.js';
 import userFireVotesRouter from './routes/user-fire-votes.js';
 import partyActionsRouter from './routes/party-actions.js'; // ★ V7: JustPlay opt-in endpoints
+import partyJoinRouter from './routes/party-join.js'; // ★ Sprint E1: Join requests
 import userVotesRouter from './routes/user-votes.js'; // ★ V1: Provider vote (Deezer gated)
 import userClaimGuestRouter from './routes/user-claim-guest.js'; // ★ Claim Guest Data
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
@@ -1031,6 +1032,7 @@ app.use('/api/track', trackSoloVotesRouter);
 
 // ★ V7: JustPlay AfterGlow opt-in (rename mid-party + save-to-afterglow end-party)
 app.use('/api/host/parties', partyActionsRouter);
+app.use('/api/party', partyJoinRouter);
 
 // ★ V1: Provider vote (Deezer gated, extensible Qobuz/Tidal)
 app.use('/api/user/vote', userVotesRouter);
