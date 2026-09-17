@@ -59,6 +59,7 @@ import partyActionsRouter from './routes/party-actions.js'; // ★ V7: JustPlay 
 import partyJoinRouter from './routes/party-join.js'; // ★ Sprint E1: Join requests
 import partySettingsRouter from './routes/party-settings.js'; // ★ Sprint X1: Party settings
 import userSettingsRouter from './routes/user-settings.js'; // ★ Sprint X3: User settings
+import userAfterglowFeedRouter from './routes/user-afterglow-feed.js'; // ★ Sprint X4: Afterglow feed
 import userVotesRouter from './routes/user-votes.js'; // ★ V1: Provider vote (Deezer gated)
 import userClaimGuestRouter from './routes/user-claim-guest.js'; // ★ Claim Guest Data
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
@@ -1042,6 +1043,7 @@ app.use('/api/party', partySettingsRouter);
 // ★ V1: Provider vote (Deezer gated, extensible Qobuz/Tidal)
 app.use('/api/user/vote', userVotesRouter);
 app.use('/api/user', userSettingsRouter); // ★ Sprint X3: User settings
+app.use('/api/user', userAfterglowFeedRouter); // ★ Sprint X4: Afterglow feed
 app.use('/api/users/claim-guest-data', userClaimGuestRouter);
 
 // POST /api/admin/auth — obtenir un token admin
