@@ -11,6 +11,38 @@ const CONSENT_KEY = 'socialmix_consent';
 const GENRES = ['Chill', 'Pop', 'Rock', 'Rap', 'Latin', 'Old school', 'Urban Groove', 'Dance', 'Électro'];
 const EMOJIS = ['🎉','🕺','💃','🎶','🌟','🤩','😎','🎭','🔥','💪','✨','💫','🎵','🥳','😈','🦄'];
 
+// ─── Helper: UserChipView HTML ───────────────────────
+function createUserChipHTML(user) {
+    const emoji = user.emoji || '🎉';
+    const name = user.name || user.guestName || 'Guest';
+    const shortName = name.length > 7 ? name.substring(0, 7) + '…' : name;
+    const isFounder = user.foundersRank != null;
+    const isPreFounder = !isFounder && user.foundersIntentSubmitted === true;
+    
+    let ringClass = '';
+    let medalHTML = '';
+    if (isFounder) {
+        ringClass = 'user-chip-ring-founder';
+        medalHTML = '<span class="user-chip-medal user-chip-medal-founder">✓</span>';
+    } else if (isPreFounder) {
+        ringClass = 'user-chip-ring-prefounder';
+        medalHTML = '<span class="user-chip-medal user-chip-medal-prefounder">✓</span>';
+    }
+    
+    const avatarContent = user.photo
+        ? `<img class="user-chip-photo" src="${user.photo}" alt="${name}">`
+        : `<span class="user-chip-emoji">${emoji}</span>`;
+    
+    return `
+        <div class="user-chip">
+            <div class="user-chip-avatar ${ringClass}">
+                ${avatarContent}
+                ${medalHTML}
+            </div>
+            <span class="user-chip-name">${shortName}</span>
+        </div>
+    `;
+}
 // ─── State ───────────────────────────────────────────
 let socket = null;
 
@@ -1937,16 +1969,9 @@ function connectToRelay() {
     let trombiHTML = '';
     if (participants.length) {
       trombiHTML = participants.map((p, pidx) => {
-        const shortName = (p.name || 'Guest').length > 6 ? (p.name || 'Guest').substring(0, 6) + '…' : (p.name || 'Guest');
-        const avatarContent = p.photo
-          ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">`
-          : `<span style="font-size:28px;">${p.emoji || '🎉'}</span>`;
-        const founderBadge = getFounderBadgeHTML(p);
         return `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="showEndContactCard(${pidx})">
-            <div style="width:56px;height:56px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,0.2);border:2px solid rgba(0,224,196,0.3);">${avatarContent}</div>
-            <div style="font-size:9px;font-weight:700;color:white;">${shortName}</div>
-            ${founderBadge}
+          <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer" onclick="showEndContactCard(${pidx})">
+            ${createUserChipHTML(p)}
           </div>`;
       }).join('');
     }
@@ -3704,15 +3729,7 @@ function renderTrombi(grid, users) {
     item.className = 'trombi-item';
     item.style.cursor = 'pointer';
     item.setAttribute('data-idx', idx); // ★ Bug E-3a — anchor pour refreshTrombiBadges
-    const bgColor = u.photo ? 'transparent' : `rgba(59, 130, 246, 0.3)`;
-    const content = u.photo
-      ? `<img src="${u.photo}" alt="${u.name}">`
-      : u.emoji;
-    const shortName = u.name.length > 6 ? u.name.substring(0, 6) + '…' : u.name;
-    item.innerHTML = `
-      <div class="trombi-avatar" style="background: ${bgColor}; position: relative;">${content}</div>
-      <div class="trombi-name">${shortName}</div>
-    `;
+    item.innerHTML = createUserChipHTML(u);
     // Contact lightbox on tap
     item.addEventListener('click', () => showTrombiContact(idx));
     grid.appendChild(item);
@@ -4075,7 +4092,7 @@ function refreshTrombiBadges() {
     if (!dot) {
       dot = document.createElement('div');
       dot.className = 'trombi-status-dot';
-      item.querySelector('.trombi-avatar')?.appendChild(dot);
+      (item.querySelector('.trombi-avatar') || item.querySelector('.user-chip-avatar'))?.appendChild(dot);
     }
     if (st === 'pending_received') {
       dot.style.cssText = 'position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:#ff3b30;border:2px solid #0a0e1a;box-shadow:0 0 8px rgba(255,59,48,0.5);';
@@ -5002,14 +5019,9 @@ function quitParty() {
   let trombiHTML = '';
   if (participants.length) {
     trombiHTML = participants.map((p, pidx) => {
-      const shortName = (p.name || 'Guest').length > 7 ? (p.name || 'Guest').substring(0, 7) + '…' : (p.name || 'Guest');
-      const avatarContent = p.photo
-        ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">`
-        : `<span style="font-size:28px;">${p.emoji || '🎉'}</span>`;
       return `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="showEndContactCard(${pidx})">
-          <div style="width:56px;height:56px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,0.2);border:2px solid rgba(0,224,196,0.3);">${avatarContent}</div>
-          <div style="font-size:9px;font-weight:700;color:white;">${shortName}</div>
+        <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer" onclick="showEndContactCard(${pidx})">
+          ${createUserChipHTML(p)}
         </div>`;
     }).join('');
   }

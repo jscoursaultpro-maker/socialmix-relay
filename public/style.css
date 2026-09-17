@@ -2400,3 +2400,68 @@ html, body {
 .collapsed-partial .collapse-item:nth-child(n+6) { display: none !important; }
 .history-item-hidden { display: none !important; }
 
+
+/* ─── UserChipView Styles ─── */
+.user-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.user-chip-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59,130,246,0.2);
+  border: 2px solid rgba(0,224,196,0.3);
+  position: relative;
+}
+.user-chip-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px; /* Inner radius slightly smaller */
+}
+.user-chip-emoji {
+  font-size: 28px;
+}
+.user-chip-name {
+  font-size: 9px;
+  font-weight: 700;
+  color: white;
+  text-align: center;
+  max-width: 60px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-chip-ring-founder {
+  border-color: #ffd700;
+}
+.user-chip-ring-prefounder {
+  border-color: #b0bec5;
+}
+.user-chip-medal {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
+  border: 1.5px solid #0f172a;
+}
+.user-chip-medal-founder {
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+}
+.user-chip-medal-prefounder {
+  background: linear-gradient(135deg, #cfd8dc, #90a4ae);
+}
