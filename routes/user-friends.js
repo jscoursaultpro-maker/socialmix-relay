@@ -5,6 +5,8 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
+import Friendship from '../models/Friendship.js';
+import FoundersIntent from '../models/FoundersIntent.js';
 import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
 import { findOrCreateFromSupabase } from '../services/userService.js';
 
@@ -243,17 +245,38 @@ router.get('/', async (req, res) => {
       .populate('pendingRequests.sent.userId', 'profile.firstName profile.handle profile.emoji foundersRank')
       .populate('pendingRequests.received.userId', 'profile.firstName profile.handle profile.emoji foundersRank')
       .lean();
+      
+    // Collect all unique user IDs to fetch their intent
+    const allUserIds = new Set();
+    const extractIds = (list) => (list || []).forEach(item => { if (item.userId) allUserIds.add(item.userId._id.toString()); });
+    extractIds(currentUser.friends);
+    extractIds(currentUser.pendingRequests?.sent);
+    extractIds(currentUser.pendingRequests?.received);
+    
+    const intents = await FoundersIntent.find({ userId: { $in: Array.from(allUserIds) } }).lean();
+    const intentMap = {};
+    for (const intent of intents) {
+      if (intent.userId) {
+        const position = 1 + await FoundersIntent.countDocuments({ createdAt: { $lt: intent.createdAt } });
+        intentMap[intent.userId.toString()] = { submitted: true, position };
+      }
+    }
     
     const formatUserList = (list) => {
       return (list || []).map(item => {
         const u = item.userId;
         if (!u) return null;
+        const uIdStr = u._id.toString();
+        const intentData = intentMap[uIdStr] || {};
         return {
           id: u._id,
           handle: u.profile?.handle || null,
           name: u.profile?.firstName || null,
           emoji: u.profile?.emoji || null,
           isFounder: (u.foundersRank != null && u.foundersRank > 0),
+          foundersRank: u.foundersRank || null,
+          foundersIntentSubmitted: intentData.submitted || false,
+          foundersIntentPosition: intentData.position || null,
           timestamp: item.friendedAt || item.requestedAt || null
         };
       }).filter(Boolean);
@@ -279,16 +302,30 @@ router.get('/handle/:handle', async (req, res) => {
       .select('profile.firstName profile.handle profile.emoji isBanned isDeleted foundersRank')
       .lean();
     
-    if (!user || user.isBanned || user.isDeleted) {
-      return res.status(404).json({ error: 'NOT_FOUND' });
+    if (!user) {
+      return res.status(404).json({ error: 'USER_NOT_FOUND' });
+    }
+    if (user.isDeleted || user.isBanned) {
+      return res.status(403).json({ error: 'USER_UNAVAILABLE' });
     }
     
+    const intent = await FoundersIntent.findOne({ userId: user._id }).lean();
+    let foundersIntentSubmitted = false;
+    let foundersIntentPosition = null;
+    if (intent) {
+      foundersIntentSubmitted = true;
+      foundersIntentPosition = 1 + await FoundersIntent.countDocuments({ createdAt: { $lt: intent.createdAt } });
+    }
+
     res.json({
       _id: user._id,
       handle: user.profile?.handle || null,
       firstName: user.profile?.firstName || null,
       emoji: user.profile?.emoji || null,
-      isFounder: (user.foundersRank != null && user.foundersRank > 0)
+      isFounder: (user.foundersRank != null && user.foundersRank > 0),
+      foundersRank: user.foundersRank || null,
+      foundersIntentSubmitted,
+      foundersIntentPosition
     });
   } catch (err) {
     console.error('[API] ❌ GET /api/user/friends/handle error:', err.message);

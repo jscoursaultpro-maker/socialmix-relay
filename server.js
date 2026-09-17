@@ -14,6 +14,7 @@ import mongoose from 'mongoose';
 import User from './models/User.js';
 import Party from './models/Party.js';
 import Friendship from './models/Friendship.js';
+import FoundersIntent from './models/FoundersIntent.js';
 import Track, { computeQualityLevel } from './models/Track.js';
 import HostPreference from './models/HostPreference.js';
 import { Photo } from './models/Photo.js';
@@ -540,7 +541,7 @@ app.get('/api/me', async (req, res) => {
     const token   = authHeader.slice(7);
     const payload = await verifySupabaseJWT(token);
     const user    = await findOrCreateFromSupabase(payload);
-    return res.json({
+    const response = {
       id:            user._id,
       supabaseUserId: user.supabaseUserId,
       email:         user.email,
@@ -548,11 +549,25 @@ app.get('/api/me', async (req, res) => {
       authProvider:  user.authProvider,
       profile:       user.profile,
       stats:         user.stats,
+      foundersRank:  user.foundersRank,
       isBanned:      user.isBanned,
       isDeleted:     user.isDeleted,
       createdAt:     user.createdAt,
       lastSeenAt:    user.lastSeenAt,
-    });
+    };
+    
+    // Check Pre-Founder intent
+    const intent = await FoundersIntent.findOne({ userId: user._id }).lean();
+    if (intent) {
+      const position = 1 + await FoundersIntent.countDocuments({ createdAt: { $lt: intent.createdAt } });
+      response.foundersIntentSubmitted = true;
+      response.foundersIntentPosition = position;
+    } else {
+      response.foundersIntentSubmitted = false;
+      response.foundersIntentPosition = null;
+    }
+    
+    return res.json(response);
   } catch (err) {
     if (err.name === 'AuthError') {
       const status = err.code === 'TOKEN_EXPIRED' ? 401 : 401;

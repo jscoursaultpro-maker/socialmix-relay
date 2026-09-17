@@ -1,11 +1,13 @@
-import express from 'express';
 import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
 import { findOrCreateFromSupabase } from '../services/userService.js';
 import Party from '../models/Party.js';
 import HostPlaybackHistory from '../models/HostPlaybackHistory.js';
 import { Photo } from '../models/Photo.js';
-import User from '../models/User.js';
+import express from 'express';
 import mongoose from 'mongoose';
+import User from '../models/User.js';
+
+import FoundersIntent from '../models/FoundersIntent.js';
 
 const router = express.Router();
 
@@ -84,18 +86,40 @@ router.get('/:code/details', async (req, res) => {
       .select('foundersRank')
       .lean();
       
+    // Fetch intents for participants
+    const intentsForFounders = await FoundersIntent.find({ userId: { $in: participantUserIds } }).lean();
+      
     const founderMap = {};
     for (const u of usersForFounders) {
-      founderMap[u._id.toString()] = (u.foundersRank != null && u.foundersRank > 0);
+      founderMap[u._id.toString()] = {
+        rank: u.foundersRank || null,
+        intentSubmitted: false,
+        intentPosition: null
+      };
+    }
+    
+    for (const intent of intentsForFounders) {
+      if (intent.userId) {
+        const idStr = intent.userId.toString();
+        if (!founderMap[idStr]) {
+          founderMap[idStr] = { rank: null, intentSubmitted: false, intentPosition: null };
+        }
+        const position = 1 + await FoundersIntent.countDocuments({ createdAt: { $lt: intent.createdAt } });
+        founderMap[idStr].intentSubmitted = true;
+        founderMap[idStr].intentPosition = position;
+      }
     }
 
     const participants = (party.participants || []).map(p => {
-      const isFounder = p.userId ? (founderMap[p.userId.toString()] || false) : false;
+      const founderData = p.userId ? (founderMap[p.userId.toString()] || {}) : {};
       return {
         name: p.name,
         emoji: p.emoji || '🎉',
         isHost: p.userId === party.hostUserId,
-        isFounder,
+        isFounder: (founderData.rank != null && founderData.rank > 0),
+        foundersRank: founderData.rank,
+        foundersIntentSubmitted: founderData.intentSubmitted || false,
+        foundersIntentPosition: founderData.intentPosition,
         joinedAt: p.joinedAt || party.createdAt,
         voteCount: p.voteCount || 0,
         photoCount: p.photoCount || 0,

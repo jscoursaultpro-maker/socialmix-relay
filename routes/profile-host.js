@@ -11,6 +11,7 @@ import { encodeObjectId } from '../utils/base62.js';
 import { computeHostStats } from '../utils/host-stats.js';
 import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
 import { findOrCreateFromSupabase } from '../services/userService.js';
+import FoundersIntent from '../models/FoundersIntent.js';
 
 const router = Router();
 
@@ -25,6 +26,15 @@ router.get('/:handle', async (req, res) => {
     if (user.isBanned || user.isDeleted) return res.status(404).json({ error: 'NOT_FOUND' });
     
     const isFounder = (user.foundersRank != null && user.foundersRank > 0);
+    const foundersRank = user.foundersRank || null;
+    
+    const intent = await FoundersIntent.findOne({ userId: user._id }).lean();
+    let foundersIntentSubmitted = false;
+    let foundersIntentPosition = null;
+    if (intent) {
+      foundersIntentSubmitted = true;
+      foundersIntentPosition = 1 + await FoundersIntent.countDocuments({ createdAt: { $lt: intent.createdAt } });
+    }
     
     const userId = user._id.toString();
 
@@ -99,6 +109,9 @@ router.get('/:handle', async (req, res) => {
           firstName: user.profile?.firstName || null,
           avatar: user.profile?.emoji || null,
           isFounder,
+          foundersRank,
+          foundersIntentSubmitted,
+          foundersIntentPosition,
           totalPartiesCount: partiesCount,
           dominantGenre
         },
@@ -117,6 +130,9 @@ router.get('/:handle', async (req, res) => {
       name: user.profile?.firstName || 'Hôte',
       emoji: user.profile?.emoji || null,
       isFounder,
+      foundersRank,
+      foundersIntentSubmitted,
+      foundersIntentPosition,
       memberSince: user.createdAt,
       stats,
       parties: parties.slice(0, 50),  // Cap at 50 most recent

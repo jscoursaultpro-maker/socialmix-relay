@@ -1941,10 +1941,12 @@ function connectToRelay() {
         const avatarContent = p.photo
           ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">`
           : `<span style="font-size:28px;">${p.emoji || '🎉'}</span>`;
+        const founderBadge = getFounderBadgeHTML(p);
         return `
           <div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="showEndContactCard(${pidx})">
             <div style="width:56px;height:56px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,0.2);border:2px solid rgba(0,224,196,0.3);">${avatarContent}</div>
             <div style="font-size:9px;font-weight:700;color:white;">${shortName}</div>
+            ${founderBadge}
           </div>`;
       }).join('');
     }
@@ -3782,6 +3784,16 @@ function showTrombiContact(idx) {
   }
   nameEl.textContent = u.name;
   
+  // Inject Founder Badge if any
+  let founderBadgeContainer = document.getElementById('trombi-founder-badge');
+  if (!founderBadgeContainer) {
+    founderBadgeContainer = document.createElement('div');
+    founderBadgeContainer.id = 'trombi-founder-badge';
+    founderBadgeContainer.style.cssText = 'margin-top:2px; margin-bottom:8px;';
+    nameEl.parentNode.insertBefore(founderBadgeContainer, nameEl.nextSibling);
+  }
+  founderBadgeContainer.innerHTML = window.getFounderBadgeHTML ? window.getFounderBadgeHTML(u) : '';
+  
   // Contact details
   let details = [];
   if (u.phone) details.push(`📞 ${u.phone}`);
@@ -5313,6 +5325,17 @@ function showEndContactCard(index) {
   document.getElementById('end-contact-emoji').textContent = emoji;
   document.getElementById('end-contact-name').textContent = name;
   
+  // Inject Founder Badge if any
+  let founderBadgeContainer = document.getElementById('end-contact-founder');
+  if (!founderBadgeContainer) {
+    founderBadgeContainer = document.createElement('div');
+    founderBadgeContainer.id = 'end-contact-founder';
+    founderBadgeContainer.style.cssText = 'margin-top:4px;';
+    const nameEl = document.getElementById('end-contact-name');
+    nameEl.parentNode.insertBefore(founderBadgeContainer, nameEl.nextSibling);
+  }
+  founderBadgeContainer.innerHTML = window.getFounderBadgeHTML ? window.getFounderBadgeHTML(p) : '';
+  
   // Show contact details if available
   let details = [];
   if (p.phone) details.push(`📞 ${p.phone}`);
@@ -6081,3 +6104,13 @@ window.toggleHistoryCollapse = function() {
   updateHistory();
 };
 
+// Global Helper to generate Founder Badge HTML
+window.getFounderBadgeHTML = (u) => {
+  if (u.foundersRank != null && u.foundersRank > 0) {
+    return `<div style="font-size:9px; font-weight:900; color:#ff9f43; background:rgba(255,159,67,0.15); padding:3px 8px; border-radius:12px; white-space:nowrap; display:inline-block;">✨ FOUNDER #${u.foundersRank}</div>`;
+  } else if (u.foundersIntentSubmitted) {
+    const pos = u.foundersIntentPosition || '-';
+    return `<div style="font-size:8px; font-weight:800; color:#00e0c4; background:rgba(0,224,196,0.15); padding:3px 8px; border-radius:12px; white-space:nowrap; display:inline-block;">🎯 PRÉ-FOUNDER #${pos}</div>`;
+  }
+  return '';
+};
