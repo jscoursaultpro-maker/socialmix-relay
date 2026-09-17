@@ -99,7 +99,14 @@ const PartySchema = new mongoose.Schema({
     avatarURL: { type: String, default: null },
     requestedAt: { type: Date, default: Date.now },
     message: { type: String, default: '' }
-  }]
+  }],
+  // ★ Sprint X1: Party settings and cover photo
+  settings: {
+    photosEnabled: { type: Boolean, default: null },
+    messagesEnabled: { type: Boolean, default: null },
+    diapoEnabled: { type: Boolean, default: null }
+  },
+  coverPhotoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Photo', default: null }
 }, {
   timestamps: false,
   minimize: false  // preserve empty objects {}
@@ -122,6 +129,27 @@ PartySchema.pre('save', function(next) {
   if (this.isModified('trackHistory')) {
     this.trackCount = this.trackHistory ? this.trackHistory.length : 0;
   }
+  
+  // ★ Sprint X1: Initialize settings based on visibility
+  if (this.isModified('visibility') || this.isNew) {
+    if (!this.settings) {
+      this.settings = {};
+    }
+    
+    // Si c'est privé, tout est activé par défaut. Sinon (friends, public), tout est désactivé par sécurité.
+    const isPrivate = this.visibility === 'private';
+    
+    if (this.settings.photosEnabled === null || this.settings.photosEnabled === undefined) {
+      this.settings.photosEnabled = isPrivate;
+    }
+    if (this.settings.messagesEnabled === null || this.settings.messagesEnabled === undefined) {
+      this.settings.messagesEnabled = isPrivate;
+    }
+    if (this.settings.diapoEnabled === null || this.settings.diapoEnabled === undefined) {
+      this.settings.diapoEnabled = isPrivate;
+    }
+  }
+
   next();
 });
 
