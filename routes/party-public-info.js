@@ -19,13 +19,14 @@ router.get('/:code/public-info', async (req, res) => {
 
     const { code } = req.params;
     const party = await Party.findOne({ code, endedAt: null })
-      .populate('hostUserId', 'profile.handle profile.emoji profile.photo')
+      .populate('hostUserId', 'profile.handle profile.emoji profile.photo profile.firstName')
       .lean();
 
     if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
 
     const hostData = await fetchUserFoundersData(party.hostUserId?._id?.toString());
     const host = party.hostUserId ? {
+      firstName: party.hostUserId.profile?.firstName || null,
       handle: party.hostUserId.profile?.handle || null,
       emoji: party.hostUserId.profile?.emoji || null,
       photo: party.hostUserId.profile?.photo || null,
@@ -42,7 +43,7 @@ router.get('/:code/public-info', async (req, res) => {
 
     res.json({
       code: party.code,
-      name: party.welcomeText || party.code,
+      name: party.welcomeText || null,
       startedAt: party.createdAt || null,
       guestCount: party.participantCount || 0,
       coverPhotoId: (party.settings && party.settings.photosEnabled === false) ? null : party.coverPhotoId,
