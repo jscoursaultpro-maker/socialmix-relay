@@ -63,6 +63,7 @@ import userSettingsRouter from './routes/user-settings.js'; // ★ Sprint X3: Us
 import userAfterglowFeedRouter from './routes/user-afterglow-feed.js'; // ★ Sprint X4: Afterglow feed
 import userVotesRouter from './routes/user-votes.js'; // ★ V1: Provider vote (Deezer gated)
 import userClaimGuestRouter from './routes/user-claim-guest.js'; // ★ Claim Guest Data
+import libraryRouter from './routes/library.js';
 import meCrewsRouter from './routes/me-crews.js';
 import meNotificationsRouter from './routes/me-notifications.js';
 import meStatsRouter from './routes/me-stats.js';
@@ -1050,6 +1051,7 @@ app.use('/api/user/vote', userVotesRouter);
 app.use('/api/user', userSettingsRouter); // ★ Sprint X3: User settings
 app.use('/api/user', userAfterglowFeedRouter); // ★ Sprint X4: Afterglow feed
 app.use('/api/users/claim-guest-data', userClaimGuestRouter);
+app.use('/api/library', libraryRouter);
 
 // ★ Zone Privée /me (AhOuai V7)
 app.use('/api/me/crews', meCrewsRouter);
