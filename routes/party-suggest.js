@@ -16,9 +16,10 @@ router.post('/:code/suggest', async (req, res) => {
     const party = await Party.findOne({ code, endedAt: null });
     if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
 
-    // Verify user is in participants
+    // Verify user is host or in participants
+    const isHost = party.hostUserId && party.hostUserId.toString() === userId.toString();
     const isParticipant = party.participants && party.participants.some(p => p.userId && p.userId.toString() === userId.toString());
-    if (!isParticipant) {
+    if (!isHost && !isParticipant) {
       return res.status(403).json({ error: 'NOT_PARTICIPANT', message: 'You must join the party first' });
     }
 
