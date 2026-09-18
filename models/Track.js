@@ -241,9 +241,8 @@ export function computeQualityLevel(doc) {
   return q;
 }
 
-TrackSchema.pre('save', function(next) {
+TrackSchema.pre('save', async function() {
   this.qualityLevel = computeQualityLevel(this);
-  if (typeof next === 'function') next();
 });
 
 // ★ Chantier 2 (20/08): bump seedVersion after every Track save (fire-and-forget)

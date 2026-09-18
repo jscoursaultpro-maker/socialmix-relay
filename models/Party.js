@@ -125,7 +125,7 @@ PartySchema.index({ code: 1, 'participants.userId': 1 }); // ★ Guest fetch ind
 PartySchema.index({ 'participants.userId': 1, createdAt: -1 }); // ★ Perf /activities index
 
 // Maintain counts automatically
-PartySchema.pre('save', function(next) {
+PartySchema.pre('save', async function() {
   if (this.isModified('participants')) {
     this.participantCount = this.participants ? this.participants.length : 0;
   }
@@ -152,8 +152,6 @@ PartySchema.pre('save', function(next) {
       this.settings.diapoEnabled = isPrivate;
     }
   }
-
-  next();
 });
 
 export default mongoose.model('Party', PartySchema);
