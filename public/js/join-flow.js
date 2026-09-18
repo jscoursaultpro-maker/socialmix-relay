@@ -17,29 +17,3 @@ export async function initJoinFlow() {
     return { code, error: true, sbMarker };
   }
 }
-
-import { getSession } from "./supabase-client.js";
-
-export async function detectPostAuthReturn() {
-  const params = new URLSearchParams(window.location.search);
-  const sbMarker = params.get('sb') === '1';
-  const code = params.get('code');
-  if (!sbMarker || !code) return null;
-  
-  const session = await getSession();
-  if (!session) return null;
-  
-  const res = await fetch(`/api/party/${code}/join-as-user`, {
-    method: 'POST',
-    credentials: 'include'
-  });
-  if (!res.ok) {
-    if (res.status === 403) {
-      const body = await res.json();
-      if (body.requireJoinRequest) return { needsJoinRequest: true, code };
-    }
-    return { error: true, status: res.status };
-  }
-  return { success: true, code };
-}
-
