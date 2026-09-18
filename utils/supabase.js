@@ -9,10 +9,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Client public (pour verify token)
-export const supabasePublic = createClient(supabaseUrl, supabaseAnonKey);
+export const supabasePublic = createClient(
+  supabaseUrl || 'https://dummy.supabase.co', 
+  supabaseAnonKey || 'dummy'
+);
 
 // Client admin (pour exchange OAuth code)
-export const supabaseAdmin = supabaseServiceKey 
+export const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
   ? createClient(supabaseUrl, supabaseServiceKey)
   : supabasePublic;
 

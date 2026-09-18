@@ -1,8 +1,8 @@
-import cookie from 'cookie';
+import { parse } from 'cookie';
 import { supabasePublic } from '../utils/supabase.js';
 
 export async function verifySupabaseSession(req, res, next) {
-  const cookies = cookie.parse(req.headers.cookie || '');
+  const cookies = parse(req.headers.cookie || '');
   const token = cookies['sb-access-token'];
   
   if (!token) {

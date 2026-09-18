@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import cookie from 'cookie';
+import { serialize } from 'cookie';
 import { supabaseAdmin } from '../utils/supabase.js';
 
 const router = Router();
@@ -23,14 +23,14 @@ router.get('/callback', async (req, res) => {
     
     // Set httpOnly cookie with session tokens
     res.setHeader('Set-Cookie', [
-      cookie.serialize('sb-access-token', data.session.access_token, {
+      serialize('sb-access-token', data.session.access_token, {
         httpOnly: true,
         secure: true,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7,
         path: '/'
       }),
-      cookie.serialize('sb-refresh-token', data.session.refresh_token, {
+      serialize('sb-refresh-token', data.session.refresh_token, {
         httpOnly: true,
         secure: true,
         sameSite: 'lax',
