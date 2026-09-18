@@ -5345,30 +5345,7 @@ async function init() {
     }
   } else if (params.code) {
     // Sprint B Guest Entry Flow
-    const { initJoinFlow, detectPostAuthReturn } = await import('./js/join-flow.js');
-    
-    // Check if returning from OAuth
-    const postAuth = await detectPostAuthReturn();
-    if (postAuth) {
-      if (postAuth.error) {
-        showScreen('denied');
-        return;
-      }
-      
-      // Save session info
-      state.partyCode = params.code.toUpperCase();
-      
-      if (params.suggested === '1' || params.skip === '1') {
-        enterCockpit();
-        return;
-      }
-      
-      const { initFirstTaste } = await import('./js/first-taste.js');
-      initFirstTaste(state.partyCode);
-      showScreen('first-taste-screen');
-      return;
-    }
-
+    const { initJoinFlow } = await import('./js/join-flow.js');
     const flowData = await initJoinFlow();
     if (flowData?.error) {
       showScreen('denied');
