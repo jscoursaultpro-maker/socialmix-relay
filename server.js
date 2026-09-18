@@ -72,6 +72,7 @@ import meCrewsRouter from './routes/me-crews.js';
 import authCallbackRouter from './routes/auth-callback.js';
 import meNotificationsRouter from './routes/me-notifications.js';
 import meStatsRouter from './routes/me-stats.js';
+import meLegacyRouter from './routes/me-legacy.js';
 import meBadgesRouter from './routes/me-badges.js';
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 import { resolvePhotoAccess, filterPhotosForUser } from './utils/photoVisibility.js'; // ★ Sprint X2
@@ -727,6 +728,8 @@ app.patch('/api/users/me', async (req, res) => {
     return res.status(500).json({ error: 'INTERNAL_ERROR' });
   }
 });
+
+app.use('/api/me', meLegacyRouter);
 
 // ─── Health check ───────────────────────────────────────────────────
 app.get('/api/status', (req, res) => {
