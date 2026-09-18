@@ -64,6 +64,9 @@ import userAfterglowFeedRouter from './routes/user-afterglow-feed.js'; // ★ Sp
 import userVotesRouter from './routes/user-votes.js'; // ★ V1: Provider vote (Deezer gated)
 import userClaimGuestRouter from './routes/user-claim-guest.js'; // ★ Claim Guest Data
 import libraryRouter from './routes/library.js';
+import partyPublicInfoRouter from './routes/party-public-info.js';
+import partyJoinAsUserRouter from './routes/party-join-as-user.js';
+import partySuggestRouter from './routes/party-suggest.js';
 import meCrewsRouter from './routes/me-crews.js';
 import meNotificationsRouter from './routes/me-notifications.js';
 import meStatsRouter from './routes/me-stats.js';
@@ -1051,6 +1054,9 @@ app.use('/api/track', trackSoloVotesRouter);
 app.use('/api/host/parties', partyActionsRouter);
 app.use('/api/party', partyJoinRouter);
 app.use('/api/party', partySettingsRouter);
+app.use('/api/party', partyPublicInfoRouter);
+app.use('/api/party', partyJoinAsUserRouter);
+app.use('/api/party', partySuggestRouter);
 
 // ★ V1: Provider vote (Deezer gated, extensible Qobuz/Tidal)
 app.use('/api/user/vote', userVotesRouter);
