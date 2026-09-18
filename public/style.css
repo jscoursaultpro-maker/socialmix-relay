@@ -93,7 +93,7 @@ html, body {
 }
 .landing-container {
   text-align: center;
-  padding: max(env(safe-area-inset-top, 40px), 40px) 30px 40px;
+  padding: 40px 30px;
   animation: fadeIn 0.6s ease;
 }
 .landing-glow {
@@ -132,7 +132,7 @@ html, body {
   border-radius: 50px;
   backdrop-filter: blur(10px);
 }
-
+.landing-btn { max-width: 320px; margin: 0 auto; }
 .landing-footer {
   font-size: 10px; color: var(--text-muted);
   margin-top: 20px; letter-spacing: 0.3px;
@@ -715,15 +715,6 @@ html, body {
   font-size: 9px; font-weight: 900;
   color: var(--bg-dark);
   box-shadow: 0 0 16px rgba(0,224,195,0.2);
-}
-.landing-btn {
-  font-size: 16px;
-  width: 100%;
-  max-width: 320px;
-  margin: 0 auto;
-  box-shadow: 0 10px 20px rgba(0, 224, 196, 0.2);
-  background: linear-gradient(135deg, #FF0066, #CC00FF);
-  color: white;
 }
 .crown { font-size: 10px; }
 .hub-shortcut-btn {
@@ -2552,12 +2543,9 @@ html, body {
   display: flex;
   overflow-x: auto;
   gap: 12px;
-  padding: 10px 16px;
+  padding: 10px 0;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  scroll-padding-inline: 16px;
-  margin-left: -30px;
-  margin-right: -30px;
 }
 .pillar-card {
   flex: 0 0 140px;
