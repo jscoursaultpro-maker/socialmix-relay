@@ -5283,57 +5283,10 @@ async function init() {
       showOnboarding(params.code.toUpperCase());
     }
   } else if (params.code) {
-    // Sprint B Guest Entry Flow
-    const { initJoinFlow } = await import('./js/join-flow.js');
-    const flowData = await initJoinFlow();
-    if (flowData?.error) {
-      showScreen('denied');
-    } else {
-      populateLanding(flowData);
-      showScreen('landing');
-    }
+    // QR scan, no profile yet → onboarding (nouveau flow Chantier 5)
+    showOnboarding(params.code.toUpperCase());
   } else {
     showScreen('landing');
-  }
-}
-
-function populateLanding(flowData) {
-  const info = flowData.info;
-  const card = document.getElementById('landing-party-card');
-  const nameEl = document.getElementById('landing-party-name');
-  const hostChip = document.getElementById('landing-host-chip');
-  const coverEl = document.getElementById('landing-party-cover');
-  const previewBox = document.getElementById('landing-preview');
-  const previewCount = document.getElementById('landing-preview-count');
-  const previewAvatars = document.getElementById('landing-preview-avatars');
-
-  if (card) card.classList.remove('hidden');
-  if (nameEl) nameEl.textContent = info.name || 'Soirée AhOuai';
-  
-  if (hostChip) {
-    let chipHTML = (info.host?.emoji || '👑') + ' ' + (info.host?.firstName || 'Host');
-    if (info.host?.isFounder) {
-      chipHTML += ' <span class="user-chip-medal-founder" style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#00e0c4;color:#0a0e14;font-size:8px;line-height:12px;text-align:center;margin-left:4px;">✓</span>';
-    }
-    hostChip.innerHTML = chipHTML;
-  }
-
-  if (coverEl && info.coverUrl) {
-    coverEl.src = info.coverUrl;
-    coverEl.classList.remove('hidden');
-  }
-
-  if (previewBox && info.participantCount > 0) {
-    previewBox.classList.remove('hidden');
-    previewCount.textContent = info.participantCount;
-    
-    // Generate some fake/real avatars (fallback to emojis if real not provided)
-    let avatarsHTML = '';
-    const avatars = info.previewAvatars || ['👻', '🤠', '👽'];
-    avatars.forEach(av => {
-      avatarsHTML += `<div class="trombi-avatar">${av}</div>`;
-    });
-    previewAvatars.innerHTML = avatarsHTML;
   }
 }
 
