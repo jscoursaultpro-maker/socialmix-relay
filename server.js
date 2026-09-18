@@ -68,6 +68,7 @@ import partyPublicInfoRouter from './routes/party-public-info.js';
 import partyJoinAsUserRouter from './routes/party-join-as-user.js';
 import partySuggestRouter from './routes/party-suggest.js';
 import meCrewsRouter from './routes/me-crews.js';
+import authCallbackRouter from './routes/auth-callback.js';
 import meNotificationsRouter from './routes/me-notifications.js';
 import meStatsRouter from './routes/me-stats.js';
 import meBadgesRouter from './routes/me-badges.js';
@@ -470,6 +471,22 @@ app.use(express.json({ limit: '1mb' }));
 // setHeaders ecrase les headers pour ces types de fichier (defense in depth avec middleware L308).
 app.use('/.well-known/apple-app-site-association', (req, res, next) => {
   res.setHeader('Content-Type', 'application/json');
+  next();
+});
+
+// ★ Pivot Sprint B: Kill direct access to legacy guest app, force Sprint B entry
+app.use((req, res, next) => {
+  const host = req.hostname || req.headers.host || '';
+  const isJoinDomain = host.includes('join.ahouai.com');
+  const isRootPath = req.path === '/' || req.path === '';
+  const hasCode = req.query && req.query.code;
+  const hasSprintBMarker = req.query && req.query.sb === '1';
+  
+  if (isJoinDomain && isRootPath && hasCode && !hasSprintBMarker) {
+    // Kill legacy direct guest, force Sprint B entry
+    return res.redirect(302, `https://ahouai.com/join/${req.query.code}`);
+  }
+  
   next();
 });
 
@@ -1015,6 +1032,7 @@ app.use('/api/admin/users', adminAuth, adminUsersRouter);
 app.use('/api/admin/guests', adminAuth, adminGuestsRouter);
 app.use('/api/admin/batch', adminAuth, adminBatchRouter);
 app.use('/api/admin/founders', adminAuth, adminFoundersRouter);
+app.use('/auth', authCallbackRouter);
 
 // ★ Chantier 2: Public Track catalogue seed (no auth — public data)
 app.use('/api/tracks/seed', compression(), tracksSeedRouter);
