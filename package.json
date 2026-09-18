@@ -25,6 +25,7 @@
     "marked": "^18.0.6",
     "mongoose": "^9.6.1",
     "multer": "^2.2.0",
+    "node-cache": "^5.1.2",
     "socket.io": "^4.8.3",
     "uuid": "^14.0.1"
   },
