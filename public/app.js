@@ -5246,7 +5246,31 @@ async function init() {
   // ★ Legacy cockpit skip: detect Sprint B redirection
   const urlParamsObj = new URLSearchParams(window.location.search);
   const sbMarker = urlParamsObj.get('sb') === '1';
+  const sbAuth = urlParamsObj.get('sbauth');
+  
   if (sbMarker && state.partyCode) {
+    // Priority 1: try inline URL payload
+    if (sbAuth) {
+      try {
+        const authData = JSON.parse(atob(decodeURIComponent(sbAuth)));
+        state.userId = authData.userId;
+        state.guestName = authData.firstName;
+        state.guestEmail = authData.email || '';
+        state.guestEmoji = '🎉';
+        
+        saveProfile();
+        setupSocialHub();
+        setupExitModal();
+        
+        console.log('[init] sb=1 URL bypass successful');
+        enterCockpit();
+        return;
+      } catch (e) {
+        console.warn('[init] sbauth decode failed, trying cookie fallback:', e);
+      }
+    }
+    
+    // Priority 2: fallback cookie /api/me/legacy
     try {
       const meRes = await fetch('/api/me/legacy', { credentials: 'include' });
       if (meRes.ok) {
@@ -5263,7 +5287,7 @@ async function init() {
         setupSocialHub();
         setupExitModal();
         
-        console.log('[init] sb=1 bypass successful, jumping to cockpit');
+        console.log('[init] sb=1 cookie bypass successful, jumping to cockpit');
         enterCockpit();
         return; // Skip normal init sequence completely
       }
