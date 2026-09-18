@@ -5243,6 +5243,35 @@ async function init() {
     state.partyCode = params.party.toUpperCase();
   }
   
+  // ★ Legacy cockpit skip: detect Sprint B redirection
+  const urlParamsObj = new URLSearchParams(window.location.search);
+  const sbMarker = urlParamsObj.get('sb') === '1';
+  if (sbMarker && state.partyCode) {
+    try {
+      const meRes = await fetch('/api/me/legacy', { credentials: 'include' });
+      if (meRes.ok) {
+        const user = await meRes.json();
+        state.userId = user.userId;
+        state.guestName = user.firstName;
+        state.guestLastName = user.lastName || '';
+        state.guestEmail = user.email || '';
+        state.guestEmoji = user.emoji || '🎉';
+        state.guestPhoto = user.photo || null;
+        
+        saveProfile(); // Persist the profile
+        
+        setupSocialHub();
+        setupExitModal();
+        
+        console.log('[init] sb=1 bypass successful, jumping to cockpit');
+        enterCockpit();
+        return; // Skip normal init sequence completely
+      }
+    } catch (e) {
+      console.warn('[init] sb=1 bypass failed, falling back to normal flow:', e);
+    }
+  }
+
   // Setup all screens (must run before pre-party early return so listeners are attached)
   setupConsent();
   setupProfile();
