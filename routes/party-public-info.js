@@ -35,6 +35,8 @@ router.get('/:code/public-info', async (req, res) => {
       foundersIntentPosition: hostData.foundersIntentPosition
     } : null;
 
+    const partyName = party.partyName || party.welcomeText || `Soirée de ${host?.firstName || host?.handle || 'l\'hôte'}`;
+
     const previewGuests = (party.participants || []).slice(0, 4).map(p => ({
       emoji: '👽', // anonymized
       avatarUrl: null,
@@ -43,7 +45,7 @@ router.get('/:code/public-info', async (req, res) => {
 
     res.json({
       code: party.code,
-      name: party.welcomeText || null,
+      name: partyName,
       startedAt: party.createdAt || null,
       guestCount: party.participantCount || 0,
       coverPhotoId: (party.settings && party.settings.photosEnabled === false) ? null : party.coverPhotoId,
