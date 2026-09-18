@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { authJWT } from '../middleware/authJWT.js';
+import { verifyGuestAuth } from '../middleware/authGuest.js';
 
 const router = Router();
-router.use(authJWT);
+router.use(verifyGuestAuth);
 
 router.get('/search', async (req, res) => {
   try {

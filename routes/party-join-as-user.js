@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { authJWT } from '../middleware/authJWT.js';
+import { verifyGuestAuth } from '../middleware/authGuest.js';
 import Party from '../models/Party.js';
 import mongoose from 'mongoose';
 
 const router = Router();
-router.use(authJWT);
+router.use(verifyGuestAuth);
 
 router.post('/:code/join-as-user', async (req, res) => {
   try {
