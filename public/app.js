@@ -1382,7 +1382,7 @@ function handleLandingCTA() {
     authNameEl.textContent = nameEl.textContent;
   }
   
-  showScreen('auth-screen');
+  showScreen('auth');
 }
 
 // ═══════════════════════════════════════════
@@ -5365,7 +5365,7 @@ async function init() {
       
       const { initFirstTaste } = await import('./js/first-taste.js');
       initFirstTaste(state.partyCode);
-      showScreen('first-taste-screen');
+      showScreen('first-taste');
       return;
     }
 
@@ -5402,9 +5402,14 @@ function populateLanding(flowData) {
     hostChip.innerHTML = chipHTML;
   }
 
-  if (coverEl && info.coverUrl) {
-    coverEl.src = info.coverUrl;
-    coverEl.classList.remove('hidden');
+  if (coverEl) {
+    if (info.coverUrl) {
+      coverEl.src = info.coverUrl;
+      coverEl.classList.remove('hidden');
+      if (coverEl.parentElement) coverEl.parentElement.classList.remove('hidden');
+    } else {
+      if (coverEl.parentElement) coverEl.parentElement.classList.add('hidden');
+    }
   }
 
   if (previewBox && info.participantCount > 0) {
