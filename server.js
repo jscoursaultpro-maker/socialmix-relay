@@ -457,6 +457,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─── Legacy QR redirect (join.ahouai.com/?code=X → ahouai.com/join/X) ───
+app.use((req, res, next) => {
+  const host = req.hostname || req.headers.host || '';
+  const isJoinDomain = host.includes('join.ahouai.com');
+  const isRootPath = req.path === '/' || req.path === '';
+  const hasCode = req.query && req.query.code;
+  const hasSprintBMarker = req.query && req.query.sb === '1';
+  
+  if (isJoinDomain && isRootPath && hasCode && !hasSprintBMarker) {
+    return res.redirect(302, `https://ahouai.com/join/${req.query.code}`);
+  }
+  
+  next();
+});
+
 // ─── Static files ───────────────────────────────────────────────────
 app.use((req, res, next) => {
   if (req.path.endsWith('.html') || req.path.endsWith('.js') || req.path.endsWith('.css') || req.path === '/') {
