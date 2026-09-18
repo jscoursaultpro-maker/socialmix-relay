@@ -475,21 +475,7 @@ app.use('/.well-known/apple-app-site-association', (req, res, next) => {
   next();
 });
 
-// ★ Pivot Sprint B: Kill direct access to legacy guest app, force Sprint B entry
-app.use((req, res, next) => {
-  const host = req.hostname || req.headers.host || '';
-  const isJoinDomain = host.includes('join.ahouai.com');
-  const isRootPath = req.path === '/' || req.path === '';
-  const hasCode = req.query && req.query.code;
-  const hasSprintBMarker = req.query && req.query.sb === '1';
-  
-  if (isJoinDomain && isRootPath && hasCode && !hasSprintBMarker) {
-    // Kill legacy direct guest, force Sprint B entry
-    return res.redirect(302, `https://ahouai.com/join/${req.query.code}`);
-  }
-  
-  next();
-});
+
 
 app.use(express.static(join(__dirname, 'public'), {
   maxAge: 0,
