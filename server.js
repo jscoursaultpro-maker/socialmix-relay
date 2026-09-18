@@ -465,10 +465,16 @@ app.use(express.json({ limit: '1mb' }));
 // ★ Fix Bug I 04/09 — Safari agressif : disable ETag + lastModified sur les assets
 // dynamiques (html/js/css) qui font Safari revalider et parfois garder l'ancien état.
 // setHeaders ecrase les headers pour ces types de fichier (defense in depth avec middleware L308).
+app.use('/.well-known/apple-app-site-association', (req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
+
 app.use(express.static(join(__dirname, 'public'), {
   maxAge: 0,
   etag: false,
   lastModified: false,
+  dotfiles: 'allow',
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
