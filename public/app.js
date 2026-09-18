@@ -607,14 +607,9 @@ async function setupLanding(activeCode) {
   }
   
   $('landing-cta').addEventListener('click', () => {
+    // ★ Chantier 5: Redirect to onboarding (new flow) instead of legacy consent/profile
     handleLandingCTA();
   });
-  const cta2 = $('landing-cta-2');
-  if (cta2) {
-    cta2.addEventListener('click', () => {
-      handleLandingCTA();
-    });
-  }
   
   return false;
 }
@@ -1374,62 +1369,7 @@ function bindChantier5SocketListeners(sock) {
 function handleLandingCTA() {
   const params = getURLParams();
   const code = state.partyCode || (params.code ? params.code.toUpperCase() : '');
-  
-  // Update auth screen title if info available
-  const nameEl = document.getElementById('landing-party-name');
-  const authNameEl = document.getElementById('auth-party-name');
-  if (nameEl && authNameEl) {
-    authNameEl.textContent = nameEl.textContent;
-  }
-  
-  showScreen('auth-screen');
-}
-
-// ═══════════════════════════════════════════
-// SCREEN AUTH (Sprint B)
-// ═══════════════════════════════════════════
-async function setupAuthScreen() {
-  const cguCheckbox = document.getElementById('cgu-accept');
-  const googleBtn = document.getElementById('sso-google');
-  const appleBtn = document.getElementById('sso-apple');
-  const emailBtn = document.getElementById('auth-email');
-
-  if (cguCheckbox) {
-    cguCheckbox.addEventListener('change', (e) => {
-      const isChecked = e.target.checked;
-      if (googleBtn) googleBtn.disabled = !isChecked;
-      if (appleBtn) appleBtn.disabled = !isChecked;
-      if (emailBtn) emailBtn.disabled = !isChecked;
-    });
-  }
-
-  // Use the new vanilla module
-  const { signInWithProvider } = await import('./js/supabase-client.js');
-  
-  if (googleBtn) {
-    googleBtn.addEventListener('click', () => {
-      const params = getURLParams();
-      const code = state.partyCode || (params.code ? params.code.toUpperCase() : '');
-      signInWithProvider('google', code);
-    });
-  }
-
-  if (appleBtn) {
-    appleBtn.addEventListener('click', () => {
-      const params = getURLParams();
-      const code = state.partyCode || (params.code ? params.code.toUpperCase() : '');
-      signInWithProvider('apple', code);
-    });
-  }
-
-  if (emailBtn) {
-    emailBtn.addEventListener('click', () => {
-      // For now, fallback to onboarding (email/legacy)
-      const params = getURLParams();
-      const code = state.partyCode || (params.code ? params.code.toUpperCase() : '');
-      showOnboarding(code);
-    });
-  }
+  showOnboarding(code);
 }
 
 // ═══════════════════════════════════════════
@@ -5311,7 +5251,6 @@ async function init() {
   setupExitModal();
   // ★ Chantier 5 — Onboarding screens
   setupOnboardingScreen();
-  setupAuthScreen();
   setupWaitingRoomScreen();
   setupDeniedScreen();
 
