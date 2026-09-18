@@ -2668,3 +2668,137 @@ html, body {
   letter-spacing: 2px;
 }
 
+
+/* --- Sprint B First Taste Screen Styles --- */
+.ft-container {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.ft-header {
+  margin-bottom: 24px;
+}
+.ft-pill {
+  background: rgba(0, 224, 196, 0.1);
+  color: var(--turquoise);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid rgba(0, 224, 196, 0.3);
+}
+.ft-title {
+  font-size: 32px;
+  font-weight: 900;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #FF0066, #CC00FF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.2;
+}
+.ft-sub {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+.ft-search-block {
+  width: 100%;
+  margin-bottom: 24px;
+}
+#ft-search {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 0, 102, 0.3);
+  border-radius: 16px;
+  padding: 16px 20px;
+  color: white;
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.3s;
+}
+#ft-search:focus {
+  border-color: #FF0066;
+  background: rgba(255, 255, 255, 0.1);
+}
+.ft-results, .ft-mood-tracks {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ft-explore-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 24px;
+}
+.ft-explore-panel {
+  width: 100%;
+  margin-bottom: 24px;
+}
+.ft-moods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.mood-chip {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.ft-skip {
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: auto;
+}
+.ft-track-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+.ft-track-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.ft-track-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.ft-track-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: white;
+  margin-bottom: 4px;
+}
+.ft-track-artist {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
