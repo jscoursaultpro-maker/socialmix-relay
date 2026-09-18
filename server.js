@@ -67,6 +67,7 @@ import libraryRouter from './routes/library.js';
 import partyPublicInfoRouter from './routes/party-public-info.js';
 import partyJoinAsUserRouter from './routes/party-join-as-user.js';
 import partySuggestRouter from './routes/party-suggest.js';
+import configRouter from './routes/config.js';
 import meCrewsRouter from './routes/me-crews.js';
 import authCallbackRouter from './routes/auth-callback.js';
 import meNotificationsRouter from './routes/me-notifications.js';
@@ -1082,6 +1083,7 @@ app.use('/api/user', userSettingsRouter); // ★ Sprint X3: User settings
 app.use('/api/user', userAfterglowFeedRouter); // ★ Sprint X4: Afterglow feed
 app.use('/api/users/claim-guest-data', userClaimGuestRouter);
 app.use('/api/library', libraryRouter);
+app.use('/api', configRouter);
 
 // ★ Zone Privée /me (AhOuai V7)
 app.use('/api/me/crews', meCrewsRouter);
