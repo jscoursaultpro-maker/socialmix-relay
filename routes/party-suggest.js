@@ -81,4 +81,49 @@ router.post('/:code/suggest', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/party/:code/suggest/:suggestionId/boost
+ * Boost an existing suggestion (anti-double per user).
+ */
+router.post('/:code/suggest/:suggestionId/boost', async (req, res) => {
+  try {
+    const { code, suggestionId } = req.params;
+    const userId = req.user._id.toString();
+
+    const party = await Party.findOne({ code, endedAt: null });
+    if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
+
+    const suggestion = (party.suggestions || []).find(s => s.id === suggestionId);
+    if (!suggestion) return res.status(404).json({ error: 'SUGGESTION_NOT_FOUND' });
+
+    // Anti-double
+    if (!suggestion.boostedBy) suggestion.boostedBy = [];
+    if (suggestion.boostedBy.includes(userId)) {
+      return res.status(409).json({ error: 'ALREADY_BOOSTED', boostCount: suggestion.boostCount || 0 });
+    }
+
+    suggestion.boostedBy.push(userId);
+    suggestion.boostCount = (suggestion.boostCount || 0) + 1;
+    party.markModified('suggestions');
+    await party.save();
+
+    // Socket emit to host + guests
+    const io = req.app.get('io');
+    if (io) {
+      const payload = {
+        suggestionId,
+        boostCount: suggestion.boostCount,
+        boostedByUserId: userId
+      };
+      io.to(`host:${code}`).emit('suggestion:boosted', payload);
+      io.to(`guest:${code}`).emit('suggestion:boosted', payload);
+    }
+
+    res.json({ success: true, boostCount: suggestion.boostCount });
+  } catch (err) {
+    console.error('[API] ❌ POST /api/party/:code/suggest/:id/boost error:', err.message);
+    res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
+  }
+});
+
 export default router;
