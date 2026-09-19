@@ -18,10 +18,12 @@ router.get('/:code/suggestions', async (req, res) => {
     if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
 
     const allSuggestions = party.suggestions || [];
+    // Include pending + suggestions with no status (legacy data compatibility)
     const pending = allSuggestions
-      .filter(s => s.status === 'pending')
+      .filter(s => !s.status || s.status === 'pending')
       .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())
       .slice(0, 20);
+    console.log(`[suggestions] Party ${code}: ${allSuggestions.length} total, ${pending.length} pending/unset`);
 
     // Collect unique userIds to batch-fetch
     const userIds = [...new Set(pending.map(s => s.suggestedBy || s.guestId).filter(Boolean))];
@@ -36,7 +38,7 @@ router.get('/:code/suggestions', async (req, res) => {
       const uid = (s.suggestedBy || s.guestId || '').toString();
       const user = userMap.get(uid);
       return {
-        id: s.id,
+        id: (s._id || s.id || '').toString(),
         title: s.title,
         artist: s.artist,
         artworkUrl: s.artworkUrl || s.coverURL || null,
