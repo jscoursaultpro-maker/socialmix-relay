@@ -3689,6 +3689,12 @@ function setupSocialHub() {
     cameraInput.onchange = handleDiapoPhoto;
     console.log('[SocialHub] Camera photo input bound');
   }
+  // ★ Unified picker (no capture) for iOS/Android native selector
+  const pickerInput = $('photo-picker-input');
+  if (pickerInput) {
+    pickerInput.onchange = handleDiapoPhoto;
+    console.log('[SocialHub] Photo picker input bound');
+  }
   
   // Send message: handled by global sendGuestMessage() + inline onclick
 }
@@ -5844,7 +5850,14 @@ function updateDiapoButton() {
     if (label) label.textContent = 'Prends des photos';
     if (badge) badge.classList.add('hidden');
     btn.classList.remove('disabled');
-    btn.onclick = scrollToPhotosSection;
+    btn.onclick = () => {
+      const picker = document.getElementById('photo-picker-input');
+      if (picker) {
+        picker.click();
+      } else if (typeof scrollToPhotosSection === 'function') {
+        scrollToPhotosSection();
+      }
+    };
   } else {
     if (icon) icon.textContent = '🎞️';
     if (label) label.textContent = 'Lance le diaporama';
@@ -6211,15 +6224,17 @@ function setupBottomNav() {
           showScreen('cockpit');
           window.scrollTo({ top: 0, behavior: 'smooth' });
           break;
-        case 'photos':
-          // Ouvre l'input caméra natif iOS (pattern existant camera-photo-input)
-          const cameraInput = document.getElementById('camera-photo-input');
-          if (cameraInput) {
-            cameraInput.click();
-          } else if (typeof scrollToPhotosSection === 'function') {
-            scrollToPhotosSection();
+        case 'photos': {
+          // ★ Unified picker (no capture) → iOS/Android native selector
+          const picker = document.getElementById('photo-picker-input');
+          if (picker) {
+            picker.click();
+          } else {
+            const camInput = document.getElementById('camera-photo-input');
+            if (camInput) camInput.click();
           }
           break;
+        }
         case 'social':
           showScreen('hub');
           break;
