@@ -67,6 +67,7 @@ import libraryRouter from './routes/library.js';
 import partyPublicInfoRouter from './routes/party-public-info.js';
 import partyJoinAsUserRouter from './routes/party-join-as-user.js';
 import partySuggestRouter from './routes/party-suggest.js';
+import partySuggestionsListRouter from './routes/party-suggestions-list.js';
 import configRouter from './routes/config.js';
 import meCrewsRouter from './routes/me-crews.js';
 import authCallbackRouter from './routes/auth-callback.js';
@@ -1080,6 +1081,7 @@ app.use('/api/party', partySettingsRouter);
 app.use('/api/party', partyPublicInfoRouter);
 app.use('/api/party', partyJoinAsUserRouter);
 app.use('/api/party', partySuggestRouter);
+app.use('/api/party', partySuggestionsListRouter);
 
 // ★ V1: Provider vote (Deezer gated, extensible Qobuz/Tidal)
 app.use('/api/user/vote', userVotesRouter);
