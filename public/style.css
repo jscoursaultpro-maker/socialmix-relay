@@ -2510,3 +2510,16 @@ html, body {
 #cockpit-screen, #profile-screen, #my-friends-screen, #hub-screen {
   padding-bottom: 80px !important;
 }
+
+/* ═══ Tab Content — cockpit 5-tab system ═══ */
+.tab-content {
+  display: none;
+  animation: tabFadeIn 0.2s ease-out;
+}
+.tab-content.active {
+  display: block;
+}
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -406,9 +406,9 @@ function showScreen(name) {
   }
 
   // ★ Bottom nav — show/hide + active highlight
-  const NAV_SCREENS = ['cockpit', 'profile', 'my-friends', 'hub'];
+  const NAV_SCREENS = ['cockpit', 'hub'];
   toggleBottomNav(NAV_SCREENS.includes(name));
-  const navMap = { 'cockpit': 'home', 'hub': 'social', 'my-friends': 'friends', 'profile': 'profile' };
+  const navMap = { 'cockpit': 'home', 'hub': 'hub' };
   if (navMap[name]) updateActiveNavBtn(navMap[name]);
 }
 
@@ -6224,42 +6224,47 @@ function setupBottomNav() {
   nav.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const action = btn.dataset.nav;
-      switch (action) {
-        case 'home':
-          showScreen('cockpit');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          break;
-        case 'photos': {
-          // ★ Unified picker (no capture) → iOS/Android native selector
-          const picker = document.getElementById('photo-picker-input');
-          if (picker) {
-            picker.click();
-          } else {
-            const camInput = document.getElementById('camera-photo-input');
-            if (camInput) camInput.click();
-          }
-          break;
-        }
-        case 'social':
-          showScreen('hub');
-          break;
-        case 'friends':
-          if (typeof openMyFriendsScreen === 'function') {
-            openMyFriendsScreen();
-          } else {
-            showScreen('my-friends');
-          }
-          break;
-        case 'profile':
-          state.editingFromCockpit = true;
-          showScreen('profile');
-          if (typeof setupProfile === 'function') setupProfile();
-          break;
+
+      // ★ Hub tab routes to the full hub-screen (separate screen)
+      if (action === 'hub') {
+        showScreen('hub');
+        return;
       }
-      // photos action doesn't change active btn (diaporama hides nav)
-      if (action !== 'photos') updateActiveNavBtn(action);
+
+      // ★ All other tabs stay within cockpit-screen
+      // Ensure we're on the cockpit screen first
+      if (currentScreen !== 'cockpit') {
+        showScreen('cockpit');
+      }
+      showTab(action);
+      updateActiveNavBtn(action);
+
+      // ★ Memories tab — refresh photos when opened
+      if (action === 'memories') {
+        if (typeof updateMyPhotosGrid === 'function') updateMyPhotosGrid();
+        if (typeof refreshAllPhotos === 'function') refreshAllPhotos();
+      }
     });
   });
+}
+
+// ★ showTab — toggle .tab-content visibility within cockpit-screen
+function showTab(tabName) {
+  const cockpit = document.getElementById('cockpit-screen');
+  if (!cockpit) return;
+
+  cockpit.querySelectorAll('.tab-content').forEach(section => {
+    section.classList.remove('active');
+  });
+
+  const target = document.getElementById('tab-' + tabName);
+  if (target) {
+    target.classList.add('active');
+  }
+
+  // Scroll to top within cockpit
+  cockpit.scrollTop = 0;
+  window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 function updateActiveNavBtn(activeAction) {
