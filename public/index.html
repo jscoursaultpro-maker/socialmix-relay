@@ -521,43 +521,33 @@
 
             <!-- ★ Past suggestions (full list) -->
             <div id="mySugsAll" class="card" style="display:none;padding:14px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);margin-bottom:12px;">
-                <div class="collapse-header" onclick="toggleCollapse('mySugsAll')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:2px;">
-                    <div style="display:flex;align-items:center;gap:6px;">
-                        <span style="font-size:10px;font-weight:800;color:#8B5CF6;letter-spacing:1px;">🎵 MES SUGGESTIONS PRÉFÉRÉES</span>
-                    </div>
-                    <div class="collapse-chevron" style="font-size:10px;color:rgba(139,92,246,0.8);transition:transform 0.2s;">▶</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <span style="font-size:10px;font-weight:800;color:#8B5CF6;letter-spacing:1px;">🎵 MES SUGGESTIONS</span>
+                    <div style="font-size:9px;color:rgba(255,255,255,0.3);">Tap pour re-suggérer</div>
                 </div>
-                <div class="collapse-content" style="display:none;transition:all 0.2s ease-in-out;">
-                    <div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:10px;margin-top:4px;">Tap pour re-suggérer</div>
-                    <div id="mySugsAllList"></div>
-                    <button class="collapse-more-btn" onclick="toggleCollapseMore('mySugsAll')" style="
-                        display:none;width:100%;margin-top:8px;padding:12px;
-                        text-align:center;cursor:pointer;font-size:12px;font-weight:500;
-                        color:rgba(139,92,246,0.7);background:transparent;
-                        border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
-                    ">Voir tous ↓</button>
-                </div>
+                <div id="mySugsAllList"></div>
+                <button class="collapse-more-btn" onclick="toggleCollapseMore('mySugsAll')" style="
+                    display:none;width:100%;margin-top:8px;padding:12px;
+                    text-align:center;cursor:pointer;font-size:12px;font-weight:500;
+                    color:rgba(139,92,246,0.7);background:transparent;
+                    border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
+                ">Voir plus ↓</button>
             </div>
 
             <!-- ★ Mes fire votes preview -->
             <div id="mySugsPreview" class="card" style="display:none;padding:14px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);margin-bottom:12px;">
-                <div class="collapse-header" onclick="toggleCollapse('mySugsPreview')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:2px;">
-                    <div style="display:flex;align-items:center;gap:6px;">
-                        <span style="font-size:14px;">🔥</span>
-                        <span style="font-size:10px;font-weight:800;color:#8B5CF6;letter-spacing:1px;">MES TITRES PRÉFÉRÉS</span>
-                    </div>
-                    <div class="collapse-chevron" style="font-size:10px;color:rgba(139,92,246,0.8);transition:transform 0.2s;">▶</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <span style="font-size:14px;">🔥</span>
+                    <span style="font-size:10px;font-weight:800;color:#8B5CF6;letter-spacing:1px;">MES TITRES PRÉFÉRÉS</span>
+                    <div style="font-size:9px;color:rgba(255,255,255,0.3);">Tes coups de cœur</div>
                 </div>
-                <div class="collapse-content" style="display:none;transition:all 0.2s ease-in-out;">
-                    <div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:10px;margin-top:4px;">Tes coups de cœur en soirée</div>
-                    <div id="mySugsPreviewList"></div>
-                    <button class="collapse-more-btn" onclick="toggleCollapseMore('mySugsPreview')" style="
-                        display:none;width:100%;margin-top:8px;padding:12px;
-                        text-align:center;cursor:pointer;font-size:12px;font-weight:500;
-                        color:rgba(139,92,246,0.7);background:transparent;
-                        border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
-                    ">Voir tous ↓</button>
-                </div>
+                <div id="mySugsPreviewList"></div>
+                <button class="collapse-more-btn" onclick="toggleCollapseMore('mySugsPreview')" style="
+                    display:none;width:100%;margin-top:8px;padding:12px;
+                    text-align:center;cursor:pointer;font-size:12px;font-weight:500;
+                    color:rgba(139,92,246,0.7);background:transparent;
+                    border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
+                ">Voir plus ↓</button>
             </div>
         </section>
 

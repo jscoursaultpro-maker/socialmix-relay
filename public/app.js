@@ -5986,8 +5986,8 @@ function shareHistoryTrack(idx) {
 let _myDataLoaded = false;
 let myTopsData = [];       // fire votes pool (max 30 from backend)
 let mySugsData = [];       // suggestions pool (max 50 from backend)
-let myTopsShown = 5;       // currently displayed count
-let mySugsShown = 5;       // currently displayed count
+let myTopsShown = 2;       // currently displayed count
+let mySugsShown = 2;       // currently displayed count
 const MY_SUGS_MAX = 15;    // hard cap for suggestions
 let isHistoryCollapsed = true; // ★ Bug 8 — history collapse
 const resuggestedTrackIds = new Set(); // ★ Bug 7 — tracks already re-suggested this session
@@ -6039,8 +6039,9 @@ function renderMyTops() {
   if (!container || !list || !myTopsData.length) return;
   container.style.display = 'block';
 
-  // Render all, CSS handles collapse
-  list.innerHTML = myTopsData.map(s => {
+  // Render limited, expand on "Voir plus"
+  const visible = myTopsData.slice(0, myTopsShown);
+  list.innerHTML = visible.map(s => {
     // ★ Bug 7 — Check if already re-suggested
     const alreadyResuggested = resuggestedTrackIds.has(`${s.deezerID || 0}:${(s.title || '').toLowerCase()}`);
     return `
@@ -6059,10 +6060,11 @@ function renderMyTops() {
       ">${alreadyResuggested ? '✓ Envoyée' : 'Re-suggérer'}</button>
     </div>`;
   }).join('');
-  // Pagination button
+  // Pagination button — show only when more items exist
   if (btn) {
-    if (myTopsData.length > 5) {
+    if (myTopsData.length > myTopsShown) {
       btn.style.display = 'block';
+      btn.textContent = `Voir plus (${myTopsData.length - myTopsShown} restants) ↓`;
     } else {
       btn.style.display = 'none';
     }
@@ -6117,10 +6119,11 @@ function renderMySugs() {
     </div>`;
   }).join('');
 
-  // Pagination button
+  // Pagination button — show only when more items exist
   if (btn) {
-    if (capped.length > 5) {
+    if (capped.length > mySugsShown) {
       btn.style.display = 'block';
+      btn.textContent = `Voir plus (${capped.length - mySugsShown} restants) ↓`;
     } else {
       btn.style.display = 'none';
     }
@@ -6184,15 +6187,12 @@ window.toggleCollapse = function(sectionId) {
 };
 
 window.toggleCollapseMore = function(sectionId) {
-  const container = $(sectionId);
-  if (!container) return;
-  const btn = container.querySelector('.collapse-more-btn');
-  if (container.classList.contains('collapsed-partial')) {
-    container.classList.remove('collapsed-partial');
-    if (btn) btn.textContent = 'Réduire ↑';
-  } else {
-    container.classList.add('collapsed-partial');
-    if (btn) btn.textContent = 'Voir tous ↓';
+  if (sectionId === 'mySugsPreview') {
+    myTopsShown += 5;
+    renderMyTops();
+  } else if (sectionId === 'mySugsAll') {
+    mySugsShown += 5;
+    renderMySugs();
   }
 };
 
