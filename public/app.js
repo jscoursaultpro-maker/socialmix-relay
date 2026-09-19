@@ -3279,6 +3279,9 @@ function renderGuestSuggestions() {
   const list = $('suggestions-list');
   if (!list) return;
   list.innerHTML = '';
+  // ★ Hide hint when suggestions exist
+  const hint = $('suggest-hint');
+  if (hint && (state.suggestions || []).length > 0) hint.style.display = 'none';
 
   const configs = {
     pending:        { dot: '#888',    icon: '💡', label: 'Envoyée au DJ' },
@@ -3297,6 +3300,8 @@ function renderGuestSuggestions() {
   const allSuggs = state.suggestions || [];
   const myId = state.guestId || state.socketId || '';
   const myName = state.guestName || '';
+  console.log('[renderGuestSuggestions] total:', allSuggs.length, '| myId:', myId, '| myName:', myName);
+  allSuggs.forEach((s,i) => console.log(`  [${i}] id:${s.id} guestId:${s.guestId} guestName:${s.guestName} status:${s.status}`));
 
   // ── Section A : MES suggestions ─────────────────────────────────────
   const mine = allSuggs.filter(s => s.guestId === myId || s.guestName === myName);
