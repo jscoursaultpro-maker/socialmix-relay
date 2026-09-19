@@ -1,7 +1,14 @@
+// ★ V1 launch workaround (19/09) : SPRINT_B_STRICT_VISIBILITY=false
+// permet à tous les guests de rejoindre les parties friends/private
+// en attendant l'UI iOS host "Accepter demande" (Sprint E2).
+// À supprimer quand Sprint E2 iOS shipped + sélecteur visibility iOS.
+
 import { Router } from 'express';
 import { verifyGuestAuth } from '../middleware/authGuest.js';
 import Party from '../models/Party.js';
 import mongoose from 'mongoose';
+
+const STRICT_VISIBILITY = process.env.SPRINT_B_STRICT_VISIBILITY === 'true';
 
 const router = Router();
 router.use(verifyGuestAuth);
@@ -32,7 +39,17 @@ router.post('/:code/join-as-user', async (req, res) => {
     } else if (party.visibility === 'public') {
       canJoin = true;
     } else if (party.visibility === 'friends') {
-      if (isFriend) canJoin = true;
+      // V1 workaround : treat friends as public until iOS Sprint E2 UI ships
+      if (isFriend || !STRICT_VISIBILITY) {
+        canJoin = true;
+      }
+    } else if (party.visibility === 'private' && !STRICT_VISIBILITY) {
+      // V1 workaround : allow private too for testing
+      canJoin = true;
+    }
+
+    if (!STRICT_VISIBILITY && (party.visibility === 'friends' || party.visibility === 'private')) {
+      console.warn(`[join-as-user] ⚠️ V1 workaround: bypassed ${party.visibility} visibility for user ${userId} on party ${code}`);
     }
 
     if (!canJoin) {
