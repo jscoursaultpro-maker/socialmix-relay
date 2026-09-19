@@ -488,74 +488,8 @@
             </div>
         </div>
 
-        <!-- ═══ TAB: HOME ═══ -->
-        <section id="tab-home" class="tab-content active">
-            <div class="header-greeting" id="greeting" style="text-align: center; font-size: 16px; margin-top: 4px; padding-bottom: 4px;">Hey ! 🎉</div>
-
-            <!-- ★ Phase Narrative -->
-            <div class="phase-narrative" id="phaseNarrative">
-              <!-- Injecté dynamiquement par updatePhaseNarrative() -->
-            </div>
-
-            <!-- Quick access shortcuts -->
-            <button id="btn-launch-diapo-cockpit" class="diapo-cockpit-btn" onclick="handleDiapoBtnClick()">
-                <span class="diapo-icon" id="diapo-icon">📷</span>
-                <span class="diapo-label" id="diapo-label-text">Prends des photos</span>
-                <span class="diapo-badge hidden" id="diapo-count">0</span>
-            </button>
-
-            <button id="btn-launch-social-hub" class="diapo-cockpit-btn" onclick="showTab('hub'); updateActiveNavBtn('hub');">
-                <span class="diapo-icon">📱</span>
-                <span class="diapo-label">Voir le Social Hub</span>
-            </button>
-
-            <!-- Now Playing (preview on Home) -->
-            <div class="card now-playing" id="now-playing">
-                <div class="vinyl-container">
-                    <div class="vinyl-disc" id="vinyl-disc">
-                        <div class="vinyl-groove"></div>
-                        <div class="vinyl-groove groove-2"></div>
-                        <div class="vinyl-groove groove-3"></div>
-                        <div class="vinyl-label" id="vinyl-label">
-                            <span class="vinyl-note">♪</span>
-                        </div>
-                    </div>
-                    <div class="vinyl-glow"></div>
-                </div>
-                <div class="np-info">
-                    <div id="np-artwork" style="display:none;width:40px;height:40px;border-radius:8px;overflow:hidden;margin-bottom:4px;"></div>
-                    <div class="np-label">EN ÉCOUTE</div>
-                    <div class="np-title" id="np-title">En attente...</div>
-                    <div class="np-artist" id="np-artist">—</div>
-                    <div id="np-suggester" style="display:none; margin-top: 6px; padding: 4px 10px; background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 12px; font-size: 11px; color: #00d2ff; font-weight: 600; align-items: center; gap: 4px; width: fit-content;">
-                        <span id="np-suggester-icon" style="font-size: 12px;">✨</span> <span id="np-suggester-text">Mis le feu par</span> <span id="np-suggester-name" style="font-weight: 800;"></span>
-                    </div>
-                    <div class="np-meta">
-                        <span class="np-badge" id="np-bpm">— BPM</span>
-                        <span class="np-genre" id="np-genre">—</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Leaderboard (Classement) -->
-            <div class="card" id="leaderboard-section" style="padding:12px 14px;">
-                <div class="section-header">
-                    <span class="section-icon">🏆</span>
-                    <span class="section-title">CLASSEMENT</span>
-                </div>
-                <div id="cockpit-leaderboard" style="margin-top:8px;">
-                    <div class="empty-state" style="font-size:11px; color:rgba(255,255,255,0.3);">En attente des premiers points...</div>
-                </div>
-            </div>
-
-            <!-- Quit Party -->
-            <button id="quit-btn" class="quit-btn">
-                🚪 QUITTER LA SOIRÉE
-            </button>
-        </section>
-
-        <!-- ═══ TAB: JUKEBOX ═══ -->
-        <section id="tab-jukebox" class="tab-content">
+        <!-- ═══ TAB 1: JUKEBOX (default active) ═══ -->
+        <section id="tab-jukebox" class="tab-content active">
             <!-- Suggest Track -->
             <div class="card suggest-section">
                 <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;">
@@ -627,8 +561,28 @@
             </div>
         </section>
 
-        <!-- ═══ TAB: ON AIR ═══ -->
+        <!-- ═══ TAB 2: ON AIR ═══ -->
         <section id="tab-on-air" class="tab-content">
+            <!-- Greeting (from Home) -->
+            <div class="header-greeting" id="greeting" style="text-align: center; font-size: 16px; margin-top: 4px; padding-bottom: 4px;">Hey ! 🎉</div>
+
+            <!-- ★ Phase Narrative (from Home) -->
+            <div class="phase-narrative" id="phaseNarrative">
+              <!-- Injecté dynamiquement par updatePhaseNarrative() -->
+            </div>
+
+            <!-- Quick access shortcuts (from Home) -->
+            <button id="btn-launch-diapo-cockpit" class="diapo-cockpit-btn" onclick="handleDiapoBtnClick()">
+                <span class="diapo-icon" id="diapo-icon">📷</span>
+                <span class="diapo-label" id="diapo-label-text">Prends des photos</span>
+                <span class="diapo-badge hidden" id="diapo-count">0</span>
+            </button>
+
+            <button id="btn-launch-social-hub" class="diapo-cockpit-btn" onclick="showTab('hub'); updateActiveNavBtn('hub');">
+                <span class="diapo-icon">📱</span>
+                <span class="diapo-label">Voir le Social Hub</span>
+            </button>
+
             <!-- DJ Live Banner (hidden by default) -->
             <div id="dj-live-banner" class="dj-live-banner hidden">
                 <div class="dj-live-wave">〰️</div>
@@ -638,6 +592,34 @@
                 </div>
                 <div class="live-badge">
                     <span class="live-dot"></span> LIVE
+                </div>
+            </div>
+
+            <!-- Now Playing (from Home) -->
+            <div class="card now-playing" id="now-playing">
+                <div class="vinyl-container">
+                    <div class="vinyl-disc" id="vinyl-disc">
+                        <div class="vinyl-groove"></div>
+                        <div class="vinyl-groove groove-2"></div>
+                        <div class="vinyl-groove groove-3"></div>
+                        <div class="vinyl-label" id="vinyl-label">
+                            <span class="vinyl-note">♪</span>
+                        </div>
+                    </div>
+                    <div class="vinyl-glow"></div>
+                </div>
+                <div class="np-info">
+                    <div id="np-artwork" style="display:none;width:40px;height:40px;border-radius:8px;overflow:hidden;margin-bottom:4px;"></div>
+                    <div class="np-label">EN ÉCOUTE</div>
+                    <div class="np-title" id="np-title">En attente...</div>
+                    <div class="np-artist" id="np-artist">—</div>
+                    <div id="np-suggester" style="display:none; margin-top: 6px; padding: 4px 10px; background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 12px; font-size: 11px; color: #00d2ff; font-weight: 600; align-items: center; gap: 4px; width: fit-content;">
+                        <span id="np-suggester-icon" style="font-size: 12px;">✨</span> <span id="np-suggester-text">Mis le feu par</span> <span id="np-suggester-name" style="font-weight: 800;"></span>
+                    </div>
+                    <div class="np-meta">
+                        <span class="np-badge" id="np-bpm">— BPM</span>
+                        <span class="np-genre" id="np-genre">—</span>
+                    </div>
                 </div>
             </div>
 
@@ -697,27 +679,9 @@
                 </div>
                 <div class="chart-bars" id="chart-bars"></div>
             </div>
-
-            <!-- Track History -->
-            <div class="card history-section">
-                <div class="section-header">
-                    <span class="section-icon">⏱️</span>
-                    <span class="section-title">HISTORIQUE</span>
-                    <span class="history-count" id="history-count">0 titres</span>
-                </div>
-                <div id="history-list" class="history-list">
-                    <div class="empty-state">Aucun titre joué pour le moment</div>
-                </div>
-                <button id="historyMoreToggle" onclick="window.toggleHistoryCollapse()" style="
-                    display:none;width:100%;margin-top:8px;padding:12px;
-                    text-align:center;cursor:pointer;font-size:12px;font-weight:500;
-                    color:rgba(139,92,246,0.7);background:transparent;
-                    border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
-                ">Afficher tout ↓</button>
-            </div>
         </section>
 
-        <!-- ═══ TAB: MEMORIES ═══ -->
+        <!-- ═══ TAB 3: MEMORIES ═══ -->
         <section id="tab-memories" class="tab-content">
             <!-- Camera photo — opens camera directly on mobile -->
             <div class="card" style="padding:14px;">
@@ -765,14 +729,63 @@
                     font-family:inherit;transition:all 0.2s;text-align:center;
                 ">🎞️ LANCE LE DIAPORAMA</button>
             </div>
+
+            <!-- Track History (moved from On Air) -->
+            <div class="card history-section">
+                <div class="section-header">
+                    <span class="section-icon">⏱️</span>
+                    <span class="section-title">HISTORIQUE</span>
+                    <span class="history-count" id="history-count">0 titres</span>
+                </div>
+                <div id="history-list" class="history-list">
+                    <div class="empty-state">Aucun titre joué pour le moment</div>
+                </div>
+                <button id="historyMoreToggle" onclick="window.toggleHistoryCollapse()" style="
+                    display:none;width:100%;margin-top:8px;padding:12px;
+                    text-align:center;cursor:pointer;font-size:12px;font-weight:500;
+                    color:rgba(139,92,246,0.7);background:transparent;
+                    border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
+                ">Afficher tout ↓</button>
+            </div>
         </section>
 
-        <!-- ═══ TAB: HUB (placeholder — routes to hub-screen) ═══ -->
+        <!-- ═══ TAB 4: HUB ═══ -->
         <section id="tab-hub" class="tab-content">
-            <!-- Hub tab routes to the full hub-screen via showTab logic -->
-            <div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.4);font-size:12px;">
-                Chargement du Social Hub...
+            <!-- Leaderboard (moved from Home) -->
+            <div class="card" id="leaderboard-section" style="padding:12px 14px;">
+                <div class="section-header">
+                    <span class="section-icon">🏆</span>
+                    <span class="section-title">CLASSEMENT</span>
+                </div>
+                <div id="cockpit-leaderboard" style="margin-top:8px;">
+                    <div class="empty-state" style="font-size:11px; color:rgba(255,255,255,0.3);">En attente des premiers points...</div>
+                </div>
             </div>
+
+            <!-- Social Hub shortcut -->
+            <button onclick="showScreen('hub')" style="
+                width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;
+                background:linear-gradient(135deg,rgba(0,210,255,0.12),rgba(138,43,226,0.08));
+                border:1px solid rgba(0,210,255,0.2);border-radius:12px;cursor:pointer;
+                backdrop-filter:blur(10px);margin-bottom:10px;
+            ">
+                <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#00d2ff,#8a2be2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🎭</div>
+                <div style="flex:1;text-align:left;">
+                    <div style="font-size:11px;font-weight:900;color:#fff;letter-spacing:1px;">SOCIAL HUB COMPLET</div>
+                    <div style="font-size:8px;color:rgba(255,255,255,0.4);font-weight:500;">Crew · Engagement · Missions</div>
+                </div>
+                <div style="font-size:16px;color:rgba(0,210,255,0.6);font-weight:300;">›</div>
+            </button>
+
+            <!-- Quit Party -->
+            <button id="quit-btn" class="quit-btn">
+                🚪 QUITTER LA SOIRÉE
+            </button>
+        </section>
+
+        <!-- ═══ TAB 5: JUKEBOX BIS (duplicate shortcut) ═══ -->
+        <section id="tab-jukebox-bis" class="tab-content">
+            <!-- This tab mirrors jukebox — showTab logic redirects to tab-jukebox -->
         </section>
 
         <div style="height: 50px"></div>
@@ -1002,11 +1015,7 @@
 
     <!-- ★ Fixed Bottom Nav (cockpit legacy) -->
     <footer id="bottom-nav" class="bottom-nav hidden">
-      <button class="nav-btn active" data-nav="home">
-        <span class="nav-icon">🏠</span>
-        <span class="nav-label">Home</span>
-      </button>
-      <button class="nav-btn" data-nav="jukebox">
+      <button class="nav-btn active" data-nav="jukebox">
         <span class="nav-icon">✨</span>
         <span class="nav-label">Jukebox</span>
       </button>
@@ -1022,6 +1031,10 @@
         <span class="nav-icon">🎭</span>
         <span class="nav-label">Hub</span>
       </button>
+      <button class="nav-btn" data-nav="jukebox-bis">
+        <span class="nav-icon">✨</span>
+        <span class="nav-label">Jukebox</span>
+      </button>
     </footer>
 
     <!-- Socket.IO client -->
@@ -1029,6 +1042,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- ★ SSO web (task #33) — Supabase JS SDK pour Apple/Google OAuth -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
-    <script src="app.js?v=20260919v38"></script>
+    <script src="app.js?v=20260919v39"></script>
 </body>
 </html>

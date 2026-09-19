@@ -408,7 +408,7 @@ function showScreen(name) {
   // ★ Bottom nav — show/hide + active highlight
   const NAV_SCREENS = ['cockpit', 'hub'];
   toggleBottomNav(NAV_SCREENS.includes(name));
-  const navMap = { 'cockpit': 'home', 'hub': 'hub' };
+  const navMap = { 'cockpit': 'jukebox', 'hub': 'hub' };
   if (navMap[name]) updateActiveNavBtn(navMap[name]);
 }
 
@@ -6223,15 +6223,12 @@ function setupBottomNav() {
 
   nav.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const action = btn.dataset.nav;
+      let action = btn.dataset.nav;
 
-      // ★ Hub tab routes to the full hub-screen (separate screen)
-      if (action === 'hub') {
-        showScreen('hub');
-        return;
-      }
+      // ★ Jukebox-bis (5th tab) redirects to main jukebox
+      if (action === 'jukebox-bis') action = 'jukebox';
 
-      // ★ All other tabs stay within cockpit-screen
+      // ★ All tabs stay within cockpit-screen
       // Ensure we're on the cockpit screen first
       if (currentScreen !== 'cockpit') {
         showScreen('cockpit');
@@ -6269,7 +6266,10 @@ function showTab(tabName) {
 
 function updateActiveNavBtn(activeAction) {
   document.querySelectorAll('.nav-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.nav === activeAction);
+    // jukebox-bis highlights same as jukebox
+    const nav = b.dataset.nav;
+    const match = (nav === activeAction) || (nav === 'jukebox-bis' && activeAction === 'jukebox');
+    b.classList.toggle('active', match);
   });
 }
 
