@@ -6223,13 +6223,23 @@ function setupBottomNav() {
 
   nav.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      let action = btn.dataset.nav;
+      const action = btn.dataset.nav;
 
-      // ★ Jukebox-bis (5th tab) redirects to main jukebox
-      if (action === 'jukebox-bis') action = 'jukebox';
+      // ★ Hub → full hub-screen (separate screen)
+      if (action === 'hub') {
+        showScreen('hub');
+        return;
+      }
 
-      // ★ All tabs stay within cockpit-screen
-      // Ensure we're on the cockpit screen first
+      // ★ Jukebox-bis (5th) → cockpit complet (all sections visible)
+      if (action === 'jukebox-bis') {
+        if (currentScreen !== 'cockpit') showScreen('cockpit');
+        showAllTabs();
+        updateActiveNavBtn('jukebox-bis');
+        return;
+      }
+
+      // ★ Normal tabs stay within cockpit-screen
       if (currentScreen !== 'cockpit') {
         showScreen('cockpit');
       }
@@ -6264,12 +6274,25 @@ function showTab(tabName) {
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
+// ★ showAllTabs — cockpit complet: all sections visible at once
+function showAllTabs() {
+  const cockpit = document.getElementById('cockpit-screen');
+  if (!cockpit) return;
+
+  cockpit.querySelectorAll('.tab-content').forEach(section => {
+    // Show all real tabs, skip the empty jukebox-bis placeholder
+    if (section.id !== 'tab-jukebox-bis') {
+      section.classList.add('active');
+    }
+  });
+
+  cockpit.scrollTop = 0;
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
 function updateActiveNavBtn(activeAction) {
   document.querySelectorAll('.nav-btn').forEach(b => {
-    // jukebox-bis highlights same as jukebox
-    const nav = b.dataset.nav;
-    const match = (nav === activeAction) || (nav === 'jukebox-bis' && activeAction === 'jukebox');
-    b.classList.toggle('active', match);
+    b.classList.toggle('active', b.dataset.nav === activeAction);
   });
 }
 
