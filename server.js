@@ -75,6 +75,8 @@ import meNotificationsRouter from './routes/me-notifications.js';
 import meStatsRouter from './routes/me-stats.js';
 import meLegacyRouter from './routes/me-legacy.js';
 import meBadgesRouter from './routes/me-badges.js';
+import meSuggestionsHistoryRouter from './routes/me-suggestions-history.js';
+import meTracksFavoritesRouter from './routes/me-tracks-favorites.js';
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 import { resolvePhotoAccess, filterPhotosForUser } from './utils/photoVisibility.js'; // ★ Sprint X2
 
@@ -1096,6 +1098,8 @@ app.use('/api/me/crews', meCrewsRouter);
 app.use('/api/me/notifications', meNotificationsRouter);
 app.use('/api/me/stats', meStatsRouter);
 app.use('/api/me/badges', meBadgesRouter);
+app.use('/api/me', meSuggestionsHistoryRouter);     // GET /api/me/suggestions/past
+app.use('/api/me', meTracksFavoritesRouter);         // GET /api/me/tracks/favorites
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
