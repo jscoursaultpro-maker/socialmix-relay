@@ -404,6 +404,12 @@ function showScreen(name) {
       );
     }
   }
+
+  // ★ Bottom nav — show/hide + active highlight
+  const NAV_SCREENS = ['cockpit', 'profile', 'my-friends', 'hub'];
+  toggleBottomNav(NAV_SCREENS.includes(name));
+  const navMap = { 'cockpit': 'home', 'hub': 'social', 'my-friends': 'friends', 'profile': 'profile' };
+  if (navMap[name]) updateActiveNavBtn(navMap[name]);
 }
 
 // ★ Fix popstate — Intercept browser back button to return to cockpit
@@ -1668,6 +1674,9 @@ function enterCockpit() {
   setupGenreTrends();
   setupSuggest();
   updateHistory();
+  
+  // ★ Bottom nav setup
+  setupBottomNav();
   
   // Hub buttons (top + bottom)
   if ($('hub-card-btn')) $('hub-card-btn').addEventListener('click', () => showScreen('hub'));
@@ -5648,6 +5657,8 @@ function launchDiaporama() {
   if (pauseBtn) pauseBtn.textContent = '⏸️';
   $('diapo-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+  // ★ Hide bottom nav during fullscreen diaporama
+  toggleBottomNav(false);
   showDiapoSlide(diapoCurrentIndex);
   startDiapoInterval();
   // Generate QR once
@@ -5666,6 +5677,9 @@ function launchDiaporama() {
 function closeDiaporama() {
   $('diapo-modal').classList.add('hidden');
   document.body.style.overflow = '';
+  // ★ Restore bottom nav after diaporama
+  const NAV_SCREENS = ['cockpit', 'profile', 'my-friends', 'hub'];
+  if (NAV_SCREENS.includes(currentScreen)) toggleBottomNav(true);
   stopDiapoInterval();
   stopCtaRotation();
   stopTrackPolling();
@@ -6179,3 +6193,57 @@ window.getFounderBadgeHTML = (u) => {
   }
   return '';
 };
+
+// ★ Fixed Bottom Nav ──────────────────────────────────────────
+let _bottomNavBound = false;
+
+function setupBottomNav() {
+  if (_bottomNavBound) return;
+  const nav = document.getElementById('bottom-nav');
+  if (!nav) return;
+  _bottomNavBound = true;
+
+  nav.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.nav;
+      switch (action) {
+        case 'home':
+          showScreen('cockpit');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          break;
+        case 'photos':
+          if (typeof launchDiaporama === 'function') launchDiaporama();
+          break;
+        case 'social':
+          showScreen('hub');
+          break;
+        case 'friends':
+          if (typeof openMyFriendsScreen === 'function') {
+            openMyFriendsScreen();
+          } else {
+            showScreen('my-friends');
+          }
+          break;
+        case 'profile':
+          state.editingFromCockpit = true;
+          showScreen('profile');
+          if (typeof setupProfile === 'function') setupProfile();
+          break;
+      }
+      // photos action doesn't change active btn (diaporama hides nav)
+      if (action !== 'photos') updateActiveNavBtn(action);
+    });
+  });
+}
+
+function updateActiveNavBtn(activeAction) {
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.nav === activeAction);
+  });
+}
+
+function toggleBottomNav(visible) {
+  const nav = document.getElementById('bottom-nav');
+  if (!nav) return;
+  nav.classList.toggle('hidden', !visible);
+}

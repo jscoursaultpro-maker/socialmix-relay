@@ -2465,3 +2465,48 @@ html, body {
 .user-chip-medal-prefounder {
   background: linear-gradient(135deg, #cfd8dc, #90a4ae);
 }
+
+/* ★ Fixed Bottom Nav ─────────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  background: rgba(10,14,20,0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  z-index: 999;
+}
+.bottom-nav.hidden { display: none; }
+.nav-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.45);
+  font-family: inherit;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-btn.active {
+  color: var(--turquoise, #00E0C4);
+  background: rgba(0,224,196,0.08);
+}
+.nav-icon { font-size: 22px; line-height: 1; }
+.nav-label { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+.nav-btn:active { opacity: 0.6; transform: scale(0.95); }
+
+/* Padding bottom sur les écrans post-onboarding pour ne pas masquer le contenu */
+#cockpit-screen, #profile-screen, #my-friends-screen, #hub-screen {
+  padding-bottom: 80px !important;
+}
