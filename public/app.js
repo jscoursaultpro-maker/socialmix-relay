@@ -6212,7 +6212,13 @@ function setupBottomNav() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
           break;
         case 'photos':
-          if (typeof launchDiaporama === 'function') launchDiaporama();
+          // Ouvre l'input caméra natif iOS (pattern existant camera-photo-input)
+          const cameraInput = document.getElementById('camera-photo-input');
+          if (cameraInput) {
+            cameraInput.click();
+          } else if (typeof scrollToPhotosSection === 'function') {
+            scrollToPhotosSection();
+          }
           break;
         case 'social':
           showScreen('hub');
