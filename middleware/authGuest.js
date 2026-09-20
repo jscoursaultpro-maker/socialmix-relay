@@ -56,12 +56,36 @@ export const verifyGuestAuth = async (req, res, next) => {
       const uniqueSuffix = Math.floor(Math.random() * 10000);
       const handle = `${handleBase}${uniqueSuffix}`;
 
+      // ★ Parse name from SSO metadata (Apple provides full_name only on first login)
+      const meta = supabaseUser.user_metadata || {};
+      const rawFullName = meta.full_name || meta.name || '';
+      const givenName = meta.given_name || meta.first_name || '';
+      const familyName = meta.family_name || meta.last_name || '';
+      
+      let firstName = givenName;
+      let lastName = familyName;
+      
+      // If no given_name but we have full_name, split it
+      if (!firstName && rawFullName) {
+        const parts = rawFullName.trim().split(/\s+/);
+        firstName = parts[0] || '';
+        lastName = parts.slice(1).join(' ') || lastName;
+      }
+      
+      // Final fallback
+      if (!firstName) firstName = 'Guest';
+
+      console.log(`[authGuest] Creating new user: email=${supabaseUser.email} firstName="${firstName}" lastName="${lastName}" provider=${meta.iss || '?'}`);
+
       user = new User({
         email: supabaseUser.email,
         supabaseUserId: supabaseUser.id,
-        firstName: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || 'Guest',
-        handle,
-        emoji: '👽',
+        profile: {
+          firstName,
+          lastName,
+          handle,
+          emoji: '👽',
+        },
         createdViaSprintB: true,
       });
       await user.save();
