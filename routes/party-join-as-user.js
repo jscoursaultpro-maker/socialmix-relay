@@ -14,24 +14,49 @@ const router = Router();
 router.use(verifyGuestAuth);
 
 router.post('/:code/join-as-user', async (req, res) => {
+  const { code } = req.params;
+  const tag = `[join-as-user][${code}]`;
+
   try {
-    const { code } = req.params;
+    // ── Step 1: Validate user ──
+    if (!req.user || !req.user._id) {
+      console.error(`${tag} ❌ req.user missing after verifyGuestAuth`);
+      return res.status(401).json({ error: 'AUTH_ERROR', message: 'User not authenticated' });
+    }
     const userId = req.user._id;
+    console.log(`${tag} 🔍 Step 1 OK — userId=${userId} email=${req.user.email || '?'}`);
 
-    const party = await Party.findOne({ code, endedAt: null });
-    if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
+    // ── Step 2: Find active party ──
+    let party;
+    try {
+      party = await Party.findOne({ code, endedAt: null });
+    } catch (dbErr) {
+      console.error(`${tag} ❌ Step 2 DB query failed:`, dbErr.message);
+      return res.status(503).json({ error: 'DB_ERROR', message: 'Database temporarily unavailable' });
+    }
+    if (!party) {
+      console.warn(`${tag} ⚠️ Step 2 — PARTY_NOT_FOUND (code=${code})`);
+      return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
+    }
+    console.log(`${tag} 🔍 Step 2 OK — party found, hostUserId=${party.hostUserId || 'NULL'}, visibility=${party.visibility}, participants=${(party.participants || []).length}`);
 
-    // Idempotent: check if already in participants
+    // ── Step 3: Idempotent check ──
     const isParticipant = party.participants && party.participants.some(p => p.userId && p.userId.toString() === userId.toString());
     if (isParticipant) {
-      return res.json({ party, user: req.user, alreadyJoined: true });
+      console.log(`${tag} ✅ Step 3 — already joined (idempotent)`);
+      // ★ Fix: return lightweight response instead of entire party doc (which can be huge)
+      return res.json({ 
+        partyCode: code, 
+        alreadyJoined: true,
+        userId: userId.toString(),
+        visibility: party.visibility
+      });
     }
 
-    // Check visibility logic
+    // ── Step 4: Visibility check ──
     let canJoin = false;
     const isHost = party.hostUserId && party.hostUserId.toString() === userId.toString();
     const isFriend = req.user.friends && req.user.friends.some(f => f.userId && party.hostUserId && f.userId.toString() === party.hostUserId.toString());
-    const isApproved = party.joinRequests && party.joinRequests.some(r => r.userId && r.userId.toString() === userId.toString() && r.accepted === true); // assuming 'accepted' or if they are in participants. Wait, if accepted they are already in participants! So private means they must be host or preApproved.
     const isPreApproved = party.preApprovedGuests && party.preApprovedGuests.some(id => id.toString() === userId.toString());
 
     if (isHost || isPreApproved) {
@@ -39,45 +64,79 @@ router.post('/:code/join-as-user', async (req, res) => {
     } else if (party.visibility === 'public') {
       canJoin = true;
     } else if (party.visibility === 'friends') {
-      // V1 workaround : treat friends as public until iOS Sprint E2 UI ships
       if (isFriend || !STRICT_VISIBILITY) {
         canJoin = true;
       }
     } else if (party.visibility === 'private' && !STRICT_VISIBILITY) {
-      // V1 workaround : allow private too for testing
       canJoin = true;
     }
 
     if (!STRICT_VISIBILITY && (party.visibility === 'friends' || party.visibility === 'private')) {
-      console.warn(`[join-as-user] ⚠️ V1 workaround: bypassed ${party.visibility} visibility for user ${userId} on party ${code}`);
+      console.warn(`${tag} ⚠️ V1 workaround: bypassed ${party.visibility} visibility for user ${userId}`);
     }
 
     if (!canJoin) {
+      console.warn(`${tag} 🔒 Step 4 — DENIED: visibility=${party.visibility} isHost=${isHost} isFriend=${isFriend} isPreApproved=${isPreApproved} hostUserId=${party.hostUserId || 'NULL'}`);
       return res.status(403).json({ requireJoinRequest: true });
     }
+    console.log(`${tag} 🔍 Step 4 OK — canJoin=true`);
 
-    // Join
+    // ── Step 5: Add participant ──
     if (!party.participants) party.participants = [];
+    const guestName = req.user.profile?.handle || req.user.profile?.firstName || 'Guest';
     party.participants.push({
       userId: new mongoose.Types.ObjectId(userId),
       joinedAt: new Date(),
-      name: req.user.profile?.handle || req.user.profile?.firstName || 'Guest',
+      name: guestName,
+      email: req.user.email || '',
       role: 'guest'
     });
     party.participantCount = party.participants.length;
 
-    await party.save();
+    // ── Step 6: Save to DB ──
+    try {
+      await party.save();
+    } catch (saveErr) {
+      console.error(`${tag} ❌ Step 6 party.save() failed:`, saveErr.name, saveErr.message);
+      if (saveErr.name === 'ValidationError') {
+        return res.status(400).json({ error: 'VALIDATION_ERROR', message: saveErr.message });
+      }
+      return res.status(503).json({ error: 'DB_SAVE_ERROR', message: 'Could not save join — try again' });
+    }
+    console.log(`${tag} 🔍 Step 6 OK — saved, participantCount=${party.participantCount}`);
 
-    // Emit socket to host
-    const io = req.app.get('io');
-    if (io) {
-      io.to(`host:${code}`).emit('guest:joined', { userId, name: req.user.profile?.handle || 'Guest' });
+    // ── Step 7: Emit socket (non-blocking) ──
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`host:${code}`).emit('guest:joined', { userId, name: guestName });
+      }
+    } catch (socketErr) {
+      // Non-fatal — don't block the response
+      console.error(`${tag} ⚠️ Step 7 socket emit failed (non-fatal):`, socketErr.message);
     }
 
-    res.json({ party, user: req.user, alreadyJoined: false });
+    // ★ Fix: return lightweight response — sending entire party doc could cause serialization errors
+    // and leaks internal data (hostSecret, etc.)
+    console.log(`${tag} ✅ SUCCESS — ${guestName} joined party`);
+    res.json({ 
+      partyCode: code,
+      alreadyJoined: false,
+      userId: userId.toString(),
+      guestName,
+      visibility: party.visibility
+    });
+
   } catch (err) {
-    console.error('[API] ❌ POST /api/party/:code/join-as-user error:', err.message);
-    res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
+    // ── Fatal catch-all ──
+    console.error(`${tag} ❌ FATAL:`, err.name, err.message, err.stack);
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: 'VALIDATION_ERROR', message: err.message });
+    }
+    if (err.name === 'MongoServerError' || err.name === 'MongooseError') {
+      return res.status(503).json({ error: 'DB_ERROR', message: 'Database temporarily unavailable' });
+    }
+    return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
   }
 });
 
