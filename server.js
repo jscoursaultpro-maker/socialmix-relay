@@ -66,6 +66,7 @@ import userClaimGuestRouter from './routes/user-claim-guest.js'; // ★ Claim Gu
 import libraryRouter from './routes/library.js';
 import partyPublicInfoRouter from './routes/party-public-info.js';
 import partyJoinAsUserRouter from './routes/party-join-as-user.js';
+import userProfileUpdateRouter from './routes/user-profile-update.js';
 import partySuggestRouter from './routes/party-suggest.js';
 import partySuggestionsListRouter from './routes/party-suggestions-list.js';
 import configRouter from './routes/config.js';
@@ -1088,6 +1089,7 @@ app.use('/api/party', partySuggestionsListRouter);
 // ★ V1: Provider vote (Deezer gated, extensible Qobuz/Tidal)
 app.use('/api/user/vote', userVotesRouter);
 app.use('/api/user', userSettingsRouter); // ★ Sprint X3: User settings
+app.use('/api/user', userProfileUpdateRouter); // ★ Sprint B: Guest profile update (name)
 app.use('/api/user', userAfterglowFeedRouter); // ★ Sprint X4: Afterglow feed
 app.use('/api/users/claim-guest-data', userClaimGuestRouter);
 app.use('/api/library', libraryRouter);
