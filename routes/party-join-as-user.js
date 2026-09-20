@@ -83,7 +83,8 @@ router.post('/:code/join-as-user', async (req, res) => {
 
     // ── Step 5: Add participant ──
     if (!party.participants) party.participants = [];
-    const guestName = req.user.profile?.handle || req.user.profile?.firstName || 'Guest';
+    // ★ Fix: check both profile.firstName AND root firstName (backward compat for pre-fix users)
+    const guestName = req.user.profile?.firstName || req.user.firstName || req.user.profile?.handle || 'Guest';
     party.participants.push({
       userId: new mongoose.Types.ObjectId(userId),
       joinedAt: new Date(),
