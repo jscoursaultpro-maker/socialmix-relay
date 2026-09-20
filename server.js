@@ -4522,8 +4522,16 @@ io.on('connection', (socket) => {
         existing.participants[hostIdx].id = socket.id;
         existing.participants[hostIdx].connected = true;
       } else {
+        // ★ Bug fix: resolve userId from email when socket.user is null (iOS host)
+        let hostUid = socket.user?._id?.toString() || null;
+        if (!hostUid && data.profile?.email) {
+          try {
+            const hu = await User.findOne({ email: data.profile.email }).select('_id').lean();
+            if (hu) hostUid = hu._id.toString();
+          } catch (_) { /* non-fatal */ }
+        }
         existing.participants.unshift({
-          id: socket.id, name: hostName, emoji: hostEmoji, userId: socket.user?._id?.toString() || null,
+          id: socket.id, name: hostName, emoji: hostEmoji, userId: hostUid,
           photo: data.profile?.photo || null,
           phone: data.profile?.phone || '', email: data.profile?.email || '', instagram: data.profile?.instagram || '',
           partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true
@@ -4592,8 +4600,16 @@ io.on('connection', (socket) => {
             restoredParty.participants[hostIdx].id = socket.id;
             restoredParty.participants[hostIdx].connected = true;
           } else {
+            // ★ Bug fix: resolve userId from email when socket.user is null (iOS host)
+            let hostUid = socket.user?._id?.toString() || null;
+            if (!hostUid && data.profile?.email) {
+              try {
+                const hu = await User.findOne({ email: data.profile.email }).select('_id').lean();
+                if (hu) hostUid = hu._id.toString();
+              } catch (_) { /* non-fatal */ }
+            }
             restoredParty.participants.unshift({
-              id: socket.id, name: hostName, emoji: hostEmoji, userId: socket.user?._id?.toString() || null,
+              id: socket.id, name: hostName, emoji: hostEmoji, userId: hostUid,
               photo: data.profile?.photo || null,
               phone: data.profile?.phone || '', email: data.profile?.email || '', instagram: data.profile?.instagram || '',
               partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true
@@ -4673,7 +4689,14 @@ io.on('connection', (socket) => {
     try {
       if (party.hostProfile && party.hostProfile.email) {
         const hostUser = await User.findOne({ email: party.hostProfile.email }).lean();
-        if (hostUser) party.hostUserId = hostUser._id;
+        if (hostUser) {
+          party.hostUserId = hostUser._id;
+          // ★ Bug fix: propagate userId to host participant entry (was always null)
+          const hostPart = party.participants.find(p => p.isHost);
+          if (hostPart && !hostPart.userId) {
+            hostPart.userId = hostUser._id.toString();
+          }
+        }
       }
     } catch (e) {
       console.warn('hostUserId lookup failed at party creation', e);
@@ -5594,7 +5617,12 @@ io.on('connection', (socket) => {
     const hostParticipant = party.participants.find(p => p.isHost);
     const hostName = (hostParticipant?.name || '').trim().toLowerCase();
     const guestTrimmed = guestName.trim().toLowerCase();
-    if (hostParticipant && (guestTrimmed === hostName || hostName.includes(guestTrimmed) || guestTrimmed.includes(hostName))) {
+    // ★ Bug fix: strict name match only (was too aggressive with includes() — skipped guests named "Jean" when host was "Jean Sebastien")
+    // Also check email match to catch host self-joining with a different name
+    const hostEmail = (hostParticipant?.email || '').toLowerCase();
+    const guestEmail = (data.email || '').toLowerCase();
+    const isHostSelfJoin = (guestTrimmed === hostName) || (hostEmail && guestEmail && hostEmail === guestEmail);
+    if (hostParticipant && isHostSelfJoin) {
       // Host is joining as guest (e.g. GuestExperienceView opened from host app) — skip duplicate
       console.log(`[${code}] Host joining as guest (${guestName}) — skipping duplicate participant`);
       socket.emit('party:state', buildLightState(party));
@@ -5605,6 +5633,8 @@ io.on('connection', (socket) => {
       if (p.isHost) return true;  // Never remove the host
       if (p.name === guest.name) return false;   // Same name → remove old guest
       if (userId && p.userId === userId) return false; // Same userId → remove old
+      // ★ Bug fix: deduplicate by email too (prevents ghost duplicates when userId was missing)
+      if (guestEmail && p.email && p.email.toLowerCase() === guestEmail) return false;
       return true;  // Keep everyone else
     });
     party.participants.push(guest);
