@@ -349,11 +349,13 @@ function loadResumeSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(SESSION_KEY));
     if (saved && saved.sessionToken && saved.partyCode) {
-      // Expire after 4h
+      // Expire after 6h
       if (Date.now() - saved.savedAt > 6 * 60 * 60 * 1000) {
         localStorage.removeItem(SESSION_KEY);
         return null;
       }
+      // ★ Task #13.3: rehydrate state.sessionToken so HTTP endpoints work post-refresh
+      state.sessionToken = saved.sessionToken;
       return saved;
     }
   } catch(e) {}
@@ -1763,7 +1765,9 @@ function connectToRelay() {
         sessionToken: resumeData.sessionToken
       }, (response) => {
         if (response && response.ok) {
-          console.log('[Resume] ✅ Session restored for', response.profile?.name);
+          // ★ Task #13.3: ensure sessionToken stays in state after successful resume
+          if (resumeData.sessionToken) state.sessionToken = resumeData.sessionToken;
+          console.log('[Resume] ✅ Session restored for', response.profile?.name, '| sessionToken:', (state.sessionToken || '').substring(0, 8) + '...');
           showToast('🔄 Reconnexion réussie !');
         } else {
           console.log('[Resume] ❌ Failed:', response?.reason, '— doing fresh join');
