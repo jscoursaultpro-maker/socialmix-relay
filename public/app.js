@@ -310,6 +310,7 @@ function saveSession() {
     localStorage.setItem(SESSION_KEY, JSON.stringify({
       sessionToken: state.sessionToken,
       partyCode: state.partyCode,
+      userId: state.userId || null,
       guestName: state.guestName,
       guestEmoji: state.guestEmoji,
       savedAt: Date.now()
@@ -356,6 +357,9 @@ function loadResumeSession() {
       }
       // ★ Task #13.3: rehydrate state.sessionToken so HTTP endpoints work post-refresh
       state.sessionToken = saved.sessionToken;
+      // ★ Task #13.4: rehydrate state.userId so boost badge detection uses Mongo ID
+      if (saved.userId) state.userId = saved.userId;
+      console.log('[loadResumeSession] Rehydrated sessionToken:', saved.sessionToken.substring(0, 8) + '... userId:', saved.userId || 'n/a');
       return saved;
     }
   } catch(e) {}
@@ -1767,8 +1771,17 @@ function connectToRelay() {
         if (response && response.ok) {
           // ★ Task #13.3: ensure sessionToken stays in state after successful resume
           if (resumeData.sessionToken) state.sessionToken = resumeData.sessionToken;
-          console.log('[Resume] ✅ Session restored for', response.profile?.name, '| sessionToken:', (state.sessionToken || '').substring(0, 8) + '...');
+          // ★ Task #13.4: ensure userId stays in state for boost badge detection
+          if (resumeData.userId && !state.userId) state.userId = resumeData.userId;
+          console.log('[Resume] ✅ Session restored for', response.profile?.name,
+            '| sessionToken:', (state.sessionToken || '').substring(0, 8) + '...',
+            '| userId:', state.userId || 'MISSING');
           showToast('🔄 Reconnexion réussie !');
+          // ★ Task #13.4: re-render suggestions with correct userId for boost badge
+          if (state.userId) {
+            if (typeof renderGuestSuggestions === 'function') renderGuestSuggestions();
+            if (typeof renderCaMonte === 'function') renderCaMonte();
+          }
         } else {
           console.log('[Resume] ❌ Failed:', response?.reason, '— doing fresh join');
           clearResumeSession();
