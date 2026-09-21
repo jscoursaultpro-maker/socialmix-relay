@@ -405,11 +405,11 @@ function showScreen(name) {
     }
   }
 
-  // ★ Bottom nav — show/hide + active highlight
-  const NAV_SCREENS = ['cockpit', 'hub'];
+  // ★ V2 Bottom nav — show only on cockpit screen
+  const NAV_SCREENS = ['cockpit'];
   toggleBottomNav(NAV_SCREENS.includes(name));
-  const navMap = { 'cockpit': 'jukebox', 'hub': 'hub' };
-  if (navMap[name]) updateActiveNavBtn(navMap[name]);
+  // V2: highlight SOIRÉE by default on cockpit entry
+  if (name === 'cockpit') updateActiveNavBtn('soiree');
 }
 
 // ★ Fix popstate — Intercept browser back button to return to cockpit
@@ -1953,6 +1953,7 @@ function connectToRelay() {
         ['pending','queued','next'].includes(s.status)
       );
       renderGuestSuggestions();
+      renderCaMonte();
     }
     
     saveSession();
@@ -2261,6 +2262,7 @@ function connectToRelay() {
     state.trackHistory = history;
     updateHistory();
     renderGuestSuggestions();
+    renderCaMonte();
     populateMissions();
     saveSession();
   });
@@ -2344,6 +2346,7 @@ function connectToRelay() {
       state.suggestions.push(sugg);
       console.log('[Suggestion] ★ cross-guest added:', sugg.title, 'by', sugg.guestName);
       renderGuestSuggestions();
+      renderCaMonte();
     }
   });
 
@@ -2369,6 +2372,7 @@ function connectToRelay() {
     
     // Update persistent status badge in suggestion list
     updateSuggestionBadge(data.title, data.status, data.message);
+    renderCaMonte();
   });
 
   socket.on('suggestion:unavailable', (data) => {
@@ -2432,6 +2436,19 @@ function connectToRelay() {
 
     // Refresh suggestion badge in UI if the function exists
     updateSuggestionBadge(data.title, data.status || 'queued', null);
+    renderCaMonte();
+  });
+
+  // ★ CP2: Écouter les boosts en temps réel
+  socket.on('suggestion:boosted', (data) => {
+    if (!data || !data.suggestionId) return;
+    const sugg = (state.suggestions || []).find(s => s.id === data.suggestionId);
+    if (sugg) {
+      sugg.boostCount = data.boostCount;
+      console.log('[Suggestion] ⚡ boosted:', sugg.title, '→', data.boostCount);
+    }
+    renderCaMonte();
+    renderGuestSuggestions();
   });
 
   // ★ Bug 5b fix — Hydrate guest's previous votes on reconnect
@@ -2530,17 +2547,20 @@ function updateNowPlaying(track) {
     }
   }
 
-  // Album artwork (from Shazam)
+  // ★ CP2: Pochette prioritaire, vinyl fallback
   const artworkEl = $('np-artwork');
+  const vinylWrap = $('soiree-vinyl-wrap');
   const vinylLabel = $('vinyl-label');
   if (track.artworkURL) {
+    // Mode pochette : afficher la pochette, masquer le vinyl
     artworkEl.innerHTML = `<img src="${track.artworkURL}" style="width:100%;height:100%;object-fit:cover;">`;
     artworkEl.style.display = 'block';
-    // Also show in vinyl center
-    vinylLabel.innerHTML = `<img src="${track.artworkURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    if (vinylWrap) vinylWrap.style.display = 'none';
   } else {
+    // Mode vinyl fallback : masquer la pochette, afficher le vinyl
     artworkEl.style.display = 'none';
     artworkEl.innerHTML = '';
+    if (vinylWrap) vinylWrap.style.display = '';
     vinylLabel.innerHTML = '<span class="vinyl-note">♪</span>';
   }
 }
@@ -3509,6 +3529,7 @@ async function boostSuggestion(suggId, title) {
       if (!sugg.boostedBy.includes(guestId)) sugg.boostedBy.push(guestId);
     }
     renderGuestSuggestions();
+    renderCaMonte();
     showSuggestionToast(`🔥 ${escapeHtml(title)} boosté !`, 'queued');
   } catch (e) {
     console.error('[Boost] ❌', e);
@@ -3516,6 +3537,121 @@ async function boostSuggestion(suggId, title) {
   }
 }
 
+
+// ═══════════════════════════════════════════════════════════════════
+// CP2 — ÇA MONTE !  Bloc suggestion momentum
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * resolveBoosterNames(boostedByIds)
+ * Maps userId strings from boostedBy[] to display names via state.participants.
+ * Returns an array of name strings (max 3 shown, rest as "+N autres").
+ */
+function resolveBoosterNames(ids) {
+  if (!ids || !ids.length) return [];
+  const participants = state.participants || [];
+  return ids.map(id => {
+    // Check if it's our own userId
+    if (id === state.userId) return state.guestName || 'Toi';
+    const p = participants.find(x => x.userId === id);
+    return p ? p.name : null;
+  }).filter(Boolean);
+}
+
+/**
+ * renderCaMonte()
+ * Renders the "ÇA MONTE !" bloc showing the most boosted suggestion.
+ * 
+ * Rules:
+ *  - Only show suggestions with status in [queued, next] and boostCount >= 1
+ *  - "ÇA MONTE !" → popular suggestion (highest boosts)
+ *  - "C'EST LA PROCHAINE !" → ONLY if status === 'next' OR matches state.nextTrack
+ *  - Never invent a confirmation based on boost count alone
+ */
+function renderCaMonte() {
+  const container = $('ca-monte');
+  if (!container) return;
+
+  // Filter eligible suggestions: only active ones with boosts
+  const candidates = (state.suggestions || []).filter(s =>
+    ['queued', 'next', 'pending'].includes(s.status) &&
+    (s.boostCount || 0) >= 1
+  );
+
+  // Sort by boostCount descending, then by sentAt ascending (earlier = priority)
+  candidates.sort((a, b) => {
+    const diff = (b.boostCount || 0) - (a.boostCount || 0);
+    if (diff !== 0) return diff;
+    return new Date(a.sentAt || 0) - new Date(b.sentAt || 0);
+  });
+
+  // Take top suggestion (if any)
+  const top = candidates[0];
+
+  if (!top) {
+    // No boosted suggestions — show empty state
+    container.innerHTML = '';
+    return;
+  }
+
+  // Determine status label — strict rule: 
+  // ONLY confirmed by system (status === 'next' or nextTrack match)
+  const isConfirmedNext = top.status === 'next' || 
+    (state.nextTrack && state.nextTrack.title && 
+     top.title.toLowerCase() === state.nextTrack.title.toLowerCase());
+
+  const statusLabel = isConfirmedNext ? "C'EST LA PROCHAINE !" : 'ÇA MONTE !';
+  const statusIcon = isConfirmedNext ? '🎯' : '🔥';
+  const cardClass = isConfirmedNext ? 'soiree-monte-card soiree-monte-next' : 'soiree-monte-card';
+
+  // Resolve booster names
+  const boosterNames = resolveBoosterNames(top.boostedBy || []);
+  let boostersHtml = '';
+  if (boosterNames.length > 0) {
+    const shown = boosterNames.slice(0, 3);
+    const rest = boosterNames.length - shown.length;
+    let namesStr = shown.map(n => escapeHtml(n)).join(', ');
+    if (rest > 0) namesStr += ` +${rest} autre${rest > 1 ? 's' : ''}`;
+    boostersHtml = `<div class="soiree-monte-boosters">Boosté par <strong>${namesStr}</strong></div>`;
+  }
+
+  // Cover image
+  const coverHtml = top.coverURL
+    ? `<div class="soiree-monte-cover"><img src="${top.coverURL}" alt=""></div>`
+    : `<div class="soiree-monte-cover" style="display:flex;align-items:center;justify-content:center;font-size:24px;">🎵</div>`;
+
+  // Boost button — disabled if already boosted by this guest
+  const alreadyBoosted = (top.boostedBy || []).includes(state.userId || state.guestId);
+  const boostBtnHtml = alreadyBoosted
+    ? `<button class="soiree-monte-boost-btn" disabled style="opacity:0.5;color:#14B8A6;border-color:rgba(20,184,166,0.3);background:rgba(20,184,166,0.1);">🔥✓ Boostée · ${top.boostCount}</button>`
+    : `<button class="soiree-monte-boost-btn" onclick="boostSuggestion('${escapeAttr(top.id)}','${escapeAttr(top.title)}')">🔥 Booster · ${top.boostCount}</button>`;
+
+  container.innerHTML = `
+    <div class="soiree-monte-header">
+      <span>${statusIcon}</span> ${statusLabel}
+    </div>
+    <div class="${cardClass}" id="ca-monte-card">
+      <div class="soiree-monte-track">
+        ${coverHtml}
+        <div class="soiree-monte-info">
+          <div class="soiree-monte-title">${escapeHtml(top.title)}</div>
+          <div class="soiree-monte-artist">${escapeHtml(top.artist || '')}</div>
+          <div class="soiree-monte-status">${statusIcon} ${top.boostCount} boost${top.boostCount > 1 ? 's' : ''}</div>
+        </div>
+      </div>
+      ${boostersHtml}
+      ${boostBtnHtml}
+    </div>
+  `;
+
+  // Pulse animation on fresh render
+  const card = container.querySelector('.soiree-monte-card');
+  if (card) {
+    card.classList.remove('pulse');
+    void card.offsetWidth; // force reflow
+    card.classList.add('pulse');
+  }
+}
 
 // Helpers for safe HTML rendering
 function escapeHtml(str) {
@@ -5688,8 +5824,8 @@ function launchDiaporama() {
 function closeDiaporama() {
   $('diapo-modal').classList.add('hidden');
   document.body.style.overflow = '';
-  // ★ Restore bottom nav after diaporama
-  const NAV_SCREENS = ['cockpit', 'profile', 'my-friends', 'hub'];
+  // ★ V2: Restore bottom nav after diaporama (only on cockpit)
+  const NAV_SCREENS = ['cockpit'];
   if (NAV_SCREENS.includes(currentScreen)) toggleBottomNav(true);
   stopDiapoInterval();
   stopCtaRotation();
@@ -6225,69 +6361,72 @@ function setupBottomNav() {
     btn.addEventListener('click', () => {
       const action = btn.dataset.nav;
 
-      // ★ Hub → full hub-screen (separate screen)
-      if (action === 'hub') {
-        showScreen('hub');
-        return;
-      }
-
-      // ★ Jukebox-bis (5th) → cockpit complet (all sections visible)
-      if (action === 'jukebox-bis') {
-        if (currentScreen !== 'cockpit') showScreen('cockpit');
-        showAllTabs();
-        updateActiveNavBtn('jukebox-bis');
-        return;
-      }
-
-      // ★ Normal tabs stay within cockpit-screen
+      // ★ V2: Ensure we're on cockpit-screen for all 3 spaces
       if (currentScreen !== 'cockpit') {
         showScreen('cockpit');
       }
-      showTab(action);
-      updateActiveNavBtn(action);
 
-      // ★ Memories tab — refresh photos when opened
-      if (action === 'memories') {
+      showTab(action);
+      // Note: updateActiveNavBtn is called inside showTab() via normalization
+
+      // ★ Souvenirs (ex-Memories) — refresh photos when opened
+      if (action === 'souvenirs') {
         if (typeof updateMyPhotosGrid === 'function') updateMyPhotosGrid();
         if (typeof refreshAllPhotos === 'function') refreshAllPhotos();
+      }
+
+      // ★ Moi (ex-Hub) — refresh leaderboard, missions, etc.
+      if (action === 'moi') {
+        if (typeof renderLeaderboard === 'function') renderLeaderboard();
+        if (typeof renderMissions === 'function') renderMissions();
       }
     });
   });
 }
 
-// ★ showTab — toggle .tab-content visibility within cockpit-screen
+// ★ V2 showTab — toggle .tab-content visibility within cockpit-screen
+// Supports V2 space names (soiree, souvenirs, moi) and normalizes legacy names
 function showTab(tabName) {
   const cockpit = document.getElementById('cockpit-screen');
   if (!cockpit) return;
+
+  // V2: normalize legacy tab names to V2 space names
+  const LEGACY_MAP = {
+    'jukebox': 'soiree',
+    'on-air':  'soiree',
+    'memories': 'souvenirs',
+    'hub':      'moi'
+  };
+  const normalizedName = LEGACY_MAP[tabName] || tabName;
+
+  // V2 mapping: space name → tab-content IDs to activate
+  const SPACE_TABS = {
+    'soiree':    ['tab-soiree'],
+    'souvenirs': ['tab-memories'],
+    'moi':       ['tab-hub']
+  };
+  const targetIds = SPACE_TABS[normalizedName] || ['tab-' + tabName];
 
   cockpit.querySelectorAll('.tab-content').forEach(section => {
     section.classList.remove('active');
   });
 
-  const target = document.getElementById('tab-' + tabName);
-  if (target) {
-    target.classList.add('active');
-  }
+  targetIds.forEach(id => {
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
+  });
+
+  // V2: keep bottom-nav button in sync with displayed content
+  updateActiveNavBtn(normalizedName);
 
   // Scroll to top within cockpit
   cockpit.scrollTop = 0;
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
-// ★ showAllTabs — cockpit complet: all sections visible at once
+// ★ showAllTabs — V2 compat: shows the SOIRÉE space (jukebox + on-air)
 function showAllTabs() {
-  const cockpit = document.getElementById('cockpit-screen');
-  if (!cockpit) return;
-
-  cockpit.querySelectorAll('.tab-content').forEach(section => {
-    // Show all real tabs, skip the empty jukebox-bis placeholder
-    if (section.id !== 'tab-jukebox-bis') {
-      section.classList.add('active');
-    }
-  });
-
-  cockpit.scrollTop = 0;
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  showTab('soiree');
 }
 
 function updateActiveNavBtn(activeAction) {

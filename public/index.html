@@ -464,7 +464,7 @@
                     <span id="trending-genre">Electro</span>
                 </div>
                 
-                <div id="header-points-badge" style="display:flex; align-items:center; gap:4px; padding:4px 8px; background:rgba(255,193,7,0.15); border:1px solid rgba(255,193,7,0.3); border-radius:12px; cursor:pointer;" onclick="showTab('hub')">
+                <div id="header-points-badge" style="display:flex; align-items:center; gap:4px; padding:4px 8px; background:rgba(255,193,7,0.15); border:1px solid rgba(255,193,7,0.3); border-radius:12px; cursor:pointer;" onclick="showTab('moi')">
                     <span style="font-size:12px;">⭐</span>
                     <span id="header-points-total" style="font-size:12px; font-weight:800; color:#ffc107;">0</span>
                 </div>
@@ -484,177 +484,169 @@
             </div>
         </div>
 
-        <!-- ═══ TAB 1: JUKEBOX (default active) ═══ -->
-        <section id="tab-jukebox" class="tab-content active">
-            <!-- Suggest Track -->
-            <div class="card suggest-section">
-                <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;">
-                    <div style="display:flex;align-items:center;gap:6px;">
-                        <span class="section-icon">✨</span>
-                        <span class="section-title">SUGGÉRER UN TITRE AU DJ</span>
-                    </div>
-                    <button id="suggest-explore-btn" onclick="loadTrendingSuggestions()" style="
-                        display:flex;align-items:center;gap:3px;padding:4px 10px;
-                        background:rgba(0,210,255,0.1);border:1px solid rgba(0,210,255,0.25);
-                        border-radius:20px;cursor:pointer;font-size:8px;font-weight:800;
-                        color:#00d2ff;letter-spacing:0.5px;
-                    ">🎵 EXPLORER</button>
-                </div>
-                <div class="suggest-input-row" style="display:flex;gap:6px;align-items:center;">
-                    <input type="text" id="suggest-input" placeholder="Titre ou artiste..." class="suggest-field" autocomplete="off" style="flex:1;">
-                    <button id="suggest-search-btn" onclick="searchDeezerSuggestions()" style="
-                        padding:8px 10px;background:rgba(0,210,255,0.15);border:1px solid rgba(0,210,255,0.3);
-                        border-radius:10px;cursor:pointer;font-size:16px;color:#00d2ff;
-                        display:none;flex-shrink:0;
-                    ">🔍</button>
-                </div>
-                <div id="suggest-results" style="margin-top:6px;"></div>
-                <div id="suggestions-list" class="suggestions-list"></div>
-                <div id="suggest-hint" style="text-align:center;padding:6px 0;font-size:10px;color:rgba(255,255,255,0.3);font-weight:500;">
-                    💡 Tape un titre ou un artiste, ou clique sur Explorer
-                </div>
+        <!-- ═══ ESPACE SOIRÉE (V2 — flux éditorial live) ═══ -->
+        <section id="tab-soiree" class="tab-content active">
+
+          <!-- ★ Phase Narrative Headline -->
+          <div class="phase-narrative soiree-phase-headline" id="phaseNarrative">
+            <!-- Injecté dynamiquement par updatePhaseNarrative() -->
+          </div>
+
+          <!-- ★ Hero Now Playing -->
+          <div class="soiree-hero" id="now-playing">
+            <!-- DJ Live overlay (hidden by default) -->
+            <div id="dj-live-banner" class="soiree-dj-overlay hidden">
+              <span class="live-dot"></span>
+              <span class="soiree-dj-label">DJ LIVE</span>
             </div>
 
-            <!-- ★ Past suggestions (full list) -->
-            <div id="mySugsAll" class="card" style="display:none;padding:14px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);margin-bottom:12px;">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                    <span style="font-size:10px;font-weight:800;color:#8B5CF6;letter-spacing:1px;">🎵 MES SUGGESTIONS</span>
-                    <div style="font-size:9px;color:rgba(255,255,255,0.3);">Tap pour re-suggérer</div>
+            <!-- Artwork Zone — pochette ou vinyl, switch via JS -->
+            <div class="soiree-artwork-zone">
+              <!-- Pochette (visible quand artworkURL disponible) -->
+              <div id="np-artwork" class="soiree-pochette" style="display:none;">
+                <!-- img injectée par updateNowPlaying() -->
+              </div>
+              <!-- Vinyl fallback (visible quand pas d'artworkURL) -->
+              <div class="vinyl-container soiree-vinyl" id="soiree-vinyl-wrap">
+                <div class="vinyl-disc" id="vinyl-disc">
+                  <div class="vinyl-groove"></div>
+                  <div class="vinyl-groove groove-2"></div>
+                  <div class="vinyl-groove groove-3"></div>
+                  <div class="vinyl-label" id="vinyl-label">
+                    <span class="vinyl-note">♪</span>
+                  </div>
                 </div>
-                <div id="mySugsAllList"></div>
-                <button class="collapse-more-btn" onclick="toggleCollapseMore('mySugsAll')" style="
-                    display:none;width:100%;margin-top:8px;padding:12px;
-                    text-align:center;cursor:pointer;font-size:12px;font-weight:500;
-                    color:rgba(139,92,246,0.7);background:transparent;
-                    border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
-                ">Voir plus ↓</button>
+                <div class="vinyl-glow"></div>
+              </div>
             </div>
 
-            <!-- ★ Mes fire votes preview -->
-            <div id="mySugsPreview" class="card" style="display:none;padding:14px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);margin-bottom:12px;">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                    <span style="font-size:14px;">🔥</span>
-                    <span style="font-size:10px;font-weight:800;color:#8B5CF6;letter-spacing:1px;">MES TITRES PRÉFÉRÉS</span>
-                    <div style="font-size:9px;color:rgba(255,255,255,0.3);">Tes coups de cœur</div>
-                </div>
-                <div id="mySugsPreviewList"></div>
-                <button class="collapse-more-btn" onclick="toggleCollapseMore('mySugsPreview')" style="
-                    display:none;width:100%;margin-top:8px;padding:12px;
-                    text-align:center;cursor:pointer;font-size:12px;font-weight:500;
-                    color:rgba(139,92,246,0.7);background:transparent;
-                    border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
-                ">Voir plus ↓</button>
-            </div>
-        </section>
-
-        <!-- ═══ TAB 2: ON AIR ═══ -->
-        <section id="tab-on-air" class="tab-content">
-            <!-- Greeting (from Home) -->
-            <div class="header-greeting" id="greeting" style="text-align: center; font-size: 16px; margin-top: 4px; padding-bottom: 4px;">Hey ! 🎉</div>
-
-            <!-- ★ Phase Narrative (from Home) -->
-            <div class="phase-narrative" id="phaseNarrative">
-              <!-- Injecté dynamiquement par updatePhaseNarrative() -->
+            <!-- Track Info -->
+            <div class="soiree-track-info">
+              <div class="np-label">EN ÉCOUTE</div>
+              <div class="np-title soiree-title" id="np-title">En attente...</div>
+              <div class="np-artist soiree-artist" id="np-artist">—</div>
+              <div id="np-suggester" class="soiree-suggester" style="display:none;">
+                <span id="np-suggester-icon">✨</span>
+                <span id="np-suggester-text">Mis le feu par</span>
+                <span id="np-suggester-name" class="soiree-suggester-name"></span>
+              </div>
+              <div class="soiree-meta">
+                <span class="np-badge" id="np-bpm">— BPM</span>
+                <span class="np-genre" id="np-genre">—</span>
+              </div>
             </div>
 
-
-
-            <!-- DJ Live Banner (hidden by default) -->
-            <div id="dj-live-banner" class="dj-live-banner hidden">
-                <div class="dj-live-wave">〰️</div>
-                <div class="dj-live-text">
-                    <div class="dj-live-title">LE DJ EST AUX PLATINES</div>
-                    <div class="dj-live-sub">Titre identifié en direct</div>
-                </div>
-                <div class="live-badge">
-                    <span class="live-dot"></span> LIVE
-                </div>
+            <!-- Vote buttons (inline dans le Hero) -->
+            <div class="soiree-vote-row">
+              <button class="vote-btn bof" id="vote-meh" data-vote="meh">
+                <span class="vote-icon">👎</span>
+                <span class="vote-text">BOF</span>
+              </button>
+              <button class="vote-btn top" id="vote-like" data-vote="like">
+                <span class="vote-icon">👍</span>
+                <span class="vote-text">TOP</span>
+              </button>
+              <button class="vote-btn feu" id="vote-fire" data-vote="fire">
+                <span class="vote-icon">🔥</span>
+                <span class="vote-text">LE FEU</span>
+              </button>
             </div>
+            <div class="soiree-vote-status" id="vote-status"></div>
 
-            <!-- Now Playing (from Home) -->
-            <div class="card now-playing" id="now-playing">
-                <div class="vinyl-container">
-                    <div class="vinyl-disc" id="vinyl-disc">
-                        <div class="vinyl-groove"></div>
-                        <div class="vinyl-groove groove-2"></div>
-                        <div class="vinyl-groove groove-3"></div>
-                        <div class="vinyl-label" id="vinyl-label">
-                            <span class="vinyl-note">♪</span>
-                        </div>
-                    </div>
-                    <div class="vinyl-glow"></div>
-                </div>
-                <div class="np-info">
-                    <div id="np-artwork" style="display:none;width:40px;height:40px;border-radius:8px;overflow:hidden;margin-bottom:4px;"></div>
-                    <div class="np-label">EN ÉCOUTE</div>
-                    <div class="np-title" id="np-title">En attente...</div>
-                    <div class="np-artist" id="np-artist">—</div>
-                    <div id="np-suggester" style="display:none; margin-top: 6px; padding: 4px 10px; background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 12px; font-size: 11px; color: #00d2ff; font-weight: 600; align-items: center; gap: 4px; width: fit-content;">
-                        <span id="np-suggester-icon" style="font-size: 12px;">✨</span> <span id="np-suggester-text">Mis le feu par</span> <span id="np-suggester-name" style="font-weight: 800;"></span>
-                    </div>
-                    <div class="np-meta">
-                        <span class="np-badge" id="np-bpm">— BPM</span>
-                        <span class="np-genre" id="np-genre">—</span>
-                    </div>
-                </div>
+            <!-- Share icon discret (Option B) -->
+            <button id="np-share-btn" class="soiree-share-icon" onclick="shareCurrentTrack()" aria-label="Partager ce titre">
+              📤
+            </button>
+          </div>
+
+          <!-- ★ Next Track -->
+          <div id="next-track-bar" class="soiree-next-bar" style="display:none;">
+            <span class="soiree-next-icon">⏭️</span>
+            <span class="soiree-next-label">À SUIVRE</span>
+            <span id="next-track-title" class="soiree-next-title"></span>
+            <span class="soiree-next-sep">·</span>
+            <span id="next-track-artist" class="soiree-next-artist"></span>
+          </div>
+
+          <!-- ★★★ ÇA MONTE ! ★★★ -->
+          <div id="ca-monte" class="soiree-ca-monte">
+            <!-- Rendu dynamiquement par renderCaMonte() -->
+          </div>
+
+          <!-- ★ Section "ON MET QUOI ?" -->
+          <div class="soiree-suggest-section">
+            <div class="soiree-section-header">
+              <div class="soiree-section-title">
+                <span>✨</span> ON MET QUOI ?
+              </div>
+              <button id="suggest-explore-btn" class="soiree-explore-btn" onclick="loadTrendingSuggestions()">
+                🎵 EXPLORER
+              </button>
             </div>
-
-            <!-- Next Track (hidden by default) -->
-            <div id="next-track-bar" class="card" style="display:none; padding:8px 14px; margin-top:-6px; background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.15); border-radius:0 0 16px 16px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:10px; color:rgba(0,210,255,0.5);">⏭️</span>
-                    <span style="font-size:8px; font-weight:800; color:rgba(0,210,255,0.5); letter-spacing:0.5px;">À SUIVRE</span>
-                    <span id="next-track-title" style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.6);"></span>
-                    <span style="color:rgba(255,255,255,0.2);">·</span>
-                    <span id="next-track-artist" style="font-size:10px; font-weight:500; color:rgba(255,255,255,0.35);"></span>
-                </div>
+            <div class="soiree-suggest-input-row">
+              <input type="text" id="suggest-input" placeholder="Titre, artiste, ou colle un lien..."
+                     class="soiree-suggest-field" autocomplete="off">
+              <button id="suggest-search-btn" class="soiree-search-btn"
+                      onclick="searchDeezerSuggestions()" style="display:none;">🔍</button>
             </div>
-
-            <!-- Vote Buttons -->
-            <div class="card vote-section">
-                <button id="np-share-btn" onclick="shareCurrentTrack()" style="
-                    width:100%;margin-bottom:12px;padding:14px;cursor:pointer;
-                    background:transparent;border:1px solid rgba(139,92,246,0.4);
-                    border-radius:12px;color:rgb(139,92,246);
-                    font-size:13px;font-weight:600;letter-spacing:1px;
-                    font-family:inherit;transition:background 0.2s;
-                " onmouseenter="this.style.background='rgba(139,92,246,0.08)'" onmouseleave="this.style.background='transparent'"
-                >📤  PARTAGER CE TITRE</button>
-                <div class="vote-label">TON AVIS SUR CE TITRE</div>
-                <div class="vote-buttons">
-                    <button class="vote-btn bof" id="vote-meh" data-vote="meh">
-                        <span class="vote-icon">👎</span>
-                        <span class="vote-text">BOF</span>
-                    </button>
-                    <button class="vote-btn top" id="vote-like" data-vote="like">
-                        <span class="vote-icon">👍</span>
-                        <span class="vote-text">TOP</span>
-                    </button>
-                    <button class="vote-btn feu" id="vote-fire" data-vote="fire">
-                        <span class="vote-icon">🔥</span>
-                        <span class="vote-text">LE FEU</span>
-                    </button>
-                </div>
-                <div class="vote-status" id="vote-status"></div>
+            <div id="suggest-source-badge" class="soiree-source-badge" style="display:none;"></div>
+            <div id="suggest-results" class="soiree-suggest-results"></div>
+            <div id="suggestions-list" class="soiree-suggestions-list"></div>
+            <div id="suggest-hint" class="soiree-suggest-hint">
+              💡 Tape un titre, colle un lien Deezer/Spotify/Apple Music, ou explore les tendances
             </div>
+          </div>
 
-            <!-- Genre Trends -->
-            <div class="card trends-section">
-                <div class="section-header">
-                    <span class="section-icon">📊</span>
-                    <span class="section-title">VOTE POUR TA TENDANCE</span>
-                </div>
-                <div class="genre-grid" id="genre-grid"></div>
+          <!-- ★ Past suggestions (full list) -->
+          <div id="mySugsAll" class="soiree-card-secondary" style="display:none;">
+            <div class="soiree-card-header">
+              <span class="soiree-card-label">🎵 MES SUGGESTIONS</span>
+              <span class="soiree-card-sub">Tap pour re-suggérer</span>
             </div>
+            <div id="mySugsAllList"></div>
+            <button class="collapse-more-btn" onclick="toggleCollapseMore('mySugsAll')" style="display:none;">
+              Voir plus ↓
+            </button>
+          </div>
 
-            <!-- Genre Chart -->
-            <div class="card chart-section" id="chart-section">
-                <div class="section-header">
-                    <span class="section-icon">📈</span>
-                    <span class="section-title">TENDANCES LIVE</span>
+          <!-- ★ Fire votes preview -->
+          <div id="mySugsPreview" class="soiree-card-secondary" style="display:none;">
+            <div class="soiree-card-header">
+              <span>🔥</span>
+              <span class="soiree-card-label">MES TITRES PRÉFÉRÉS</span>
+              <span class="soiree-card-sub">Tes coups de cœur</span>
+            </div>
+            <div id="mySugsPreviewList"></div>
+            <button class="collapse-more-btn" onclick="toggleCollapseMore('mySugsPreview')" style="display:none;">
+              Voir plus ↓
+            </button>
+          </div>
+
+          <!-- ★ Feed "CE QUI SE PASSE" — réservé CP5 -->
+          <div id="soiree-feed" class="soiree-feed-placeholder">
+            <!-- Placeholder — contenu temps réel CP5 -->
+          </div>
+
+          <!-- ★ Genre Trends (accordéon fermé par défaut) -->
+          <details class="soiree-trends-accordion">
+            <summary class="soiree-trends-summary">
+              <span>📊</span> VOTE POUR TA TENDANCE
+              <span class="soiree-trends-arrow">▼</span>
+            </summary>
+            <div class="soiree-trends-content">
+              <div class="genre-grid" id="genre-grid"></div>
+              <div id="chart-section" class="soiree-chart">
+                <div class="soiree-chart-header">
+                  <span>📈</span> TENDANCES LIVE
                 </div>
                 <div class="chart-bars" id="chart-bars"></div>
+              </div>
             </div>
+          </details>
+
+          <!-- Greeting (hidden — DOM conservé pour compatibilité JS) -->
+          <div id="greeting" style="display:none;">Hey ! 🎉</div>
+
         </section>
 
         <!-- ═══ TAB 3: MEMORIES ═══ -->
@@ -759,10 +751,7 @@
             </button>
         </section>
 
-        <!-- ═══ TAB 5: JUKEBOX BIS (duplicate shortcut) ═══ -->
-        <section id="tab-jukebox-bis" class="tab-content">
-            <!-- This tab mirrors jukebox — showTab logic redirects to tab-jukebox -->
-        </section>
+        <!-- ═══ TAB 5: JUKEBOX BIS — SUPPRIMÉ V2 (tab fantôme vide) ═══ -->
 
         <div style="height: 50px"></div>
 
@@ -782,7 +771,7 @@
         </div>
 
         <!-- Galerie Photos — moved to Memories tab, shortcut here -->
-        <button onclick="showScreen('cockpit'); showTab('memories'); updateActiveNavBtn('memories');" style="
+        <button onclick="showScreen('cockpit'); showTab('souvenirs');" style="
             width:calc(100% - 28px);margin:0 14px 14px;display:flex;align-items:center;gap:10px;padding:12px 14px;
             background:linear-gradient(135deg,rgba(0,210,255,0.10),rgba(0,200,83,0.08));
             border:1px solid rgba(0,210,255,0.2);border-radius:12px;cursor:pointer;
@@ -989,27 +978,19 @@
         </div>
     </div>
 
-    <!-- ★ Fixed Bottom Nav (cockpit legacy) -->
+    <!-- ★ V2 Bottom Nav — 3 espaces (SOIRÉE · SOUVENIRS · MOI) -->
     <footer id="bottom-nav" class="bottom-nav hidden">
-      <button class="nav-btn active" data-nav="jukebox">
-        <span class="nav-icon">✨</span>
-        <span class="nav-label">Jukebox</span>
+      <button class="nav-btn active" data-nav="soiree">
+        <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/><path d="M8 17V5l12-2v12"/></svg></span>
+        <span class="nav-label">Soirée</span>
       </button>
-      <button class="nav-btn" data-nav="on-air">
-        <span class="nav-icon">🎧</span>
-        <span class="nav-label">On Air</span>
+      <button class="nav-btn" data-nav="souvenirs">
+        <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+        <span class="nav-label">Souvenirs</span>
       </button>
-      <button class="nav-btn" data-nav="memories">
-        <span class="nav-icon">📸</span>
-        <span class="nav-label">Memories</span>
-      </button>
-      <button class="nav-btn" data-nav="hub">
-        <span class="nav-icon">🎭</span>
-        <span class="nav-label">Hub</span>
-      </button>
-      <button class="nav-btn" data-nav="jukebox-bis">
-        <span class="nav-icon">🚀</span>
-        <span class="nav-label">Cockpit</span>
+      <button class="nav-btn" data-nav="moi">
+        <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <span class="nav-label">Moi</span>
       </button>
     </footer>
 

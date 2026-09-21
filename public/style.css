@@ -2511,7 +2511,7 @@ html, body {
   padding-bottom: 80px !important;
 }
 
-/* ═══ Tab Content — cockpit 5-tab system ═══ */
+/* ═══ Tab Content — cockpit 3-space system (V2) ═══ */
 .tab-content {
   display: none;
   animation: tabFadeIn 0.2s ease-out;
@@ -2522,4 +2522,617 @@ html, body {
 @keyframes tabFadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══ V2 Nav Icons — SVG stroke-based icons ═══ */
+.nav-icon svg {
+  display: block;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CP2 — SOIRÉE V2 · Flux éditorial live
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Phase Narrative Headline ─────────────────────────────────────── */
+.soiree-phase-headline {
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  border-left: 3px solid var(--phase-color, #00d2ff);
+  background: var(--phase-bg, rgba(0,210,255,0.06));
+  transition: all 0.4s ease;
+}
+
+/* ── Hero Now Playing ─────────────────────────────────────────────── */
+.soiree-hero {
+  position: relative;
+  padding: 20px 16px 16px;
+  background: linear-gradient(180deg, rgba(0,210,255,0.06) 0%, rgba(138,43,226,0.04) 100%);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px;
+  margin: 0 -4px;
+  overflow: hidden;
+}
+
+.soiree-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(0,210,255,0.08), transparent 60%);
+  pointer-events: none;
+}
+
+/* ── Artwork Zone ─────────────────────────────────────────────────── */
+.soiree-artwork-zone {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Pochette mode — prioritaire quand artworkURL disponible */
+.soiree-pochette {
+  width: 120px;
+  height: 120px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(0,210,255,0.1);
+}
+
+.soiree-pochette img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Vinyl fallback — visible quand pas d'artworkURL */
+.soiree-vinyl {
+  width: 100px;
+  height: 100px;
+}
+
+/* ── Track Info ───────────────────────────────────────────────────── */
+.soiree-track-info {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.soiree-title {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+  color: white;
+}
+
+.soiree-artist {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.55);
+  margin-top: 2px;
+}
+
+.soiree-suggester {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 4px 12px;
+  background: rgba(0,210,255,0.1);
+  border: 1px solid rgba(0,210,255,0.2);
+  border-radius: 12px;
+  font-size: 11px;
+  color: #00d2ff;
+  font-weight: 600;
+}
+
+.soiree-suggester-name {
+  font-weight: 800;
+}
+
+.soiree-meta {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ── Vote Row (inline dans le Hero) ───────────────────────────────── */
+.soiree-vote-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.soiree-vote-row .vote-btn {
+  flex: 1;
+  max-width: 120px;
+}
+
+.soiree-vote-status {
+  text-align: center;
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  min-height: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── DJ Live Overlay ──────────────────────────────────────────────── */
+.soiree-dj-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  z-index: 3;
+  transition: opacity 0.3s;
+}
+
+.soiree-dj-overlay.hidden {
+  display: none;
+}
+
+.soiree-dj-label {
+  font-size: 9px;
+  font-weight: 900;
+  color: #00e0c4;
+  letter-spacing: 1px;
+}
+
+/* ── Share Icon (Option B — discret) ──────────────────────────────── */
+.soiree-share-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+  z-index: 3;
+  color: rgba(255,255,255,0.6);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.soiree-share-icon:active {
+  background: rgba(139,92,246,0.15);
+  border-color: rgba(139,92,246,0.3);
+  transform: scale(0.92);
+}
+
+/* ── Next Track Bar ───────────────────────────────────────────────── */
+.soiree-next-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-top: -4px;
+  background: rgba(0,210,255,0.05);
+  border: 1px solid rgba(0,210,255,0.12);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  animation: soireeSlideDown 0.3s ease-out;
+}
+
+@keyframes soireeSlideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.soiree-next-icon {
+  font-size: 10px;
+  color: rgba(0,210,255,0.5);
+}
+
+.soiree-next-label {
+  font-size: 8px;
+  font-weight: 800;
+  color: rgba(0,210,255,0.5);
+  letter-spacing: 0.5px;
+}
+
+.soiree-next-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+}
+
+.soiree-next-sep {
+  color: rgba(255,255,255,0.2);
+}
+
+.soiree-next-artist {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.35);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ÇA MONTE ! — Bloc suggestion momentum
+   ═══════════════════════════════════════════════════════════════════ */
+.soiree-ca-monte {
+  margin: 16px 0;
+}
+
+.soiree-ca-monte:empty {
+  display: none;
+}
+
+.soiree-monte-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #ff6b35;
+  letter-spacing: 1px;
+}
+
+.soiree-monte-card {
+  position: relative;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(255,107,53,0.08), rgba(255,59,48,0.04));
+  border: 1px solid rgba(255,107,53,0.2);
+  border-radius: 16px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.soiree-monte-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 80% 20%, rgba(255,107,53,0.1), transparent 60%);
+  pointer-events: none;
+}
+
+/* Highlight pour status "next" confirmé par le système */
+.soiree-monte-next {
+  border-color: rgba(255,107,53,0.4);
+  background: linear-gradient(135deg, rgba(255,107,53,0.12), rgba(255,59,48,0.08));
+}
+
+.soiree-monte-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.soiree-monte-cover {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.05);
+}
+
+.soiree-monte-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.soiree-monte-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.soiree-monte-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.soiree-monte-artist {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.soiree-monte-status {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #ff6b35;
+}
+
+.soiree-monte-boosters {
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.soiree-monte-boosters strong {
+  color: #ff6b35;
+  font-weight: 800;
+}
+
+.soiree-monte-boost-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: rgba(255,107,53,0.12);
+  border: 1px solid rgba(255,107,53,0.3);
+  border-radius: 12px;
+  color: #ff6b35;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  font-family: inherit;
+}
+
+.soiree-monte-boost-btn:active {
+  transform: scale(0.97);
+  background: rgba(255,107,53,0.2);
+}
+
+/* État vide — CTA vers ON MET QUOI */
+.soiree-monte-empty {
+  text-align: center;
+  padding: 20px 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px dashed rgba(255,255,255,0.08);
+  border-radius: 16px;
+}
+
+/* Animation pulse quand un boost arrive */
+@keyframes soireeBoostPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,107,53,0.3); }
+  70%  { box-shadow: 0 0 0 10px rgba(255,107,53,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,107,53,0); }
+}
+
+.soiree-monte-card.pulse {
+  animation: soireeBoostPulse 0.6s ease-out;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Section "ON MET QUOI ?"
+   ═══════════════════════════════════════════════════════════════════ */
+.soiree-suggest-section {
+  padding: 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 18px;
+  margin-bottom: 12px;
+}
+
+.soiree-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.soiree-section-title {
+  font-size: 11px;
+  font-weight: 900;
+  color: white;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.soiree-explore-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  background: rgba(0,210,255,0.1);
+  border: 1px solid rgba(0,210,255,0.25);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 8px;
+  font-weight: 800;
+  color: #00d2ff;
+  letter-spacing: 0.5px;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.soiree-explore-btn:active {
+  background: rgba(0,210,255,0.2);
+}
+
+.soiree-suggest-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.soiree-suggest-field {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.soiree-suggest-field::placeholder {
+  color: rgba(255,255,255,0.25);
+}
+
+.soiree-suggest-field:focus {
+  border-color: rgba(0,210,255,0.4);
+}
+
+.soiree-search-btn {
+  padding: 8px 10px;
+  background: rgba(0,210,255,0.15);
+  border: 1px solid rgba(0,210,255,0.3);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #00d2ff;
+  flex-shrink: 0;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.soiree-search-btn:active {
+  background: rgba(0,210,255,0.3);
+}
+
+.soiree-source-badge {
+  margin-top: 6px;
+}
+
+.soiree-suggest-results {
+  margin-top: 6px;
+}
+
+.soiree-suggestions-list {
+  margin-top: 6px;
+}
+
+.soiree-suggest-hint {
+  text-align: center;
+  padding: 6px 0;
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Secondary Cards (Past suggestions + Fire votes)
+   ═══════════════════════════════════════════════════════════════════ */
+.soiree-card-secondary {
+  padding: 14px;
+  background: rgba(139,92,246,0.04);
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: 16px;
+  margin-bottom: 12px;
+}
+
+.soiree-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.soiree-card-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #8B5CF6;
+  letter-spacing: 1px;
+}
+
+.soiree-card-sub {
+  font-size: 9px;
+  color: rgba(255,255,255,0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Feed Placeholder (réservé CP5)
+   ═══════════════════════════════════════════════════════════════════ */
+.soiree-feed-placeholder:empty {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Genre Trends Accordion
+   ═══════════════════════════════════════════════════════════════════ */
+.soiree-trends-accordion {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.soiree-trends-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  font-size: 11px;
+  font-weight: 900;
+  color: white;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.soiree-trends-summary::-webkit-details-marker {
+  display: none;
+}
+
+.soiree-trends-arrow {
+  margin-left: auto;
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  transition: transform 0.3s ease;
+}
+
+.soiree-trends-accordion[open] .soiree-trends-arrow {
+  transform: rotate(180deg);
+}
+
+.soiree-trends-content {
+  padding: 0 16px 16px;
+}
+
+.soiree-chart {
+  margin-top: 12px;
+}
+
+.soiree-chart-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 900;
+  color: white;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
 }
