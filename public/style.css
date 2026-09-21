@@ -3257,3 +3257,463 @@ html, body {
   letter-spacing: 0.5px;
   margin-bottom: 8px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CP3 SOUVENIRS — refonte visuelle tab-memories
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* HERO */
+.souvenirs-hero {
+  position: relative;
+  width: 100%;
+  min-height: 320px;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  background: linear-gradient(180deg, rgba(139,92,246,0.15) 0%, rgba(20,184,166,0.08) 100%);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.souvenirs-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.55;
+  filter: brightness(0.7) saturate(1.1);
+}
+.souvenirs-hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(10,14,26,0.4) 55%, rgba(10,14,26,0.95) 100%);
+}
+.souvenirs-hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 320px;
+  justify-content: flex-end;
+}
+.souvenirs-hero-tag {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.souvenirs-hero-title {
+  font-size: 40px;
+  font-weight: 900;
+  color: white;
+  letter-spacing: -0.5px;
+  line-height: 1.05;
+  margin: 0;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+}
+.souvenirs-hero-meta {
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.souvenirs-hero-meta .dot { opacity: 0.35; }
+
+/* SECTIONS COMMUNES */
+.souvenirs-section {
+  margin-bottom: 22px;
+  padding: 0 4px;
+}
+.souvenirs-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+.souvenirs-section-icon { font-size: 15px; }
+.souvenirs-section-title {
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.7);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.souvenirs-section-count {
+  margin-left: auto;
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  font-weight: 700;
+}
+
+/* LE MOMENT — carte hero secondaire */
+.souvenirs-moment-card {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(255,107,53,0.08), rgba(139,92,246,0.06));
+  border: 1px solid rgba(255,107,53,0.18);
+  border-radius: 16px;
+  align-items: center;
+}
+.souvenirs-moment-art {
+  width: 84px;
+  height: 84px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.souvenirs-moment-art img { width: 100%; height: 100%; object-fit: cover; }
+.souvenirs-moment-info { flex: 1; min-width: 0; }
+.souvenirs-moment-time {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255,107,53,0.85);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.souvenirs-moment-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: white;
+  line-height: 1.2;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.souvenirs-moment-artist {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.souvenirs-moment-stats {
+  display: flex;
+  gap: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+}
+.souvenirs-moment-attribution {
+  font-size: 11px;
+  color: rgba(20,184,166,0.9);
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+/* TEMPS FORTS — liste tracks */
+.souvenirs-tracks-list { display: flex; flex-direction: column; gap: 8px; }
+.souvenirs-track-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 12px;
+}
+.souvenirs-track-time {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.35);
+  min-width: 38px;
+  letter-spacing: 0.5px;
+}
+.souvenirs-track-art {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.souvenirs-track-art img { width: 100%; height: 100%; object-fit: cover; }
+.souvenirs-track-info { flex: 1; min-width: 0; }
+.souvenirs-track-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.souvenirs-track-artist {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.souvenirs-track-stats {
+  font-size: 10px;
+  color: rgba(255,107,53,0.85);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* PHOTOS */
+.souvenirs-photo-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.souvenirs-camera-btn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #00c853, #00bfa5);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  color: #0a0e1a;
+  letter-spacing: 0.3px;
+}
+.souvenirs-file-input {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  opacity: 0; cursor: pointer;
+  font-size: 0;
+}
+.souvenirs-photos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.souvenirs-photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.04);
+}
+.souvenirs-photo-item img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.souvenirs-photo-caption {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.75));
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+}
+.souvenirs-diapo-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(0,210,255,0.1));
+  border: 1px solid rgba(139,92,246,0.3);
+  border-radius: 12px;
+  color: #B47FFF;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  font-family: inherit;
+  text-align: center;
+}
+
+/* MESSAGES */
+.souvenirs-messages-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.souvenirs-message-item {
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.03);
+  border-left: 2px solid rgba(20,184,166,0.4);
+  border-radius: 4px 12px 12px 4px;
+}
+.souvenirs-message-author {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(20,184,166,0.9);
+  margin-bottom: 3px;
+}
+.souvenirs-message-text {
+  font-size: 13px;
+  color: rgba(255,255,255,0.9);
+  line-height: 1.35;
+}
+.souvenirs-message-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+.souvenirs-message-input {
+  flex: 1; min-width: 0;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(20,184,166,0.25);
+  border-radius: 12px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  -webkit-appearance: none;
+}
+.souvenirs-send-btn {
+  flex-shrink: 0;
+  padding: 12px 14px;
+  min-height: 44px;
+  background: linear-gradient(135deg, #00c853, #00bfa5);
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0a0e1a;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+.souvenirs-message-status {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--turquoise, #14B8A6);
+  font-weight: 700;
+  min-height: 16px;
+}
+
+/* TON EMPREINTE */
+.souvenirs-empreinte-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.souvenirs-empreinte-stat {
+  padding: 14px 8px;
+  background: rgba(139,92,246,0.06);
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: 12px;
+  text-align: center;
+}
+.souvenirs-empreinte-num {
+  font-size: 24px;
+  font-weight: 900;
+  color: white;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.souvenirs-empreinte-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.souvenirs-empreinte-impact {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(255,107,53,0.08), rgba(255,107,53,0.02));
+  border: 1px solid rgba(255,107,53,0.2);
+  border-radius: 12px;
+  align-items: center;
+}
+.souvenirs-empreinte-impact-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  background: rgba(255,107,53,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.souvenirs-empreinte-impact-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255,107,53,0.85);
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+.souvenirs-empreinte-impact-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: white;
+  line-height: 1.2;
+}
+.souvenirs-empreinte-impact-stat {
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* LES GENS */
+.souvenirs-gens-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.souvenirs-gens-avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6, #14B8A6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  color: white;
+  font-weight: 900;
+  border: 2px solid rgba(255,255,255,0.1);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.souvenirs-gens-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.souvenirs-gens-more {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  font-weight: 800;
+  border: 1px dashed rgba(255,255,255,0.15);
+}
+
+/* ACTIONS */
+.souvenirs-actions {
+  margin-top: 32px;
+  padding: 16px 4px 40px;
+  text-align: center;
+}
+.souvenirs-action-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #ff5f8f, #b47fff);
+  border: none;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 800;
+  color: white;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 20px rgba(180,127,255,0.25);
+  font-family: inherit;
+}
+.souvenirs-signature {
+  margin-top: 20px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+

@@ -683,72 +683,104 @@
 
         </section>
 
-        <!-- ═══ TAB 3: MEMORIES ═══ -->
+        <!-- ═══ TAB 3: SOUVENIRS (CP3 refonte) ═══ -->
         <section id="tab-memories" class="tab-content">
-            <!-- Camera photo — opens camera directly on mobile -->
-            <div class="card" style="padding:14px;">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;">
-                    <span style="font-size:10px;font-weight:800;color:var(--turquoise,#00E0C4);letter-spacing:1px;">📸 GALERIE PHOTOS</span>
+
+            <!-- HERO -->
+            <div class="souvenirs-hero" id="souvenirs-hero">
+                <div class="souvenirs-hero-bg" id="souvenirs-hero-bg"></div>
+                <div class="souvenirs-hero-content">
+                    <div class="souvenirs-hero-tag">SOUVENIRS</div>
+                    <h1 class="souvenirs-hero-title">Quelle soirée !</h1>
+                    <div class="souvenirs-hero-meta" id="souvenirs-hero-meta"></div>
                 </div>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <div style="position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:4px; padding:8px 16px; background:linear-gradient(135deg,#00c853,#00bfa5); border-radius:10px; cursor:pointer; font-size:11px; font-weight:800; color:#0a0e1a;">
+            </div>
+
+            <!-- LE MOMENT DE LA SOIRÉE -->
+            <div class="souvenirs-section" id="souvenirs-moment" style="display:none;">
+                <div class="souvenirs-section-header">
+                    <span class="souvenirs-section-icon">🔥</span>
+                    <span class="souvenirs-section-title">LE MOMENT DE LA SOIRÉE</span>
+                </div>
+                <div id="souvenirs-moment-content"></div>
+            </div>
+
+            <!-- LES TEMPS FORTS -->
+            <div class="souvenirs-section" id="souvenirs-tempsforts" style="display:none;">
+                <div class="souvenirs-section-header">
+                    <span class="souvenirs-section-icon">📊</span>
+                    <span class="souvenirs-section-title">LES TEMPS FORTS</span>
+                </div>
+                <div id="souvenirs-tempsforts-list" class="souvenirs-tracks-list"></div>
+            </div>
+
+            <!-- LES PLUS BELLES PHOTOS -->
+            <div class="souvenirs-section" id="souvenirs-photos" style="display:none;">
+                <div class="souvenirs-section-header">
+                    <span class="souvenirs-section-icon">📸</span>
+                    <span class="souvenirs-section-title">LES PLUS BELLES PHOTOS</span>
+                </div>
+                <div class="souvenirs-photo-actions">
+                    <div class="souvenirs-camera-btn">
                         📸 AJOUTER UNE PHOTO
-                        <input type="file" id="camera-photo-input" accept="image/*" capture="environment" onchange="handleDiapoPhoto(event)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;">
+                        <input type="file" id="camera-photo-input" accept="image/*" capture="environment" onchange="handleDiapoPhoto(event)" class="souvenirs-file-input">
                     </div>
                     <input type="file" id="photo-picker-input" accept="image/*" onchange="handleDiapoPhoto(event)" style="position:absolute; opacity:0; pointer-events:none; width:0; height:0;">
                 </div>
-
-                <!-- My Photos section -->
-                <div style="margin-top:12px;">
-                    <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:8px;">📱 MES PHOTOS</div>
-                    <div id="my-photos-grid">
-                        <div id="my-photos-empty" style="text-align:center; color:var(--text-dim); font-size:11px; padding:12px; background:rgba(255,255,255,0.03); border-radius:10px;">📷 Tu n'as pas encore pris de photo</div>
-                    </div>
-                </div>
-
-                <!-- All photos grid -->
-                <div style="margin-top:12px;">
-                    <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:8px;">🎉 PHOTOS DE LA SOIRÉE</div>
-                    <div id="diapo-grid" class="gallery-grid"></div>
-                </div>
-
-                <!-- Send a message to the slideshow -->
-                <div style="margin-top:16px;">
-                    <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.4); letter-spacing:1px; margin-bottom:8px;">💬 RÉACTION À CHAUD</div>
-                    <div style="display:flex; gap:6px; align-items:center; width:100%; box-sizing:border-box;">
-                        <input type="text" id="guest-message-input" maxlength="100" placeholder="Ta réaction..." style="flex:1; min-width:0; padding:10px 12px; background:rgba(255,255,255,0.07); border:1px solid rgba(0,200,180,0.3); border-radius:10px; color:white; font-size:14px; font-weight:600; outline:none; appearance:none; -webkit-appearance:none; touch-action:manipulation;">
-                        <button type="button" id="send-message-btn" onclick="sendGuestMessage()" style="flex-shrink:0; padding:10px 12px; min-height:42px; background:linear-gradient(135deg,#00c853,#00bfa5); border:none; border-radius:10px; font-size:12px; font-weight:800; color:#0a0e1a; cursor:pointer; white-space:nowrap; appearance:none; -webkit-appearance:none; touch-action:manipulation; -webkit-tap-highlight-color:rgba(0,200,180,0.3);">📤</button>
-                    </div>
-                    <div id="message-status" style="margin-top:6px; font-size:11px; color:var(--turquoise); font-weight:700; min-height:16px;"></div>
-                </div>
-
-                <!-- Launch Diaporama button -->
-                <button id="btn-launch-diapo-memories" onclick="handleDiapoBtnClick()" style="
-                    display:none;width:100%;margin-top:16px;padding:14px;cursor:pointer;
-                    background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(0,210,255,0.1));
-                    border:1px solid rgba(139,92,246,0.3);border-radius:12px;
-                    color:#B47FFF;font-size:13px;font-weight:800;letter-spacing:1px;
-                    font-family:inherit;transition:all 0.2s;text-align:center;
-                ">🎞️ LANCE LE DIAPORAMA</button>
+                <div id="souvenirs-photos-grid" class="souvenirs-photos-grid"></div>
+                <!-- Compat legacy IDs (masqués mais nécessaires pour handlers photos existants) -->
+                <div id="my-photos-grid" style="display:none;"></div>
+                <div id="diapo-grid" style="display:none;"></div>
+                <button id="btn-launch-diapo-memories" onclick="handleDiapoBtnClick()" class="souvenirs-diapo-btn" style="display:none;">🎞️ LANCE LE DIAPORAMA</button>
             </div>
 
-            <!-- Track History (moved from On Air) -->
-            <div class="card history-section">
-                <div class="section-header">
-                    <span class="section-icon">⏱️</span>
-                    <span class="section-title">HISTORIQUE</span>
-                    <span class="history-count" id="history-count">0 titres</span>
+            <!-- LES MOTS DE LA SOIRÉE -->
+            <div class="souvenirs-section" id="souvenirs-messages" style="display:none;">
+                <div class="souvenirs-section-header">
+                    <span class="souvenirs-section-icon">💬</span>
+                    <span class="souvenirs-section-title">LES MOTS DE LA SOIRÉE</span>
                 </div>
-                <div id="history-list" class="history-list">
-                    <div class="empty-state">Aucun titre joué pour le moment</div>
+                <div id="souvenirs-messages-list" class="souvenirs-messages-list"></div>
+                <div class="souvenirs-message-input-row">
+                    <input type="text" id="guest-message-input" maxlength="100" placeholder="Écris ta réaction..." class="souvenirs-message-input">
+                    <button type="button" id="send-message-btn" onclick="sendGuestMessage()" class="souvenirs-send-btn">📤</button>
                 </div>
-                <button id="historyMoreToggle" onclick="window.toggleHistoryCollapse()" style="
-                    display:none;width:100%;margin-top:8px;padding:12px;
-                    text-align:center;cursor:pointer;font-size:12px;font-weight:500;
-                    color:rgba(139,92,246,0.7);background:transparent;
-                    border:0.5px dashed rgba(139,92,246,0.3);border-radius:8px;
-                ">Afficher tout ↓</button>
+                <div id="message-status" class="souvenirs-message-status"></div>
             </div>
+
+            <!-- TON EMPREINTE (conditionnel) -->
+            <div class="souvenirs-section" id="souvenirs-empreinte" style="display:none;">
+                <div class="souvenirs-section-header">
+                    <span class="souvenirs-section-icon">✨</span>
+                    <span class="souvenirs-section-title">TON EMPREINTE</span>
+                </div>
+                <div id="souvenirs-empreinte-stats" class="souvenirs-empreinte-stats"></div>
+                <div id="souvenirs-empreinte-impact"></div>
+            </div>
+
+            <!-- LES GENS DE LA SOIRÉE -->
+            <div class="souvenirs-section" id="souvenirs-gens" style="display:none;">
+                <div class="souvenirs-section-header">
+                    <span class="souvenirs-section-icon">👥</span>
+                    <span class="souvenirs-section-title">LES GENS DE LA SOIRÉE</span>
+                    <span class="souvenirs-section-count" id="souvenirs-gens-count"></span>
+                </div>
+                <div id="souvenirs-gens-avatars" class="souvenirs-gens-row"></div>
+            </div>
+
+            <!-- ACTIONS FINALES -->
+            <div class="souvenirs-actions" id="souvenirs-actions">
+                <button class="souvenirs-action-primary" onclick="window.shareSouvenirs && window.shareSouvenirs()">
+                    <span>📤</span>
+                    <span>Partager la soirée</span>
+                </button>
+                <div class="souvenirs-signature">— La musique nous rapproche —</div>
+            </div>
+
+            <!-- Compat legacy IDs (masqués — nécessaires pour handlers historique existants) -->
+            <div id="history-list" style="display:none;"></div>
+            <span id="history-count" style="display:none;">0 titres</span>
+
         </section>
 
         <!-- ═══ TAB 4: HUB ═══ -->
