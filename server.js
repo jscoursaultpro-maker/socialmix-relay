@@ -4136,17 +4136,6 @@ function buildLightState(party, isHost = false) {
   const sizeKB = Math.round(JSON.stringify(light).length / 1024);
   console.log(`📦 [${party.code}] buildLightState: ${sizeKB} KB (${lightParticipants.length} participants, ${(party.photos || []).length} photos, ${recentHistory.length} tracks, ${(party.suggestions || []).length} suggestions)`);
 
-  // TASK13-DEBUG
-  const suggWithBoosts = (party.suggestions || []).filter(s => s.boostedBy?.length > 0);
-  if (suggWithBoosts.length > 0) {
-    console.log('[TASK13-DEBUG STATE-EMIT]', {
-      isHost,
-      suggestions: suggWithBoosts.map(s => ({
-        title: s.title, boostedBy: s.boostedBy
-      }))
-    });
-  }
-
   return light;
 }
 

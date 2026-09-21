@@ -3364,15 +3364,7 @@ function renderGuestSuggestions() {
   const myId = state.userId || state.guestId || state.socketId || '';
   const myName = state.guestName || '';
   console.log('[renderGuestSuggestions] total:', allSuggs.length, '| myId:', myId, '| myName:', myName);
-  // TASK13-DEBUG
-  console.log('[TASK13-DEBUG RENDER]', {
-    myId,
-    stateUserId: state.userId,
-    stateGuestId: state.guestId,
-    boostedSuggestions: (allSuggs || []).filter(s => s.boostedBy?.length > 0)
-      .map(s => ({ title: s.title, boostedBy: s.boostedBy }))
-  });
-  allSuggs.forEach((s,i) => console.log(`  [${i}] id:${s.id} guestId:${s.guestId} guestName:${s.guestName} status:${s.status}`));
+
 
   // ── Section A : MES suggestions ─────────────────────────────────────
   const mine = allSuggs.filter(s => s.guestId === myId || s.guestName === myName);
@@ -3535,13 +3527,7 @@ async function boostSuggestion(suggId, title) {
     console.warn('[Boost] suggId manquant pour', title, '— fallback titre côté serveur');
   }
   console.log('[BOOST] click', { suggId, guestId, guestName, title });
-  // TASK13-DEBUG
-  console.log('[TASK13-DEBUG BOOST-SEND]', {
-    clientGuestId: state.guestId,
-    clientUserId: state.userId,
-    clientSessionToken: state.sessionToken?.substring(0,12) + '...',
-    suggId
-  });
+
 
   // ★ Fix Z6: instant optimistic turquoise feedback (before network round-trip)
   const btn = document.getElementById(`boost-btn-${suggId}`);
@@ -3560,9 +3546,25 @@ async function boostSuggestion(suggId, title) {
   }
 
   try {
-    const token = (typeof supabaseSession !== 'undefined' ? supabaseSession?.access_token : null) || state.sessionToken || null;
+    // ★ Task #13 root-cause fix: use fresh Supabase access_token (NOT the internal socket UUID)
+    let token = null;
+    if (_supabaseClient) {
+      try {
+        const { data: { session } } = await _supabaseClient.auth.getSession();
+        token = session?.access_token || null;
+      } catch (e) { console.warn('[boost] getSession failed:', e); }
+    }
     if (!token) {
-      console.error('[boost] no auth token available');
+      console.warn('[boost] No Supabase token — user needs SSO login');
+      showSuggestionToast('Connecte-toi via Google ou Apple pour booster 🔐', 'pending');
+      // Revert optimistic UI
+      if (btn) {
+        btn.disabled = false;
+        btn.style.color = '#ff6b35';
+        btn.style.background = 'rgba(255,107,53,0.08)';
+        btn.style.border = '1px solid rgba(255,107,53,0.2)';
+        btn.textContent = '🔥 Booster';
+      }
       return;
     }
 
