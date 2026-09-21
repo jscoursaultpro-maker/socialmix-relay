@@ -3546,7 +3546,7 @@ async function boostSuggestion(suggId, title) {
   }
 
   try {
-    // ★ Task #13 root-cause fix: use fresh Supabase access_token (NOT the internal socket UUID)
+    // ★ Task #13.2: prefer Supabase JWT, fall back to internal session UUID
     let token = null;
     if (_supabaseClient) {
       try {
@@ -3554,9 +3554,14 @@ async function boostSuggestion(suggId, title) {
         token = session?.access_token || null;
       } catch (e) { console.warn('[boost] getSession failed:', e); }
     }
+    // Fallback: use internal session UUID (sbauth-bypass guests)
+    if (!token && state.sessionToken) {
+      token = state.sessionToken;
+      console.log('[boost] Using internal session UUID as auth fallback');
+    }
     if (!token) {
-      console.warn('[boost] No Supabase token — user needs SSO login');
-      showSuggestionToast('Connecte-toi via Google ou Apple pour booster 🔐', 'pending');
+      console.warn('[boost] No auth token available at all');
+      showSuggestionToast('Connecte-toi pour booster 🔐', 'pending');
       // Revert optimistic UI
       if (btn) {
         btn.disabled = false;
@@ -3568,15 +3573,17 @@ async function boostSuggestion(suggId, title) {
       return;
     }
 
-    const res = await fetch(`${window.RELAY_URL || ''}/api/party/${code}/suggestion/${suggId || ''}/boost`, {
+    const res = await fetch(`${window.RELAY_URL || ''}/api/party/${code}/suggest/${suggId || ''}/boost`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'X-Party-Code': code
       },
       body: JSON.stringify({ guestId, guestName, suggestionTitle: title }) // ★ fallback titre pour legacy
     });
     const json = await res.json();
+
     console.log('[BOOST] response', res.status, json);
     if (!res.ok) {
       showSuggestionToast(json.error || 'Erreur boost', 'pending');
