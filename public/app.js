@@ -3502,9 +3502,18 @@ async function boostSuggestion(suggId, title) {
   }
 
   try {
+    const token = state.sessionToken || (typeof supabaseSession !== 'undefined' ? supabaseSession?.access_token : null) || null;
+    if (!token) {
+      console.error('[boost] no auth token available');
+      return;
+    }
+
     const res = await fetch(`${window.RELAY_URL || ''}/api/party/${code}/suggestion/${suggId || ''}/boost`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ guestId, guestName, suggestionTitle: title }) // ★ fallback titre pour legacy
     });
     const json = await res.json();
