@@ -1946,7 +1946,7 @@ function connectToRelay() {
     // The server sends ALL party suggestions in party:state (buildLightState L2173).
     // Without this, cross-guest suggestions (Pierre's) never appear for Sam.
     if (Array.isArray(ps.suggestions) && ps.suggestions.length > 0) {
-      const myId   = state.guestId || '';
+      const myId   = state.userId || state.guestId || '';
       const myName = state.guestName || '';
       ps.suggestions.forEach(serverSugg => {
         if (!serverSugg.title || !serverSugg.id) return;
@@ -2464,7 +2464,12 @@ function connectToRelay() {
     const sugg = (state.suggestions || []).find(s => s.id === data.suggestionId);
     if (sugg) {
       sugg.boostCount = data.boostCount;
-      console.log('[Suggestion] ⚡ boosted:', sugg.title, '→', data.boostCount);
+      // ★ Task #13 fix B — update boostedBy[] from realtime event
+      if (data.boostedByUserId && !Array.isArray(sugg.boostedBy)) sugg.boostedBy = [];
+      if (data.boostedByUserId && !sugg.boostedBy.includes(data.boostedByUserId)) {
+        sugg.boostedBy.push(data.boostedByUserId);
+      }
+      console.log('[Suggestion] ⚡ boosted:', sugg.title, '→', data.boostCount, 'by:', data.boostedByUserId || '?');
     }
     renderCaMonte();
     renderGuestSuggestions();
@@ -3588,7 +3593,9 @@ async function boostSuggestion(suggId, title) {
     if (sugg) {
       sugg.boostCount = json.boostCount;
       if (!sugg.boostedBy) sugg.boostedBy = [];
-      if (!sugg.boostedBy.includes(guestId)) sugg.boostedBy.push(guestId);
+      // ★ Task #13 fix A — push the Mongo userId (same ID server stores)
+      const myBoostId = state.userId || guestId;
+      if (!sugg.boostedBy.includes(myBoostId)) sugg.boostedBy.push(myBoostId);
     }
     renderGuestSuggestions();
     renderCaMonte();

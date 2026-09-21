@@ -6448,8 +6448,8 @@ io.on('connection', (socket) => {
     suggestion.boostedBy.push(guestId);
     suggestion.boostCount = (suggestion.boostCount || 0) + 1;
     party.isDirty = true;
-    io.to(`host:${party.code}`).emit('suggestion:boosted', { suggestionId: data.suggestionId, boostCount: suggestion.boostCount });
-    io.to(`guest:${party.code}`).emit('suggestion:boosted', { suggestionId: data.suggestionId, boostCount: suggestion.boostCount });
+    io.to(`host:${party.code}`).emit('suggestion:boosted', { suggestionId: data.suggestionId, boostCount: suggestion.boostCount, boostedByUserId: guestId });
+    io.to(`guest:${party.code}`).emit('suggestion:boosted', { suggestionId: data.suggestionId, boostCount: suggestion.boostCount, boostedByUserId: guestId });
     console.log(`[${party.code}] ⚡ boost by ${guestId} on suggestion "${suggestion.title}" → count=${suggestion.boostCount}`);
   });
 
