@@ -362,10 +362,10 @@ html, body {
    Variables CSS --phase-color / --phase-bg injectées via JS selon phase courante. */
 .phase-narrative {
   position: relative;
-  background: linear-gradient(135deg, var(--phase-bg, rgba(139,92,246,0.15)) 0%, rgba(10,14,26,0.4) 100%);
-  border: 1px solid var(--phase-color, rgba(139,92,246,0.4));
-  border-radius: 18px;
-  padding: 18px 20px 22px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 8px 4px;
   margin-bottom: 12px;
   display: block;
   width: 100%;
@@ -920,36 +920,38 @@ html, body {
 }
 .vote-buttons { display: flex; gap: 8px; }
 .vote-btn {
-  flex: 1; padding: 14px 10px;
-  border-radius: var(--radius-md);
+  flex: 1; padding: 10px 8px;
+  border-radius: 40px;
   cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 6px;
   font-family: var(--font);
   transition: all 0.2s ease;
   position: relative; overflow: hidden;
   background: transparent;
+  border: none;
 }
 .vote-btn:active { transform: scale(0.92); }
 
 /* BOF — Grey */
 .vote-btn.bof {
   background: rgba(107, 114, 128, 0.15);
-  border: 2px solid rgb(107, 114, 128);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.15);
 }
-.vote-btn.bof .vote-icon, .vote-btn.bof .vote-text { color: rgb(107, 114, 128); }
+.vote-btn.bof .vote-icon, .vote-btn.bof .vote-text { color: rgb(107, 114, 128); font-size: 13px; font-weight: 800; }
 
 /* TOP — Lime Green */
 .vote-btn.top {
   background: rgba(132, 204, 22, 0.15);
-  border: 2px solid rgb(132, 204, 22);
+  box-shadow: 0 4px 12px rgba(132, 204, 22, 0.15);
 }
-.vote-btn.top .vote-icon, .vote-btn.top .vote-text { color: rgb(132, 204, 22); }
+.vote-btn.top .vote-icon, .vote-btn.top .vote-text { color: rgb(132, 204, 22); font-size: 13px; font-weight: 800; }
 
 /* LE FEU — Cyan Blue */
 .vote-btn.feu {
   background: rgba(0, 191, 255, 0.15);
-  border: 2px solid rgb(0, 191, 255);
+  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.15);
 }
+.vote-btn.feu .vote-icon, .vote-btn.feu .vote-text { color: rgb(0, 191, 255); font-size: 13px; font-weight: 800; }
 .vote-btn.feu .vote-icon, .vote-btn.feu .vote-text { color: rgb(0, 191, 255); }
 
 /* Selected states */
