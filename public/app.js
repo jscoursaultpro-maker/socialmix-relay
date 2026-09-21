@@ -3517,7 +3517,7 @@ async function boostSuggestion(suggId, title) {
   }
 
   try {
-    const token = state.sessionToken || (typeof supabaseSession !== 'undefined' ? supabaseSession?.access_token : null) || null;
+    const token = (typeof supabaseSession !== 'undefined' ? supabaseSession?.access_token : null) || state.sessionToken || null;
     if (!token) {
       console.error('[boost] no auth token available');
       return;
