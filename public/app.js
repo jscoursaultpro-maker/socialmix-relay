@@ -3333,7 +3333,11 @@ function renderGuestSuggestions() {
   };
 
   const allSuggs = state.suggestions || [];
-  const myId = state.guestId || state.socketId || '';
+  // ★ Task #13 fix — server stores req.user._id (Mongo _id) in sugg.boostedBy
+  // and sugg.guestId. state.userId holds that Mongo _id, while state.guestId is a
+  // local random fallback. Prefer userId to align with server truth so that
+  // "✓ Boostée" and "Ma sugg" states persist correctly across page refresh.
+  const myId = state.userId || state.guestId || state.socketId || '';
   const myName = state.guestName || '';
   console.log('[renderGuestSuggestions] total:', allSuggs.length, '| myId:', myId, '| myName:', myName);
   allSuggs.forEach((s,i) => console.log(`  [${i}] id:${s.id} guestId:${s.guestId} guestName:${s.guestName} status:${s.status}`));
