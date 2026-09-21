@@ -2574,7 +2574,18 @@ function updateNextTrack(track) {
   }
   $('next-track-title').textContent = track.title;
   $('next-track-artist').textContent = track.artist || '';
-  bar.style.display = 'block';
+  
+  const cover = $('next-track-cover');
+  if (cover) {
+    if (track.coverURL) {
+      cover.src = track.coverURL;
+      cover.style.display = 'block';
+    } else {
+      cover.style.display = 'none';
+    }
+  }
+  
+  bar.style.display = 'flex';
 }
 
 function updateDJMode() {
@@ -3087,13 +3098,17 @@ function updatePhaseNarrative(phase) {
   container.style.setProperty('--phase-bg', bg);
   container.setAttribute('data-phase-icon', icon);
 
+  // CP2.5 Design: Bandeau compact (1 ligne)
   container.innerHTML = `
-    <div class="phase-narrative-header">
-      <span class="phase-narrative-dot"></span>
-      <span class="phase-narrative-label">SOIRÉE EN COURS · ${label.toUpperCase()}</span>
+    <div class="phase-narrative-compact" style="display:flex; align-items:center; gap:8px; width:100%; font-size:10px;">
+      <span class="phase-narrative-dot" style="flex-shrink:0;"></span>
+      <span class="phase-narrative-label" style="font-weight:900; color:#00e0c4; white-space:nowrap;">SOIRÉE EN COURS</span>
+      <span style="color:rgba(255,255,255,0.3);">|</span>
+      <span class="phase-narrative-text" style="color:rgba(255,255,255,0.7); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-grow:1;">${msg.text}</span>
+      <span class="phase-dj-brain" style="display:flex; align-items:center; gap:4px; color:#00e0c4; font-weight:800; flex-shrink:0;">
+        <span style="font-size:12px;">〰</span> DJ BRAIN
+      </span>
     </div>
-    <div class="phase-narrative-text">${msg.text}</div>
-    ${countdownHtml}
   `;
 }
 
