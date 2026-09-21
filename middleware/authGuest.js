@@ -132,7 +132,25 @@ export const verifyGuestAuth = async (req, res, next) => {
       }
     }
 
-    return res.status(401).json({ error: 'Invalid token (failed legacy JWT, Supabase, and session UUID lookup)' });
+    // 4. Fallback: hostSecret lookup (iOS host boost, iOS host commands)
+    // iOS host may send Authorization: Bearer <hostSecret UUID>
+    if (partyCode) {
+      const partyForHost = await Party.findOne(
+        { code: partyCode.toUpperCase(), endedAt: null },
+        { hostSecret: 1, hostUserId: 1 }
+      );
+      if (partyForHost && partyForHost.hostSecret === token && partyForHost.hostUserId) {
+        const hostUser = await User.findById(partyForHost.hostUserId);
+        if (hostUser && !hostUser.isDeleted && !hostUser.isBanned) {
+          console.log(`[authGuest] ✅ Auth via hostSecret for host userId: ${hostUser._id}`);
+          req.user = hostUser;
+          req.authMethod = 'host-secret';
+          return next();
+        }
+      }
+    }
+
+    return res.status(401).json({ error: 'Invalid token (failed legacy JWT, Supabase, session UUID, and hostSecret lookup)' });
   } catch (error) {
     console.error('verifyGuestAuth Error:', error);
     return res.status(500).json({ error: 'Internal server error during authentication' });
