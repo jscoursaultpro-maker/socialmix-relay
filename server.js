@@ -4796,7 +4796,19 @@ io.on('connection', (socket) => {
 
   socket.on('host:trackUpdate', (track) => {
     const party = getMutableParty(socket); if (!party) return;
-    party.currentTrack = track;
+    // ★ Task #12 fix — on re-emit of the same track (metadata refresh, crossfade),
+    // preserve the attribution enrichment (suggestedBy/requestedBy/source) added
+    // below after SmartMatch. Otherwise the "Suggéré par" attribution flickers off
+    // the guest hero every time iOS re-emits the same track.
+    const _prevTitle = (party.currentTrack?.title || '').toLowerCase().trim();
+    const _newTitle = (track?.title || '').toLowerCase().trim();
+    const _isSameTrackReEmit = _prevTitle && _prevTitle === _newTitle;
+    if (_isSameTrackReEmit) {
+      // merge new fields into existing (preserves enrichment)
+      party.currentTrack = { ...party.currentTrack, ...track };
+    } else {
+      party.currentTrack = track;
+    }
 
     // ★ R5 fix: hissé hors du bloc if — accessible à l'emit
     let requestedBy = { source: 'djbrain', guestName: null };
@@ -4913,6 +4925,18 @@ io.on('connection', (socket) => {
           // If it was host choosing, maybe we want 'host_jukebox_manual'
           // We will use dj_brain_auto as default fallback
       }
+
+      // ★ Task #12 fix — enrich party.currentTrack with SmartMatch attribution
+      // so web guests see "Suggéré par [prénom]" on the Now Playing hero.
+      // Frontend reads: track.source === 'guest_suggestion_fulfilled' || track.suggestedBy
+      // (app.js:2529 updateNowPlaying). Without this enrichment, party.currentTrack
+      // stays as the raw iOS payload and attribution never reaches the guest.
+      party.currentTrack = {
+        ...party.currentTrack,
+        suggestedBy: requestedBy.guestName || null,
+        requestedBy,
+        source: historySource,
+      };
 
       // ★ B3 fix — Debug log du payload brut reçu (24h — à retirer après validation empirique)
       // Permet de vérifier les noms exacts des champs envoyés par iOS (provider vs source vs requestedBy.source)
