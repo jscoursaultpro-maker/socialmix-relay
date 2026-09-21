@@ -6113,7 +6113,8 @@ io.on('connection', (socket) => {
     cb({
       ok: true,
       profile: { name: participant.name, emoji: participant.emoji, photo: participant.photo },
-      partyCode: code
+      partyCode: code,
+      userId: participant.userId || null
     });
     console.log(`🔄 [${code}] Guest resumed: ${participant.emoji} ${participant.name}`);
 

@@ -1771,8 +1771,18 @@ function connectToRelay() {
         if (response && response.ok) {
           // ★ Task #13.3: ensure sessionToken stays in state after successful resume
           if (resumeData.sessionToken) state.sessionToken = resumeData.sessionToken;
-          // ★ Task #13.4: ensure userId stays in state for boost badge detection
-          if (resumeData.userId && !state.userId) state.userId = resumeData.userId;
+          // ★ Task #13.5: server userId is authoritative — override stale localStorage
+          if (response.userId) {
+            const oldId = state.userId;
+            state.userId = response.userId;
+            if (oldId && oldId !== response.userId) {
+              console.log('[Resume] ⚠️ userId corrected:', oldId.substring(0, 8) + '... →', response.userId.substring(0, 8) + '...');
+            }
+          } else if (resumeData.userId) {
+            // Fallback to localStorage if server didn't return userId
+            state.userId = resumeData.userId;
+          }
+          saveSession(); // persist corrected userId immediately
           console.log('[Resume] ✅ Session restored for', response.profile?.name,
             '| sessionToken:', (state.sessionToken || '').substring(0, 8) + '...',
             '| userId:', state.userId || 'MISSING');
