@@ -299,6 +299,7 @@ function loadProfile() {
 
 function saveSession() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    userId: state.userId,
     guestId: state.guestId,
     partyCode: state.partyCode,
     suggestions: state.suggestions,
@@ -323,6 +324,7 @@ function loadSession() {
       const urlParams = new URLSearchParams(window.location.search);
       const urlCode = urlParams.get('code');
       
+      if (saved.userId) state.userId = saved.userId;
       state.guestId = saved.guestId;
       state.partyCode = saved.partyCode || '';
       
@@ -361,10 +363,17 @@ function loadResumeSession() {
 function clearResumeSession() {
   try {
     localStorage.removeItem(SESSION_KEY);
+    const savedStr = localStorage.getItem(STORAGE_KEY);
+    if (savedStr) {
+      const saved = JSON.parse(savedStr);
+      delete saved.userId;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    }
   } catch(e) {
     console.warn("Could not clear session", e);
   }
   state.sessionToken = null;
+  state.userId = null;
 }
 
 // ─── Screen Navigation ──────────────────────────────
@@ -733,7 +742,12 @@ async function handleSupabaseSession(session) {
     state.guestName = firstName;
     state.guestLastName = lastName;
     state.guestEmail = email;
+    const oldUserId = state.userId;
     if (user.userId || user._id) state.userId = String(user.userId || user._id);
+    if (state.userId && state.userId !== oldUserId) {
+      if (typeof renderGuestSuggestions === 'function') renderGuestSuggestions();
+      if (typeof renderCaMonte === 'function') renderCaMonte();
+    }
 
     // Sauvegarder en localStorage pour welcome-back
     if (typeof saveC5Profile === 'function') {
@@ -1814,7 +1828,12 @@ function connectToRelay() {
     _joinAttempts = 0;
 
     state.sessionToken = data.sessionToken;
+    const oldUserId2 = state.userId;
     if (data.userId) state.userId = data.userId;
+    if (state.userId && state.userId !== oldUserId2) {
+      if (typeof renderGuestSuggestions === 'function') renderGuestSuggestions();
+      if (typeof renderCaMonte === 'function') renderCaMonte();
+    }
     saveSession();
     console.log('[Session] Token saved:', data.sessionToken.substring(0, 8) + '... userId:', data.userId || 'n/a');
     // ★ Bug E-fix-2 — identifier ce socket au serveur pour recevoir notifs amis (room user:${userId})
@@ -5437,7 +5456,12 @@ async function init() {
     if (sbAuth) {
       try {
         const authData = JSON.parse(atob(decodeURIComponent(sbAuth)));
+        const oldUserId3 = state.userId;
         state.userId = authData.userId;
+        if (state.userId && state.userId !== oldUserId3) {
+          if (typeof renderGuestSuggestions === 'function') renderGuestSuggestions();
+          if (typeof renderCaMonte === 'function') renderCaMonte();
+        }
         state.guestName = authData.firstName;
         state.guestEmail = authData.email || '';
         state.guestEmoji = '🎉';
@@ -5459,7 +5483,12 @@ async function init() {
       const meRes = await fetch('/api/me/legacy', { credentials: 'include' });
       if (meRes.ok) {
         const user = await meRes.json();
+        const oldUserId4 = state.userId;
         state.userId = user.userId;
+        if (state.userId && state.userId !== oldUserId4) {
+          if (typeof renderGuestSuggestions === 'function') renderGuestSuggestions();
+          if (typeof renderCaMonte === 'function') renderCaMonte();
+        }
         state.guestName = user.firstName;
         state.guestLastName = user.lastName || '';
         state.guestEmail = user.email || '';
