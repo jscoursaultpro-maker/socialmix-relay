@@ -1082,6 +1082,110 @@ app.use('/api/track', trackSoloVotesRouter);
 
 // ★ V7: JustPlay AfterGlow opt-in (rename mid-party + save-to-afterglow end-party)
 app.use('/api/host/parties', partyActionsRouter);
+
+// ★ Task #14.2 — LEGACY iOS host boost endpoint MUST be declared BEFORE
+// the /api/party routers below. Those routers use router.use(verifyGuestAuth)
+// as a blanket middleware, which intercepts ANY request under /api/party/*
+// (even paths not declared in the router) and rejects requests without an
+// Authorization header. iOS host boost sends body {guestId, guestName} but
+// no Authorization header, and used to be rejected before reaching the
+// handler at line ~2543. Declaring the route here ensures Express matches
+// it FIRST in registration order and skips the router chain entirely.
+// This handler is a shim that forwards to the same logic as legacy L2543.
+// Keeping the original in place too is safe: only the first registered
+// route wins in Express. If ever the original is removed, this stays.
+app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
+  const code   = (req.params.code || '').toUpperCase();
+  const suggId = req.params.suggId;
+  const { guestId, guestName } = req.body || {};
+
+  if (!guestId || !guestName) return res.status(400).json({ error: 'guestId + guestName requis' });
+
+  let party = parties.get(code);
+  if (!party) {
+    const dbParty = await Party.findOne({ code }).lean();
+    if (!dbParty) return res.status(404).json({ error: 'Soirée introuvable' });
+    party = dbParty;
+  }
+
+  (party.suggestions || []).forEach(s => { if (!s.id) s.id = randomUUID(); });
+
+  let sugg = (party.suggestions || []).find(s => s.id === suggId);
+  if (!sugg && suggId && suggId !== 'undefined') {
+    console.warn(`[${code}] /boost: id '${suggId}' not found`);
+    return res.status(404).json({ error: 'Suggestion introuvable (ID périmé — rechargez la page)' });
+  }
+  if (!sugg) {
+    const titleFallback = (req.body || {}).suggestionTitle;
+    if (titleFallback) {
+      sugg = (party.suggestions || []).find(s =>
+        s.title?.toLowerCase().trim() === titleFallback.toLowerCase().trim() &&
+        ['pending','queued','next'].includes(s.status)
+      );
+      if (sugg) console.log(`[${code}] /boost: fallback title match for '${titleFallback}'`);
+    }
+    if (!sugg) return res.status(404).json({ error: 'Suggestion introuvable' });
+  }
+
+  if (!['pending', 'queued', 'next'].includes(sugg.status)) {
+    return res.status(409).json({ error: 'Suggestion déjà jouée ou rejetée' });
+  }
+
+  if (sugg.guestId === guestId || sugg.socketId === guestId) {
+    return res.status(409).json({ error: 'Tu ne peux pas booster ta propre suggestion' });
+  }
+
+  const isHostBoost = (guestId || '').startsWith('host:') || guestId === 'host';
+
+  if (!isHostBoost) {
+    const pendingGuestBoosts = (party.suggestions || []).filter(s =>
+      s.boostedBy && s.boostedBy.includes(guestId) &&
+      ['pending', 'queued', 'next'].includes(s.status)
+    ).length;
+    if (pendingGuestBoosts >= 3) {
+      return res.status(429).json({
+        error: 'Tu as deja 3 boosts actifs. Attends qu\'une de tes tracks boostees passe.'
+      });
+    }
+  }
+
+  if (!sugg.boostedBy) sugg.boostedBy = [];
+  if (sugg.boostedBy.includes(guestId)) {
+    return res.status(409).json({ error: 'Tu as déjà boosté cette suggestion' });
+  }
+
+  if (isHostBoost) {
+    const activeHostBoosts = (party.suggestions || []).filter(s =>
+      s.boostedByHost === true && ['pending', 'queued', 'next'].includes(s.status)
+    ).length;
+    if (activeHostBoosts >= 3) {
+      return res.status(429).json({ error: "Max 3 suggestions boostées simultanément. Attends qu'une soit jouée." });
+    }
+    sugg.boostedByHost = true;
+  }
+
+  sugg.boostCount = (sugg.boostCount || 0) + 1;
+  sugg.boostedBy.push(guestId);
+  party.isDirty = true;
+
+  if (!isHostBoost) {
+    addPoints(party, guestId, guestName, 3, `boost: ${sugg.title}`);
+  }
+  const suggesterPoints = isHostBoost ? 3 : 1;
+  if (sugg.guestId && sugg.guestId !== 'host' && !sugg.guestId.startsWith('host:')) {
+    addPoints(party, sugg.guestId, sugg.guestName || 'Guest', suggesterPoints, `boost reçu: ${sugg.title}`);
+  }
+
+  const updatedState = buildLightState(party);
+  io.to(code).emit('party:state', updatedState);
+  io.to(`host:${code}`).emit('party:state', updatedState);
+  io.to(`guest:${code}`).emit('party:state', updatedState);
+
+  const boostLabel = isHostBoost ? '🎧 Host-boost' : '🔥 Boost';
+  console.log(`[${code}] ${boostLabel}: "${sugg.title}" → ${sugg.boostCount} boost(s) par ${guestName}`);
+  res.json({ ok: true, boostCount: sugg.boostCount, suggId });
+});
+
 app.use('/api/party', partyJoinRouter);
 app.use('/api/party', partySettingsRouter);
 app.use('/api/party', partyPublicInfoRouter);
