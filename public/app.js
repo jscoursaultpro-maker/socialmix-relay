@@ -6537,6 +6537,11 @@ function showTab(tabName) {
   // Scroll to top within cockpit
   cockpit.scrollTop = 0;
   window.scrollTo({ top: 0, behavior: 'instant' });
+
+  // ★ CP3 — render SOUVENIRS on tab open
+  if (normalizedName === 'souvenirs' && typeof renderSouvenirs === 'function') {
+    try { renderSouvenirs(); } catch (e) { console.warn('[souvenirs] render failed:', e); }
+  }
 }
 
 // ★ showAllTabs — V2 compat: shows the SOIRÉE space (jukebox + on-air)
@@ -6555,3 +6560,301 @@ function toggleBottomNav(visible) {
   if (!nav) return;
   nav.classList.toggle('hidden', !visible);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// CP3 SOUVENIRS — refonte visuelle tab-memories
+// Doctrine : "passage de la soirée vécue à la soirée revécue"
+// Ordre : Hero → LE MOMENT → TEMPS FORTS → PHOTOS → MESSAGES → EMPREINTE → GENS → ACTIONS
+// Règle absolue : bloc CACHÉ si data vide, jamais placeholder "0 titre"
+// Zéro modif backend, zéro invention
+// ═══════════════════════════════════════════════════════════════════
+
+function _souvFormatHM(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    return `${h}h${m}`;
+  } catch { return ''; }
+}
+
+function _souvEscape(s) {
+  if (typeof escapeHtml === 'function') return escapeHtml(s);
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function _souvScoreTrack(t) {
+  const feu  = t.feuVotes  || t.fireCount || 0;
+  const like = t.likeVotes || t.likeCount || 0;
+  const boost = t.boostCount || 0;
+  let bonus = 0;
+  if (t.source === 'guest_suggestion_fulfilled') bonus += 5;
+  if (t.source === 'host_jukebox_manual') bonus += 2;
+  return feu * 3 + like + boost * 2 + bonus;
+}
+
+function _souvResolveNames(ids) {
+  if (typeof resolveBoosterNames === 'function') {
+    try { return resolveBoosterNames(ids); } catch {}
+  }
+  const parts = (window.state && window.state.participants) || [];
+  return (ids || []).slice(0, 3).map(id => {
+    const p = parts.find(x => (x.userId && String(x.userId) === String(id)) || x.id === id);
+    return p ? (p.name || 'Guest') : null;
+  }).filter(Boolean);
+}
+
+function renderSouvenirs() {
+  const state = window.state || {};
+  const myId = state.userId || state.guestId || '';
+  const trackHistory = state.trackHistory || [];
+  const photos = state.photos || [];
+  const messages = state.messages || [];
+  const participants = state.participants || [];
+  const suggestions = state.suggestions || [];
+
+  // ─── HERO ───────────────────────────────────────────────
+  const heroBg = document.getElementById('souvenirs-hero-bg');
+  const heroMeta = document.getElementById('souvenirs-hero-meta');
+  if (heroBg) {
+    let bgUrl = '';
+    if (state.coverPhoto) {
+      bgUrl = state.coverPhoto;
+    } else if (photos.length > 0) {
+      const first = photos.find(p => p.url) || photos[0];
+      bgUrl = first?.url || '';
+    }
+    heroBg.style.backgroundImage = bgUrl ? `url("${bgUrl}")` : '';
+  }
+  if (heroMeta) {
+    const parts = [];
+    if (state.createdAt) {
+      try {
+        const d = new Date(state.createdAt);
+        parts.push(d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }));
+      } catch {}
+    }
+    if (participants.length > 0) {
+      parts.push(`<span class="dot">•</span> ${participants.length} personne${participants.length > 1 ? 's' : ''}`);
+    }
+    if (state.hostProfile?.name) {
+      parts.push(`<span class="dot">•</span> chez ${_souvEscape(state.hostProfile.name)}`);
+    }
+    heroMeta.innerHTML = parts.join(' ');
+  }
+
+  // ─── SCORING ────────────────────────────────────────────
+  const scored = trackHistory.map(t => ({ ...t, _score: _souvScoreTrack(t) }))
+    .filter(t => t._score > 0)
+    .sort((a, b) => b._score - a._score);
+
+  // ─── LE MOMENT ──────────────────────────────────────────
+  const momentEl = document.getElementById('souvenirs-moment');
+  const momentContent = document.getElementById('souvenirs-moment-content');
+  if (momentEl && momentContent) {
+    if (scored.length === 0) {
+      momentEl.style.display = 'none';
+    } else {
+      const top = scored[0];
+      const artUrl = top.albumArtworkURL || top.artworkURL || '';
+      const feu = top.feuVotes || top.fireCount || 0;
+      const like = top.likeVotes || top.likeCount || 0;
+      const time = _souvFormatHM(top.playedAt);
+      const attribution = (top.suggestedByName || top.suggestedBy)
+        ? `<div class="souvenirs-moment-attribution">✨ Suggéré par ${_souvEscape(top.suggestedByName || top.suggestedBy)}</div>`
+        : '';
+      momentContent.innerHTML = `
+        <div class="souvenirs-moment-card">
+          <div class="souvenirs-moment-art">
+            ${artUrl ? `<img src="${_souvEscape(artUrl)}" alt="">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px;">🎵</div>'}
+          </div>
+          <div class="souvenirs-moment-info">
+            ${time ? `<div class="souvenirs-moment-time">${time}</div>` : ''}
+            <div class="souvenirs-moment-title">${_souvEscape(top.title || 'Titre inconnu')}</div>
+            <div class="souvenirs-moment-artist">${_souvEscape(top.artist || '')}</div>
+            <div class="souvenirs-moment-stats">
+              ${feu > 0 ? `<span>🔥 ${feu}</span>` : ''}
+              ${like > 0 ? `<span>👍 ${like}</span>` : ''}
+            </div>
+            ${attribution}
+          </div>
+        </div>
+      `;
+      momentEl.style.display = '';
+    }
+  }
+
+  // ─── LES TEMPS FORTS ────────────────────────────────────
+  const tempsEl = document.getElementById('souvenirs-tempsforts');
+  const tempsList = document.getElementById('souvenirs-tempsforts-list');
+  if (tempsEl && tempsList) {
+    const rest = scored.slice(1, 6); // top 2 à 6 (5 items)
+    if (rest.length === 0) {
+      tempsEl.style.display = 'none';
+    } else {
+      tempsList.innerHTML = rest.map(t => {
+        const artUrl = t.albumArtworkURL || t.artworkURL || '';
+        const time = _souvFormatHM(t.playedAt);
+        const feu = t.feuVotes || t.fireCount || 0;
+        return `
+          <div class="souvenirs-track-item">
+            <div class="souvenirs-track-time">${time}</div>
+            <div class="souvenirs-track-art">
+              ${artUrl ? `<img src="${_souvEscape(artUrl)}" alt="">` : ''}
+            </div>
+            <div class="souvenirs-track-info">
+              <div class="souvenirs-track-title">${_souvEscape(t.title || '')}</div>
+              <div class="souvenirs-track-artist">${_souvEscape(t.artist || '')}</div>
+            </div>
+            ${feu > 0 ? `<div class="souvenirs-track-stats">🔥 ${feu}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+      tempsEl.style.display = '';
+    }
+  }
+
+  // ─── LES PLUS BELLES PHOTOS ─────────────────────────────
+  const photosEl = document.getElementById('souvenirs-photos');
+  const photosGrid = document.getElementById('souvenirs-photos-grid');
+  if (photosEl && photosGrid) {
+    const usable = photos.filter(p => p && p.url).slice(0, 6);
+    photosGrid.innerHTML = usable.map(p => `
+      <div class="souvenirs-photo-item">
+        <img src="${_souvEscape(p.url)}" alt="" loading="lazy">
+        ${p.guestName ? `<div class="souvenirs-photo-caption">${_souvEscape(p.guestName)}</div>` : ''}
+      </div>
+    `).join('');
+    // Section toujours affichée (permet upload même si 0 photo — mais grid vide OK)
+    photosEl.style.display = '';
+  }
+
+  // ─── LES MESSAGES ───────────────────────────────────────
+  const msgEl = document.getElementById('souvenirs-messages');
+  const msgList = document.getElementById('souvenirs-messages-list');
+  if (msgEl && msgList) {
+    // Prend les 4 derniers messages (ordre chronologique, plus récents en haut)
+    const recent = [...messages]
+      .filter(m => m && (m.message || m.text))
+      .slice(-6)
+      .reverse()
+      .slice(0, 4);
+    msgList.innerHTML = recent.map(m => `
+      <div class="souvenirs-message-item">
+        <div class="souvenirs-message-author">${_souvEscape(m.guestName || 'Guest')}</div>
+        <div class="souvenirs-message-text">${_souvEscape(m.message || m.text || '')}</div>
+      </div>
+    `).join('');
+    // Section toujours affichée (permet posting même si 0 message)
+    msgEl.style.display = '';
+  }
+
+  // ─── TON EMPREINTE (conditionnel) ───────────────────────
+  const empEl = document.getElementById('souvenirs-empreinte');
+  const empStats = document.getElementById('souvenirs-empreinte-stats');
+  const empImpact = document.getElementById('souvenirs-empreinte-impact');
+  if (empEl && empStats && empImpact) {
+    const mySuggested = suggestions.filter(s =>
+      (s.guestId && String(s.guestId) === String(myId)) ||
+      (s.suggestedBy && String(s.suggestedBy) === String(myId))
+    );
+    const myPlayed = trackHistory.filter(t =>
+      (t.requestedBy?.guestId && String(t.requestedBy.guestId) === String(myId)) ||
+      (t.suggestedByName && state.guestName && t.suggestedByName === state.guestName)
+    );
+    const myReactionsReceived = myPlayed.reduce((sum, t) =>
+      sum + (t.feuVotes || t.fireCount || 0) + (t.likeVotes || t.likeCount || 0), 0);
+    const myBiggestImpact = myPlayed
+      .map(t => ({ ...t, _s: (t.feuVotes || t.fireCount || 0) * 3 + (t.likeVotes || t.likeCount || 0) }))
+      .sort((a, b) => b._s - a._s)[0];
+
+    const hasAnySignificant = mySuggested.length > 0 || myPlayed.length > 0 || myReactionsReceived > 0;
+
+    if (!hasAnySignificant) {
+      empEl.style.display = 'none';
+    } else {
+      const stats = [];
+      if (mySuggested.length > 0) {
+        stats.push(`<div class="souvenirs-empreinte-stat"><div class="souvenirs-empreinte-num">${mySuggested.length}</div><div class="souvenirs-empreinte-label">Proposés</div></div>`);
+      }
+      if (myPlayed.length > 0) {
+        stats.push(`<div class="souvenirs-empreinte-stat"><div class="souvenirs-empreinte-num">${myPlayed.length}</div><div class="souvenirs-empreinte-label">Joués</div></div>`);
+      }
+      if (myReactionsReceived > 0) {
+        stats.push(`<div class="souvenirs-empreinte-stat"><div class="souvenirs-empreinte-num">${myReactionsReceived}</div><div class="souvenirs-empreinte-label">Réactions</div></div>`);
+      }
+      empStats.innerHTML = stats.join('');
+
+      if (myBiggestImpact && myBiggestImpact._s > 0) {
+        const impactFeu = myBiggestImpact.feuVotes || myBiggestImpact.fireCount || 0;
+        empImpact.innerHTML = `
+          <div class="souvenirs-empreinte-impact">
+            <div class="souvenirs-empreinte-impact-icon">🔥</div>
+            <div style="flex:1;min-width:0;">
+              <div class="souvenirs-empreinte-impact-label">Ton plus gros impact</div>
+              <div class="souvenirs-empreinte-impact-title">${_souvEscape(myBiggestImpact.title || '')}</div>
+              <div class="souvenirs-empreinte-impact-stat">${_souvEscape(myBiggestImpact.artist || '')} · ${impactFeu} LE FEU</div>
+            </div>
+          </div>
+        `;
+      } else {
+        empImpact.innerHTML = '';
+      }
+      empEl.style.display = '';
+    }
+  }
+
+  // ─── LES GENS ───────────────────────────────────────────
+  const gensEl = document.getElementById('souvenirs-gens');
+  const gensRow = document.getElementById('souvenirs-gens-avatars');
+  const gensCount = document.getElementById('souvenirs-gens-count');
+  if (gensEl && gensRow) {
+    const guestsOnly = participants.filter(p => !p.isHost);
+    if (guestsOnly.length === 0) {
+      gensEl.style.display = 'none';
+    } else {
+      const displayed = guestsOnly.slice(0, 6);
+      const rest = guestsOnly.length - displayed.length;
+      const avatars = displayed.map(p => {
+        const emoji = p.emoji || '👤';
+        const photo = p.photo || p.avatar;
+        return `<div class="souvenirs-gens-avatar" title="${_souvEscape(p.name || '')}">${photo ? `<img src="${_souvEscape(photo)}" alt="">` : emoji}</div>`;
+      }).join('');
+      const more = rest > 0 ? `<div class="souvenirs-gens-more">+${rest}</div>` : '';
+      gensRow.innerHTML = avatars + more;
+      if (gensCount) gensCount.textContent = `${guestsOnly.length} personne${guestsOnly.length > 1 ? 's' : ''}`;
+      gensEl.style.display = '';
+    }
+  }
+}
+
+// ★ Partage soirée — utilise Web Share API si disponible, sinon copie lien
+window.shareSouvenirs = function() {
+  const state = window.state || {};
+  const code = state.partyCode || '';
+  const hostName = state.hostProfile?.name || 'la soirée';
+  const url = `${window.location.origin}/?code=${code}`;
+  const text = `Souviens-toi de ${hostName} 🎵 sur AhOuai`;
+  if (navigator.share) {
+    navigator.share({ title: 'AhOuai — Souvenirs', text, url }).catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      const status = document.getElementById('message-status');
+      if (status) {
+        status.textContent = 'Lien copié !';
+        setTimeout(() => { if (status) status.textContent = ''; }, 2500);
+      }
+    });
+  }
+};
+
+// ★ Re-render SOUVENIRS quand une nouvelle donnée arrive (party:state, track, photo, message)
+// Uniquement si le tab est visible (perf)
+window.rerenderSouvenirsIfVisible = function() {
+  const tab = document.getElementById('tab-memories');
+  if (tab && tab.classList.contains('active') && typeof renderSouvenirs === 'function') {
+    try { renderSouvenirs(); } catch (e) { console.warn('[souvenirs] rerender failed:', e); }
+  }
+};
