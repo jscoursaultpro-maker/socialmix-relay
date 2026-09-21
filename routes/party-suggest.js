@@ -89,6 +89,14 @@ router.post('/:code/suggest/:suggestionId/boost', async (req, res) => {
   try {
     const { code, suggestionId } = req.params;
     const userId = req.user._id.toString();
+    // TASK13-DEBUG
+    const _debugSugg = (await Party.findOne({ code, endedAt: null }))?.suggestions?.find(s => s.id === suggestionId);
+    console.log('[TASK13-DEBUG BOOST-SERVER]', {
+      reqUserId: userId,
+      reqUserEmail: req.user?.email,
+      suggestionId,
+      currentBoostedBy: _debugSugg?.boostedBy || []
+    });
 
     const party = await Party.findOne({ code, endedAt: null });
     if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });

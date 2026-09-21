@@ -3359,6 +3359,14 @@ function renderGuestSuggestions() {
   const myId = state.userId || state.guestId || state.socketId || '';
   const myName = state.guestName || '';
   console.log('[renderGuestSuggestions] total:', allSuggs.length, '| myId:', myId, '| myName:', myName);
+  // TASK13-DEBUG
+  console.log('[TASK13-DEBUG RENDER]', {
+    myId,
+    stateUserId: state.userId,
+    stateGuestId: state.guestId,
+    boostedSuggestions: (allSuggs || []).filter(s => s.boostedBy?.length > 0)
+      .map(s => ({ title: s.title, boostedBy: s.boostedBy }))
+  });
   allSuggs.forEach((s,i) => console.log(`  [${i}] id:${s.id} guestId:${s.guestId} guestName:${s.guestName} status:${s.status}`));
 
   // ── Section A : MES suggestions ─────────────────────────────────────
@@ -3522,6 +3530,13 @@ async function boostSuggestion(suggId, title) {
     console.warn('[Boost] suggId manquant pour', title, '— fallback titre côté serveur');
   }
   console.log('[BOOST] click', { suggId, guestId, guestName, title });
+  // TASK13-DEBUG
+  console.log('[TASK13-DEBUG BOOST-SEND]', {
+    clientGuestId: state.guestId,
+    clientUserId: state.userId,
+    clientSessionToken: state.sessionToken?.substring(0,12) + '...',
+    suggId
+  });
 
   // ★ Fix Z6: instant optimistic turquoise feedback (before network round-trip)
   const btn = document.getElementById(`boost-btn-${suggId}`);
