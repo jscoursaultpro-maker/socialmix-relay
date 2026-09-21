@@ -403,6 +403,9 @@ app.set('io', io);
 // ─── Multi-Party State ──────────────────────────────────────────────
 const parties = new Map();           // code → PartyState
 const partyCleanupTimers = new Map(); // code → setTimeout ID
+
+// ★ Task #7: Share parties Map with Express routes (for RAM sync from REST handlers)
+app.set('parties', parties);
 // ★ Fix E1 (audit 31/08): zombie party detection — 5min timer after host disconnect
 const hostDisconnectTimers = new Map(); // code → setTimeout ID
 

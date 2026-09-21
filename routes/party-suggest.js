@@ -57,6 +57,19 @@ router.post('/:code/suggest', async (req, res) => {
     await party.save();
     console.log('[suggest] party saved OK');
 
+    // ★ Task #7: sync RAM parties Map after Mongo save
+    const parties = req.app.get('parties');
+    const ramParty = parties?.get(code.toUpperCase());
+    if (ramParty) {
+      if (!ramParty.suggestions) ramParty.suggestions = [];
+      // Avoid duplicates: only push if not already present
+      if (!ramParty.suggestions.find(s => s.id === suggestion.id)) {
+        ramParty.suggestions.push({ ...suggestion });
+        ramParty.isDirty = true;
+        console.log('[suggest] ✅ RAM synced: pushed suggestion to ramParty');
+      }
+    }
+
     const io = req.app.get('io');
     console.log('[suggest] io retrieved:', !!io);
     if (io) {
@@ -106,6 +119,21 @@ router.post('/:code/suggest/:suggestionId/boost', async (req, res) => {
     suggestion.boostCount = (suggestion.boostCount || 0) + 1;
     party.markModified('suggestions');
     await party.save();
+
+    // ★ Task #7: sync RAM parties Map after Mongo boost save
+    const parties = req.app.get('parties');
+    const ramParty = parties?.get(code.toUpperCase());
+    if (ramParty) {
+      const ramSugg = (ramParty.suggestions || []).find(s => s.id === suggestionId);
+      if (ramSugg) {
+        ramSugg.boostedBy = [...suggestion.boostedBy];
+        ramSugg.boostCount = suggestion.boostCount;
+        ramParty.isDirty = true;
+        console.log(`[boost] ✅ RAM synced: boostedBy=${ramSugg.boostedBy.length}, count=${ramSugg.boostCount}`);
+      } else {
+        console.warn(`[boost] ⚠️ suggestion ${suggestionId} not found in RAM — will sync on next party:state`);
+      }
+    }
 
     // Socket emit to host + guests
     const io = req.app.get('io');
