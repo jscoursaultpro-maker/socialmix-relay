@@ -5168,6 +5168,25 @@ html, body {
   background: linear-gradient(105deg, rgba(0, 207, 217, .24), rgba(239, 44, 173, .44));
   box-shadow: 0 0 23px rgba(239, 44, 173, .2), inset 0 0 17px rgba(255,255,255,.08);
 }
+#tab-memories .story-diapo-btn.is-awaiting-content {
+  border-color: rgba(88, 225, 239, .58);
+  background: linear-gradient(105deg, rgba(0, 207, 217, .16), rgba(115, 59, 209, .25));
+  box-shadow: inset 0 0 17px rgba(255,255,255,.05);
+}
+.story-empty-state {
+  padding: 13px 12px;
+  border: 1px dashed rgba(100, 199, 244, .28);
+  border-radius: 12px;
+  color: rgba(203, 222, 255, .6);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+  text-align: center;
+  background: rgba(3, 14, 37, .42);
+}
+.story-empty-state--photos { grid-column: 1 / -1; }
+#tab-memories .story-empty-moment { min-height: 142px; }
+#tab-memories .story-empty-moment .souvenirs-moment-info { max-width: 260px; }
 #tab-memories #souvenirs-empreinte,
 #tab-memories #souvenirs-gens,
 #tab-memories #souvenirs-actions { display: none !important; }

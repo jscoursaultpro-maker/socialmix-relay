@@ -5996,8 +5996,10 @@ const DIAPO_CTA_MESSAGES = [
  * Merges photos + messages. Enforces author diversity (max 1 consecutive same guest).
  */
 function getAllSlidesSorted() {
-  const photos = (state.allPhotos || []).map(p => ({ ...p, type: 'photo' }));
-  const msgs = (state.liveMessages || []).map(m => ({ ...m, type: 'message' }));
+  const photoSource = state.allPhotos?.length ? state.allPhotos : (state.photos || []);
+  const messageSource = state.liveMessages?.length ? state.liveMessages : (state.messages || []);
+  const photos = photoSource.map(p => ({ ...(typeof p === 'string' ? { url: p } : p), type: 'photo' }));
+  const msgs = messageSource.map(m => ({ ...m, type: 'message' }));
   const all = [...photos, ...msgs].sort((a, b) => {
     if (!a.sentAt && !b.sentAt) return 0;
     if (!a.sentAt) return 1;
@@ -6026,7 +6028,7 @@ function handleDiapoBtnClick() {
   if (count === 0) {
     // Toast
     const toast = document.createElement('div');
-    toast.textContent = '📸 Prends la première photo pour lancer le diaporama !';
+    toast.textContent = '📸 Ajoute une photo ou un mot pour lancer le diaporama !';
     toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:white;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:10000;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);pointer-events:none;';
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
@@ -7276,18 +7278,30 @@ function renderSouvenirs() {
   }
 
   // ─── SCORING ────────────────────────────────────────────
-  const scored = trackHistory.map(t => ({ ...t, _score: _souvScoreTrack(t) }))
-    .filter(t => t._score > 0)
+  const rankedHistory = trackHistory.map(t => ({ ...t, _score: _souvScoreTrack(t) }))
     .sort((a, b) => b._score - a._score);
+  // Une soirée calme doit tout de même raconter quelque chose : si aucun vote
+  // n'existe encore, on conserve les titres joués dans leur ordre récent.
+  const scored = rankedHistory.some(t => t._score > 0)
+    ? rankedHistory.filter(t => t._score > 0)
+    : rankedHistory;
 
   // ─── LE MOMENT ──────────────────────────────────────────
   const momentEl = document.getElementById('souvenirs-moment');
   const momentContent = document.getElementById('souvenirs-moment-content');
   if (momentEl && momentContent) {
-    if (scored.length === 0) {
-      momentEl.style.display = 'none';
+    const top = scored[0] || state.currentTrack || state.nowPlaying;
+    if (!top) {
+      momentContent.innerHTML = `
+        <div class="souvenirs-moment-card story-empty-moment">
+          <div class="souvenirs-moment-info">
+            <div class="souvenirs-moment-time">LA SOIRÉE COMMENCE ICI</div>
+            <div class="souvenirs-moment-title">Le meilleur reste à vivre.</div>
+            <div class="souvenirs-moment-artist">Les photos, les mots et les titres marquants apparaîtront ici.</div>
+          </div>
+        </div>`;
+      momentEl.style.display = '';
     } else {
-      const top = scored[0];
       const artUrl = top.albumArtworkURL || top.artworkURL || '';
       const feu = top.feuVotes || top.fireCount || 0;
       const like = top.likeVotes || top.likeCount || 0;
@@ -7322,7 +7336,8 @@ function renderSouvenirs() {
   if (tempsEl && tempsList) {
     const rest = scored.slice(1, 6); // top 2 à 6 (5 items)
     if (rest.length === 0) {
-      tempsEl.style.display = 'none';
+      tempsList.innerHTML = '<div class="story-empty-state">Les titres joués pendant la soirée apparaîtront ici.</div>';
+      tempsEl.style.display = '';
     } else {
       tempsList.innerHTML = rest.map(t => {
         const artUrl = t.albumArtworkURL || t.artworkURL || '';
@@ -7357,7 +7372,7 @@ function renderSouvenirs() {
         <img src="${_souvEscape(p.url || p.dataUrl)}" alt="" loading="lazy">
         ${p.guestName ? `<div class="souvenirs-photo-caption">${_souvEscape(p.guestName)}</div>` : ''}
       </div>
-    `).join('');
+    `).join('') || '<div class="story-empty-state story-empty-state--photos">La première photo de la soirée apparaîtra ici.</div>';
     // Section toujours affichée (permet upload même si 0 photo — mais grid vide OK)
     photosEl.style.display = '';
   }
@@ -7377,7 +7392,7 @@ function renderSouvenirs() {
         <div class="souvenirs-message-author">${_souvEscape(m.guestName || 'Guest')}</div>
         <div class="souvenirs-message-text">${_souvEscape(m.message || m.text || '')}</div>
       </div>
-    `).join('');
+    `).join('') || '<div class="story-empty-state">Les mots partagés dans AGIR apparaîtront ici.</div>';
     // Section toujours affichée (permet posting même si 0 message)
     msgEl.style.display = '';
   }
@@ -7530,7 +7545,10 @@ function renderSouvenirs() {
   }
 
   const diapoBtn = document.getElementById('btn-launch-diapo-memories');
-  if (diapoBtn) diapoBtn.style.display = photos.length > 0 ? '' : 'none';
+  if (diapoBtn) {
+    diapoBtn.style.display = '';
+    diapoBtn.classList.toggle('is-awaiting-content', getAllSlidesSorted().length === 0);
+  }
 }
 
 // ★ Partage soirée — utilise Web Share API si disponible, sinon copie lien
