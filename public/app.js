@@ -6813,11 +6813,12 @@ function renderAgirBoostList() {
   console.log('[boost list]', { myId, myName, total: all.length,
     sample: all.slice(0, 3).map(s => ({ t: s.title, gid: s.guestId, gn: s.guestName, st: s.status })) });
 
-  // Suggestions actives des autres (pas moi) — strict !== sans coercion String()/|| ''
+  // Suggestions actives des autres (pas moi) — filtre uniquement par guestId (identifiant unique)
+  // guestName retiré du filtre : c'est un display name non-unique (2 "Sam" = faux positif)
+  // Sécurité : le serveur a anti-auto-boost Guard 2 (L2692) + anti-double Guard 3 (L2712)
   const others = all.filter(s =>
     ['pending', 'queued', 'next'].includes(s.status) &&
-    s.guestId !== myId &&
-    s.guestName !== myName
+    s.guestId !== myId
   ).sort((a, b) => (b.boostCount || 0) - (a.boostCount || 0) || new Date(a.sentAt) - new Date(b.sentAt));
 
   if (others.length === 0) {
