@@ -3607,7 +3607,9 @@ async function boostSuggestion(suggId, title) {
       return;
     }
 
-    const res = await fetch(`${window.RELAY_URL || ''}/api/party/${code}/suggest/${suggId || ''}/boost`, {
+    // ★ Fix double-slash : si pas de suggId, envoyer placeholder — serveur matchera par titre
+    const suggIdPath = (suggId && suggId !== 'undefined') ? suggId : 'no-id';
+    const res = await fetch(`${window.RELAY_URL || ''}/api/party/${code}/suggest/${suggIdPath}/boost`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',

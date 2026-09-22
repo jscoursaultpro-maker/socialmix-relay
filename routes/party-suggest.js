@@ -106,7 +106,18 @@ router.post('/:code/suggest/:suggestionId/boost', async (req, res) => {
     const party = await Party.findOne({ code, endedAt: null });
     if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
 
-    const suggestion = (party.suggestions || []).find(s => s.id === suggestionId);
+    let suggestion = (party.suggestions || []).find(s => s.id === suggestionId);
+    // ★ Fallback titre : suggestion venue du RAM (socket) pas encore en Mongo
+    if (!suggestion) {
+      const titleFallback = (req.body || {}).suggestionTitle;
+      if (titleFallback) {
+        suggestion = (party.suggestions || []).find(s =>
+          (s.title || '').toLowerCase().trim() === String(titleFallback).toLowerCase().trim() &&
+          ['pending', 'queued', 'next'].includes(s.status)
+        );
+        if (suggestion) console.log(`[boost] fallback title match for '${titleFallback}' → ${suggestion.id}`);
+      }
+    }
     if (!suggestion) return res.status(404).json({ error: 'SUGGESTION_NOT_FOUND' });
 
     // Anti-double
