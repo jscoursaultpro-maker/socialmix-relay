@@ -6582,16 +6582,48 @@ function showAllTabs() {
 }
 
 function openV2SuggestionSearch() {
+  const agir = document.getElementById('tab-agir');
   const section = document.querySelector('#agir-live-content .soiree-suggest-section');
   const search = document.getElementById('suggest-search-container');
   const cta = document.getElementById('main-cta-suggest');
   const input = document.getElementById('suggest-input');
   if (!section || !search) return;
 
+  agir?.classList.add('is-v2-suggest-mode');
   section.classList.add('is-v2-search-open');
   search.style.display = 'block';
   if (cta) cta.style.display = 'none';
   requestAnimationFrame(() => input?.focus());
+}
+
+function openV2ShareActions() {
+  const panel = document.getElementById('agir-share-actions');
+  if (!panel) return;
+  panel.hidden = !panel.hidden;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function pasteV2SuggestionLink() {
+  const input = document.getElementById('suggest-input');
+  if (!input) return;
+  input.focus();
+  try {
+    const pasted = await navigator.clipboard.readText();
+    if (!pasted) return;
+    input.value = pasted;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  } catch (_) {
+    // iOS may deny programmatic clipboard reads. The focused field still
+    // exposes the native Paste action without interrupting the guest flow.
+    input.select();
+  }
+}
+
+function openV2Trends() {
+  const trends = document.querySelector('#agir-live-content .soiree-trends-accordion');
+  if (!trends) return;
+  trends.open = true;
+  trends.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Move existing DOM nodes rather than duplicating them: all listeners, IDs and

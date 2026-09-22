@@ -503,12 +503,19 @@
             <button type="button" class="v2-action-card v2-action-boost" onclick="document.getElementById('ca-monte')?.scrollIntoView({behavior:'smooth', block:'start'})">
               <span aria-hidden="true">🔥</span><strong>Booster</strong><small>Soutenir un titre</small>
             </button>
-            <button type="button" class="v2-action-card v2-action-photo" onclick="document.getElementById('camera-photo-input')?.click()">
-              <span aria-hidden="true">◉</span><strong>Photo</strong><small>Partager un moment</small>
+            <button type="button" class="v2-action-card v2-action-share" onclick="openV2ShareActions()">
+              <span aria-hidden="true">◉</span><strong>Partager</strong><small>Photo ou mot</small>
             </button>
-            <button type="button" class="v2-action-card v2-action-message" onclick="showTab('story'); requestAnimationFrame(() => document.getElementById('guest-message-input')?.focus())">
-              <span aria-hidden="true">•••</span><strong>Mot</strong><small>Laisser un message</small>
+            <button type="button" class="v2-action-card v2-action-trends" onclick="openV2Trends()">
+              <span aria-hidden="true">▥</span><strong>Tendance</strong><small>Donner le ton</small>
             </button>
+          </div>
+          <div id="agir-share-actions" class="v2-share-actions" hidden>
+            <p>Partager maintenant</p>
+            <div>
+              <button type="button" onclick="document.getElementById('camera-photo-input')?.click()">📷 Prendre une photo</button>
+              <button type="button" onclick="showTab('story'); requestAnimationFrame(() => document.getElementById('guest-message-input')?.focus())">💬 Écrire un mot</button>
+            </div>
           </div>
           <div id="agir-live-content"></div>
         </section>
@@ -641,6 +648,10 @@
                        class="soiree-suggest-field" autocomplete="off">
                 <button id="suggest-search-btn" class="soiree-search-btn"
                         onclick="searchDeezerSuggestions()" style="display:none;">🔍</button>
+              </div>
+              <div class="v2-suggest-actions">
+                <button type="button" onclick="loadTrendingSuggestions()">♫ Explorer</button>
+                <button type="button" onclick="pasteV2SuggestionLink()">↗ Coller un lien</button>
               </div>
               <div id="suggest-source-badge" class="soiree-source-badge" style="display:none;"></div>
               <div id="suggest-results" class="soiree-suggest-results"></div>
