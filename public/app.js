@@ -6804,11 +6804,12 @@ function renderAgirBoostList() {
     }
   }
 
-  const state = window.state || {};
-  // ★ Task #13 fix — align with renderGuestSuggestions L3397 (proven pattern)
-  const myId = state.userId || state.guestId || state.socketId || '';
-  const myName = state.guestName || '';
-  const all = state.suggestions || [];
+  // ★ Fix : le global `state` est déclaré avec let, pas exposé sur window.
+  // Utiliser typeof pour éviter ReferenceError si undeclared, sinon fallback window.state.
+  const _s = (typeof state !== 'undefined' && state) || window.state || {};
+  const myId = _s.userId || _s.guestId || _s.socketId || '';
+  const myName = _s.guestName || '';
+  const all = _s.suggestions || [];
 
   // ★ Debug: diagnose empty boost list (SCFWQ4 scenario)
   console.log('[boost list]', { myId, myName, total: all.length,
