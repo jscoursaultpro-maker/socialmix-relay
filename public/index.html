@@ -497,16 +497,16 @@
             </div>
           </div>
           <div class="v2-action-grid" aria-label="Actions de la soirée">
-            <button type="button" class="v2-action-card v2-action-suggest" onclick="openV2SuggestionSearch()">
+            <button type="button" class="v2-action-card v2-action-suggest" data-v2-action="suggest" onclick="openV2SuggestionSearch()">
               <span aria-hidden="true">♫</span><strong>ON MET<br>QUOI ?</strong><small>Proposer un titre</small>
             </button>
-            <button type="button" class="v2-action-card v2-action-boost" onclick="document.getElementById('ca-monte')?.scrollIntoView({behavior:'smooth', block:'start'})">
+            <button type="button" class="v2-action-card v2-action-boost" data-v2-action="boost" onclick="openV2Boosts()">
               <span aria-hidden="true">🔥</span><strong>Booster</strong><small>Soutenir un titre</small>
             </button>
-            <button type="button" class="v2-action-card v2-action-share" onclick="openV2ShareActions()">
+            <button type="button" class="v2-action-card v2-action-share" data-v2-action="share" onclick="openV2ShareActions()">
               <span aria-hidden="true">◉</span><strong>Partager</strong><small>Photo ou mot</small>
             </button>
-            <button type="button" class="v2-action-card v2-action-trends" onclick="openV2Trends()">
+            <button type="button" class="v2-action-card v2-action-trends" data-v2-action="trends" onclick="openV2Trends()">
               <span aria-hidden="true">▥</span><strong>Tendance</strong><small>Donner le ton</small>
             </button>
           </div>

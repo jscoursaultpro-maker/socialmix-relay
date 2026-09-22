@@ -1698,6 +1698,9 @@ function enterCockpit() {
   
   // ★ Bottom nav setup
   setupBottomNav();
+  // A refresh always returns to the live moment, and the active tab must
+  // communicate that state before any socket update arrives.
+  showTab('on-air');
   
   // Hub buttons (top + bottom)
   if ($('hub-card-btn')) $('hub-card-btn').addEventListener('click', () => showScreen('hub'));
@@ -2741,7 +2744,9 @@ function setupGenreTrends() {
     const isExpired  = state.selectedGenre === genre && myVoteExpired;
     btn.className = 'genre-btn' + (isSelected ? ' selected' : '') + (isExpired ? ' expired' : '');
     if (isExpired) btn.style.cssText = 'opacity:0.5;border-color:rgba(255,152,0,0.4);';
+    const genreIcons = { 'Chill': '☾', 'Pop': '✦', 'Rock': '⚡', 'Rap': '◼', 'Latin': '◒', 'Old school': '◈', 'Urban Groove': '◉', 'Dance': '◌', 'Électro': '⌁' };
     btn.innerHTML = `
+      <div class="genre-icon" aria-hidden="true">${genreIcons[genre] || '♪'}</div>
       <div class="genre-name">${genre}${isExpired ? ' ⏰' : ''}</div>
       <div class="genre-count">${state.genreVotes[genre] || 0} votes</div>
     `;
@@ -6566,6 +6571,10 @@ function showTab(tabName) {
   // V2: keep bottom-nav button in sync with displayed content
   updateActiveNavBtn(normalizedName);
 
+  // AGIR is an entry screen. Returning through the bottom navigation must
+  // restore its four clear choices rather than strand a guest in a sub-flow.
+  if (normalizedName === 'agir') resetV2AgirMode();
+
   // Scroll to top within cockpit
   cockpit.scrollTop = 0;
   window.scrollTo({ top: 0, behavior: 'instant' });
@@ -6582,25 +6591,52 @@ function showAllTabs() {
 }
 
 function openV2SuggestionSearch() {
-  const agir = document.getElementById('tab-agir');
   const section = document.querySelector('#agir-live-content .soiree-suggest-section');
   const search = document.getElementById('suggest-search-container');
   const cta = document.getElementById('main-cta-suggest');
   const input = document.getElementById('suggest-input');
   if (!section || !search) return;
 
-  agir?.classList.add('is-v2-suggest-mode');
+  setV2AgirMode('suggest');
   section.classList.add('is-v2-search-open');
   search.style.display = 'block';
   if (cta) cta.style.display = 'none';
   requestAnimationFrame(() => input?.focus());
 }
 
+function setV2AgirMode(mode) {
+  const agir = document.getElementById('tab-agir');
+  if (!agir) return;
+  agir.classList.add('is-v2-focus-mode');
+  agir.dataset.agirMode = mode;
+  agir.querySelectorAll('[data-v2-action]').forEach(button => {
+    button.classList.toggle('is-v2-active', button.dataset.v2Action === mode);
+  });
+}
+
+function resetV2AgirMode() {
+  const agir = document.getElementById('tab-agir');
+  if (!agir) return;
+  agir.classList.remove('is-v2-focus-mode', 'is-v2-suggest-mode');
+  delete agir.dataset.agirMode;
+  agir.querySelectorAll('[data-v2-action]').forEach(button => button.classList.remove('is-v2-active'));
+  const share = document.getElementById('agir-share-actions');
+  if (share) share.hidden = true;
+}
+
+function openV2Boosts() {
+  setV2AgirMode('boost');
+  const content = document.getElementById('ca-monte');
+  if (typeof renderCaMonte === 'function') renderCaMonte();
+  requestAnimationFrame(() => content?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+
 function openV2ShareActions() {
   const panel = document.getElementById('agir-share-actions');
   if (!panel) return;
-  panel.hidden = !panel.hidden;
-  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  setV2AgirMode('share');
+  panel.hidden = false;
+  requestAnimationFrame(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
 async function pasteV2SuggestionLink() {
@@ -6622,8 +6658,10 @@ async function pasteV2SuggestionLink() {
 function openV2Trends() {
   const trends = document.querySelector('#agir-live-content .soiree-trends-accordion');
   if (!trends) return;
+  setV2AgirMode('trends');
   trends.open = true;
-  trends.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (typeof setupGenreTrends === 'function') setupGenreTrends();
+  requestAnimationFrame(() => trends.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
 // Move existing DOM nodes rather than duplicating them: all listeners, IDs and
