@@ -3895,6 +3895,23 @@ html, body {
   gap: 8px;
   margin-bottom: 14px;
 }
+#tab-agir:not(.is-v2-focus-mode) .v2-action-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(148px, 1fr));
+  min-height: min(54svh, 510px);
+  gap: 12px;
+  margin: 8px 0 0;
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-card {
+  min-height: 0;
+  padding: 19px 17px;
+  border-radius: 20px;
+  justify-content: flex-end;
+  box-shadow: inset 0 1px rgba(255,255,255,.055), 0 14px 25px rgba(0,0,0,.14);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-card > span { font-size: 39px; }
+#tab-agir:not(.is-v2-focus-mode) .v2-action-card strong { font-size: 16px; line-height: 1.07; }
+#tab-agir:not(.is-v2-focus-mode) .v2-action-card small { font-size: 11px; }
 .v2-action-card {
   position: relative;
   min-height: 112px;
