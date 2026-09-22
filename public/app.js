@@ -6753,6 +6753,10 @@ function setV2AgirMode(mode) {
   if (!agir) return;
   agir.classList.add('is-v2-focus-mode');
   agir.dataset.agirMode = mode;
+  // A focused action owns the screen. Never leave the Partager panel visible
+  // while the guest has moved to Recherche, Booster or Tendance.
+  const share = document.getElementById('agir-share-actions');
+  if (share && mode !== 'share') share.hidden = true;
   agir.querySelectorAll('[data-v2-action]').forEach(button => {
     button.classList.toggle('is-v2-active', button.dataset.v2Action === mode);
   });
