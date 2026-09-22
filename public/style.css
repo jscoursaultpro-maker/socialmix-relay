@@ -5130,3 +5130,19 @@ html, body {
 #tab-memories #souvenirs-empreinte,
 #tab-memories #souvenirs-gens,
 #tab-memories #souvenirs-actions { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Brand kit AhOuai (Daphné) — 22/09/26
+   Le logo est désormais une image; on masque les anciens titres texte
+   quand l'image est présente, et on cadre l'image dans les landings.
+   ═══════════════════════════════════════════════════════════════════ */
+.landing-logo-img,
+.c5-logo-img {
+  display: block;
+  width: min(280px, 68vw);
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 6px;
+  filter: drop-shadow(0 6px 24px rgba(233, 30, 148, 0.35));
+}
+.c5-logo-img { width: min(220px, 60vw); margin-bottom: 4px; }
