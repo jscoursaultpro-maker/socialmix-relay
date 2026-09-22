@@ -6290,6 +6290,7 @@ function loadMyData() {
     if (!response?.ok || !response.fireVotes?.length) return;
     myTopsData = response.fireVotes.filter(t => !isPlayedInCurrentParty(t.title));
     renderMyTops();
+    if (v2SuggestionSource === 'bangers') renderV2Bangers();
   });
 
   // 2. Suggestions (MES SUGGESTIONS PRÉFÉRÉES)
@@ -6301,6 +6302,7 @@ function loadMyData() {
     if (!response?.ok || !response.suggestions?.length) return;
     mySugsData = response.suggestions.filter(s => !isPlayedInCurrentParty(s.title)).slice(0, MY_SUGS_MAX);
     renderMySugs();
+    if (v2SuggestionSource === 'bangers') renderV2Bangers();
   });
 }
 
@@ -6437,6 +6439,7 @@ function resuggestFromHistory(deezerID, title, artist, coverURL) {
       resuggestedTrackIds.add(trackKey);
       renderMyTops();
       renderMySugs();
+      if (v2SuggestionSource === 'bangers') renderV2Bangers();
     }
     else if (ack.error === 'already_played') showToast('🔁 ' + (ack.reason || 'Déjà jouée ce soir'), 4000);
     else if (ack.error === 'already_suggested') showToast('🎵 ' + (ack.reason || 'Déjà proposée'), 4000);
@@ -6601,7 +6604,131 @@ function openV2SuggestionSearch() {
   section.classList.add('is-v2-search-open');
   search.style.display = 'block';
   if (cta) cta.style.display = 'none';
+  resetV2SuggestionSource();
   requestAnimationFrame(() => input?.focus());
+}
+
+// The search panel stays a single surface. Explorer and Mes Bangers only
+// change the source rendered below the same search controls.
+let v2SuggestionSource = 'explore';
+let v2ExplorerSelected = false;
+
+function setV2SuggestionToggle(label) {
+  const button = document.getElementById('v2-suggest-source-toggle');
+  if (button) button.innerHTML = label;
+}
+
+function resetV2SuggestionSource() {
+  v2SuggestionSource = 'explore';
+  v2ExplorerSelected = false;
+  setV2SuggestionToggle('♫ Explorer');
+  const library = document.getElementById('v2-bangers-library');
+  const results = document.getElementById('suggest-results');
+  if (library) library.hidden = true;
+  if (results) results.style.display = '';
+}
+
+function showV2Explorer() {
+  v2SuggestionSource = 'explore';
+  v2ExplorerSelected = true;
+  setV2SuggestionToggle('🔥 Mes Bangers');
+  const library = document.getElementById('v2-bangers-library');
+  const results = document.getElementById('suggest-results');
+  if (library) library.hidden = true;
+  if (results) results.style.display = '';
+  loadTrendingSuggestions();
+}
+
+function toggleV2SuggestionSource() {
+  if (!v2ExplorerSelected || v2SuggestionSource === 'bangers') {
+    showV2Explorer();
+    return;
+  }
+  showV2Bangers();
+}
+
+function showV2Bangers() {
+  v2SuggestionSource = 'bangers';
+  setV2SuggestionToggle('♫ Explorer');
+  const results = document.getElementById('suggest-results');
+  const hint = document.getElementById('suggest-hint');
+  if (results) results.style.display = 'none';
+  if (hint) hint.style.display = 'none';
+  renderV2Bangers();
+}
+
+function v2BangerTracks() {
+  const seen = new Set();
+  return [...myTopsData, ...mySugsData].filter(track => {
+    const key = `${track.deezerID || track.id || ''}:${(track.title || '').trim().toLowerCase()}`;
+    if (!track.title || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function v2Number(track, keys) {
+  for (const key of keys) {
+    const value = Number(track?.[key]);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return 0;
+}
+
+function renderV2Bangers() {
+  const library = document.getElementById('v2-bangers-library');
+  if (!library) return;
+  library.hidden = false;
+  const tracks = v2BangerTracks();
+
+  if (!tracks.length) {
+    library.innerHTML = `
+      <div class="v2-bangers-empty">
+        <strong>🔥 PAS ENCORE DE BANGERS</strong>
+        <p>Assure-toi d’être bien connecté,<br>puis vote ou suggère des titres<br>pour créer tes Bangers à la prochaine soirée&nbsp;!</p>
+        <p class="v2-bangers-empty-note">En attendant, si tu es en manque d’idées, explore<br>ou colle un lien issu de Deezer, Spotify ou Apple Music.</p>
+      </div>`;
+    return;
+  }
+
+  const mine = myTopsData.reduce((total, track) => total + v2Number(track, ['myFireCount', 'myFires', 'voteCount']), 0);
+  const others = tracks.reduce((total, track) => {
+    const explicit = v2Number(track, ['otherFireCount', 'othersFireCount', 'othersFires']);
+    const totalFires = v2Number(track, ['totalFireCount', 'fireCount', 'fireVotes']);
+    const mineForTrack = v2Number(track, ['myFireCount', 'myFires', 'voteCount']);
+    return total + (explicit || Math.max(0, totalFires - mineForTrack));
+  }, 0);
+
+  library.innerHTML = `
+    <div class="v2-bangers-summary">
+      <span>🔥 ${mine} Me</span><i></i><span>🔥 ${others} Others</span>
+    </div>
+    <div class="v2-bangers-list">
+      ${tracks.slice(0, 12).map(track => {
+        const id = track.deezerID || track.id || 0;
+        const payload = encodeURIComponent(JSON.stringify({
+          id, title: track.title, artist: track.artist || track.artistName || '', cover: track.coverURL || track.cover || ''
+        }));
+        const alreadySent = resuggestedTrackIds.has(`${id}:${(track.title || '').toLowerCase()}`);
+        const fireCount = v2Number(track, ['myFireCount', 'myFires', 'voteCount']);
+        return `
+          <article class="v2-banger-item${alreadySent ? ' is-sent' : ''}">
+            ${track.coverURL || track.cover ? `<img src="${escHtml(track.coverURL || track.cover)}" alt="" onerror="this.style.display='none'">` : '<span class="v2-banger-cover">♫</span>'}
+            <div class="v2-banger-copy"><strong>${escHtml(track.title)}</strong><span>${escHtml(track.artist || track.artistName || '')}</span></div>
+            ${fireCount ? `<em>🔥 ${fireCount}</em>` : ''}
+            <button type="button" ${alreadySent ? 'disabled' : ''} onclick="resuggestV2Banger('${payload}')">${alreadySent ? '✓ ENVOYÉ' : '📤 PROPOSER'}</button>
+          </article>`;
+      }).join('')}
+    </div>`;
+}
+
+function resuggestV2Banger(encoded) {
+  try {
+    const track = JSON.parse(decodeURIComponent(encoded));
+    resuggestFromHistory(track.id, track.title, track.artist, track.cover);
+  } catch (_) {
+    showToast('⚠️ Titre indisponible', 2000);
+  }
 }
 
 function setV2AgirMode(mode) {

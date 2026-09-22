@@ -640,7 +640,7 @@
                 <div class="soiree-section-title">
                   <span>✨</span> RECHERCHE
                 </div>
-                <button id="suggest-explore-btn" class="soiree-explore-btn" onclick="loadTrendingSuggestions()">
+                <button id="suggest-explore-btn" class="soiree-explore-btn" onclick="showV2Explorer()">
                   🎵 EXPLORER
                 </button>
               </div>
@@ -651,11 +651,12 @@
                         onclick="searchDeezerSuggestions()" style="display:none;">🔍</button>
               </div>
               <div class="v2-suggest-actions">
-                <button type="button" onclick="loadTrendingSuggestions()">♫ Explorer</button>
+                <button type="button" id="v2-suggest-source-toggle" onclick="toggleV2SuggestionSource()">♫ Explorer</button>
                 <button type="button" onclick="pasteV2SuggestionLink()">↗ Coller un lien</button>
               </div>
               <div id="suggest-source-badge" class="soiree-source-badge" style="display:none;"></div>
               <div id="suggest-results" class="soiree-suggest-results"></div>
+              <div id="v2-bangers-library" class="v2-bangers-library" hidden></div>
               <div id="suggest-hint" class="soiree-suggest-hint">
                 💡 Tape un titre, colle un lien Deezer/Spotify/Apple Music, ou explore les tendances
               </div>
