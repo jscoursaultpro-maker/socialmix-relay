@@ -1949,6 +1949,19 @@ function connectToRelay() {
       }));
       updateDiapoButton();
     }
+    // STORY est aussi l'archive live : conserver les listes même quand elles
+    // sont vides, afin qu'une reconnexion ou une suppression soit fidèle.
+    if (Array.isArray(ps.photos)) {
+      state.allPhotos = ps.photos
+        .map(p => ({ url: p?.url || p?.dataURL || '', guestName: p?.guestName || '', sentAt: p?.sentAt || '' }))
+        .filter(p => p.url);
+    }
+    if (Array.isArray(ps.messages)) {
+      state.liveMessages = ps.messages
+        .map(m => ({ message: m?.message || m?.text || '', guestName: m?.guestName || 'Guest', sentAt: m?.sentAt || '' }))
+        .filter(m => m.message);
+    }
+    if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
     // Costume contest entries: sync from server on join
     if (ps.costumeEntries && ps.costumeEntries.length) {
       state.costumeEntries = ps.costumeEntries;
@@ -2341,6 +2354,7 @@ function connectToRelay() {
   // Participants list updated (for trombinoscope)
   socket.on('participants:update', (participants) => {
     updateTrombinoscope(participants);
+    if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
   });
 
   // Photo shared by another guest (for diapo)
@@ -2354,15 +2368,35 @@ function connectToRelay() {
       updateDiapoButton();
       // If diaporama is open, update counter realtime
       updateDiapoCounter();
+      if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
     }
   });
 
   socket.on('photos:update', (photos) => {
+    state.allPhotos = (photos || []).map(photo => ({
+      url: photo?.url || photo?.dataURL || '',
+      guestName: photo?.guestName || '',
+      sentAt: photo?.sentAt || ''
+    })).filter(photo => photo.url);
+    updateDiapoButton();
+    updateDiapoCounter();
+    if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
     if ($('end-screen') && !$('end-screen').classList.contains('hidden')) {
       refreshAllPhotos();
     } else if ($('socialhub-screen') && !$('socialhub-screen').classList.contains('hidden')) {
       refreshAllPhotos();
     }
+  });
+
+  socket.on('messages:update', (messages) => {
+    state.liveMessages = (messages || []).map(message => ({
+      message: message?.message || message?.text || '',
+      guestName: message?.guestName || 'Guest',
+      sentAt: message?.sentAt || ''
+    })).filter(message => message.message);
+    updateDiapoButton();
+    updateDiapoCounter();
+    if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
   });
 
   // ★ Task #104: receive messages from other guests for diaporama
@@ -2371,6 +2405,7 @@ function connectToRelay() {
     state.liveMessages.push({ message: msg.message, guestName: msg.guestName || 'Guest', sentAt: msg.sentAt || new Date().toISOString() });
     updateDiapoButton();
     updateDiapoCounter();
+    if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
   });
 
   socket.on('photo:error', (data) => {
