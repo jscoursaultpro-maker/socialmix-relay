@@ -6890,8 +6890,115 @@ function openV2ShareActions() {
   if (!panel) return;
   setV2AgirMode('share');
   panel.hidden = false;
+  if (typeof renderAgirSharePanel === 'function') renderAgirSharePanel();
   requestAnimationFrame(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
+
+// ★ AGIR Partager : composer message inline (ne switch pas vers STORY)
+window.toggleAgirMessageInput = function() {
+  const composer = document.getElementById('agir-message-composer');
+  const input = document.getElementById('agir-message-input');
+  if (!composer || !input) return;
+  const wasHidden = composer.hidden;
+  composer.hidden = !wasHidden;
+  if (wasHidden) {
+    requestAnimationFrame(() => input.focus());
+  }
+};
+
+// ★ AGIR Partager : wrapper autour de sendGuestMessage() pour bind sur le composer AGIR
+window.sendAgirMessage = function() {
+  const input = document.getElementById('agir-message-input');
+  const legacy = document.getElementById('guest-message-input');
+  const status = document.getElementById('agir-message-status');
+  if (!input || !input.value.trim()) return;
+  const text = input.value.trim();
+  // Bridge : injecter la valeur dans l'input legacy que sendGuestMessage attend
+  if (legacy) {
+    legacy.value = text;
+    if (typeof sendGuestMessage === 'function') sendGuestMessage();
+  }
+  input.value = '';
+  if (status) {
+    status.textContent = '✓ Envoyé';
+    setTimeout(() => { if (status) status.textContent = ''; }, 1800);
+  }
+  // Rerender pour voir le message ajouté (petit délai pour laisser le socket faire son round-trip)
+  setTimeout(() => { if (typeof renderAgirSharePanel === 'function') renderAgirSharePanel(); }, 400);
+};
+
+// ★ AGIR Partager : rendu "Mes photos" + "Mes mots" + empty state
+function renderAgirSharePanel() {
+  const state = window.state || {};
+  const myId = state.userId || state.guestId || '';
+  const myName = state.guestName || '';
+
+  const myPhotos = (state.photos || []).filter(p => p && p.url && (
+    String(p.guestId || '') === String(myId) ||
+    (p.guestName || '') === myName
+  )).slice().reverse();
+
+  const myMessages = (state.messages || []).filter(m => m && (m.message || m.text) && (
+    String(m.guestId || '') === String(myId) ||
+    (m.guestName || '') === myName
+  )).slice().reverse();
+
+  const photosSection = document.getElementById('agir-my-photos');
+  const photosGrid = document.getElementById('agir-photos-grid');
+  const messagesSection = document.getElementById('agir-my-messages');
+  const messagesList = document.getElementById('agir-messages-list');
+  const empty = document.getElementById('agir-share-empty');
+
+  const escape = (s) => (typeof escapeHtml === 'function')
+    ? escapeHtml(s)
+    : String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const escapeAttr = (s) => String(s || '').replace(/"/g, '&quot;');
+
+  // Mes photos
+  if (photosSection && photosGrid) {
+    if (myPhotos.length === 0) {
+      photosSection.hidden = true;
+    } else {
+      photosSection.hidden = false;
+      photosGrid.innerHTML = myPhotos.slice(0, 12).map(p => `
+        <div class="agir-photo-item">
+          <img src="${escapeAttr(p.url)}" alt="" loading="lazy">
+        </div>
+      `).join('');
+    }
+  }
+
+  // Mes mots
+  if (messagesSection && messagesList) {
+    if (myMessages.length === 0) {
+      messagesSection.hidden = true;
+    } else {
+      messagesSection.hidden = false;
+      messagesList.innerHTML = myMessages.slice(0, 20).map(m => {
+        const time = m.sentAt ? new Date(m.sentAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+        return `
+          <div class="agir-message-item">
+            <div class="agir-message-text">${escape(m.message || m.text || '')}</div>
+            ${time ? `<div class="agir-message-time">${time}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // Empty state global (si 0 photo ET 0 message)
+  if (empty) {
+    empty.hidden = !(myPhotos.length === 0 && myMessages.length === 0);
+  }
+}
+
+// Auto-rerender si Partager est visible et une nouvelle photo/message arrive
+window.rerenderAgirShareIfVisible = function() {
+  const agir = document.getElementById('tab-agir');
+  if (agir && agir.classList.contains('active') && agir.dataset.agirMode === 'share') {
+    if (typeof renderAgirSharePanel === 'function') renderAgirSharePanel();
+  }
+};
 
 async function pasteV2SuggestionLink() {
   const input = document.getElementById('suggest-input');

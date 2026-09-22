@@ -513,9 +513,25 @@
           </div>
           <div id="agir-share-actions" class="v2-share-actions" hidden>
             <p>Partager maintenant</p>
-            <div>
+            <div class="agir-share-ctas">
               <button type="button" onclick="document.getElementById('camera-photo-input')?.click()">📷 Prendre une photo</button>
-              <button type="button" onclick="showTab('story'); requestAnimationFrame(() => document.getElementById('guest-message-input')?.focus())">💬 Écrire un mot</button>
+              <button type="button" onclick="toggleAgirMessageInput()">💬 Écrire un mot</button>
+            </div>
+            <div class="agir-message-composer" id="agir-message-composer" hidden>
+              <input type="text" id="agir-message-input" placeholder="Écris ta réaction..." maxlength="100" onkeydown="if(event.key==='Enter') sendAgirMessage()">
+              <button type="button" class="agir-message-send" onclick="sendAgirMessage()">📤</button>
+            </div>
+            <div class="agir-message-status" id="agir-message-status"></div>
+            <section class="agir-my-photos" id="agir-my-photos" hidden>
+              <h3 class="agir-share-section-title">📸 MES PHOTOS</h3>
+              <div class="agir-photos-grid" id="agir-photos-grid"></div>
+            </section>
+            <section class="agir-my-messages" id="agir-my-messages" hidden>
+              <h3 class="agir-share-section-title">💬 MES MOTS</h3>
+              <div class="agir-messages-list" id="agir-messages-list"></div>
+            </section>
+            <div class="agir-share-empty" id="agir-share-empty" hidden>
+              Tu n'as encore rien partagé — commence par une photo ou un mot 💫
             </div>
           </div>
           <div id="agir-live-content"></div>

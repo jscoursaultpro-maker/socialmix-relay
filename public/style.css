@@ -4772,3 +4772,127 @@ html, body {
   font-weight: 500;
   line-height: 1.4;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   AGIR — Panneau Partager (composer + mes photos + mes mots)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.agir-share-ctas { display: flex; gap: 8px; margin-top: 8px; }
+.agir-share-ctas button {
+  flex: 1;
+  padding: 12px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.agir-share-ctas button:active { transform: scale(0.97); }
+
+.agir-message-composer {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+  width: 100%;
+}
+.agir-message-composer input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(20,184,166,0.28);
+  border-radius: 12px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  -webkit-appearance: none;
+}
+.agir-message-send {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  min-height: 44px;
+  background: linear-gradient(135deg, #00c853, #00bfa5);
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0a0e1a;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+.agir-message-status {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #14B8A6;
+  font-weight: 700;
+  min-height: 14px;
+  text-align: center;
+}
+
+.agir-share-section-title {
+  font-size: 10px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 20px 0 10px;
+  padding: 0 2px;
+}
+
+/* Mes photos */
+.agir-my-photos { display: block; }
+.agir-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.agir-photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.04);
+}
+.agir-photo-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Mes mots */
+.agir-my-messages { display: block; }
+.agir-messages-list { display: flex; flex-direction: column; gap: 6px; }
+.agir-message-item {
+  padding: 10px 12px;
+  background: rgba(20,184,166,0.06);
+  border-left: 2px solid rgba(20,184,166,0.5);
+  border-radius: 4px 12px 12px 4px;
+  position: relative;
+}
+.agir-message-text {
+  font-size: 13px;
+  color: rgba(255,255,255,0.92);
+  line-height: 1.35;
+  font-weight: 500;
+}
+.agir-message-time {
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Empty state global */
+.agir-share-empty {
+  margin-top: 24px;
+  padding: 22px 16px;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.02);
+  border: 1px dashed rgba(255,255,255,0.08);
+  border-radius: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
