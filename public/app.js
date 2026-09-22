@@ -6581,21 +6581,41 @@ function showAllTabs() {
   showTab('on-air');
 }
 
+function openV2SuggestionSearch() {
+  const section = document.querySelector('#agir-live-content .soiree-suggest-section');
+  const search = document.getElementById('suggest-search-container');
+  const cta = document.getElementById('main-cta-suggest');
+  const input = document.getElementById('suggest-input');
+  if (!section || !search) return;
+
+  section.classList.add('is-v2-search-open');
+  search.style.display = 'block';
+  if (cta) cta.style.display = 'none';
+  requestAnimationFrame(() => input?.focus());
+}
+
 // Move existing DOM nodes rather than duplicating them: all listeners, IDs and
 // dynamic renderers stay exactly the same while the visual information
 // architecture changes from SOIRÉE to AGIR / ON AIR.
 function initializeV2Spaces() {
   const agirContent = document.getElementById('agir-live-content');
-  if (!agirContent || agirContent.dataset.ready === 'true') return;
+  const moiLibrary = document.getElementById('moi-personal-library');
+  if (!agirContent || !moiLibrary || agirContent.dataset.ready === 'true') return;
 
   [
-    'ca-monte',
+    'ca-monte'
+  ].forEach(id => {
+    const node = document.getElementById(id);
+    if (node) agirContent.appendChild(node);
+  });
+
+  [
     'suggestions-list',
     'mySugsAll',
     'mySugsPreview'
   ].forEach(id => {
     const node = document.getElementById(id);
-    if (node) agirContent.appendChild(node);
+    if (node) moiLibrary.appendChild(node);
   });
 
   const suggestSection = document.querySelector('.soiree-suggest-section');

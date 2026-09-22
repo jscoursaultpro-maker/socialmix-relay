@@ -497,7 +497,7 @@
             </div>
           </div>
           <div class="v2-action-grid" aria-label="Actions de la soirée">
-            <button type="button" class="v2-action-card v2-action-suggest" onclick="document.getElementById('main-cta-suggest')?.click()">
+            <button type="button" class="v2-action-card v2-action-suggest" onclick="openV2SuggestionSearch()">
               <span aria-hidden="true">♫</span><strong>ON MET<br>QUOI ?</strong><small>Proposer un titre</small>
             </button>
             <button type="button" class="v2-action-card v2-action-boost" onclick="document.getElementById('ca-monte')?.scrollIntoView({behavior:'smooth', block:'start'})">
@@ -820,6 +820,13 @@
                 </div>
             </div>
             <div id="moi-overview" class="moi-overview" aria-live="polite"></div>
+            <section class="moi-library" aria-labelledby="moi-library-title">
+                <div class="moi-library-heading">
+                    <h2 id="moi-library-title">Mes titres</h2>
+                    <span>Proposés · en attente · préférés</span>
+                </div>
+                <div id="moi-personal-library"></div>
+            </section>
 
             <!-- Leaderboard (moved from Home) -->
             <div class="card" id="leaderboard-section" style="padding:12px 14px;">

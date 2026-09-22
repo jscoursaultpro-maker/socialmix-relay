@@ -3849,6 +3849,8 @@ html, body {
 .v2-action-card:active { transform: scale(0.97); }
 #agir-live-content > * { margin-top: 12px; }
 #agir-live-content .soiree-suggest-section { margin-top: 0; }
+#agir-live-content .soiree-suggest-section:not(.is-v2-search-open) { display: none; }
+#agir-live-content .soiree-suggest-section.is-v2-search-open { display: block; }
 
 .v2-space-heading--moi .v2-space-icon {
   background: linear-gradient(135deg, #ff48cd, #7c4dff);
@@ -3900,6 +3902,38 @@ html, body {
 .moi-social-row strong { color: rgba(220, 228, 250, 0.68); font-size: 10px; white-space: nowrap; }
 .moi-social-row { text-align: left; cursor: pointer; }
 .moi-social-row > span:last-child { flex: none; color: var(--v2-cyan); font-size: 19px; line-height: 1; }
+.moi-library {
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid rgba(151, 117, 255, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(20, 18, 49, 0.78), rgba(8, 14, 28, 0.9));
+}
+.moi-library-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.moi-library-heading h2 {
+  margin: 0;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: -0.2px;
+}
+.moi-library-heading span {
+  color: rgba(215, 221, 242, 0.5);
+  font-size: 9px;
+  font-weight: 600;
+  text-align: right;
+}
+#moi-personal-library .soiree-suggestions-list,
+#moi-personal-library .soiree-card-secondary {
+  margin: 0 0 10px;
+}
+#moi-personal-library .soiree-card-secondary:last-child { margin-bottom: 0; }
 
 .bottom-nav {
   display: grid;
