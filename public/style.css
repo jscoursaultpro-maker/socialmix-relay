@@ -4274,6 +4274,44 @@ html, body {
 #tab-agir[data-agir-mode="trends"] .genre-icon { color: #e35dff; font-size: 18px; line-height: 1; margin-bottom: 5px; }
 #tab-agir[data-agir-mode="trends"] .genre-name { color: #eef2ff; font: 800 10px var(--font-display); letter-spacing: 0; }
 #tab-agir[data-agir-mode="trends"] .genre-count { font-size: 8px; color: rgba(224, 235, 255, .54); }
+#tab-agir[data-agir-mode="trends"] .genre-btn.selected {
+  position: relative;
+  overflow: hidden;
+  transform: translateY(-1px);
+  border-color: #f057e7;
+  background: linear-gradient(145deg, rgba(205, 49, 190, .32), rgba(72, 30, 112, .84));
+  box-shadow: 0 0 0 1px rgba(255, 129, 239, .2), 0 0 22px rgba(232, 64, 211, .36), inset 0 0 18px rgba(255, 157, 240, .1);
+}
+#tab-agir[data-agir-mode="trends"] .genre-btn.selected::before {
+  content: 'TON VOTE';
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  padding: 2px 4px;
+  border-radius: 5px;
+  color: #fff4fe;
+  background: rgba(255, 102, 229, .28);
+  font: 900 6px var(--font-display);
+  letter-spacing: .06em;
+}
+#tab-agir[data-agir-mode="trends"] .genre-btn.selected .genre-icon {
+  color: #fff0fd;
+  text-shadow: 0 0 13px rgba(255, 104, 229, .9);
+}
+#tab-agir[data-agir-mode="trends"] .genre-btn.selected .genre-name { color: #fff; }
+#tab-agir[data-agir-mode="trends"] .genre-btn.selected .genre-count { color: rgba(255, 239, 253, .8); opacity: 1; }
+.genre-vote-check {
+  display: inline-grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  margin-right: 3px;
+  border-radius: 50%;
+  color: #6d174f;
+  background: #ffd4f7;
+  font: 900 8px var(--font-display);
+  vertical-align: 1px;
+}
 
 .v2-space-heading--moi .v2-space-icon {
   background: linear-gradient(135deg, #ff48cd, #7c4dff);

@@ -2747,7 +2747,7 @@ function setupGenreTrends() {
     const genreIcons = { 'Chill': '☾', 'Pop': '✦', 'Rock': '⚡', 'Rap': '◼', 'Latin': '◒', 'Old school': '◈', 'Urban Groove': '◉', 'Dance': '◌', 'Électro': '⌁' };
     btn.innerHTML = `
       <div class="genre-icon" aria-hidden="true">${genreIcons[genre] || '♪'}</div>
-      <div class="genre-name">${genre}${isExpired ? ' ⏰' : ''}</div>
+      <div class="genre-name">${isSelected ? '<span class="genre-vote-check">✓</span>' : ''}${genre}${isExpired ? ' ⏰' : ''}</div>
       <div class="genre-count">${state.genreVotes[genre] || 0} votes</div>
     `;
     btn.addEventListener('click', () => {
