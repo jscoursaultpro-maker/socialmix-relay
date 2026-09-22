@@ -6773,12 +6773,12 @@ function resetV2AgirMode() {
 }
 
 function openV2Boosts() {
-  // The boostable queue belongs to the live music flow, directly after
-  // the current and next tracks.
-  showTab('on-air');
-  const content = document.getElementById('ca-monte');
-  if (typeof renderCaMonte === 'function') renderCaMonte();
-  requestAnimationFrame(() => content?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  // Rester sur AGIR — Booster affiche la file complète des suggestions
+  // que le guest peut soutenir. ÇA MONTE (résumé) reste sur ON AIR.
+  setV2AgirMode('boost');
+  if (typeof renderAgirBoostList === 'function') renderAgirBoostList();
+  const target = document.getElementById('agir-boost-list');
+  requestAnimationFrame(() => target?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
 // ★ CP3.V2 — Panneau Booster : liste des suggestions des autres guests
@@ -6814,20 +6814,18 @@ function renderAgirBoostList() {
   console.log('[boost list]', { myId, myName, total: all.length,
     sample: all.slice(0, 3).map(s => ({ t: s.title, gid: s.guestId, gn: s.guestName, st: s.status })) });
 
-  // Suggestions actives des autres (pas moi) — filtre uniquement par guestId (identifiant unique)
-  // guestName retiré du filtre : c'est un display name non-unique (2 "Sam" = faux positif)
+  // TOUTES les suggestions actives (mines + autres) — user voit la file complète
+  // Les miennes seront affichées avec badge "Ma sugg" désactivé (pas boostable)
   // Sécurité : le serveur a anti-auto-boost Guard 2 (L2692) + anti-double Guard 3 (L2712)
-  const others = all.filter(s =>
-    ['pending', 'queued', 'next'].includes(s.status) &&
-    s.guestId !== myId
-  ).sort((a, b) => (b.boostCount || 0) - (a.boostCount || 0) || new Date(a.sentAt) - new Date(b.sentAt));
+  const others = all.filter(s => ['pending', 'queued', 'next'].includes(s.status))
+    .sort((a, b) => (b.boostCount || 0) - (a.boostCount || 0) || new Date(a.sentAt) - new Date(b.sentAt));
 
   if (others.length === 0) {
     panel.innerHTML = `
       <div class="agir-boost-empty">
         <div class="agir-boost-empty-icon">💫</div>
-        <div class="agir-boost-empty-title">Aucun titre à booster pour l'instant</div>
-        <div class="agir-boost-empty-sub">Dès qu'un autre invité propose un titre, tu pourras le soutenir ici.</div>
+        <div class="agir-boost-empty-title">Aucun titre en file pour l'instant</div>
+        <div class="agir-boost-empty-sub">Propose un titre dans « ON MET QUOI ? » ou attends qu'un autre invité en propose un.</div>
       </div>`;
     return;
   }
@@ -6852,26 +6850,31 @@ function renderAgirBoostList() {
     </div>`;
 
   const items = others.map(s => {
-    const alreadyBoosted = Array.isArray(s.boostedBy) && s.boostedBy.includes(myId);
+    const isMine = String(s.guestId || '') === String(myId);
+    const alreadyBoosted = !isMine && Array.isArray(s.boostedBy) && s.boostedBy.includes(myId);
     const boostCount = s.boostCount || 0;
     const suggId = s.id || '';
     const artUrl = s.artworkUrl || s.artworkURL || '';
-    const btnLabel = alreadyBoosted
-      ? (boostCount > 1 ? `🔥✓ Boostée · ${boostCount}` : '🔥✓ Boostée')
-      : (boostCount > 0 ? `🔥 Booster · ${boostCount}` : '🔥 Booster');
-    const btnClass = alreadyBoosted ? 'agir-boost-btn is-boosted' : 'agir-boost-btn';
-    const disabled = alreadyBoosted ? 'disabled' : '';
-    const onclick = alreadyBoosted
-      ? ''
-      : `onclick="boostSuggestion('${escapeAttrLocal(suggId)}','${escapeAttrLocal(s.title)}')"`;
+
+    let btnHtml;
+    if (isMine) {
+      btnHtml = `<button type="button" class="agir-boost-btn is-mine" disabled>Ma sugg${boostCount > 0 ? ` · 🔥${boostCount}` : ''}</button>`;
+    } else if (alreadyBoosted) {
+      const label = boostCount > 1 ? `✓ Boostée · ${boostCount}` : '✓ Boostée';
+      btnHtml = `<button type="button" class="agir-boost-btn is-boosted" disabled>${label}</button>`;
+    } else {
+      const label = boostCount > 0 ? `🔥 Booster · ${boostCount}` : '🔥 Booster';
+      btnHtml = `<button type="button" class="agir-boost-btn" onclick="boostSuggestion('${escapeAttrLocal(suggId)}','${escapeAttrLocal(s.title)}')">${label}</button>`;
+    }
+
     return `
-      <div class="agir-boost-item" data-sugg-id="${escapeAttrLocal(suggId)}">
+      <div class="agir-boost-item${isMine ? ' is-mine-item' : ''}" data-sugg-id="${escapeAttrLocal(suggId)}">
         <div class="agir-boost-art">${artUrl ? `<img src="${escapeAttrLocal(artUrl)}" alt="" loading="lazy">` : '🎵'}</div>
         <div class="agir-boost-info">
           <div class="agir-boost-title">${escape(s.title || 'Titre')}</div>
-          <div class="agir-boost-meta">${escape(s.artist || '')} · par ${escape(s.guestName || 'Guest')}</div>
+          <div class="agir-boost-meta">${escape(s.artist || '')}${s.guestName ? ` · par ${escape(s.guestName)}` : ''}</div>
         </div>
-        <button type="button" class="${btnClass}" ${disabled} ${onclick}>${btnLabel}</button>
+        ${btnHtml}
       </div>`;
   }).join('');
 
