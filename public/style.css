@@ -4984,3 +4984,149 @@ html, body {
   cursor: default;
 }
 .agir-boost-item.is-mine-item { opacity: 0.75; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   STORY — une soirée à revivre (patch 0024)
+   ═══════════════════════════════════════════════════════════════════ */
+#tab-memories {
+  padding: 12px 14px 30px;
+  background:
+    radial-gradient(circle at 92% 4%, rgba(202, 60, 255, .16), transparent 30%),
+    radial-gradient(circle at 8% 30%, rgba(0, 220, 255, .10), transparent 32%);
+}
+#tab-memories .souvenirs-hero {
+  min-height: 126px;
+  margin: 0 0 17px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+#tab-memories .souvenirs-hero-bg { display: none; }
+#tab-memories .souvenirs-hero-content {
+  min-height: 0;
+  padding: 5px 4px 0;
+  gap: 5px;
+  justify-content: flex-start;
+}
+#tab-memories .souvenirs-hero-tag,
+#tab-memories .souvenirs-section-title,
+.story-recap-label {
+  color: #35e6ed;
+  font-size: 11px;
+  letter-spacing: .17em;
+  font-weight: 900;
+}
+#tab-memories .souvenirs-hero-title {
+  max-width: 280px;
+  color: #fbf9ff;
+  font-size: clamp(29px, 9.2vw, 38px);
+  line-height: .92;
+  letter-spacing: -.06em;
+  text-shadow: 0 0 24px rgba(255, 48, 181, .23);
+}
+#tab-memories .souvenirs-hero-meta { color: rgba(206, 218, 255, .64); }
+#tab-memories .souvenirs-section {
+  margin: 0 0 17px;
+  padding: 15px;
+  border: 1px solid rgba(80, 122, 255, .26);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(17, 31, 62, .91), rgba(6, 13, 34, .94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035), 0 13px 34px rgba(0, 0, 0, .2);
+}
+#tab-memories .souvenirs-section-header { margin: 0 0 12px; padding: 0; }
+#tab-memories .souvenirs-section-icon { color: #ff61c7; font-size: 17px; }
+#tab-memories #souvenirs-moment {
+  padding: 0;
+  overflow: hidden;
+  border-color: rgba(247, 77, 170, .52);
+  background: linear-gradient(135deg, rgba(73, 22, 84, .88), rgba(7, 25, 55, .94));
+}
+#tab-memories #souvenirs-moment .souvenirs-section-header { padding: 15px 15px 0; }
+#tab-memories .souvenirs-moment-card {
+  position: relative;
+  min-height: 176px;
+  padding: 18px;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  align-items: flex-end;
+  background: linear-gradient(135deg, rgba(6, 12, 31, .28), rgba(6, 12, 31, .95));
+}
+#tab-memories .souvenirs-moment-art {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  opacity: .42;
+  filter: saturate(1.2) contrast(1.08);
+}
+#tab-memories .souvenirs-moment-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(6, 11, 30, .95), rgba(6, 11, 30, .16) 85%), linear-gradient(0deg, rgba(6, 11, 30, .94), transparent 78%);
+}
+#tab-memories .souvenirs-moment-info { position: relative; z-index: 1; }
+#tab-memories .souvenirs-moment-time { color: #55e7f1; }
+#tab-memories .souvenirs-moment-title { font-size: 25px; letter-spacing: -.045em; }
+#tab-memories .souvenirs-moment-artist { font-size: 14px; color: rgba(234, 239, 255, .72); }
+#tab-memories .souvenirs-moment-stats span { color: #ffbc48; }
+#tab-memories .souvenirs-track-item {
+  padding: 9px 8px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .035);
+}
+#tab-memories .souvenirs-track-time { color: #69dff3; }
+#tab-memories .souvenirs-track-art { width: 42px; height: 42px; border-radius: 10px; }
+#tab-memories .souvenirs-track-stats { color: #ffb43c; }
+#tab-memories .souvenirs-photo-actions { margin: 0 0 12px; }
+#tab-memories .souvenirs-camera-btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid rgba(49, 235, 239, .75);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(0, 206, 214, .22), rgba(38, 99, 255, .18));
+  color: #e8ffff;
+  box-shadow: inset 0 0 18px rgba(0, 225, 238, .09), 0 0 14px rgba(0, 225, 238, .08);
+}
+#tab-memories .souvenirs-photos-grid { grid-template-columns: repeat(3, 1fr); gap: 7px; }
+#tab-memories .souvenirs-photo-item { border: 1px solid rgba(49, 235, 239, .4); border-radius: 12px; }
+#tab-memories .souvenirs-message-item {
+  padding: 12px;
+  border: 1px solid rgba(247, 87, 201, .22);
+  border-left: 3px solid #f25ac5;
+  border-radius: 12px;
+  background: rgba(26, 24, 66, .68);
+}
+#tab-memories .souvenirs-message-author { color: #f5a2df; }
+.story-recap {
+  margin: 3px 0 13px;
+  padding: 18px;
+  border: 1px solid rgba(209, 87, 255, .5);
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(72, 21, 99, .82), rgba(13, 29, 70, .9));
+  box-shadow: 0 0 24px rgba(199, 70, 255, .12), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.story-recap-title { margin: 5px 0 15px; color: #fff; font-size: 22px; font-weight: 900; letter-spacing: -.04em; }
+.story-recap-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+.story-recap-stats div { padding: 9px 4px; border-radius: 11px; text-align: center; background: rgba(4, 10, 35, .38); }
+.story-recap-stats strong { display: block; color: #fff; font-size: 18px; line-height: 1.1; }
+.story-recap-stats span { display: block; margin-top: 3px; color: rgba(229, 223, 255, .68); font-size: 9px; font-weight: 800; }
+#tab-memories .story-diapo-btn {
+  position: relative;
+  width: 100%;
+  margin: 0 0 28px;
+  padding: 15px;
+  border-color: rgba(255, 72, 186, .85);
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(105deg, rgba(0, 207, 217, .24), rgba(239, 44, 173, .44));
+  box-shadow: 0 0 23px rgba(239, 44, 173, .2), inset 0 0 17px rgba(255,255,255,.08);
+}
+#tab-memories #souvenirs-empreinte,
+#tab-memories #souvenirs-gens,
+#tab-memories #souvenirs-actions { display: none !important; }

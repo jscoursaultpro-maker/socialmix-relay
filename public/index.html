@@ -746,39 +746,39 @@
         <!-- ═══ TAB 3: SOUVENIRS (CP3 refonte) ═══ -->
         <section id="tab-memories" class="tab-content">
 
-            <!-- HERO -->
+            <!-- STORY — ce qui restera de la soirée -->
             <div class="souvenirs-hero" id="souvenirs-hero">
                 <div class="souvenirs-hero-bg" id="souvenirs-hero-bg"></div>
                 <div class="souvenirs-hero-content">
-                    <div class="souvenirs-hero-tag">SOUVENIRS</div>
-                    <h1 class="souvenirs-hero-title">Quelle soirée !</h1>
+                    <div class="souvenirs-hero-tag">✦ STORY</div>
+                    <h1 class="souvenirs-hero-title">Ce qui restera<br>de la soirée.</h1>
                     <div class="souvenirs-hero-meta" id="souvenirs-hero-meta"></div>
                 </div>
             </div>
 
-            <!-- LE MOMENT DE LA SOIRÉE -->
+            <!-- LE MOMENT -->
             <div class="souvenirs-section" id="souvenirs-moment" style="display:none;">
                 <div class="souvenirs-section-header">
-                    <span class="souvenirs-section-icon">🔥</span>
-                    <span class="souvenirs-section-title">LE MOMENT DE LA SOIRÉE</span>
+                    <span class="souvenirs-section-icon">✦</span>
+                    <span class="souvenirs-section-title">LE MOMENT</span>
                 </div>
                 <div id="souvenirs-moment-content"></div>
             </div>
 
-            <!-- LES TEMPS FORTS -->
+            <!-- LA MUSIQUE -->
             <div class="souvenirs-section" id="souvenirs-tempsforts" style="display:none;">
                 <div class="souvenirs-section-header">
-                    <span class="souvenirs-section-icon">📊</span>
-                    <span class="souvenirs-section-title">LES TEMPS FORTS</span>
+                    <span class="souvenirs-section-icon">♫</span>
+                    <span class="souvenirs-section-title">LA MUSIQUE</span>
                 </div>
                 <div id="souvenirs-tempsforts-list" class="souvenirs-tracks-list"></div>
             </div>
 
-            <!-- LES PLUS BELLES PHOTOS -->
+            <!-- LES PHOTOS -->
             <div class="souvenirs-section" id="souvenirs-photos" style="display:none;">
                 <div class="souvenirs-section-header">
                     <span class="souvenirs-section-icon">📸</span>
-                    <span class="souvenirs-section-title">LES PLUS BELLES PHOTOS</span>
+                    <span class="souvenirs-section-title">LES PHOTOS</span>
                 </div>
                 <div class="souvenirs-photo-actions">
                     <div class="souvenirs-camera-btn">
@@ -791,51 +791,27 @@
                 <!-- Compat legacy IDs (masqués mais nécessaires pour handlers photos existants) -->
                 <div id="my-photos-grid" style="display:none;"></div>
                 <div id="diapo-grid" style="display:none;"></div>
-                <button id="btn-launch-diapo-memories" onclick="handleDiapoBtnClick()" class="souvenirs-diapo-btn" style="display:none;">🎞️ LANCE LE DIAPORAMA</button>
             </div>
 
-            <!-- LES MOTS DE LA SOIRÉE -->
+            <!-- LES MOTS -->
             <div class="souvenirs-section" id="souvenirs-messages" style="display:none;">
                 <div class="souvenirs-section-header">
                     <span class="souvenirs-section-icon">💬</span>
-                    <span class="souvenirs-section-title">LES MOTS DE LA SOIRÉE</span>
+                    <span class="souvenirs-section-title">LES MOTS</span>
                 </div>
                 <div id="souvenirs-messages-list" class="souvenirs-messages-list"></div>
-                <div class="souvenirs-message-input-row">
-                    <input type="text" id="guest-message-input" maxlength="100" placeholder="Écris ta réaction..." class="souvenirs-message-input">
-                    <button type="button" id="send-message-btn" onclick="sendGuestMessage('guest-message-input')" class="souvenirs-send-btn">📤</button>
-                </div>
-                <div id="message-status" class="souvenirs-message-status"></div>
+                <!-- Publication d'un mot : espace AGIR / Partager. -->
+                <input type="text" id="guest-message-input" maxlength="100" class="souvenirs-message-input" style="display:none;">
+                <div id="message-status" class="souvenirs-message-status" style="display:none;"></div>
             </div>
 
-            <!-- TON EMPREINTE (conditionnel) -->
-            <div class="souvenirs-section" id="souvenirs-empreinte" style="display:none;">
-                <div class="souvenirs-section-header">
-                    <span class="souvenirs-section-icon">✨</span>
-                    <span class="souvenirs-section-title">TON EMPREINTE</span>
-                </div>
-                <div id="souvenirs-empreinte-stats" class="souvenirs-empreinte-stats"></div>
-                <div id="souvenirs-empreinte-impact"></div>
-            </div>
+            <section class="story-recap" id="story-recap" aria-label="Récapitulatif de la soirée"></section>
+            <button id="btn-launch-diapo-memories" onclick="handleDiapoBtnClick()" class="souvenirs-diapo-btn story-diapo-btn" style="display:none;">▶ LANCER LE DIAPORAMA</button>
 
-            <!-- LES GENS DE LA SOIRÉE -->
-            <div class="souvenirs-section" id="souvenirs-gens" style="display:none;">
-                <div class="souvenirs-section-header">
-                    <span class="souvenirs-section-icon">👥</span>
-                    <span class="souvenirs-section-title">LES GENS DE LA SOIRÉE</span>
-                    <span class="souvenirs-section-count" id="souvenirs-gens-count"></span>
-                </div>
-                <div id="souvenirs-gens-avatars" class="souvenirs-gens-row"></div>
-            </div>
-
-            <!-- ACTIONS FINALES -->
-            <div class="souvenirs-actions" id="souvenirs-actions">
-                <button class="souvenirs-action-primary" onclick="window.shareSouvenirs && window.shareSouvenirs()">
-                    <span>📤</span>
-                    <span>Partager la soirée</span>
-                </button>
-                <div class="souvenirs-signature">— La musique nous rapproche —</div>
-            </div>
+            <!-- Compatibilité avec les anciens rendus : désormais résumés dans le récap. -->
+            <div id="souvenirs-empreinte" style="display:none;"><div id="souvenirs-empreinte-stats"></div><div id="souvenirs-empreinte-impact"></div></div>
+            <div id="souvenirs-gens" style="display:none;"><span id="souvenirs-gens-count"></span><div id="souvenirs-gens-avatars"></div></div>
+            <div id="souvenirs-actions" style="display:none;"></div>
 
             <!-- Compat legacy IDs (masqués — nécessaires pour handlers historique existants) -->
             <div id="history-list" style="display:none;"></div>

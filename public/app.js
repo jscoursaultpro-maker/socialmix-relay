@@ -7201,8 +7201,10 @@ function renderSouvenirs() {
   const state = window.state || {};
   const myId = state.userId || state.guestId || '';
   const trackHistory = state.trackHistory || [];
-  const photos = state.photos || [];
-  const messages = state.messages || [];
+  // Les flux live utilisent allPhotos/liveMessages, les anciennes soirées
+  // peuvent encore arriver sous photos/messages.
+  const photos = (state.allPhotos?.length ? state.allPhotos : (state.photos || []));
+  const messages = (state.liveMessages?.length ? state.liveMessages : (state.messages || []));
   const participants = state.participants || [];
   const suggestions = state.suggestions || [];
 
@@ -7214,8 +7216,8 @@ function renderSouvenirs() {
     if (state.coverPhoto) {
       bgUrl = state.coverPhoto;
     } else if (photos.length > 0) {
-      const first = photos.find(p => p.url) || photos[0];
-      bgUrl = first?.url || '';
+      const first = photos.find(p => p && (p.url || p.dataUrl)) || photos[0];
+      bgUrl = typeof first === 'string' ? first : (first?.url || first?.dataUrl || '');
     }
     heroBg.style.backgroundImage = bgUrl ? `url("${bgUrl}")` : '';
   }
@@ -7311,10 +7313,11 @@ function renderSouvenirs() {
   const photosEl = document.getElementById('souvenirs-photos');
   const photosGrid = document.getElementById('souvenirs-photos-grid');
   if (photosEl && photosGrid) {
-    const usable = photos.filter(p => p && p.url).slice(0, 6);
+    const usable = photos.map(p => typeof p === 'string' ? { url: p } : p)
+      .filter(p => p && (p.url || p.dataUrl)).slice(0, 6);
     photosGrid.innerHTML = usable.map(p => `
       <div class="souvenirs-photo-item">
-        <img src="${_souvEscape(p.url)}" alt="" loading="lazy">
+        <img src="${_souvEscape(p.url || p.dataUrl)}" alt="" loading="lazy">
         ${p.guestName ? `<div class="souvenirs-photo-caption">${_souvEscape(p.guestName)}</div>` : ''}
       </div>
     `).join('');
@@ -7419,6 +7422,29 @@ function renderSouvenirs() {
       gensEl.style.display = '';
     }
   }
+
+  // ─── RÉCAP STORY ───────────────────────────────────────
+  const recap = document.getElementById('story-recap');
+  if (recap) {
+    const guestCount = participants.filter(p => !p.isHost).length || participants.length;
+    const playedCount = trackHistory.length;
+    const photoCount = photos.length;
+    const wordCount = messages.filter(m => m && (m.message || m.text)).length;
+    const feuCount = trackHistory.reduce((sum, track) => sum + Number(track.feuVotes || track.fireCount || 0), 0);
+    recap.innerHTML = `
+      <div class="story-recap-label">✦ LE RÉCAP</div>
+      <div class="story-recap-title">Une soirée à revivre.</div>
+      <div class="story-recap-stats">
+        <div><strong>${playedCount}</strong><span>titres</span></div>
+        <div><strong>${feuCount}</strong><span>feux</span></div>
+        <div><strong>${photoCount}</strong><span>photos</span></div>
+        <div><strong>${guestCount || wordCount}</strong><span>${guestCount ? 'personnes' : 'mots'}</span></div>
+      </div>
+    `;
+  }
+
+  const diapoBtn = document.getElementById('btn-launch-diapo-memories');
+  if (diapoBtn) diapoBtn.style.display = photos.length > 0 ? '' : 'none';
 }
 
 // ★ Partage soirée — utilise Web Share API si disponible, sinon copie lien
