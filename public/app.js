@@ -2504,6 +2504,7 @@ function connectToRelay() {
     }
     renderCaMonte();
     renderGuestSuggestions();
+    window.rerenderAgirBoostIfVisible?.();
   });
 
   // ★ Bug 5b fix — Hydrate guest's previous votes on reconnect
@@ -3619,6 +3620,22 @@ async function boostSuggestion(suggId, title) {
 
     console.log('[BOOST] response', res.status, json);
     if (!res.ok) {
+      // ★ 409 ALREADY_BOOSTED : le serveur confirme que tu as déjà boosté.
+      // On sync le state local pour passer le bouton en vert au lieu de revert.
+      if (res.status === 409 && (json.error === 'ALREADY_BOOSTED' || json.code === 'ALREADY_BOOSTED')) {
+        const sugg409 = (state.suggestions || []).find(s => s.id === suggId);
+        if (sugg409) {
+          if (!sugg409.boostedBy) sugg409.boostedBy = [];
+          const myBoostId = state.userId || guestId;
+          if (!sugg409.boostedBy.includes(myBoostId)) sugg409.boostedBy.push(myBoostId);
+          if (typeof json.boostCount === 'number') sugg409.boostCount = json.boostCount;
+        }
+        renderGuestSuggestions?.();
+        renderCaMonte?.();
+        window.rerenderAgirBoostIfVisible?.();
+        showSuggestionToast(`✓ Déjà boostée`, 'queued');
+        return;
+      }
       showSuggestionToast(json.error || 'Erreur boost', 'pending');
       // Revert on error
       if (btn) {
@@ -3641,6 +3658,7 @@ async function boostSuggestion(suggId, title) {
     }
     renderGuestSuggestions();
     renderCaMonte();
+    window.rerenderAgirBoostIfVisible?.();
     showSuggestionToast(`🔥 ${escapeHtml(title)} boosté !`, 'queued');
   } catch (e) {
     console.error('[Boost] ❌', e);
