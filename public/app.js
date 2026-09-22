@@ -6804,15 +6804,20 @@ function renderAgirBoostList() {
   }
 
   const state = window.state || {};
-  const myId = state.userId || state.guestId || '';
+  // ★ Task #13 fix — align with renderGuestSuggestions L3397 (proven pattern)
+  const myId = state.userId || state.guestId || state.socketId || '';
   const myName = state.guestName || '';
   const all = state.suggestions || [];
 
-  // Suggestions actives des autres (pas moi)
+  // ★ Debug: diagnose empty boost list (SCFWQ4 scenario)
+  console.log('[boost list]', { myId, myName, total: all.length,
+    sample: all.slice(0, 3).map(s => ({ t: s.title, gid: s.guestId, gn: s.guestName, st: s.status })) });
+
+  // Suggestions actives des autres (pas moi) — strict !== sans coercion String()/|| ''
   const others = all.filter(s =>
     ['pending', 'queued', 'next'].includes(s.status) &&
-    String(s.guestId || '') !== String(myId) &&
-    (s.guestName || '') !== myName
+    s.guestId !== myId &&
+    s.guestName !== myName
   ).sort((a, b) => (b.boostCount || 0) - (a.boostCount || 0) || new Date(a.sentAt) - new Date(b.sentAt));
 
   if (others.length === 0) {
