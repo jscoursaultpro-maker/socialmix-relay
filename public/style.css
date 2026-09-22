@@ -3828,6 +3828,18 @@ html, body {
 #cockpit-screen .brand-zone { min-width: 105px; }
 #cockpit-screen .ambiance-pill,
 #cockpit-screen #header-points-badge { display: none !important; }
+#cockpit-screen .brand-zone {
+  display: flex !important;
+  align-items: center;
+  min-width: 122px;
+}
+#cockpit-screen .brand-logo {
+  display: block;
+  width: 118px;
+  height: auto;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 7px rgba(236, 71, 183, .09));
+}
 #cockpit-screen .header-right { gap: 7px !important; }
 #cockpit-screen #show-qr-btn,
 #cockpit-screen #edit-profile-btn {
@@ -3907,11 +3919,106 @@ html, body {
   padding: 19px 17px;
   border-radius: 20px;
   justify-content: flex-end;
+  isolation: isolate;
   box-shadow: inset 0 1px rgba(255,255,255,.055), 0 14px 25px rgba(0,0,0,.14);
 }
 #tab-agir:not(.is-v2-focus-mode) .v2-action-card > span { font-size: 39px; }
 #tab-agir:not(.is-v2-focus-mode) .v2-action-card strong { font-size: 16px; line-height: 1.07; }
 #tab-agir:not(.is-v2-focus-mode) .v2-action-card small { font-size: 11px; }
+
+/* AGIR landing: each action has an atmospheric texture, felt before it is
+   noticed. These are CSS layers, so no fake media or performance-heavy art is
+   loaded for a guest arriving at the party. */
+#tab-agir:not(.is-v2-focus-mode) .v2-action-card::before,
+#tab-agir:not(.is-v2-focus-mode) .v2-action-card::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-card > span,
+#tab-agir:not(.is-v2-focus-mode) .v2-action-card > strong,
+#tab-agir:not(.is-v2-focus-mode) .v2-action-card > small {
+  position: relative;
+  z-index: 1;
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-card::before { inset: 0; }
+#tab-agir:not(.is-v2-focus-mode) .v2-action-card::after {
+  width: 150px;
+  height: 150px;
+  top: -42px;
+  right: -45px;
+  border-radius: 50%;
+  opacity: .55;
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-suggest {
+  border-color: rgba(96, 116, 255, .88);
+  background:
+    radial-gradient(circle at 84% 16%, rgba(75, 183, 255, .3), transparent 27%),
+    radial-gradient(circle at 14% 100%, rgba(93, 61, 244, .28), transparent 52%),
+    linear-gradient(145deg, #21176e 0%, #101a48 57%, #07132b 100%);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-suggest::before {
+  opacity: .25;
+  background: repeating-radial-gradient(circle at 83% 15%, transparent 0 12px, rgba(153, 190, 255, .46) 13px 14px, transparent 15px 20px);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-suggest::after {
+  border: 1px solid rgba(117, 174, 255, .34);
+  box-shadow: inset 0 0 35px rgba(44, 112, 255, .14), 0 0 26px rgba(69, 114, 255, .2);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-boost {
+  border-color: rgba(255, 105, 54, .66);
+  background:
+    radial-gradient(circle at 78% 22%, rgba(255, 115, 41, .17), transparent 5%),
+    radial-gradient(circle at 88% 38%, rgba(255, 183, 59, .12), transparent 4%),
+    radial-gradient(ellipse at 74% 18%, rgba(183, 37, 29, .38), transparent 45%),
+    linear-gradient(145deg, #4a1b20 0%, #291619 56%, #160e1c 100%);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-boost::before {
+  opacity: .43;
+  background: radial-gradient(ellipse at 65% 16%, rgba(255, 122, 63, .2), transparent 31%), radial-gradient(ellipse at 35% 100%, rgba(107, 28, 32, .42), transparent 53%);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-boost::after {
+  background: radial-gradient(circle at 30% 30%, rgba(255, 196, 84, .82) 0 2px, transparent 3px), radial-gradient(circle at 66% 54%, rgba(255, 107, 53, .65) 0 2px, transparent 3px), radial-gradient(circle at 48% 78%, rgba(255, 170, 54, .52) 0 1px, transparent 2px);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-share {
+  border-color: rgba(19, 202, 244, .68);
+  background:
+    radial-gradient(circle at 79% 19%, rgba(112, 238, 255, .23), transparent 10%),
+    radial-gradient(circle at 54% 32%, rgba(49, 167, 225, .16), transparent 22%),
+    linear-gradient(145deg, #0b4e67 0%, #082d43 56%, #071827 100%);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-share::before {
+  opacity: .72;
+  background: radial-gradient(circle at 22% 28%, rgba(129, 245, 255, .23) 0 8px, transparent 9px), radial-gradient(circle at 69% 48%, rgba(204, 255, 255, .13) 0 13px, transparent 14px), radial-gradient(circle at 86% 18%, rgba(128, 221, 255, .18) 0 5px, transparent 6px);
+  filter: blur(3px);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-share::after {
+  border: 1px solid rgba(100, 237, 255, .16);
+  box-shadow: inset 0 0 32px rgba(0, 219, 255, .1);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-trends {
+  border-color: rgba(222, 82, 255, .7);
+  background:
+    radial-gradient(circle at 81% 18%, rgba(221, 86, 255, .2), transparent 24%),
+    linear-gradient(145deg, #482052 0%, #281633 57%, #130e25 100%);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-trends::before {
+  opacity: .22;
+  background-image: linear-gradient(rgba(218, 125, 255, .4) 1px, transparent 1px), linear-gradient(90deg, rgba(218, 125, 255, .4) 1px, transparent 1px);
+  background-size: 18px 18px;
+  mask-image: radial-gradient(circle at 68% 27%, #000 0 22%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle at 68% 27%, #000 0 22%, transparent 70%);
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-action-trends::after {
+  width: 128px;
+  height: 57px;
+  top: 29px;
+  right: 13px;
+  border-radius: 0;
+  opacity: .44;
+  background: linear-gradient(135deg, transparent 0 10%, rgba(240, 139, 255, .88) 11% 14%, transparent 15% 24%, rgba(240, 139, 255, .7) 25% 29%, transparent 30% 42%, rgba(240, 139, 255, .82) 43% 47%, transparent 48% 59%, rgba(240, 139, 255, .68) 60% 64%, transparent 65%);
+}
 .v2-action-card {
   position: relative;
   min-height: 112px;
