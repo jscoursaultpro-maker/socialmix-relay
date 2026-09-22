@@ -6611,6 +6611,7 @@ function openV2SuggestionSearch() {
 // The search panel stays a single surface. Explorer and Mes Bangers only
 // change the source rendered below the same search controls.
 let v2SuggestionSource = 'explore';
+let v2BangersShown = 6;
 
 function setV2SuggestionToggle(label) {
   const button = document.getElementById('v2-suggest-source-toggle');
@@ -6619,6 +6620,7 @@ function setV2SuggestionToggle(label) {
 
 function resetV2SuggestionSource() {
   v2SuggestionSource = 'explore';
+  v2BangersShown = 6;
   setV2SuggestionToggle('🔥 Mes Bangers');
   const library = document.getElementById('v2-bangers-library');
   const results = document.getElementById('suggest-results');
@@ -6655,12 +6657,27 @@ function showV2Bangers() {
 }
 
 function v2BangerTracks() {
-  const seen = new Set();
-  return [...myTopsData, ...mySugsData].filter(track => {
-    const key = `${track.deezerID || track.id || ''}:${(track.title || '').trim().toLowerCase()}`;
-    if (!track.title || seen.has(key)) return false;
-    seen.add(key);
-    return true;
+  const merged = new Map();
+  const add = (track, source) => {
+    if (!track?.title) return;
+    const key = `${track.deezerID || track.id || ''}:${track.title.trim().toLowerCase()}:${(track.artist || track.artistName || '').trim().toLowerCase()}`;
+    const current = merged.get(key) || { ...track, sources: new Set(), myFires: 0, otherFires: 0 };
+    const mine = v2Number(track, ['myFireCount', 'myFires', 'voteCount']);
+    const explicitOthers = v2Number(track, ['otherFireCount', 'othersFireCount', 'othersFires']);
+    const totalFires = v2Number(track, ['totalFireCount', 'fireCount', 'fireVotes']);
+    current.sources.add(source);
+    current.myFires = Math.max(current.myFires, mine);
+    current.otherFires = Math.max(current.otherFires, explicitOthers || Math.max(0, totalFires - mine));
+    current.coverURL ||= track.coverURL || track.cover || '';
+    current.artist ||= track.artist || track.artistName || '';
+    current.partyDate ||= track.partyDate || track.createdAt || '';
+    merged.set(key, current);
+  };
+  myTopsData.forEach(track => add(track, 'liked'));
+  mySugsData.forEach(track => add(track, 'suggested'));
+  return [...merged.values()].sort((a, b) => {
+    const byFires = (b.myFires + b.otherFires) - (a.myFires + a.otherFires);
+    return byFires || new Date(b.partyDate || 0) - new Date(a.partyDate || 0);
   });
 }
 
@@ -6688,35 +6705,38 @@ function renderV2Bangers() {
     return;
   }
 
-  const mine = myTopsData.reduce((total, track) => total + v2Number(track, ['myFireCount', 'myFires', 'voteCount']), 0);
-  const others = tracks.reduce((total, track) => {
-    const explicit = v2Number(track, ['otherFireCount', 'othersFireCount', 'othersFires']);
-    const totalFires = v2Number(track, ['totalFireCount', 'fireCount', 'fireVotes']);
-    const mineForTrack = v2Number(track, ['myFireCount', 'myFires', 'voteCount']);
-    return total + (explicit || Math.max(0, totalFires - mineForTrack));
-  }, 0);
+  const mine = tracks.reduce((total, track) => total + track.myFires, 0);
+  const others = tracks.reduce((total, track) => total + track.otherFires, 0);
+  const visibleTracks = tracks.slice(0, v2BangersShown);
 
   library.innerHTML = `
     <div class="v2-bangers-summary">
       <span>🔥 ${mine} Me</span><i></i><span>🔥 ${others} Others</span>
     </div>
     <div class="v2-bangers-list">
-      ${tracks.slice(0, 12).map(track => {
+      ${visibleTracks.map(track => {
         const id = track.deezerID || track.id || 0;
         const payload = encodeURIComponent(JSON.stringify({
           id, title: track.title, artist: track.artist || track.artistName || '', cover: track.coverURL || track.cover || ''
         }));
         const alreadySent = resuggestedTrackIds.has(`${id}:${(track.title || '').toLowerCase()}`);
-        const fireCount = v2Number(track, ['myFireCount', 'myFires', 'voteCount']);
+        const fireCount = track.myFires + track.otherFires;
+        const sourceLabel = track.sources.has('liked') && track.sources.has('suggested') ? 'Aimé · suggéré' : track.sources.has('liked') ? 'Aimé' : 'Suggéré';
         return `
           <article class="v2-banger-item${alreadySent ? ' is-sent' : ''}">
             ${track.coverURL || track.cover ? `<img src="${escHtml(track.coverURL || track.cover)}" alt="" onerror="this.style.display='none'">` : '<span class="v2-banger-cover">♫</span>'}
-            <div class="v2-banger-copy"><strong>${escHtml(track.title)}</strong><span>${escHtml(track.artist || track.artistName || '')}</span></div>
+            <div class="v2-banger-copy"><strong>${escHtml(track.title)}</strong><span>${escHtml(track.artist || track.artistName || '')} <b>${sourceLabel}</b></span></div>
             ${fireCount ? `<em>🔥 ${fireCount}</em>` : ''}
             <button type="button" ${alreadySent ? 'disabled' : ''} onclick="resuggestV2Banger('${payload}')">${alreadySent ? '✓ ENVOYÉ' : '📤 PROPOSER'}</button>
           </article>`;
       }).join('')}
-    </div>`;
+    </div>
+    ${tracks.length > v2BangersShown ? `<button type="button" class="v2-bangers-more" onclick="showMoreV2Bangers()">Voir ${Math.min(6, tracks.length - v2BangersShown)} titre${Math.min(6, tracks.length - v2BangersShown) > 1 ? 's' : ''} de plus ↓</button>` : ''}`;
+}
+
+function showMoreV2Bangers() {
+  v2BangersShown += 6;
+  renderV2Bangers();
 }
 
 function resuggestV2Banger(encoded) {
@@ -6803,11 +6823,9 @@ function initializeV2Spaces() {
     if (node) agirContent.appendChild(node);
   });
 
-  [
-    'suggestions-list',
-    'mySugsAll',
-    'mySugsPreview'
-  ].forEach(id => {
+  // Current suggestions still belong to MOI.  The two personal-history
+  // modules (liked tracks + past suggestions) now feed Mes Bangers in AGIR.
+  ['suggestions-list'].forEach(id => {
     const node = document.getElementById(id);
     if (node) moiLibrary.appendChild(node);
   });
