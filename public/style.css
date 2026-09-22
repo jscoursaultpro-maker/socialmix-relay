@@ -4077,6 +4077,7 @@ html, body {
 #tab-agir.is-v2-focus-mode #agir-live-content > * { display: none !important; }
 #tab-agir[data-agir-mode="suggest"] #agir-live-content .soiree-suggest-section,
 #tab-agir[data-agir-mode="boost"] #agir-live-content #ca-monte,
+#tab-agir[data-agir-mode="boost"] #agir-live-content #agir-boost-list,
 #tab-agir[data-agir-mode="trends"] #agir-live-content .soiree-trends-accordion {
   display: block !important;
 }
