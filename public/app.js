@@ -1698,9 +1698,9 @@ function enterCockpit() {
   
   // ★ Bottom nav setup
   setupBottomNav();
-  // A refresh always returns to the live moment, and the active tab must
+  // A refresh always returns to AGIR (hub d'actions), and the active tab must
   // communicate that state before any socket update arrives.
-  showTab('on-air');
+  showTab('agir');
   
   // Hub buttons (top + bottom)
   if ($('hub-card-btn')) $('hub-card-btn').addEventListener('click', () => showScreen('hub'));
