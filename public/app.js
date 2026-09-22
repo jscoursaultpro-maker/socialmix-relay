@@ -6770,10 +6770,111 @@ function resetV2AgirMode() {
 
 function openV2Boosts() {
   setV2AgirMode('boost');
-  const content = document.getElementById('ca-monte');
   if (typeof renderCaMonte === 'function') renderCaMonte();
-  requestAnimationFrame(() => content?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  if (typeof renderAgirBoostList === 'function') renderAgirBoostList();
+  const target = document.getElementById('agir-boost-list') || document.getElementById('ca-monte');
+  requestAnimationFrame(() => target?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
+
+// ★ CP3.V2 — Panneau Booster : liste des suggestions des autres guests
+// Rend TOUTES les suggestions actives (pending/queued/next) proposées par
+// d'autres guests, avec bouton Booster. Ne double pas ÇA MONTE : celui-ci
+// n'affiche que les suggestions déjà boostées. Ici on affiche aussi celles
+// à 0 boost pour donner à l'invité un vrai catalogue à soutenir.
+function renderAgirBoostList() {
+  const container = document.getElementById('agir-live-content');
+  if (!container) return;
+
+  let panel = document.getElementById('agir-boost-list');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'agir-boost-list';
+    panel.className = 'agir-boost-list';
+    // Placer AVANT #ca-monte si présent, sinon en haut du contenu live
+    const caMonte = document.getElementById('ca-monte');
+    if (caMonte && caMonte.parentElement === container) {
+      container.insertBefore(panel, caMonte);
+    } else {
+      container.prepend(panel);
+    }
+  }
+
+  const state = window.state || {};
+  const myId = state.userId || state.guestId || '';
+  const myName = state.guestName || '';
+  const all = state.suggestions || [];
+
+  // Suggestions actives des autres (pas moi)
+  const others = all.filter(s =>
+    ['pending', 'queued', 'next'].includes(s.status) &&
+    String(s.guestId || '') !== String(myId) &&
+    (s.guestName || '') !== myName
+  ).sort((a, b) => (b.boostCount || 0) - (a.boostCount || 0) || new Date(a.sentAt) - new Date(b.sentAt));
+
+  if (others.length === 0) {
+    panel.innerHTML = `
+      <div class="agir-boost-empty">
+        <div class="agir-boost-empty-icon">💫</div>
+        <div class="agir-boost-empty-title">Aucun titre à booster pour l'instant</div>
+        <div class="agir-boost-empty-sub">Dès qu'un autre invité propose un titre, tu pourras le soutenir ici.</div>
+      </div>`;
+    return;
+  }
+
+  const escape = (s) => (typeof escapeHtml === 'function')
+    ? escapeHtml(s)
+    : String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const escapeAttrLocal = (s) => (typeof escapeAttr === 'function')
+    ? escapeAttr(s)
+    : String(s || '').replace(/"/g, '&quot;');
+
+  // Compter mes boosts actifs (pour info seulement, la vraie limite est côté serveur)
+  const myActiveBoosts = all.filter(s =>
+    Array.isArray(s.boostedBy) && s.boostedBy.includes(myId) &&
+    ['pending', 'queued', 'next'].includes(s.status)
+  ).length;
+
+  const header = `
+    <div class="agir-boost-header">
+      <span class="agir-boost-header-title">🔥 Titres à booster</span>
+      <span class="agir-boost-header-count">${others.length}</span>
+    </div>`;
+
+  const items = others.map(s => {
+    const alreadyBoosted = Array.isArray(s.boostedBy) && s.boostedBy.includes(myId);
+    const boostCount = s.boostCount || 0;
+    const suggId = s.id || '';
+    const artUrl = s.artworkUrl || s.artworkURL || '';
+    const btnLabel = alreadyBoosted
+      ? (boostCount > 1 ? `🔥✓ Boostée · ${boostCount}` : '🔥✓ Boostée')
+      : (boostCount > 0 ? `🔥 Booster · ${boostCount}` : '🔥 Booster');
+    const btnClass = alreadyBoosted ? 'agir-boost-btn is-boosted' : 'agir-boost-btn';
+    const disabled = alreadyBoosted ? 'disabled' : '';
+    const onclick = alreadyBoosted
+      ? ''
+      : `onclick="boostSuggestion('${escapeAttrLocal(suggId)}','${escapeAttrLocal(s.title)}')"`;
+    return `
+      <div class="agir-boost-item" data-sugg-id="${escapeAttrLocal(suggId)}">
+        <div class="agir-boost-art">${artUrl ? `<img src="${escapeAttrLocal(artUrl)}" alt="" loading="lazy">` : '🎵'}</div>
+        <div class="agir-boost-info">
+          <div class="agir-boost-title">${escape(s.title || 'Titre')}</div>
+          <div class="agir-boost-meta">${escape(s.artist || '')} · par ${escape(s.guestName || 'Guest')}</div>
+        </div>
+        <button type="button" class="${btnClass}" ${disabled} ${onclick}>${btnLabel}</button>
+      </div>`;
+  }).join('');
+
+  panel.innerHTML = header + items;
+}
+
+// Auto-rerender du panneau Booster quand une nouvelle suggestion arrive
+// ou qu'un boost se propage — uniquement si AGIR est en mode boost visible.
+window.rerenderAgirBoostIfVisible = function() {
+  const agir = document.getElementById('tab-agir');
+  if (agir && agir.classList.contains('active') && agir.dataset.agirMode === 'boost') {
+    renderAgirBoostList();
+  }
+};
 
 function openV2ShareActions() {
   const panel = document.getElementById('agir-share-actions');

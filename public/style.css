@@ -4617,3 +4617,119 @@ html, body {
 #tab-agir:not(.is-v2-focus-mode) .v2-action-card small {
   font-size: clamp(10px, 3.1vw, 13px);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   AGIR — Panneau Booster (liste des suggestions des autres guests)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.agir-boost-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px 20px;
+}
+.agir-boost-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 8px;
+}
+.agir-boost-header-title {
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.agir-boost-header-count {
+  font-size: 11px;
+  font-weight: 900;
+  color: #ff2e88;
+  background: rgba(255, 46, 136, 0.12);
+  border: 1px solid rgba(255, 46, 136, 0.28);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.agir-boost-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+}
+.agir-boost-art {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.agir-boost-art img { width: 100%; height: 100%; object-fit: cover; }
+.agir-boost-info { flex: 1; min-width: 0; }
+.agir-boost-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.agir-boost-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 3px;
+}
+.agir-boost-btn {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border-radius: 22px;
+  font-size: 11px;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(135deg, #ff6b35, #ff2e88);
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease;
+}
+.agir-boost-btn:active { transform: scale(0.95); }
+.agir-boost-btn.is-boosted {
+  background: rgba(20, 184, 166, 0.15);
+  color: #14B8A6;
+  border: 1.5px solid rgba(20, 184, 166, 0.4);
+  cursor: default;
+}
+.agir-boost-empty {
+  padding: 40px 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}
+.agir-boost-empty-icon { font-size: 40px; margin-bottom: 8px; opacity: 0.6; }
+.agir-boost-empty-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 4px;
+}
+.agir-boost-empty-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+  line-height: 1.4;
+}
