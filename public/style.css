@@ -4438,3 +4438,40 @@ html, body {
 #tab-agir:not(.is-v2-focus-mode) .v2-action-trends { border-color: #a740dd; background-color: #0d071c; }
 #tab-agir.is-v2-focus-mode .v2-action-art { color: #d7cdf8; }
 #tab-agir.is-v2-focus-mode .v2-action-card strong { white-space: normal; }
+
+/* Compact AGIR entry: keep the rich four-card landing visible without
+   sacrificing the party controls at the top of a mobile viewport. */
+#cockpit-screen .soiree-top-header {
+  min-height: 51px;
+  padding: 2px 6px 3px !important;
+}
+#cockpit-screen .brand-logo { width: 112px; }
+#cockpit-screen #show-qr-btn,
+#cockpit-screen #edit-profile-btn {
+  width: 30px !important;
+  height: 30px !important;
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-space-heading {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 11px;
+  margin: 1px 2px 12px;
+  padding: 0;
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-space-heading::before { display: none; }
+#tab-agir:not(.is-v2-focus-mode) .v2-space-icon {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 52px;
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-space-heading h1 {
+  font-size: clamp(34px, 10.4vw, 43px);
+  line-height: .93;
+  margin: 0;
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-space-heading p {
+  margin: 4px 0 0;
+  font-size: clamp(14px, 4vw, 17px);
+}
