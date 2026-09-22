@@ -1665,6 +1665,7 @@ function setupCodeScreen() {
 // ═══════════════════════════════════════════
 function enterCockpit() {
   showScreen('cockpit');
+  initializeV2Spaces();
   
   // ★ Reset suggestions from previous party
   // Check if we changed party
@@ -6476,7 +6477,7 @@ function setupBottomNav() {
     btn.addEventListener('click', () => {
       const action = btn.dataset.nav;
 
-      // ★ V2: Ensure we're on cockpit-screen for all 3 spaces
+      // ★ V2: Ensure we're on cockpit-screen for all 4 spaces
       if (currentScreen !== 'cockpit') {
         showScreen('cockpit');
       }
@@ -6484,8 +6485,8 @@ function setupBottomNav() {
       showTab(action);
       // Note: updateActiveNavBtn is called inside showTab() via normalization
 
-      // ★ Souvenirs (ex-Memories) — refresh photos when opened
-      if (action === 'souvenirs') {
+      // ★ Story (ex-Souvenirs) — refresh photos when opened
+      if (action === 'story') {
         if (typeof updateMyPhotosGrid === 'function') updateMyPhotosGrid();
         if (typeof refreshAllPhotos === 'function') refreshAllPhotos();
       }
@@ -6499,26 +6500,28 @@ function setupBottomNav() {
   });
 }
 
-// ★ V2 showTab — toggle .tab-content visibility within cockpit-screen
-// Supports V2 space names (soiree, souvenirs, moi) and normalizes legacy names
+// ★ Guest Web V2 — toggle the four spaces while accepting legacy deep-links.
 function showTab(tabName) {
   const cockpit = document.getElementById('cockpit-screen');
   if (!cockpit) return;
 
-  // V2: normalize legacy tab names to V2 space names
+  // Legacy names remain valid while the Guest Web transitions to V2.
   const LEGACY_MAP = {
-    'jukebox': 'soiree',
-    'on-air':  'soiree',
-    'memories': 'souvenirs',
-    'hub':      'moi'
+    'jukebox': 'on-air',
+    'soiree':  'on-air',
+    'souvenirs': 'story',
+    'memories': 'story',
+    'hub': 'moi'
   };
   const normalizedName = LEGACY_MAP[tabName] || tabName;
 
-  // V2 mapping: space name → tab-content IDs to activate
+  // V2 mapping: space name → tab-content IDs to activate.
+  // Existing IDs are intentionally retained so current renderers keep working.
   const SPACE_TABS = {
-    'soiree':    ['tab-soiree'],
-    'souvenirs': ['tab-memories'],
-    'moi':       ['tab-hub']
+    'agir': ['tab-agir'],
+    'on-air': ['tab-soiree'],
+    'moi': ['tab-hub'],
+    'story': ['tab-memories']
   };
   const targetIds = SPACE_TABS[normalizedName] || ['tab-' + tabName];
 
@@ -6538,15 +6541,51 @@ function showTab(tabName) {
   cockpit.scrollTop = 0;
   window.scrollTo({ top: 0, behavior: 'instant' });
 
-  // ★ CP3 — render SOUVENIRS on tab open
-  if (normalizedName === 'souvenirs' && typeof renderSouvenirs === 'function') {
+  // ★ CP3 — render STORY on tab open
+  if (normalizedName === 'story' && typeof renderSouvenirs === 'function') {
     try { renderSouvenirs(); } catch (e) { console.warn('[souvenirs] render failed:', e); }
   }
 }
 
-// ★ showAllTabs — V2 compat: shows the SOIRÉE space (jukebox + on-air)
+// ★ showAllTabs — legacy compat: opens ON AIR.
 function showAllTabs() {
-  showTab('soiree');
+  showTab('on-air');
+}
+
+// Move existing DOM nodes rather than duplicating them: all listeners, IDs and
+// dynamic renderers stay exactly the same while the visual information
+// architecture changes from SOIRÉE to AGIR / ON AIR.
+function initializeV2Spaces() {
+  const agirContent = document.getElementById('agir-live-content');
+  if (!agirContent || agirContent.dataset.ready === 'true') return;
+
+  [
+    'suggest-search-container',
+    'ca-monte',
+    'suggestions-list',
+    'mySugsAll',
+    'mySugsPreview'
+  ].forEach(id => {
+    const node = document.getElementById(id);
+    if (node) agirContent.appendChild(node);
+  });
+
+  const suggestSection = document.querySelector('.soiree-suggest-section');
+  if (suggestSection) agirContent.prepend(suggestSection);
+
+  const trends = document.querySelector('.soiree-trends-accordion');
+  if (trends) agirContent.appendChild(trends);
+
+  agirContent.dataset.ready = 'true';
+
+  // The renderers historically ran while these nodes lived in SOIRÉE. Repaint
+  // after the move so dynamic content uses its new AGIR container immediately.
+  requestAnimationFrame(() => {
+    if (typeof renderGuestSuggestions === 'function') renderGuestSuggestions();
+    if (typeof renderCaMonte === 'function') renderCaMonte();
+    if (typeof renderMySugs === 'function') renderMySugs();
+    if (typeof renderMyTops === 'function') renderMyTops();
+  });
 }
 
 function updateActiveNavBtn(activeAction) {
