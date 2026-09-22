@@ -3888,20 +3888,20 @@ function updateHistory() {
   const sendBtn = $('send-message-btn');
   const msgInput = $('guest-message-input');
   if (sendBtn && msgInput) {
-    sendBtn.addEventListener('click', (e) => { e.preventDefault(); sendGuestMessage(); });
-    sendBtn.addEventListener('touchend', (e) => { e.preventDefault(); sendGuestMessage(); });
+    sendBtn.addEventListener('click', (e) => { e.preventDefault(); sendGuestMessage('guest-message-input'); });
+    sendBtn.addEventListener('touchend', (e) => { e.preventDefault(); sendGuestMessage('guest-message-input'); });
     msgInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); sendGuestMessage(); }
+      if (e.key === 'Enter') { e.preventDefault(); sendGuestMessage('guest-message-input'); }
     });
   }
 }
 
 // Global function: send guest reaction message (callable from inline onclick)
 let _sendLock = false;
-function sendGuestMessage() {
+function sendGuestMessage(inputId = 'guest-message-input') {
   if (_sendLock) return; // Prevent double-fire from touchend+click
-  const msgInput = $('guest-message-input');
-  const statusEl = $('message-status');
+  const msgInput = $(inputId);
+  const statusEl = inputId === 'agir-share-message-input' ? $('agir-share-message-status') : $('message-status');
   if (!msgInput) return;
   const message = msgInput.value.trim();
   if (!message) return; // Silently ignore empty — no nagging
@@ -3921,6 +3921,7 @@ function sendGuestMessage() {
     state.messagesSent = (state.messagesSent || 0) + 1;
     // ★ Task #104: own message also feeds diaporama
     state.liveMessages.push({ message, guestName: state.guestName || 'Guest', sentAt: new Date().toISOString() });
+    if (typeof renderV2ShareActivity === 'function') renderV2ShareActivity();
     updateDiapoButton();
     updateDiapoCounter();
     msgInput.value = '';
@@ -5063,6 +5064,7 @@ function handleDiapoPhoto(e) {
     // ★ Task #101: track in allPhotos for diaporama
     state.allPhotos.push({ url: cloudUrl, guestName: state.guestName || '', sentAt: new Date().toISOString() });
     updateMyPhotosGrid();
+    if (typeof renderV2ShareActivity === 'function') renderV2ShareActivity();
     updateDiapoButton();
     updateDiapoCounter();
     saveSession();
@@ -6914,8 +6916,31 @@ function openV2ShareActions() {
   if (!panel) return;
   setV2AgirMode('share');
   panel.hidden = false;
-  if (typeof renderAgirSharePanel === 'function') renderAgirSharePanel();
+  renderV2ShareActivity();
   requestAnimationFrame(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+
+// ★ AGIR Partager (patch 0022) — rendu Mes Mots + Mes Photos dans les blocs V2
+function renderV2ShareActivity() {
+  const messagesEl = document.getElementById('agir-share-messages');
+  const photosEl = document.getElementById('agir-share-photos');
+  if (!messagesEl || !photosEl) return;
+
+  const esc = (typeof escapeHtml === 'function') ? escapeHtml : (s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+  const escAttr = (typeof escapeAttr === 'function') ? escapeAttr : (s => String(s || '').replace(/"/g, '&quot;'));
+
+  const mine = (state.liveMessages || []).filter(m =>
+    m && (m.message || m.text) && (!m.guestName || m.guestName === state.guestName)
+  ).slice(-3).reverse();
+  messagesEl.innerHTML = mine.length ? mine.map(m => `
+    <article class="v2-share-message-card">
+      <span class="v2-share-message-avatar">${esc(state.guestEmoji || '✨')}</span>
+      <div><strong>${esc(m.message || m.text || '')}</strong><small>Moi · à l'instant</small></div>
+    </article>`).join('') : '<p class="v2-share-empty">Ton premier mot apparaîtra ici.</p>';
+
+  const photos = (state.myPhotos || []).slice().reverse().slice(0, 6);
+  photosEl.innerHTML = photos.length ? `<div class="v2-share-photo-grid">${photos.map(url => `
+    <button type="button" class="v2-share-photo-thumb" onclick="showPhotoLightbox('${escAttr(url)}', '${escAttr(state.guestName || 'Moi')}')"><img src="${esc(url)}" alt="Ma photo"></button>`).join('')}</div>` : '<p class="v2-share-empty">Tes photos prises pendant la soirée apparaîtront ici.</p>';
 }
 
 // ★ AGIR Partager : composer message inline (ne switch pas vers STORY)

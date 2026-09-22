@@ -512,27 +512,31 @@
             </button>
           </div>
           <div id="agir-share-actions" class="v2-share-actions" hidden>
-            <p>Partager maintenant</p>
-            <div class="agir-share-ctas">
-              <button type="button" onclick="document.getElementById('camera-photo-input')?.click()">📷 Prendre une photo</button>
-              <button type="button" onclick="toggleAgirMessageInput()">💬 Écrire un mot</button>
+            <div class="v2-share-heading">
+              <span>◉</span><div><strong>PARTAGER</strong><small>Capture le moment ou laisse un mot.</small></div>
             </div>
-            <div class="agir-message-composer" id="agir-message-composer" hidden>
-              <input type="text" id="agir-message-input" placeholder="Écris ta réaction..." maxlength="100" onkeydown="if(event.key==='Enter') sendAgirMessage()">
-              <button type="button" class="agir-message-send" onclick="sendAgirMessage()">📤</button>
+            <div class="v2-share-photo-actions">
+              <button type="button" onclick="document.getElementById('agir-camera-photo-input')?.click()"><i>📷</i>PHOTO</button>
+              <button type="button" onclick="document.getElementById('agir-library-photo-input')?.click()"><i>🖼️</i>LIBRAIRIE</button>
             </div>
-            <div class="agir-message-status" id="agir-message-status"></div>
-            <section class="agir-my-photos" id="agir-my-photos" hidden>
-              <h3 class="agir-share-section-title">📸 MES PHOTOS</h3>
-              <div class="agir-photos-grid" id="agir-photos-grid"></div>
+            <input id="agir-camera-photo-input" class="v2-share-file-input" type="file" accept="image/*" capture="environment" onchange="handleDiapoPhoto(event)">
+            <input id="agir-library-photo-input" class="v2-share-file-input" type="file" accept="image/*" onchange="handleDiapoPhoto(event)">
+            <section class="v2-share-postit" aria-labelledby="agir-postit-title">
+              <h2 id="agir-postit-title">💬 POST-IT</h2>
+              <div class="v2-share-message-row">
+                <input id="agir-share-message-input" type="text" maxlength="100" placeholder="Ton message…" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();sendGuestMessage('agir-share-message-input');}">
+                <button type="button" onclick="sendGuestMessage('agir-share-message-input')" aria-label="Envoyer le mot">📤</button>
+              </div>
+              <div id="agir-share-message-status" class="v2-share-status" aria-live="polite"></div>
             </section>
-            <section class="agir-my-messages" id="agir-my-messages" hidden>
-              <h3 class="agir-share-section-title">💬 MES MOTS</h3>
-              <div class="agir-messages-list" id="agir-messages-list"></div>
+            <section class="v2-share-results" aria-labelledby="agir-share-messages-title">
+              <h2 id="agir-share-messages-title">MES MOTS</h2>
+              <div id="agir-share-messages"></div>
             </section>
-            <div class="agir-share-empty" id="agir-share-empty" hidden>
-              Tu n'as encore rien partagé — commence par une photo ou un mot 💫
-            </div>
+            <section class="v2-share-results v2-share-photos" aria-labelledby="agir-share-photos-title">
+              <h2 id="agir-share-photos-title">MES PHOTOS</h2>
+              <div id="agir-share-photos"></div>
+            </section>
           </div>
           <div id="agir-live-content"></div>
         </section>
@@ -799,7 +803,7 @@
                 <div id="souvenirs-messages-list" class="souvenirs-messages-list"></div>
                 <div class="souvenirs-message-input-row">
                     <input type="text" id="guest-message-input" maxlength="100" placeholder="Écris ta réaction..." class="souvenirs-message-input">
-                    <button type="button" id="send-message-btn" onclick="sendGuestMessage()" class="souvenirs-send-btn">📤</button>
+                    <button type="button" id="send-message-btn" onclick="sendGuestMessage('guest-message-input')" class="souvenirs-send-btn">📤</button>
                 </div>
                 <div id="message-status" class="souvenirs-message-status"></div>
             </div>
