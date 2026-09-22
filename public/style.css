@@ -37,6 +37,7 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
   --font: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: 'Sora', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   /* Guest Web V2 — extracted from the approved AGIR / ON AIR / MOI / STORY mockup */
   --v2-ink: #050914;
   --v2-surface: rgba(10, 16, 30, 0.88);
@@ -3749,6 +3750,7 @@ html, body {
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255,255,255,0.035);
 }
 #cockpit-screen .header-title {
+  font-family: var(--font-display);
   font-size: 22px !important;
   letter-spacing: -0.7px;
 }
@@ -3783,7 +3785,8 @@ html, body {
 .v2-space-heading h1 {
   margin: 0;
   color: var(--v2-magenta);
-  font-size: 22px;
+  font-family: var(--font-display);
+  font-size: 23px;
   line-height: 1;
   letter-spacing: -0.6px;
   font-weight: 900;
@@ -3793,6 +3796,24 @@ html, body {
   color: rgba(241,245,249,0.76);
   font-size: 12px;
   font-weight: 600;
+}
+.v2-space-heading h1,
+.np-title,
+.soiree-title,
+.souvenirs-hero-title,
+.souvenirs-moment-title,
+.souvenirs-track-title,
+#cockpit-leaderboard .leaderboard-name {
+  font-family: var(--font-display);
+}
+.np-label,
+.soiree-section-title,
+.souvenirs-section-title,
+.souvenirs-hero-tag,
+.nav-label,
+.v2-action-card strong {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
 }
 .v2-action-grid {
   display: grid;
@@ -3819,16 +3840,66 @@ html, body {
   background: linear-gradient(160deg, rgba(29, 24, 61, 0.9), rgba(9, 15, 29, 0.95));
 }
 .v2-action-card > span { font-size: 25px; line-height: 1; margin-bottom: auto; }
-.v2-action-card strong { font-size: 10px; line-height: 1.1; letter-spacing: -0.15px; }
-.v2-action-card small { color: rgba(234, 240, 255, 0.67); font-size: 8px; line-height: 1.2; }
+.v2-action-card strong { font-size: 11px; line-height: 1.16; letter-spacing: -0.1px; }
+.v2-action-card small { color: rgba(234, 240, 255, 0.67); font-size: 9px; line-height: 1.25; }
 .v2-action-suggest { border-color: rgba(91, 96, 255, 0.7); background: linear-gradient(150deg, rgba(72, 43, 199, 0.72), rgba(19, 21, 58, 0.96)); }
 .v2-action-boost { border-color: rgba(255, 96, 48, 0.47); background: linear-gradient(150deg, rgba(173, 48, 34, 0.56), rgba(31, 18, 28, 0.96)); }
 .v2-action-photo { border-color: rgba(26, 211, 255, 0.44); background: linear-gradient(150deg, rgba(20, 126, 170, 0.56), rgba(10, 28, 44, 0.96)); }
 .v2-action-message { border-color: rgba(231, 95, 255, 0.42); background: linear-gradient(150deg, rgba(125, 43, 145, 0.55), rgba(31, 16, 43, 0.96)); }
 .v2-action-card:active { transform: scale(0.97); }
-.v2-action-card input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
 #agir-live-content > * { margin-top: 12px; }
 #agir-live-content .soiree-suggest-section { margin-top: 0; }
+
+.v2-space-heading--moi .v2-space-icon {
+  background: linear-gradient(135deg, #ff48cd, #7c4dff);
+}
+.moi-overview { margin: 0 0 12px; }
+.moi-score-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.moi-score-card {
+  min-height: 82px;
+  padding: 13px;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  grid-template-rows: 1fr 18px;
+  column-gap: 8px;
+  align-items: center;
+  border: 1px solid rgba(92, 186, 255, 0.2);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(8, 47, 73, 0.74), rgba(12, 26, 55, 0.94));
+}
+.moi-score-card--rank {
+  border-color: rgba(255, 184, 64, 0.24);
+  background: linear-gradient(135deg, rgba(75, 49, 19, 0.76), rgba(31, 21, 39, 0.94));
+}
+.moi-score-icon { grid-row: 1 / span 2; color: var(--v2-magenta); font-size: 24px; }
+.moi-score-card--rank .moi-score-icon { color: #ffc24d; }
+.moi-score-card strong { font-family: var(--font-display); color: #fff; font-size: 22px; line-height: 1; }
+.moi-score-card small { color: rgba(237,242,255,0.68); font-size: 10px; font-weight: 600; }
+.moi-summary-row,
+.moi-social-row {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(165, 184, 238, 0.14);
+  border-radius: 13px;
+  background: rgba(17, 24, 41, 0.78);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 11px;
+}
+.moi-summary-row span,
+.moi-social-row span:first-child { flex: 1; font-weight: 700; }
+.moi-summary-row strong,
+.moi-social-row strong { color: rgba(220, 228, 250, 0.68); font-size: 10px; white-space: nowrap; }
+.moi-social-row { text-align: left; cursor: pointer; }
+.moi-social-row > span:last-child { flex: none; color: var(--v2-cyan); font-size: 19px; line-height: 1; }
 
 .bottom-nav {
   display: grid;

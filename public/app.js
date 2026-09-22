@@ -5826,6 +5826,7 @@ function renderLeaderboard() {
   if (lb.length === 0) {
     const empty = '<div style="text-align:center; color:rgba(255,255,255,0.3); font-size:11px; padding:12px;">⏳ En attente d\'activité...</div>';
     containers.forEach(c => c.innerHTML = empty);
+    renderMoiOverview();
     return;
   }
   const medals = ['🥇', '🥈', '🥉'];
@@ -5842,6 +5843,33 @@ function renderLeaderboard() {
     `;
   }).join('');
   containers.forEach(c => c.innerHTML = html);
+  renderMoiOverview();
+}
+
+function renderMoiOverview() {
+  const container = $('moi-overview');
+  if (!container) return;
+
+  const leaderboard = state.leaderboard || [];
+  const myIndex = leaderboard.findIndex(p => p.id === state.guestId || p.name === state.guestName);
+  const me = myIndex >= 0 ? leaderboard[myIndex] : null;
+  const points = me?.points ?? state.missionPoints ?? 0;
+  const rank = myIndex >= 0 ? myIndex + 1 : null;
+  const guestId = state.guestId || state.userId;
+  const mine = (state.suggestions || []).filter(s => s.guestId === guestId || s.guestName === state.guestName);
+  const played = (state.trackHistory || []).filter(t => t.suggestedBy === state.guestName || t.requestedBy?.guestName === state.guestName);
+  const pending = mine.filter(s => ['pending', 'queued', 'next'].includes(s.status)).length;
+  const friendStatuses = Object.values(state._friendStatuses || {});
+  const friends = friendStatuses.filter(f => f.status === 'accepted').length;
+  const requests = friendStatuses.filter(f => f.status === 'pending_received').length;
+
+  container.innerHTML = `
+    <div class="moi-score-grid">
+      <div class="moi-score-card"><span class="moi-score-icon">★</span><strong>${points}</strong><small>points</small></div>
+      <div class="moi-score-card moi-score-card--rank"><span class="moi-score-icon">♜</span><strong>${rank ? '#' + rank : '—'}</strong><small>${leaderboard.length ? 'sur ' + leaderboard.length : 'classement'}</small></div>
+    </div>
+    <div class="moi-summary-row"><span>Mes titres</span><strong>${played.length} joués · ${pending} en attente</strong></div>
+    <button type="button" class="moi-social-row" onclick="showScreen('hub')"><span>Mes amis dans cette soirée</span><strong>${friends}${requests ? ' · ' + requests + ' demande' + (requests > 1 ? 's' : '') : ''}</strong><span aria-hidden="true">›</span></button>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -6495,6 +6523,7 @@ function setupBottomNav() {
       if (action === 'moi') {
         if (typeof renderLeaderboard === 'function') renderLeaderboard();
         if (typeof renderMissions === 'function') renderMissions();
+        if (typeof renderMoiOverview === 'function') renderMoiOverview();
       }
     });
   });
@@ -6560,7 +6589,6 @@ function initializeV2Spaces() {
   if (!agirContent || agirContent.dataset.ready === 'true') return;
 
   [
-    'suggest-search-container',
     'ca-monte',
     'suggestions-list',
     'mySugsAll',
