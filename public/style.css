@@ -4475,3 +4475,38 @@ html, body {
   margin: 4px 0 0;
   font-size: clamp(14px, 4vw, 17px);
 }
+
+/* Mobile fit and reachability: the AGIR entry is intentionally taller than
+   the viewport on compact Safari. The cockpit, not the document body, owns
+   the scroll so the fixed bottom navigation never clips an action. */
+#cockpit-screen {
+  height: 100dvh;
+  overflow-y: scroll !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  padding-bottom: calc(114px + env(safe-area-inset-bottom)) !important;
+}
+#tab-agir { padding-bottom: 18px; }
+#tab-agir:not(.is-v2-focus-mode) .v2-space-heading {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 9px;
+  margin: 3px 0 10px;
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-space-heading > div { text-align: center; }
+#tab-agir:not(.is-v2-focus-mode) .v2-space-icon {
+  flex-basis: 36px;
+  width: 36px;
+  height: 44px;
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-space-heading h1 {
+  font-size: clamp(31px, 9.2vw, 38px);
+  line-height: .96;
+}
+#tab-agir:not(.is-v2-focus-mode) .v2-space-heading p {
+  margin-top: 3px;
+  font-size: clamp(13px, 3.8vw, 16px);
+}
