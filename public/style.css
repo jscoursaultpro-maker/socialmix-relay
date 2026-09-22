@@ -5103,6 +5103,47 @@ html, body {
   background: rgba(26, 24, 66, .68);
 }
 #tab-memories .souvenirs-message-author { color: #f5a2df; }
+.story-guests-list { display: grid; gap: 7px; }
+.story-guest-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 7px 8px;
+  border: 1px solid rgba(86, 138, 244, .2);
+  border-radius: 13px;
+  background: rgba(6, 19, 45, .56);
+}
+.story-guest-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  flex: 0 0 36px;
+  border: 1px solid rgba(45, 231, 238, .68);
+  border-radius: 50%;
+  color: #eaffff;
+  background: linear-gradient(135deg, #5539b5, #0b8da0);
+  font-size: 15px;
+}
+.story-guest-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.story-guest-copy { display: grid; min-width: 0; flex: 1; gap: 2px; }
+.story-guest-copy b { overflow: hidden; color: #f7fbff; font: 800 11px var(--font-display); text-overflow: ellipsis; white-space: nowrap; }
+.story-guest-copy small { color: rgba(198, 220, 255, .57); font-size: 9px; font-weight: 600; }
+.story-friend-btn, .story-friend-state {
+  flex: 0 0 auto;
+  padding: 7px 8px;
+  border: 1px solid rgba(37, 229, 237, .6);
+  border-radius: 10px;
+  color: #dfffff;
+  background: rgba(0, 194, 209, .13);
+  font: 900 8px var(--font-display);
+  letter-spacing: .04em;
+}
+.story-friend-btn.is-accept { color: #071b22; border-color: #42e5c6; background: linear-gradient(135deg, #52efcb, #20b8d3); }
+.story-friend-state { border-color: rgba(156, 114, 255, .35); color: rgba(220, 202, 255, .76); background: rgba(111, 70, 192, .12); }
+.story-friend-state.is-friend { border-color: rgba(54, 235, 178, .48); color: #6df0c3; background: rgba(34, 188, 140, .11); }
 .story-recap {
   margin: 3px 0 13px;
   padding: 18px;

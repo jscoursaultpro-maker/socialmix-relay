@@ -4219,6 +4219,7 @@ function sendFriendRequest(targetUserId, targetName) {
       if (data.status === 'accepted') state._friendStatuses[targetUserId] = { status: 'accepted' };
     }
     refreshTrombiBadges();
+    if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
   })
   .catch(err => console.error('[Friends] Request failed:', err));
 }
@@ -4256,6 +4257,7 @@ function refreshFriendStatuses(cb) {
     refreshTrombiBadges();
     if (typeof updateProfileBadge === 'function') updateProfileBadge();
     if (typeof renderMoiOverview === 'function') renderMoiOverview();
+    if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
     cb && cb();
   }).catch(err => { console.warn('[Friends] refreshFriendStatuses fail:', err); cb && cb(); });
 }
@@ -7421,6 +7423,55 @@ function renderSouvenirs() {
       if (gensCount) gensCount.textContent = `${guestsOnly.length} personne${guestsOnly.length > 1 ? 's' : ''}`;
       gensEl.style.display = '';
     }
+  }
+
+  // ─── LES INVITÉS / AMIS ─────────────────────────────────
+  const storyGuestsEl = document.getElementById('story-guests');
+  const storyGuestsList = document.getElementById('story-guests-list');
+  const storyGuestsCount = document.getElementById('story-guests-count');
+  if (storyGuestsEl && storyGuestsList) {
+    const guests = participants.filter(person => {
+      const personId = person.userId || person.id || '';
+      return !person.isHost && (!personId || String(personId) !== String(myId));
+    });
+    if (!guests.length) {
+      storyGuestsList.innerHTML = '<div class="story-empty-state">Les invités de la soirée apparaîtront ici.</div>';
+    } else {
+      storyGuestsList.innerHTML = guests.slice(0, 8).map(person => {
+        const personId = person.userId || person.id || '';
+        const status = state._friendStatuses?.[personId]?.status || '';
+        const name = person.name || person.alias || 'Invité';
+        const avatar = person.photo || person.avatar
+          ? `<img src="${_souvEscape(person.photo || person.avatar)}" alt="">`
+          : _souvEscape(person.emoji || '✦');
+        let action = '';
+        if (personId && status === 'accepted') {
+          action = '<span class="story-friend-state is-friend">✓ AMIS</span>';
+        } else if (personId && status === 'pending_sent') {
+          action = '<span class="story-friend-state">EN ATTENTE</span>';
+        } else if (personId && status === 'pending_received') {
+          action = `<button type="button" class="story-friend-btn is-accept" data-story-friend-action="accept" data-story-friend-id="${_souvEscape(personId)}" data-story-friend-name="${_souvEscape(name)}">ACCEPTER</button>`;
+        } else if (personId) {
+          action = `<button type="button" class="story-friend-btn" data-story-friend-action="invite" data-story-friend-id="${_souvEscape(personId)}" data-story-friend-name="${_souvEscape(name)}">+ AMI</button>`;
+        }
+        return `<div class="story-guest-row"><span class="story-guest-avatar">${avatar}</span><span class="story-guest-copy"><b>${_souvEscape(name)}</b><small>${person.isHost ? 'Hôte de la soirée' : 'Était à la soirée'}</small></span>${action}</div>`;
+      }).join('');
+    }
+    storyGuestsList.querySelectorAll('[data-story-friend-action]').forEach(button => {
+      button.addEventListener('click', () => {
+        const personId = button.dataset.storyFriendId;
+        const name = button.dataset.storyFriendName || 'cet invité';
+        if (button.dataset.storyFriendAction === 'accept') {
+          const rel = state._friendStatuses?.[personId];
+          if (rel?.friendshipId && typeof acceptFriendRequest === 'function') acceptFriendRequest(rel.friendshipId, name);
+        } else if (typeof sendFriendRequest === 'function') {
+          sendFriendRequest(personId, name);
+        }
+        renderSouvenirs();
+      });
+    });
+    if (storyGuestsCount) storyGuestsCount.textContent = `${guests.length} invité${guests.length > 1 ? 's' : ''}`;
+    storyGuestsEl.style.display = '';
   }
 
   // ─── RÉCAP STORY ───────────────────────────────────────
