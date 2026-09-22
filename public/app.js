@@ -6611,7 +6611,6 @@ function openV2SuggestionSearch() {
 // The search panel stays a single surface. Explorer and Mes Bangers only
 // change the source rendered below the same search controls.
 let v2SuggestionSource = 'explore';
-let v2ExplorerSelected = false;
 
 function setV2SuggestionToggle(label) {
   const button = document.getElementById('v2-suggest-source-toggle');
@@ -6620,8 +6619,7 @@ function setV2SuggestionToggle(label) {
 
 function resetV2SuggestionSource() {
   v2SuggestionSource = 'explore';
-  v2ExplorerSelected = false;
-  setV2SuggestionToggle('♫ Explorer');
+  setV2SuggestionToggle('🔥 Mes Bangers');
   const library = document.getElementById('v2-bangers-library');
   const results = document.getElementById('suggest-results');
   if (library) library.hidden = true;
@@ -6630,7 +6628,6 @@ function resetV2SuggestionSource() {
 
 function showV2Explorer() {
   v2SuggestionSource = 'explore';
-  v2ExplorerSelected = true;
   setV2SuggestionToggle('🔥 Mes Bangers');
   const library = document.getElementById('v2-bangers-library');
   const results = document.getElementById('suggest-results');
@@ -6640,7 +6637,7 @@ function showV2Explorer() {
 }
 
 function toggleV2SuggestionSource() {
-  if (!v2ExplorerSelected || v2SuggestionSource === 'bangers') {
+  if (v2SuggestionSource === 'bangers') {
     showV2Explorer();
     return;
   }
