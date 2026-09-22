@@ -6773,11 +6773,12 @@ function resetV2AgirMode() {
 }
 
 function openV2Boosts() {
-  setV2AgirMode('boost');
+  // The boostable queue belongs to the live music flow, directly after
+  // the current and next tracks.
+  showTab('on-air');
+  const content = document.getElementById('ca-monte');
   if (typeof renderCaMonte === 'function') renderCaMonte();
-  if (typeof renderAgirBoostList === 'function') renderAgirBoostList();
-  const target = document.getElementById('agir-boost-list') || document.getElementById('ca-monte');
-  requestAnimationFrame(() => target?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  requestAnimationFrame(() => content?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
 // ★ CP3.V2 — Panneau Booster : liste des suggestions des autres guests
@@ -7034,18 +7035,11 @@ function initializeV2Spaces() {
   const moiLibrary = document.getElementById('moi-personal-library');
   if (!agirContent || !moiLibrary || agirContent.dataset.ready === 'true') return;
 
-  [
-    'ca-monte'
-  ].forEach(id => {
+  // Personal libraries have one home: Mes Bangers in AGIR. They must not
+  // lengthen ON AIR or MOI once the live interface has been initialised.
+  ['suggestions-list', 'mySugsAll', 'mySugsPreview'].forEach(id => {
     const node = document.getElementById(id);
-    if (node) agirContent.appendChild(node);
-  });
-
-  // Current suggestions still belong to MOI.  The two personal-history
-  // modules (liked tracks + past suggestions) now feed Mes Bangers in AGIR.
-  ['suggestions-list'].forEach(id => {
-    const node = document.getElementById(id);
-    if (node) moiLibrary.appendChild(node);
+    if (node) node.remove();
   });
 
   const suggestSection = document.querySelector('.soiree-suggest-section');
