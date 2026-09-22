@@ -3989,6 +3989,7 @@ function updateTrombinoscope(participants) {
   refreshFriendStatuses();
   
   state.participants = participants;
+  if (typeof renderMoiOverview === 'function') renderMoiOverview();
   const grid = $('trombi-grid');
   // Merge self + server participants (avoid duplicates)
   const users = [{ name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto, phone: state.guestPhone, email: state.guestEmail, instagram: state.guestInsta, userId: state.userId, isSelf: true }];
@@ -4254,6 +4255,7 @@ function refreshFriendStatuses(cb) {
     });
     refreshTrombiBadges();
     if (typeof updateProfileBadge === 'function') updateProfileBadge();
+    if (typeof renderMoiOverview === 'function') renderMoiOverview();
     cb && cb();
   }).catch(err => { console.warn('[Friends] refreshFriendStatuses fail:', err); cb && cb(); });
 }
@@ -5848,7 +5850,7 @@ function renderMissions() {
 
 function renderLeaderboard() {
   const containers = [$('participant-leaderboard'), $('cockpit-leaderboard')].filter(Boolean);
-  if (containers.length === 0) return;
+  if (containers.length === 0) { renderMoiOverview(); return; }
   const lb = state.leaderboard || [];
   if (lb.length === 0) {
     const empty = '<div style="text-align:center; color:rgba(255,255,255,0.3); font-size:11px; padding:12px;">⏳ En attente d\'activité...</div>';
@@ -5873,6 +5875,9 @@ function renderLeaderboard() {
   renderMoiOverview();
 }
 
+let moiTrackFilter = 'all';
+let moiLeaderboardExpanded = false;
+
 function renderMoiOverview() {
   const container = $('moi-overview');
   if (!container) return;
@@ -5886,18 +5891,45 @@ function renderMoiOverview() {
   const mine = (state.suggestions || []).filter(s => s.guestId === guestId || s.guestName === state.guestName);
   const played = (state.trackHistory || []).filter(t => t.suggestedBy === state.guestName || t.requestedBy?.guestName === state.guestName);
   const pending = mine.filter(s => ['pending', 'queued', 'next'].includes(s.status)).length;
-  const friendStatuses = Object.values(state._friendStatuses || {});
-  const friends = friendStatuses.filter(f => f.status === 'accepted').length;
-  const requests = friendStatuses.filter(f => f.status === 'pending_received').length;
+  const supportable = mine.filter(s => ['pending', 'queued', 'next'].includes(s.status) && !(s.boostCount > 0)).length;
+  const allMyTracks = [...mine].sort((a, b) => new Date(b.sentAt || 0) - new Date(a.sentAt || 0));
+  const filteredTracks = moiTrackFilter === 'played'
+    ? allMyTracks.filter(s => s.status === 'played')
+    : moiTrackFilter === 'pending'
+      ? allMyTracks.filter(s => ['pending', 'queued', 'next'].includes(s.status))
+      : moiTrackFilter === 'support'
+        ? allMyTracks.filter(s => ['pending', 'queued', 'next'].includes(s.status) && !(s.boostCount > 0))
+        : allMyTracks;
+  const friendStatuses = state._friendStatuses || {};
+  const friendsHere = (state.participants || []).filter(person =>
+    person.userId && friendStatuses[person.userId]?.status === 'accepted' && person.name !== state.guestName
+  );
+  const visibleFriends = friendsHere.slice(0, 4);
+  const leaderRows = leaderboard.length
+    ? (moiLeaderboardExpanded ? leaderboard.slice(0, 10) : leaderboard.slice(0, 3))
+    : [];
+  const portrait = state.guestPhoto
+    ? `<img src="${escHtml(state.guestPhoto)}" alt="">`
+    : `<span>${escHtml(state.guestEmoji || '✨')}</span>`;
+  const trackRows = filteredTracks.slice(0, 3).map(track => {
+    const status = track.status === 'played' ? 'Joué' : track.status === 'next' ? 'À suivre' : 'En attente';
+    const art = track.coverURL ? `<img src="${escHtml(track.coverURL)}" alt="">` : '<span>♫</span>';
+    return `<article class="moi-track-row">${art}<div><strong>${escHtml(track.title || '')}</strong><small>${escHtml(track.artist || '')}</small></div><em class="is-${track.status || 'pending'}">${status}</em></article>`;
+  }).join('') || '<p class="moi-empty">Aucun titre dans cette sélection ce soir.</p>';
+  const leaderboardRows = leaderRows.map((person, index) => {
+    const isMe = person.id === state.guestId || person.name === state.guestName;
+    return `<div class="moi-leader-row${isMe ? ' is-me' : ''}"><b>${index + 1}</b><span>${escHtml(person.name || '')}${isMe ? ' <i>toi</i>' : ''}</span><strong>${person.points || 0} <small>pts</small></strong></div>`;
+  }).join('') || '<p class="moi-empty">Le classement démarre avec les premiers votes.</p>';
 
   container.innerHTML = `
-    <div class="moi-score-grid">
-      <div class="moi-score-card"><span class="moi-score-icon">★</span><strong>${points}</strong><small>points</small></div>
-      <div class="moi-score-card moi-score-card--rank"><span class="moi-score-icon">♜</span><strong>${rank ? '#' + rank : '—'}</strong><small>${leaderboard.length ? 'sur ' + leaderboard.length : 'classement'}</small></div>
-    </div>
-    <div class="moi-summary-row"><span>Mes titres</span><strong>${played.length} joués · ${pending} en attente</strong></div>
-    <button type="button" class="moi-social-row" onclick="showScreen('hub')"><span>Mes amis dans cette soirée</span><strong>${friends}${requests ? ' · ' + requests + ' demande' + (requests > 1 ? 's' : '') : ''}</strong><span aria-hidden="true">›</span></button>`;
+    <section class="moi-identity-card"><div class="moi-avatar">${portrait}</div><div class="moi-identity-copy"><strong>${escHtml(state.guestName || 'Moi')}</strong><small>MA SOIRÉE</small><div><b>★ ${points}</b><span>points</span><i></i><b class="moi-rank">♜ ${rank ? '#' + rank : '—'}</b><span>${rank ? 'ce soir' : 'classement'}</span></div></div></section>
+    <section class="moi-panel"><h2>♫ MES TITRES CE SOIR</h2><div class="moi-track-filters"><button class="${moiTrackFilter === 'pending' ? 'is-active' : ''}" onclick="setMoiTrackFilter('pending')"><b>${pending}</b>En attente</button><button class="${moiTrackFilter === 'played' ? 'is-active' : ''}" onclick="setMoiTrackFilter('played')"><b>${played.length}</b>Joués</button><button class="${moiTrackFilter === 'support' ? 'is-active' : ''}" onclick="setMoiTrackFilter('support')"><b>${supportable}</b>À soutenir</button></div><div class="moi-track-list">${trackRows}</div></section>
+    <section class="moi-panel moi-circle-panel"><h2>♟ MON CERCLE</h2><div class="moi-circle-row"><div class="moi-friends">${visibleFriends.length ? visibleFriends.map(person => `<span title="${escHtml(person.name || '')}">${person.photo ? `<img src="${escHtml(person.photo)}" alt="">` : escHtml(person.emoji || '✨')}</span>`).join('') : '<span class="moi-friend-empty">+</span>'}</div><p><b>${friendsHere.length}</b> ami${friendsHere.length > 1 ? 's' : ''}<br>présent${friendsHere.length > 1 ? 's' : ''}</p><button type="button" onclick="showPartyQR()">+ Inviter</button></div></section>
+    <section class="moi-panel moi-ranking-panel"><h2>🏆 CLASSEMENT</h2><div class="moi-leader-list">${leaderboardRows}</div>${leaderboard.length > 3 ? `<button type="button" class="moi-leader-more" onclick="toggleMoiLeaderboard()">${moiLeaderboardExpanded ? 'Réduire ↑' : 'Voir le classement →'}</button>` : ''}</section>`;
 }
+
+function setMoiTrackFilter(filter) { moiTrackFilter = filter; renderMoiOverview(); }
+function toggleMoiLeaderboard() { moiLeaderboardExpanded = !moiLeaderboardExpanded; renderMoiOverview(); }
 
 // ═══════════════════════════════════════════════════════════════════
 // ★ Task #104 — Diaporama V2 (parité host iOS)
@@ -7081,8 +7113,7 @@ function openV2Trends() {
 // architecture changes from SOIRÉE to AGIR / ON AIR.
 function initializeV2Spaces() {
   const agirContent = document.getElementById('agir-live-content');
-  const moiLibrary = document.getElementById('moi-personal-library');
-  if (!agirContent || !moiLibrary || agirContent.dataset.ready === 'true') return;
+  if (!agirContent || agirContent.dataset.ready === 'true') return;
 
   // Personal libraries have one home: Mes Bangers in AGIR. They must not
   // lengthen ON AIR or MOI once the live interface has been initialised.
