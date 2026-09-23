@@ -5410,18 +5410,21 @@ html {
 }
 
 
-/* Profil — formulaire collapsible (23/09/26) */
+/* Profil — formulaire collapsible + boutons harmonisés (23/09/26) */
 #profile-form.is-collapsed { display: none; }
-.photo-actions .edit-toggle-btn {
-  margin-top: 8px;
-  width: 100%;
-  background: linear-gradient(135deg, rgba(0,224,196,0.15), rgba(180,127,255,0.15));
-  border: 1px solid rgba(0,224,196,0.4);
-  color: #fff;
-  font: 800 11px var(--font-display);
-  letter-spacing: 0.1em;
-  padding: 10px 14px;
-  border-radius: 12px;
-  cursor: pointer;
+
+/* Les 2 boutons (Photo + Profil) partagent le même design pill cyan.
+   Sur mobile, on autorise wrap si les 2 labels ne rentrent pas côte à côte. */
+.profile-hero-card .photo-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
 }
-.photo-actions .edit-toggle-btn:active { transform: scale(0.97); }
+.profile-hero-card .photo-actions .photo-btn {
+  flex: 0 1 auto;
+  min-height: 34px;
+  white-space: nowrap;
+}
+/* Le bouton "Modifier ton profil" hérite tout de .photo-btn.selfie-btn.
+   On assure juste la lisibilité active state. */
+#profile-edit-toggle:active { transform: scale(0.97); }
