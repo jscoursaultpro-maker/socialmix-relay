@@ -4018,7 +4018,26 @@ function broadcastLeaderboard(party) {
     }
   }
   
-  const lb = Object.values(party.participantScores)
+  // ★ Dedup scores by participantId (Option C - safe merge)
+  const mergedScoresMap = new Map();
+  for (const [key, entry] of Object.entries(party.participantScores)) {
+    const pid = entry.participantId || key;
+    if (pid === 'host') continue; // Host is handled separately
+    if (!mergedScoresMap.has(pid)) {
+      mergedScoresMap.set(pid, { ...entry });
+    } else {
+      const existing = mergedScoresMap.get(pid);
+      existing.score += (entry.score || 0);
+      existing.voteCount = (existing.voteCount || 0) + (entry.voteCount || 0);
+      existing.photoCount = (existing.photoCount || 0) + (entry.photoCount || 0);
+      // Garder le nom le plus récent si différent
+      if (entry.name && entry.name !== 'Guest') existing.name = entry.name;
+    }
+  }
+  // Ajouter le host
+  if (hostEntry) mergedScoresMap.set('host', hostEntry);
+
+  const lb = Array.from(mergedScoresMap.values())
     .map(d => ({
       id: d.participantId === 'host' ? 'host' : d.name,
       name: d.participantId === 'host' ? hostDisplayName : d.name,
@@ -4031,10 +4050,22 @@ function broadcastLeaderboard(party) {
 
   // ★ fix Bug Benjamin #3: broadcast participantScores en live pour que l'archive iOS
   // recoive voteCount + photoCount pendant la soiree (etait envoye uniquement a party:ended)
+  // ★ Patch 0035 completion — utilise la même dédup que le leaderboard (Option C
+  // full) pour que la vue "PARTICIPANTS" iOS host ne montre plus les doublons.
   const scoresSnapshot = {};
-  for (const [key, entry] of Object.entries(party.participantScores)) {
+  if (hostEntry) {
+    scoresSnapshot.host = {
+      name: hostDisplayName,
+      score: hostEntry.score || 0,
+      voteCount: hostEntry.voteCount || 0,
+      photoCount: hostEntry.photoCount || 0
+    };
+  }
+  for (const entry of mergedScoresMap.values()) {
+    if (entry === hostEntry) continue;
+    const key = entry.participantId || entry.name || '_unknown';
     scoresSnapshot[key] = {
-      name: key === 'host' ? hostDisplayName : (entry.name || key),
+      name: entry.name || key,
       score: entry.score || 0,
       voteCount: entry.voteCount || 0,
       photoCount: entry.photoCount || 0
@@ -4180,7 +4211,15 @@ function buildLightState(party, isHost = false) {
     },
     ...rawParticipants
   ];
-  const lightParticipants = enriched.map(p => ({
+  // ★ Dedup by userId before mapping (Option B)
+  const uniqueParticipantsMap = new Map();
+  for (const p of enriched) {
+    const uid = p.userId ? String(p.userId) : (p.isHost && party.hostUserId ? String(party.hostUserId) : p.name);
+    uniqueParticipantsMap.set(uid, p); // Last one wins (keeps most recent session)
+  }
+  const uniqueParticipants = Array.from(uniqueParticipantsMap.values());
+
+  const lightParticipants = uniqueParticipants.map(p => ({
     id: p.id,
     // ★ Bug E-3a fix + E-fix-1 — userId nécessaire pour boutons d'ami; host fallback party.hostUserId
     userId: p.userId ? String(p.userId) : (p.isHost && party.hostUserId ? String(party.hostUserId) : null),
@@ -5795,7 +5834,7 @@ io.on('connection', (socket) => {
       { upsert: false }
     ).then(() =>
       Party.findOneAndUpdate(
-        { code, 'participants.name': { $ne: guest.name } },
+        { code, 'participants.userId': { $ne: guest.userId } }, // ★ Fix Option A: deduplicate MongoDB push by userId
         { $push: { participants: { name: guest.name, emoji: guest.emoji, joinedAt: guest.joinedAt, userId: guest.userId, isHost: false } } },
         { upsert: false }
       )
