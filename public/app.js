@@ -1570,52 +1570,70 @@ function setupProfile() {
     state.guestInsta = insta;
     saveProfile();
     refreshProfileHub();
-    
-    if (state.editingFromCockpit) {
-      // Return to cockpit and update greeting
-      state.editingFromCockpit = false;
-      showScreen('cockpit');
-      $('greeting').textContent = `Hey ${state.guestName} ! 🎉`;
-      // Re-emit join with updated profile
-      if (socket && socket.connected) {
-        socket.emit('guest:join', {
-          name: state.guestName,
-          lastName: state.guestLastName,
-          alias: state.guestAlias,
-          emoji: state.guestEmoji,
-          photo: state.guestPhoto,
-          phone: state.guestPhone,
-          email: state.guestEmail,       // ★ fix Bug Benjamin #4: email obligatoire sinon serveur rejette
-          instagram: state.guestInsta,
-          partyCode: state.partyCode
-        });
-      }
-    } else {
-      const params = getURLParams();
-      if (params.code) {
-        state.partyCode = params.code.toUpperCase();
-        if (state.isPreParty) {
-          showScreen('pre-party');
-          if (!socket || !socket.connected) {
-            connectToRelay();
-          } else {
-            socket.emit('guest:join', { name: state.guestName, lastName: state.guestLastName, alias: state.guestAlias, emoji: state.guestEmoji, photo: state.guestPhoto, phone: state.guestPhone, email: state.guestEmail, instagram: state.guestInsta, partyCode: state.partyCode });  // ★ fix Bug Benjamin #4
-          }
-          // Also fetch meta once to update trombinoscope immediately
-          fetch(`/api/party/${state.partyCode}/meta`).then(r => r.json()).then(m => {
-            if (typeof updatePrePartyTrombinoscope === 'function') updatePrePartyTrombinoscope(m.guests, m.hostProfile);
-          }).catch(()=>{});
-        } else {
-          enterCockpit();
-        }
-      } else {
-        showScreen('code');
-      }
+
+    // ★ Toujours re-emit join avec profil à jour (host trombi live)
+    if (socket && socket.connected && state.partyCode) {
+      socket.emit('guest:join', {
+        name: state.guestName,
+        lastName: state.guestLastName,
+        alias: state.guestAlias,
+        emoji: state.guestEmoji,
+        photo: state.guestPhoto,
+        phone: state.guestPhone,
+        email: state.guestEmail,
+        instagram: state.guestInsta,
+        partyCode: state.partyCode
+      });
     }
+
+    // ★ Stay on profile screen + toast confirmation (au lieu de rediriger vers cockpit)
+    state.editingFromCockpit = false;
+    if (typeof showToast === 'function') {
+      showToast('✅ Modifications prises en compte', 2500);
+    } else {
+      alert('✅ Modifications prises en compte');
+    }
+    // Collapse le formulaire (retour à l'état carte photo/profil visible seul)
+    if (typeof collapseProfileForm === 'function') collapseProfileForm();
   });
   $('profile-save').dataset.profileBound = 'true';
 
+  // ★ Bind toggle "Modifier ton profil" (collapse/expand du formulaire d'édition)
+  const editBtn = document.getElementById('profile-edit-toggle');
+  if (editBtn && !editBtn.dataset.bound) {
+    editBtn.addEventListener('click', () => {
+      const form = document.getElementById('profile-form');
+      if (!form) return;
+      const isHidden = form.classList.contains('is-collapsed');
+      if (isHidden) {
+        expandProfileForm();
+      } else {
+        collapseProfileForm();
+      }
+    });
+    editBtn.dataset.bound = 'true';
+  }
+  // Par défaut : collapsed
+  collapseProfileForm();
+
   bindProfileHubActions();
+}
+
+function expandProfileForm() {
+  const form = document.getElementById('profile-form');
+  const btn = document.getElementById('profile-edit-toggle');
+  if (form) form.classList.remove('is-collapsed');
+  if (btn) btn.textContent = '✕ FERMER';
+  requestAnimationFrame(() => {
+    form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+function collapseProfileForm() {
+  const form = document.getElementById('profile-form');
+  const btn = document.getElementById('profile-edit-toggle');
+  if (form) form.classList.add('is-collapsed');
+  if (btn) btn.textContent = '✏️ MODIFIER TON PROFIL';
 }
 
 function refreshProfileHub() {
