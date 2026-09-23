@@ -1682,6 +1682,35 @@ function bindProfileHubActions() {
   bindOnce('profile-public-btn', showPublicProfilePreview);
   bindOnce('profile-founder-btn', registerFoundersIntent);
   bindOnce('profile-delete-account', requestAccountDeletion);
+  bindOnce('profile-logout', handleLogout);
+}
+
+async function handleLogout() {
+  const confirmed = confirm('Te déconnecter d\'AhOuai sur cet appareil ?');
+  if (!confirmed) return;
+  try {
+    if (_supabaseClient) {
+      await _supabaseClient.auth.signOut().catch(e => console.warn('[logout] supabase signOut fail:', e));
+    }
+    // Efface aussi cookies partagés .ahouai.com (Sprint B sbauth-bypass)
+    try {
+      const domainAttr = /\.ahouai\.com$/.test(location.hostname) ? '; domain=.ahouai.com' : '';
+      document.cookie.split(';').forEach(c => {
+        const name = c.split('=')[0].trim();
+        if (name.startsWith('sb-') || name === 'sbauth') {
+          document.cookie = `${name}=; max-age=0; path=/${domainAttr}`;
+        }
+      });
+    } catch {}
+    try { localStorage.clear(); } catch {}
+    try { sessionStorage.clear(); } catch {}
+    if (socket && socket.connected) socket.disconnect();
+    if (typeof showToast === 'function') showToast('👋 Déconnecté', 1500);
+    setTimeout(() => { window.location.href = 'https://ahouai.com'; }, 800);
+  } catch (e) {
+    console.error('[logout] fail:', e);
+    alert('Erreur pendant la déconnexion. Réessaie.');
+  }
 }
 
 function showPublicProfilePreview() {
