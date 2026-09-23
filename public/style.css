@@ -5213,34 +5213,25 @@ html, body {
    tout en gardant une taille confortable (plus large qu'un iPhone).
    ═══════════════════════════════════════════════════════════════════ */
 @media (min-width: 768px) {
-  #tab-agir,
-  #tab-soiree,
-  #tab-memories,
-  #tab-cockpit {
-    max-width: 560px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 16px;
-    padding-right: 16px;
+  #cockpit-screen {
+    max-width: 620px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
   }
-  /* Bottom nav aussi centré et cappé */
+  /* Bottom nav aussi centré et cappé sur la même colonne */
   .bottom-nav {
-    max-width: 560px;
+    max-width: 620px !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%);
     border-radius: 22px 22px 0 0;
   }
 }
-/* Vrai desktop : un poil plus large pour respirer */
 @media (min-width: 1024px) {
-  #tab-agir,
-  #tab-soiree,
-  #tab-memories,
-  #tab-cockpit {
-    max-width: 620px;
+  #cockpit-screen {
+    max-width: 720px !important;
   }
   .bottom-nav {
-    max-width: 620px;
+    max-width: 720px !important;
   }
 }
