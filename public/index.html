@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260923-profile-harmo">
+    <link rel="stylesheet" href="style.css?v=20260923-profile-row">
 </head>
 <body>
 
@@ -309,21 +309,21 @@
             </header>
 
             <section class="profile-hero-card">
-                <div class="profile-photo-section">
+                <div class="profile-hero-top">
                     <div class="profile-photo-circle" id="profile-photo-circle">
                         <span class="photo-placeholder" id="photo-placeholder">✨</span>
                         <img id="profile-photo-preview" class="photo-preview hidden" alt="Photo de profil">
                     </div>
-                    <div class="photo-actions">
-                        <label class="photo-btn selfie-btn" for="camera-input">📸 MODIFIER LA PHOTO</label>
-                        <input type="file" id="camera-input" accept="image/*" capture="user" hidden>
-                        <button id="photo-delete" class="photo-delete-btn hidden" aria-label="Supprimer la photo">🗑️</button>
-                        <button type="button" id="profile-edit-toggle" class="photo-btn selfie-btn edit-toggle-btn">✏️ MODIFIER TON PROFIL</button>
+                    <div class="profile-hero-copy">
+                        <strong id="profile-display-name">Mon profil AhOuai</strong>
+                        <span id="profile-completion">Complète ton profil pour être reconnu par le crew.</span>
                     </div>
                 </div>
-                <div class="profile-hero-copy">
-                    <strong id="profile-display-name">Mon profil AhOuai</strong>
-                    <span id="profile-completion">Complète ton profil pour être reconnu par le crew.</span>
+                <div class="photo-actions">
+                    <label class="photo-btn selfie-btn" for="camera-input">📸 MODIFIER LA PHOTO</label>
+                    <input type="file" id="camera-input" accept="image/*" capture="user" hidden>
+                    <button id="photo-delete" class="photo-delete-btn hidden" aria-label="Supprimer la photo">🗑️</button>
+                    <button type="button" id="profile-edit-toggle" class="photo-btn selfie-btn edit-toggle-btn">✏️ MODIFIER TON PROFIL</button>
                 </div>
             </section>
 

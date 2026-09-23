@@ -5410,21 +5410,54 @@ html {
 }
 
 
-/* Profil — formulaire collapsible + boutons harmonisés (23/09/26) */
+/* Profil — layout compact photo/nom en ligne + boutons alignés (23/09/26) */
 #profile-form.is-collapsed { display: none; }
 
-/* Les 2 boutons (Photo + Profil) partagent le même design pill cyan.
-   Sur mobile, on autorise wrap si les 2 labels ne rentrent pas côte à côte. */
+/* Rangée du haut : photo à gauche, nom + subtitle à droite */
+.profile-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.profile-hero-top .profile-photo-circle {
+  flex: 0 0 auto;
+  margin-bottom: 0 !important;
+  width: 78px !important;
+  height: 78px !important;
+}
+.profile-hero-card .profile-hero-copy {
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+}
+.profile-hero-card .profile-hero-copy strong {
+  font-size: 18px;
+  line-height: 1.15;
+}
+.profile-hero-card .profile-hero-copy span {
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* Boutons : centrés, même hauteur, même largeur */
 .profile-hero-card .photo-actions {
-  flex-wrap: wrap;
-  gap: 8px;
+  display: flex;
+  gap: 10px;
   justify-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
 }
 .profile-hero-card .photo-actions .photo-btn {
-  flex: 0 1 auto;
-  min-height: 34px;
+  flex: 1 1 140px;
+  max-width: 220px;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   white-space: nowrap;
+  padding: 8px 14px;
+  font-size: 10px;
 }
-/* Le bouton "Modifier ton profil" hérite tout de .photo-btn.selfie-btn.
-   On assure juste la lisibilité active state. */
 #profile-edit-toggle:active { transform: scale(0.97); }
