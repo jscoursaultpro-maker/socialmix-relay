@@ -49,10 +49,12 @@ export const verifyGuestAuth = async (req, res, next) => {
 
       if (!user) {
         // Create new user for this guest
-        const handleBase = supabaseUser.email ? supabaseUser.email.split('@')[0] : 'guest';
-        // Basic deduplication for handle
+        // ★ Sanitize handle : regex User schema n'accepte que [a-z0-9_-]{3,20}
+        // On remplace tout caractère invalide (dont le '.' des emails) par '_'
+        const rawBase = supabaseUser.email ? supabaseUser.email.split('@')[0] : 'guest';
+        const cleanBase = rawBase.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 15) || 'guest';
         const uniqueSuffix = Math.floor(Math.random() * 10000);
-        const handle = `${handleBase}${uniqueSuffix}`;
+        const handle = `${cleanBase}${uniqueSuffix}`.slice(0, 20);
 
         // ★ Parse name from SSO metadata (Apple provides full_name only on first login)
         const meta = supabaseUser.user_metadata || {};
