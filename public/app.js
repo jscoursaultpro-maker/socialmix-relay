@@ -6016,7 +6016,13 @@ function getAllSlidesSorted() {
       result.push(slide);
     }
   }
-  return result;
+  // Le diaporama reste utile avant la première contribution : il devient un
+  // écran d'invitation avec le QR de la soirée, plutôt qu'une impasse vide.
+  return result.length ? result : [{
+    type: 'qr',
+    caption: 'La soirée commence ici.',
+    guestName: 'AhOuai'
+  }];
 }
 
 // Legacy alias for backward compat with party:state handler calls
@@ -6024,6 +6030,9 @@ function getAllPhotosSorted() { return getAllSlidesSorted(); }
 
 /** Cockpit button click handler */
 function handleDiapoBtnClick() {
+  launchDiaporama();
+  return;
+  // Anciens comportements conservés en cas de rollback rapide :
   const count = getAllSlidesSorted().length;
   if (count === 0) {
     // Toast
@@ -6085,17 +6094,35 @@ function showDiapoSlide(index) {
   const qrOverlay = $('diapo-qr-overlay');
   const authorBadge = $('diapo-author-badge');
 
-  if (slide.type === 'message') {
+  if (slide.type === 'message' || slide.type === 'qr') {
     // Show message slide, hide photo
     img.style.display = 'none';
     msgSlide.classList.remove('hidden');
-    $('diapo-msg-caption').textContent = slide.message || slide.caption || '';
-    const authorEmoji = findParticipantEmoji(slide.guestName);
-    $('diapo-msg-author').innerHTML = `<span>${authorEmoji}</span> ${slide.guestName || 'Guest'}`;
-    // Hide track/author for message slides — QR overlay bottom-right stays visible (parité photos)
+    const isQrInvitation = slide.type === 'qr';
+    $('diapo-msg-caption').textContent = isQrInvitation ? 'Scanne et rejoins la soirée.' : (slide.message || slide.caption || '');
+    const authorEmoji = isQrInvitation ? '✦' : findParticipantEmoji(slide.guestName);
+    $('diapo-msg-author').innerHTML = `<span>${authorEmoji}</span> ${isQrInvitation ? 'AhOuai' : (slide.guestName || 'Guest')}`;
     if (trackOverlay) trackOverlay.style.display = 'none';
     if (authorBadge) authorBadge.style.display = 'none';
-    if (qrOverlay) qrOverlay.style.display = '';
+    if (qrOverlay) qrOverlay.style.display = isQrInvitation ? 'none' : '';
+    // QR inline dans la slide vide (invitation plein écran)
+    const messageQr = $('diapo-msg-qr');
+    if (messageQr) {
+      messageQr.innerHTML = '';
+      messageQr.style.display = isQrInvitation ? 'flex' : 'none';
+      if (isQrInvitation && typeof QRCode !== 'undefined' && state.partyCode) {
+        new QRCode(messageQr, {
+          text: 'https://join.ahouai.com/?code=' + state.partyCode,
+          width: 176, height: 176,
+          colorDark: '#071124', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        const label = document.createElement('div');
+        label.className = 'diapo-message-qr-label';
+        label.textContent = 'REJOINDRE LA SOIRÉE';
+        messageQr.appendChild(label);
+      }
+    }
   } else {
     // Show photo, hide message
     msgSlide.classList.add('hidden');
@@ -7547,7 +7574,9 @@ function renderSouvenirs() {
   const diapoBtn = document.getElementById('btn-launch-diapo-memories');
   if (diapoBtn) {
     diapoBtn.style.display = '';
-    diapoBtn.classList.toggle('is-awaiting-content', getAllSlidesSorted().length === 0);
+    const hasContent = photos.length > 0 || messages.some(message => message && (message.message || message.text));
+    diapoBtn.classList.toggle('is-awaiting-content', !hasContent);
+    diapoBtn.textContent = hasContent ? '▶ LANCER LE DIAPORAMA' : '⌑ OUVRIR LE QR DE LA SOIRÉE';
   }
 }
 
