@@ -45,17 +45,20 @@ router.post('/:code/suggest', async (req, res) => {
     };
     console.log('[suggest] suggestion built');
 
-    if (!party.suggestions) party.suggestions = [];
-    
-    // capped push logic
-    if (party.suggestions.length > 200) {
-      party.suggestions.shift();
-    }
-    party.suggestions.push(suggestion);
-    console.log('[suggest] pushed to suggestions array');
-    
-    await party.save();
-    console.log('[suggest] party saved OK');
+    // ★ Task #15 fix — atomic $push évite les VersionError intermittents
+    // quand plusieurs guests proposent en même temps.
+    await Party.updateOne(
+      { _id: party._id },
+      {
+        $push: {
+          suggestions: {
+            $each: [suggestion],
+            $slice: -200  // cap à 200 en gardant les plus récents
+          }
+        }
+      }
+    );
+    console.log('[suggest] party saved OK (atomic $push)');
 
     // ★ Task #7: sync RAM parties Map after Mongo save
     const parties = req.app.get('parties');
