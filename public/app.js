@@ -7059,13 +7059,18 @@ function renderV2Bangers() {
           id, title: track.title, artist: track.artist || track.artistName || '', cover: track.coverURL || track.cover || ''
         }));
         const alreadySent = resuggestedTrackIds.has(`${id}:${(track.title || '').toLowerCase()}`);
-        const fireCount = track.myFires + track.otherFires;
         const sourceLabel = track.sources.has('liked') && track.sources.has('suggested') ? 'Aimé · suggéré' : track.sources.has('liked') ? 'Aimé' : 'Suggéré';
+        // ★ Compteur détaillé par titre : Me + Others séparés (comme le résumé du haut)
+        const fireBadge = (track.myFires || track.otherFires) ? `
+          <em class="v2-banger-fires">
+            ${track.myFires ? `<span class="is-me">🔥 ${track.myFires}</span>` : ''}
+            ${track.otherFires ? `<span class="is-others">🔥 ${track.otherFires}</span>` : ''}
+          </em>` : '';
         return `
           <article class="v2-banger-item${alreadySent ? ' is-sent' : ''}">
             ${track.coverURL || track.cover ? `<img src="${escHtml(track.coverURL || track.cover)}" alt="" onerror="this.style.display='none'">` : '<span class="v2-banger-cover">♫</span>'}
             <div class="v2-banger-copy"><strong>${escHtml(track.title)}</strong><span>${escHtml(track.artist || track.artistName || '')} <b>${sourceLabel}</b></span></div>
-            ${fireCount ? `<em>🔥 ${fireCount}</em>` : ''}
+            ${fireBadge}
             <button type="button" ${alreadySent ? 'disabled' : ''} onclick="resuggestV2Banger('${payload}')">${alreadySent ? '✓ ENVOYÉ' : '📤 PROPOSER'}</button>
           </article>`;
       }).join('')}
