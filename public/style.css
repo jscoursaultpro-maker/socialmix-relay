@@ -5225,76 +5225,78 @@ html, body {
   box-shadow: 0 0 23px rgba(239, 44, 173, .2), inset 0 0 17px rgba(255,255,255,.08);
 }
 
-/* ═══ UNIFIED PAGE HEADERS — ON AIR · MOI · AFTERGLOW (réf: AGIR style par défaut) ═══ */
-/* Layout row : icône à gauche (35px) + h1 blanc 23px + baseline 12px
-   Même structure que .v2-space-heading de base sur AGIR.            */
+/* ═══ UNIFIED PAGE HEADERS — ON AIR · MOI · AFTERGLOW ═══ */
+/* Layout colonne centré : icône au-dessus + h1 blanc + baseline */
 
 #tab-soiree .v2-space-heading,
 #tab-hub    .v2-space-heading,
 #tab-memories .v2-space-heading {
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  margin: 4px 0 14px;
-  padding: 4px 2px;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  margin: 4px 0 18px;
+  padding: 6px 0 0;
   position: relative;
   isolation: isolate;
 }
 
-/* ─── h1 : même taille que AGIR base ─── */
+#tab-soiree .v2-space-heading > div,
+#tab-hub    .v2-space-heading > div,
+#tab-memories .v2-space-heading > div { text-align: center; }
+
+/* h1 */
 #tab-soiree .v2-space-heading h1,
 #tab-hub    .v2-space-heading h1,
 #tab-memories .v2-space-heading h1 {
   font-family: var(--font-display);
-  font-size: 23px;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.6px;
+  font-size: clamp(32px, 10vw, 48px);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -.04em;
   color: #fff;
   margin: 0;
 }
 
-/* ─── baseline ─── */
+/* baseline */
 #tab-soiree .v2-space-heading p,
 #tab-hub    .v2-space-heading p,
 #tab-memories .v2-space-heading p {
-  margin: 4px 0 0;
-  color: rgba(241,245,249,0.7);
-  font-size: 12px;
-  font-weight: 600;
+  margin: 2px 0 0;
+  color: rgba(200, 195, 230, 0.75);
+  font-size: clamp(12px, 3.5vw, 15px);
+  font-weight: 500;
 }
 
-/* ─── Icônes SVG : petites (35px), fond reset ─── */
+/* Icônes SVG — fond reset, taille modérée */
 #tab-soiree   .v2-space-icon,
 #tab-hub      .v2-space-icon,
 #tab-memories .v2-space-icon {
   background: none;
   box-shadow: none;
   border-radius: 0;
-  width: 35px;
-  height: 35px;
-  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
 }
 
 /* ON AIR → cyan/teal */
 #tab-soiree .v2-space-icon svg {
   width: 100%; height: 100%;
   stroke: #38e8d8;
-  filter: drop-shadow(0 0 4px #38e8d8) drop-shadow(0 0 10px #00c4b480);
+  filter: drop-shadow(0 0 4px #38e8d8) drop-shadow(0 0 12px #00c4b480);
 }
-
-/* MOI → violet/lilas */
+/* MOI → violet */
 #tab-hub .v2-space-icon svg {
   width: 100%; height: 100%;
   stroke: #c084fc;
-  filter: drop-shadow(0 0 4px #c084fc) drop-shadow(0 0 10px #9333ea80);
+  filter: drop-shadow(0 0 4px #c084fc) drop-shadow(0 0 12px #9333ea80);
 }
-
 /* AfterGlow → rose */
 #tab-memories .v2-space-icon svg {
   width: 100%; height: 100%;
   stroke: #fb7185;
-  filter: drop-shadow(0 0 4px #fb7185) drop-shadow(0 0 10px #e11d4880);
+  filter: drop-shadow(0 0 4px #fb7185) drop-shadow(0 0 12px #e11d4880);
 }
 /* ══════════════════════════════════════════════════════════════════ */
 
