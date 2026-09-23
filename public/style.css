@@ -4101,6 +4101,49 @@ html, body {
 .v2-action-share { border-color: rgba(26, 211, 255, 0.44); background: linear-gradient(150deg, rgba(20, 126, 170, 0.56), rgba(10, 28, 44, 0.96)); }
 .v2-action-trends { border-color: rgba(231, 95, 255, 0.42); background: linear-gradient(150deg, rgba(125, 43, 145, 0.55), rgba(31, 16, 43, 0.96)); }
 .v2-action-card:active { transform: scale(0.97); }
+
+/* The same four actions are compact shortcuts in every environment. */
+.v2-context-action-mount { margin: 0 0 14px; }
+.v2-context-action-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.v2-context-action {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 76px;
+  padding: 8px 4px;
+  border: 1px solid rgba(151, 117, 255, .36);
+  border-radius: 15px;
+  color: rgba(239, 239, 255, .75);
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: inset 0 1px rgba(255,255,255,.04), 0 8px 17px rgba(0,0,0,.13);
+}
+.v2-context-action strong {
+  overflow: hidden;
+  max-width: 100%;
+  color: inherit;
+  font: 900 clamp(7px, 2.25vw, 10px)/1.1 var(--font-display);
+  letter-spacing: -.025em;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.v2-context-action-art { display: grid; width: 26px; height: 26px; place-items: center; }
+.v2-context-action-art svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.v2-context-action:active { transform: scale(.97); }
+.v2-context-action.v2-action-suggest { color: #c2bcff; }
+.v2-context-action.v2-action-boost { color: #d7b8d1; }
+.v2-context-action.v2-action-share { color: #b5d6e7; }
+.v2-context-action.v2-action-trends { color: #cdb7dc; }
+#tab-memories .v2-context-action-mount { margin: 10px 0 14px; }
+#tab-hub .v2-context-action-mount { margin: -5px 0 14px; }
+@media (max-width: 360px) {
+  .v2-context-action-grid { gap: 5px; }
+  .v2-context-action { min-height: 68px; border-radius: 13px; }
+  .v2-context-action-art { width: 22px; height: 22px; }
+}
 #tab-agir.is-v2-focus-mode .v2-space-heading { display: none; }
 #tab-agir.is-v2-focus-mode .v2-action-grid {
   position: sticky;

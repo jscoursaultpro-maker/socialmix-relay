@@ -7391,11 +7391,51 @@ function openV2Trends() {
   requestAnimationFrame(() => trends.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
+// The four ways to participate stay at hand in every space. Each compact
+// shortcut opens the one complete AGIR flow, avoiding divergent copies.
+function openV2ActionFromAnywhere(action) {
+  showTab('agir');
+  requestAnimationFrame(() => {
+    if (action === 'suggest') openV2SuggestionSearch();
+    else if (action === 'boost') openV2Boosts();
+    else if (action === 'share') openV2ShareActions();
+    else if (action === 'trends') openV2Trends();
+  });
+}
+
+function v2ContextActionMarkup() {
+  return `
+    <div class="v2-context-action-grid" role="group" aria-label="Actions de la soirée">
+      <button type="button" class="v2-context-action v2-action-suggest" onclick="openV2ActionFromAnywhere('suggest')">
+        <span class="v2-context-action-art" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M5 12a7 7 0 0 1 7-7"/></svg></span><strong>ON MET QUOI ?</strong>
+      </button>
+      <button type="button" class="v2-context-action v2-action-boost" onclick="openV2ActionFromAnywhere('boost')">
+        <span class="v2-context-action-art" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21 3.5 12.5C-2 7 6 0 12 6c6-6 14 1 8.5 6.5Z"/></svg></span><strong>Booster</strong>
+      </button>
+      <button type="button" class="v2-context-action v2-action-share" onclick="openV2ActionFromAnywhere('share')">
+        <span class="v2-context-action-art" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5 10 2h4l2 3h4a2 2 0 0 1 2 2v13H2V7a2 2 0 0 1 2-2Z"/><circle cx="12" cy="12" r="4"/></svg></span><strong>Partager</strong>
+      </button>
+      <button type="button" class="v2-context-action v2-action-trends" onclick="openV2ActionFromAnywhere('trends')">
+        <span class="v2-context-action-art" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 10v4m4-8v12m5-16v20m5-17v14m4-9v4"/></svg></span><strong>Tendance</strong>
+      </button>
+    </div>`;
+}
+
+function initializeV2ContextActionBars() {
+  document.querySelectorAll('.v2-context-action-mount').forEach(mount => {
+    if (!mount.dataset.ready) {
+      mount.innerHTML = v2ContextActionMarkup();
+      mount.dataset.ready = 'true';
+    }
+  });
+}
+
 // Move existing DOM nodes rather than duplicating them: all listeners, IDs and
 // dynamic renderers stay exactly the same while the visual information
 // architecture changes from SOIRÉE to AGIR / ON AIR.
 function initializeV2Spaces() {
   const agirContent = document.getElementById('agir-live-content');
+  initializeV2ContextActionBars();
   if (!agirContent || agirContent.dataset.ready === 'true') return;
 
   // Personal libraries have one home: Mes Bangers in AGIR. They must not
