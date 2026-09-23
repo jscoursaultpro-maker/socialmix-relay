@@ -7772,9 +7772,19 @@ function renderSouvenirs() {
   const storyGuestsList = document.getElementById('story-guests-list');
   const storyGuestsCount = document.getElementById('story-guests-count');
   if (storyGuestsEl && storyGuestsList) {
+    // ★ On inclut le host + dédup par nom normalisé (Romeo == romeo-2).
+    // On exclut seulement soi-même pour ne pas s'afficher.
+    const _normGuest = (n) => (n || '')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase().replace(/\s+/g, ' ').replace(/-\d+$/, '').trim();
+    const seenGuest = new Set();
     const guests = participants.filter(person => {
       const personId = person.userId || person.id || '';
-      return !person.isHost && (!personId || String(personId) !== String(myId));
+      if (personId && String(personId) === String(myId)) return false;
+      const nk = _normGuest(person.name);
+      if (nk && seenGuest.has(nk)) return false; // doublon Romeo/romeo-2
+      if (nk) seenGuest.add(nk);
+      return true;
     });
     if (!guests.length) {
       storyGuestsList.innerHTML = '<div class="story-empty-state">Les invités de la soirée apparaîtront ici.</div>';
@@ -7830,7 +7840,17 @@ function renderSouvenirs() {
   // ─── RÉCAP STORY ───────────────────────────────────────
   const recap = document.getElementById('story-recap');
   if (recap) {
-    const guestCount = participants.filter(p => !p.isHost).length || participants.length;
+    // ★ Host inclus + dédup par nom normalisé (strip "-N", accents, casse)
+    // pour ne pas compter Romeo et romeo-2 comme 2 personnes distinctes.
+    const _normPerson = (n) => (n || '')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase().replace(/\s+/g, ' ').replace(/-\d+$/, '').trim();
+    const uniqNames = new Set();
+    participants.forEach(p => {
+      const key = _normPerson(p.name) || p.userId || p.id || Math.random();
+      uniqNames.add(key);
+    });
+    const guestCount = uniqNames.size;
     const playedCount = trackHistory.length;
     const photoCount = photos.length;
     const wordCount = messages.filter(m => m && (m.message || m.text)).length;

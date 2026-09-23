@@ -4018,24 +4018,40 @@ function broadcastLeaderboard(party) {
     }
   }
   
-  // ★ Dedup scores by participantId (Option C - safe merge)
+  // ★ Dedup scores (Option C élargie) : merge par participantId OU par nom
+  // normalisé (strip suffixe "-2", "-3"..., accents, casse). Cible les cas
+  // où un même invité génère des entries multiples via reconnexion :
+  // Romeo + romeo-2 fusionnent en un seul avec cumul des points.
+  const normalizeMergeName = (name) => {
+    if (!name) return '';
+    return name
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')  // strip accents
+      .toLowerCase()
+      .replace(/\s+/g, ' ')                              // collapse spaces
+      .replace(/-\d+$/, '')                              // strip trailing -N
+      .trim();
+  };
   const mergedScoresMap = new Map();
   for (const [key, entry] of Object.entries(party.participantScores)) {
     const pid = entry.participantId || key;
     if (pid === 'host') continue; // Host is handled separately
-    if (!mergedScoresMap.has(pid)) {
-      mergedScoresMap.set(pid, { ...entry });
+    // Merge key = nom normalisé si présent, sinon participantId
+    const mergeKey = normalizeMergeName(entry.name) || pid;
+    if (!mergedScoresMap.has(mergeKey)) {
+      mergedScoresMap.set(mergeKey, { ...entry });
     } else {
-      const existing = mergedScoresMap.get(pid);
+      const existing = mergedScoresMap.get(mergeKey);
       existing.score += (entry.score || 0);
       existing.voteCount = (existing.voteCount || 0) + (entry.voteCount || 0);
       existing.photoCount = (existing.photoCount || 0) + (entry.photoCount || 0);
-      // Garder le nom le plus récent si différent
-      if (entry.name && entry.name !== 'Guest') existing.name = entry.name;
+      // Garder le nom SANS suffixe -N (le plus propre)
+      if (entry.name && !/-\d+$/.test(entry.name) && entry.name !== 'Guest') {
+        existing.name = entry.name;
+      }
     }
   }
   // Ajouter le host
-  if (hostEntry) mergedScoresMap.set('host', hostEntry);
+  if (hostEntry) mergedScoresMap.set('__host__', hostEntry);
 
   const lb = Array.from(mergedScoresMap.values())
     .map(d => ({
