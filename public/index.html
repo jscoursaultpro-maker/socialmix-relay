@@ -549,6 +549,15 @@
         <!-- ═══ ESPACE ON AIR — flux musical live ═══ -->
         <section id="tab-soiree" class="tab-content active">
 
+          <!-- ★ Page header — uniformisé avec AGIR -->
+          <div class="v2-space-heading">
+            <span class="v2-space-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+            <div>
+              <h1 id="onair-title">ON AIR</h1>
+              <p>Ce qui joue en ce moment.</p>
+            </div>
+          </div>
+
           <!-- ★ Phase Narrative Headline -->
           <div class="phase-narrative soiree-phase-headline" id="phaseNarrative">
             <!-- Injecté dynamiquement par updatePhaseNarrative() -->
@@ -751,15 +760,16 @@
         <!-- ═══ TAB 3: SOUVENIRS (CP3 refonte) ═══ -->
         <section id="tab-memories" class="tab-content">
 
-            <!-- STORY — ce qui restera de la soirée -->
-            <div class="souvenirs-hero" id="souvenirs-hero">
-                <div class="souvenirs-hero-bg" id="souvenirs-hero-bg"></div>
-                <div class="souvenirs-hero-content">
-                    <div class="souvenirs-hero-tag">✦ STORY</div>
-                    <h1 class="souvenirs-hero-title">AfterGlow</h1>
-                    <div class="souvenirs-hero-meta" id="souvenirs-hero-meta"></div>
-                </div>
+            <!-- ★ Page header — uniformisé avec AGIR -->
+            <div class="v2-space-heading">
+              <span class="v2-space-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+              <div>
+                <h1 id="memories-title">AfterGlow</h1>
+                <p>Ce qui restera de cette soirée.</p>
+              </div>
             </div>
+            <!-- compat legacy (masqué mais utilisé par JS pour hero-meta) -->
+            <div id="souvenirs-hero" style="display:none"><div id="souvenirs-hero-bg"></div><div id="souvenirs-hero-meta"></div></div>
             <button id="btn-launch-diapo-memories" onclick="handleDiapoBtnClick()" class="souvenirs-diapo-btn story-diapo-btn story-diapo-btn--hero">▶ LANCER LE DIAPORAMA</button>
 
             <!-- LE MOMENT -->
@@ -835,10 +845,10 @@
 
         <!-- ═══ TAB 4: HUB ═══ -->
         <section id="tab-hub" class="tab-content">
-            <div class="v2-space-heading v2-space-heading--moi">
-                <span class="v2-space-icon" aria-hidden="true">●</span>
+            <div class="v2-space-heading">
+                <span class="v2-space-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
                 <div>
-                    <h1>MOI</h1>
+                    <h1 id="moi-title">MOI</h1>
                     <p>Ma place dans cette soirée.</p>
                 </div>
             </div>

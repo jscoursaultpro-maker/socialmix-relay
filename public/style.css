@@ -5277,3 +5277,117 @@ html {
   letter-spacing: .15em;
   text-transform: uppercase;
 }
+
+/* ═══ UNIFIED PAGE HEADERS — ON AIR · MOI · AFTERGLOW (réf: AGIR) ═══ */
+/* Chaque tab partage la même mise en page centrée que AGIR:
+   icône SVG neon + h1 blanc large + p baseline subtile               */
+
+#tab-soiree .v2-space-heading,
+#tab-hub    .v2-space-heading,
+#tab-memories .v2-space-heading {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 2px 0 18px;
+  padding: 0;
+  position: relative;
+  isolation: isolate;
+}
+
+/* Fond radial subtil identique AGIR */
+#tab-soiree .v2-space-heading::before,
+#tab-hub    .v2-space-heading::before,
+#tab-memories .v2-space-heading::before {
+  content: '';
+  position: absolute;
+  inset: -30px -10px -20px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ─── h1 : grand, blanc, style display ─── */
+#tab-soiree .v2-space-heading h1,
+#tab-hub    .v2-space-heading h1,
+#tab-memories .v2-space-heading h1 {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 11vw, 52px);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -.04em;
+  color: #fff5fc;
+  margin: 0;
+}
+
+/* ─── baseline : petite, douce ─── */
+#tab-soiree .v2-space-heading p,
+#tab-hub    .v2-space-heading p,
+#tab-memories .v2-space-heading p {
+  color: rgba(185, 180, 220, 0.8);
+  font-size: clamp(13px, 3.8vw, 17px);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* ─── div wrapper text : centré ─── */
+#tab-soiree .v2-space-heading > div,
+#tab-hub    .v2-space-heading > div,
+#tab-memories .v2-space-heading > div {
+  text-align: center;
+}
+
+/* ─── Icônes SVG — reset fond, taille, et couleur par tab ─── */
+#tab-soiree   .v2-space-icon,
+#tab-hub      .v2-space-icon,
+#tab-memories .v2-space-icon {
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  width: 50px;
+  height: 50px;
+}
+
+/* ON AIR → cyan/teal */
+#tab-soiree .v2-space-icon svg {
+  width: 100%; height: 100%;
+  stroke: #38e8d8;
+  filter: drop-shadow(0 0 3px #38e8d8) drop-shadow(0 0 10px #00c4b4) drop-shadow(0 0 22px #00807860);
+}
+#tab-soiree .v2-space-heading h1 {
+  text-shadow: 0 0 18px #38e8d840, 0 0 38px #00c4b420;
+}
+#tab-soiree .v2-space-heading::before {
+  background: radial-gradient(ellipse at 50% 40%, #00c4b420, transparent 58%),
+              radial-gradient(ellipse at 15% 80%, #1d216620, transparent 60%);
+}
+
+/* MOI → violet/lilas */
+#tab-hub .v2-space-icon svg {
+  width: 100%; height: 100%;
+  stroke: #c084fc;
+  filter: drop-shadow(0 0 3px #c084fc) drop-shadow(0 0 10px #9333ea) drop-shadow(0 0 22px #7c3aed60);
+}
+#tab-hub .v2-space-heading h1 {
+  text-shadow: 0 0 18px #c084fc40, 0 0 38px #9333ea20;
+}
+#tab-hub .v2-space-heading::before {
+  background: radial-gradient(ellipse at 50% 40%, #9333ea20, transparent 58%),
+              radial-gradient(ellipse at 20% 80%, #1d216620, transparent 60%);
+}
+
+/* AfterGlow → rose photo-memory */
+#tab-memories .v2-space-icon svg {
+  width: 100%; height: 100%;
+  stroke: #fb7185;
+  filter: drop-shadow(0 0 3px #fb7185) drop-shadow(0 0 10px #e11d48) drop-shadow(0 0 22px #be123c60);
+}
+#tab-memories .v2-space-heading h1 {
+  text-shadow: 0 0 18px #fb718540, 0 0 38px #e11d4820;
+}
+#tab-memories .v2-space-heading::before {
+  background: radial-gradient(ellipse at 50% 40%, #e11d4820, transparent 58%),
+              radial-gradient(ellipse at 20% 80%, #1d216620, transparent 60%);
+}
+/* ══════════════════════════════════════════════════════════════════ */
+
