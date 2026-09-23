@@ -7000,8 +7000,10 @@ function v2BangerTracks() {
     const key = `${track.deezerID || track.id || ''}:${track.title.trim().toLowerCase()}:${(track.artist || track.artistName || '').trim().toLowerCase()}`;
     const current = merged.get(key) || { ...track, sources: new Set(), myFires: 0, otherFires: 0 };
     const mine = v2Number(track, ['myFireCount', 'myFires', 'voteCount']);
-    const explicitOthers = v2Number(track, ['otherFireCount', 'othersFireCount', 'othersFires']);
-    const totalFires = v2Number(track, ['totalFireCount', 'fireCount', 'fireVotes']);
+    // ★ Fix : le serveur renvoie `feuCount` = boostCount (fires des autres invités
+    // sur mes suggestions). C'était ignoré → "0 Others" alors qu'ils avaient boosté.
+    const explicitOthers = v2Number(track, ['otherFireCount', 'othersFireCount', 'othersFires', 'feuCount', 'boostCount']);
+    const totalFires = v2Number(track, ['totalFireCount', 'fireCount', 'fireVotes', 'feuCount']);
     current.sources.add(source);
     current.myFires = Math.max(current.myFires, mine);
     current.otherFires = Math.max(current.otherFires, explicitOthers || Math.max(0, totalFires - mine));
