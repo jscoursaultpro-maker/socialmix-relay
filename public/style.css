@@ -5235,3 +5235,18 @@ html, body {
     max-width: 720px !important;
   }
 }
+
+/* Masquer la scrollbar (garder le scroll fonctionnel) */
+#cockpit-screen::-webkit-scrollbar,
+body::-webkit-scrollbar,
+html::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent;
+}
+#cockpit-screen,
+body,
+html {
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE 10+ */
+}
