@@ -4050,8 +4050,9 @@ function broadcastLeaderboard(party) {
 
   // ★ fix Bug Benjamin #3: broadcast participantScores en live pour que l'archive iOS
   // recoive voteCount + photoCount pendant la soiree (etait envoye uniquement a party:ended)
-  // ★ Patch 0035 completion — utilise la même dédup que le leaderboard (Option C
-  // full) pour que la vue "PARTICIPANTS" iOS host ne montre plus les doublons.
+  // ★ Patch 0035 rev-2 : on garde le FORMAT HISTORIQUE (clés = nom du participant
+  // comme avant) mais on utilise les VALEURS déduppées de mergedScoresMap.
+  // Change de format = iOS host cassait le mapping par nom → affichait 0 pts.
   const scoresSnapshot = {};
   if (hostEntry) {
     scoresSnapshot.host = {
@@ -4063,7 +4064,8 @@ function broadcastLeaderboard(party) {
   }
   for (const entry of mergedScoresMap.values()) {
     if (entry === hostEntry) continue;
-    const key = entry.participantId || entry.name || '_unknown';
+    // ★ Clé = name (compat iOS legacy) ; fallback participantId si name manquant
+    const key = entry.name || entry.participantId || '_unknown';
     scoresSnapshot[key] = {
       name: entry.name || key,
       score: entry.score || 0,
