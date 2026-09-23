@@ -5168,6 +5168,80 @@ html, body {
   background: linear-gradient(105deg, rgba(0, 207, 217, .24), rgba(239, 44, 173, .44));
   box-shadow: 0 0 23px rgba(239, 44, 173, .2), inset 0 0 17px rgba(255,255,255,.08);
 }
+
+/* ═══ UNIFIED PAGE HEADERS — ON AIR · MOI · AFTERGLOW (réf: AGIR style par défaut) ═══ */
+/* Layout row : icône à gauche (35px) + h1 blanc 23px + baseline 12px
+   Même structure que .v2-space-heading de base sur AGIR.            */
+
+#tab-soiree .v2-space-heading,
+#tab-hub    .v2-space-heading,
+#tab-memories .v2-space-heading {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 14px;
+  padding: 4px 2px;
+  position: relative;
+  isolation: isolate;
+}
+
+/* ─── h1 : même taille que AGIR base ─── */
+#tab-soiree .v2-space-heading h1,
+#tab-hub    .v2-space-heading h1,
+#tab-memories .v2-space-heading h1 {
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.6px;
+  color: #fff;
+  margin: 0;
+}
+
+/* ─── baseline ─── */
+#tab-soiree .v2-space-heading p,
+#tab-hub    .v2-space-heading p,
+#tab-memories .v2-space-heading p {
+  margin: 4px 0 0;
+  color: rgba(241,245,249,0.7);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ─── Icônes SVG : petites (35px), fond reset ─── */
+#tab-soiree   .v2-space-icon,
+#tab-hub      .v2-space-icon,
+#tab-memories .v2-space-icon {
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  width: 35px;
+  height: 35px;
+  flex-shrink: 0;
+}
+
+/* ON AIR → cyan/teal */
+#tab-soiree .v2-space-icon svg {
+  width: 100%; height: 100%;
+  stroke: #38e8d8;
+  filter: drop-shadow(0 0 4px #38e8d8) drop-shadow(0 0 10px #00c4b480);
+}
+
+/* MOI → violet/lilas */
+#tab-hub .v2-space-icon svg {
+  width: 100%; height: 100%;
+  stroke: #c084fc;
+  filter: drop-shadow(0 0 4px #c084fc) drop-shadow(0 0 10px #9333ea80);
+}
+
+/* AfterGlow → rose */
+#tab-memories .v2-space-icon svg {
+  width: 100%; height: 100%;
+  stroke: #fb7185;
+  filter: drop-shadow(0 0 4px #fb7185) drop-shadow(0 0 10px #e11d4880);
+}
+/* ══════════════════════════════════════════════════════════════════ */
+
 #tab-memories .story-diapo-btn.is-awaiting-content {
   border-color: rgba(88, 225, 239, .58);
   background: linear-gradient(105deg, rgba(0, 207, 217, .16), rgba(115, 59, 209, .25));
