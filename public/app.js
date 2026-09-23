@@ -2074,7 +2074,12 @@ function connectToRelay() {
     if (ps.genreVotes) { state.genreVotes = ps.genreVotes; updateGenreChart(); }
     if (ps.trackHistory) { state.trackHistory = ps.trackHistory; updateHistory(); }
     if (ps.mode) { state.mode = ps.mode; updateDJMode(); }
-    if (ps.participants) { updateTrombinoscope(ps.participants); }
+    // Afterglow relies on exactly the same live presence data as the trombinoscope.
+    // Keep it even when the visual trombi does not need to repaint.
+    if (Array.isArray(ps.participants)) {
+      state.participants = ps.participants;
+      updateTrombinoscope(ps.participants);
+    }
     if (ps.photos && ps.photos.length) {
       // ★ Task #103 Gap B fix: Cloudinary photos have .url (not .dataURL).
       // buildLightState strips dataURL > 500 chars, so after reconnect
@@ -2417,6 +2422,7 @@ function connectToRelay() {
     // This ensures guests can vote once PER SONG, not once for the entire party
     setupVoteButtons();
     saveSession();
+    if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
     console.log('[Track] New track → vote reset, buttons re-bound');
     
     // ★ Phase Visibilité : Moment de gloire (Haptic + Toast)
@@ -2512,6 +2518,7 @@ function connectToRelay() {
     renderCaMonte();
     populateMissions();
     saveSession();
+    if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
   });
 
   socket.on('vote:received', (data) => {
@@ -4202,12 +4209,14 @@ function populateTrombinoscope() {
 
 function updateTrombinoscope(participants) {
   const key = participants.map(p => p.name).sort().join(',');
+  // The Afterglow needs the canonical live list even when visual avatars
+  // have not changed (for instance after a refresh or an action update).
+  state.participants = participants;
   if (state._lastTrombiKey === key) return;
   state._lastTrombiKey = key;
   // ★ Bug E-3a — refresh statuts amis quand la liste change (nouveaux invités arrivent)
   refreshFriendStatuses();
   
-  state.participants = participants;
   if (typeof renderMoiOverview === 'function') renderMoiOverview();
   const grid = $('trombi-grid');
   // Merge self + server participants (avoid duplicates)
@@ -6888,6 +6897,9 @@ function showTab(tabName) {
 
   // ★ CP3 — render STORY on tab open
   if (normalizedName === 'story' && typeof renderSouvenirs === 'function') {
+    // Ask the relay for a fresh full light-state: Afterglow must never depend
+    // on a stale first render after returning from the background.
+    if (socket && socket.connected) socket.emit('guest:requestState');
     try { renderSouvenirs(); } catch (e) { console.warn('[souvenirs] render failed:', e); }
   }
 }
@@ -7461,7 +7473,7 @@ function _souvResolveNames(ids) {
   if (typeof resolveBoosterNames === 'function') {
     try { return resolveBoosterNames(ids); } catch {}
   }
-  const parts = (window.state && window.state.participants) || [];
+  const parts = state.participants || [];
   return (ids || []).slice(0, 3).map(id => {
     const p = parts.find(x => (x.userId && String(x.userId) === String(id)) || x.id === id);
     return p ? (p.name || 'Guest') : null;
@@ -7469,7 +7481,8 @@ function _souvResolveNames(ids) {
 }
 
 function renderSouvenirs() {
-  const state = window.state || {};
+  // `state` is the app's lexical state object. It is deliberately not a
+  // window global: using window.state here made Afterglow render as empty.
   const myId = state.userId || state.guestId || '';
   const trackHistory = state.trackHistory || [];
   // Les flux live utilisent allPhotos/liveMessages, les anciennes soirées
@@ -7736,7 +7749,8 @@ function renderSouvenirs() {
         } else if (personId) {
           action = `<button type="button" class="story-friend-btn" data-story-friend-action="invite" data-story-friend-id="${_souvEscape(personId)}" data-story-friend-name="${_souvEscape(name)}">+ AMI</button>`;
         }
-        return `<div class="story-guest-row"><span class="story-guest-avatar">${avatar}</span><span class="story-guest-copy"><b>${_souvEscape(name)}</b><small>${person.isHost ? 'Hôte de la soirée' : 'Était à la soirée'}</small></span>${action}</div>`;
+        const contact = `<button type="button" class="story-contact-btn" data-story-contact-name="${_souvEscape(name)}" data-story-contact-emoji="${_souvEscape(person.emoji || '✦')}">⌁ CONTACT</button>`;
+        return `<div class="story-guest-row"><span class="story-guest-avatar">${avatar}</span><span class="story-guest-copy"><b>${_souvEscape(name)}</b><small>${person.isHost ? 'Hôte de la soirée' : 'Était à la soirée'}</small></span><span class="story-guest-actions">${action}${contact}</span></div>`;
       }).join('');
     }
     storyGuestsList.querySelectorAll('[data-story-friend-action]').forEach(button => {
@@ -7750,6 +7764,16 @@ function renderSouvenirs() {
           sendFriendRequest(personId, name);
         }
         renderSouvenirs();
+      });
+    });
+    storyGuestsList.querySelectorAll('[data-story-contact-name]').forEach(button => {
+      button.addEventListener('click', () => {
+        const name = button.dataset.storyContactName || 'Invité AhOuai';
+        const emoji = button.dataset.storyContactEmoji || '✦';
+        downloadVCard(name, emoji, '', '', '');
+        button.textContent = '✓ AJOUTÉ';
+        button.classList.add('is-saved');
+        showToast(`${name} est prêt à être ajouté à tes contacts`, 3000);
       });
     });
     if (storyGuestsCount) storyGuestsCount.textContent = `${guests.length} invité${guests.length > 1 ? 's' : ''}`;
@@ -7787,7 +7811,6 @@ function renderSouvenirs() {
 
 // ★ Partage soirée — utilise Web Share API si disponible, sinon copie lien
 window.shareSouvenirs = function() {
-  const state = window.state || {};
   const code = state.partyCode || '';
   const hostName = state.hostProfile?.name || 'la soirée';
   const url = `${window.location.origin}/?code=${code}`;

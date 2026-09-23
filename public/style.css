@@ -5197,6 +5197,18 @@ html, body {
   font: 900 8px var(--font-display);
   letter-spacing: .04em;
 }
+.story-guest-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 5px; }
+.story-contact-btn {
+  flex: 0 0 auto;
+  padding: 7px 7px;
+  border: 1px solid rgba(216, 101, 255, .42);
+  border-radius: 10px;
+  color: #e5c7ff;
+  background: rgba(105, 50, 166, .14);
+  font: 900 8px var(--font-display);
+  letter-spacing: .04em;
+}
+.story-contact-btn.is-saved { border-color: rgba(79, 239, 195, .55); color: #79f2ca; background: rgba(31, 177, 141, .16); }
 .story-friend-btn.is-accept { color: #071b22; border-color: #42e5c6; background: linear-gradient(135deg, #52efcb, #20b8d3); }
 .story-friend-state { border-color: rgba(156, 114, 255, .35); color: rgba(220, 202, 255, .76); background: rgba(111, 70, 192, .12); }
 .story-friend-state.is-friend { border-color: rgba(54, 235, 178, .48); color: #6df0c3; background: rgba(34, 188, 140, .11); }
