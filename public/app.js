@@ -1866,7 +1866,8 @@ function enterCockpit() {
   // A refresh always returns to AGIR (hub d'actions), and the active tab must
   // communicate that state before any socket update arrives.
   showTab('agir');
-  
+  setupBackButtonTrap(); // ★ Back button → AGIR au lieu de quitter la soirée
+
   // Hub buttons (top + bottom)
   if ($('hub-card-btn')) $('hub-card-btn').addEventListener('click', () => showScreen('hub'));
   // Profile edit button → go to profile screen for editing
@@ -6871,6 +6872,27 @@ function showTab(tabName) {
   if (normalizedName === 'story' && typeof renderSouvenirs === 'function') {
     try { renderSouvenirs(); } catch (e) { console.warn('[souvenirs] render failed:', e); }
   }
+}
+
+// ★ Back button trap — empêche Chrome/Safari de sortir de la soirée
+// Stratégie : on empile un état synthétique dans history, et chaque fois
+// que popstate se déclenche (bouton Back), on re-pousse l'état et on
+// redirige vers AGIR. Compatible iOS Safari, Android Chrome, Desktop.
+function setupBackButtonTrap() {
+  if (window._backTrapInstalled) return; // idempotent
+  window._backTrapInstalled = true;
+
+  // Injecte un état sentinelle au-dessus de l'entrée actuelle
+  history.pushState({ partyBackTrap: true }, '', window.location.href);
+
+  window.addEventListener('popstate', function onPopState(e) {
+    // Quelqu'un a appuyé sur Back (ou Forward)
+    // On ré-empile immédiatement pour rester dans la soirée
+    history.pushState({ partyBackTrap: true }, '', window.location.href);
+    // Et on ramène l'onglet AGIR
+    if (typeof showTab === 'function') showTab('agir');
+    console.log('[back-trap] Back intercepté → retour AGIR');
+  });
 }
 
 // ★ showAllTabs — legacy compat: opens ON AIR.
