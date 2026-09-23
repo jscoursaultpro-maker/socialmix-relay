@@ -358,6 +358,62 @@ html, body {
 }
 .photo-delete-btn.hidden { display: none; }
 
+/* ─── Profil guest — identity, community and account hub ───────────── */
+#profile-screen { overflow-y: auto; overscroll-behavior: contain; }
+#profile-screen .profile-container { max-width: 560px; width: 100%; margin: 0 auto; padding: 18px 16px 48px; gap: 16px; }
+.profile-page-heading { text-align: center; padding: 5px 6px 2px; }
+.profile-page-heading > span,
+.profile-section-label { display: block; color: var(--turquoise); font-size: 10px; letter-spacing: 2.2px; font-weight: 900; }
+.profile-page-heading h2 { margin: 7px 0 4px; color: #f8f8ff; font-size: 29px; letter-spacing: .7px; }
+.profile-page-heading p { margin: 0; color: #8ca0bd; font-size: 12px; font-weight: 600; }
+.profile-hero-card { position: relative; overflow: hidden; border: 1px solid rgba(24, 229, 218, .28); border-radius: 24px; padding: 20px 16px 17px; background: linear-gradient(135deg, rgba(5, 42, 57, .85), rgba(23, 18, 55, .9)); box-shadow: 0 12px 30px rgba(0,0,0,.25), inset 0 1px rgba(255,255,255,.07); }
+.profile-hero-card::after { content: ''; position: absolute; width: 130px; height: 130px; top: -65px; right: -45px; border-radius: 50%; background: rgba(180,60,255,.14); filter: blur(8px); pointer-events: none; }
+.profile-hero-card .profile-photo-circle { width: 94px; height: 94px; border-width: 3px; margin-bottom: 9px; background: #10182a; box-shadow: 0 0 20px rgba(0,224,196,.16); }
+.profile-hero-card .photo-placeholder { font-size: 34px; }
+.profile-hero-card .photo-btn { padding: 8px 14px; background: linear-gradient(135deg, #20dcb0, #00cbd9); font-size: 9px; color: #071524; }
+.profile-hero-copy { text-align: center; position: relative; z-index: 1; }
+.profile-hero-copy strong { display: block; color: #fff; font-size: 19px; font-weight: 900; }
+.profile-hero-copy span { display: block; margin-top: 5px; color: #98a8c4; font-size: 11px; line-height: 1.4; }
+.profile-section-label { padding: 5px 8px 0; }
+.profile-menu-card { overflow: hidden; border: 1px solid rgba(129, 154, 218, .2); border-radius: 20px; background: rgba(21, 29, 53, .78); box-shadow: inset 0 1px rgba(255,255,255,.035), 0 9px 22px rgba(0,0,0,.16); }
+.profile-menu-row { width: 100%; min-height: 67px; display: flex; align-items: center; gap: 11px; padding: 11px 14px; border: 0; border-bottom: 1px solid rgba(153,171,222,.12); background: transparent; color: white; font-family: var(--font); text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.profile-menu-row:last-child { border-bottom: 0; }
+.profile-menu-row:active { background: rgba(0,224,196,.08); transform: scale(.995); }
+.profile-menu-icon { width: 33px; height: 33px; flex: 0 0 33px; display: grid; place-items: center; border-radius: 11px; font-size: 17px; font-weight: 900; background: rgba(0,224,196,.13); color: #29eee3; }
+.profile-menu-icon.is-violet { background: rgba(174,92,255,.16); color: #be79ff; }
+.profile-menu-icon.is-pink { background: rgba(251,61,189,.14); color: #ff74d0; }
+.profile-menu-icon.is-gold { background: rgba(255,174,42,.16); color: #ffb53f; }
+.profile-menu-icon.is-orange { background: rgba(255,155,53,.15); color: #ffae43; }
+.profile-menu-icon.is-danger { background: rgba(255,62,101,.14); color: #ff557b; }
+.profile-menu-copy { min-width: 0; flex: 1; }
+.profile-menu-copy b { display: block; overflow: hidden; color: #f6f7ff; font-size: 13px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.profile-menu-copy small { display: block; overflow: hidden; margin-top: 3px; color: #8391aa; font-size: 10px; font-weight: 600; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.profile-menu-arrow { color: #7f8aa0; font-size: 24px; line-height: 1; }
+.profile-menu-row--founder { background: linear-gradient(110deg, rgba(255,157,45,.12), rgba(216,65,229,.09)); }
+.profile-menu-row--danger .profile-menu-copy b { color: #ff6687; }
+.profile-party-section { display: none; }
+#profile-screen.is-in-party .profile-party-section { display: block; }
+#profile-screen .form-card { margin: 0; border-radius: 20px; border-color: rgba(129, 154, 218, .2); background: rgba(21, 29, 53, .78); }
+#profile-screen .form-card-header { color: var(--turquoise); letter-spacing: 1.2px; }
+#profile-screen .form-field input { background: rgba(8, 15, 32, .72); }
+#profile-screen .cta-btn { min-height: 51px; border-radius: 16px; }
+.profile-preview-overlay { position: fixed; z-index: 1500; inset: 0; display: grid; place-items: center; padding: 22px; background: rgba(2,6,17,.78); backdrop-filter: blur(9px); }
+.profile-preview-card { position: relative; width: min(360px, 100%); overflow: hidden; padding: 29px 25px 25px; border: 1px solid rgba(27,231,223,.45); border-radius: 27px; background: radial-gradient(circle at 80% 0%, rgba(232,51,196,.28), transparent 35%), linear-gradient(145deg, #102640, #171538); box-shadow: 0 0 42px rgba(0,224,196,.18), 0 25px 55px rgba(0,0,0,.5); text-align: center; }
+.profile-preview-card > span { color: #27ebe3; font-size: 10px; font-weight: 900; letter-spacing: 2px; }
+.profile-preview-close { position: absolute; top: 12px; right: 14px; width: 31px; height: 31px; border: 1px solid rgba(255,255,255,.2); border-radius: 50%; background: rgba(4,11,26,.55); color: #fff; font-size: 25px; line-height: 1; cursor: pointer; }
+.profile-preview-avatar { width: 96px; height: 96px; display: grid; place-items: center; overflow: hidden; margin: 19px auto 13px; border: 3px solid #11d8d5; border-radius: 50%; background: #0a1328; box-shadow: 0 0 20px rgba(0,224,196,.32); color: #fff; font-size: 37px; }
+.profile-preview-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-preview-card h3 { margin: 0; color: #fff; font-size: 22px; }
+.profile-preview-card p { margin: 4px 0 13px; color: #9eb1d3; font-size: 13px; }
+.profile-preview-badge { display: inline-block; padding: 6px 11px; border-radius: 20px; background: rgba(0,224,196,.14); color: #39eee5; font-size: 10px; font-weight: 900; letter-spacing: .8px; }
+.profile-preview-card small { display: block; margin: 18px auto 0; color: #95a4c1; font-size: 11px; line-height: 1.45; max-width: 245px; }
+
+@media (max-width: 380px) {
+  .profile-page-heading h2 { font-size: 26px; }
+  .profile-menu-row { min-height: 62px; padding: 9px 12px; }
+  .profile-menu-copy b { font-size: 12px; }
+}
+
 /* ★ Phase 4A — Phase Indicator (v4: SVG tiles, style iOS host) */
 /* ★ Phase Timeline (read-only, iOS host design ported) */
 .phase-timeline {

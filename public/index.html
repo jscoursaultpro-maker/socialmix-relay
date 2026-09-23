@@ -302,31 +302,43 @@
     <div id="profile-screen" class="screen">
         <div class="profile-container">
             <button id="profile-back" class="back-btn">‹ RETOUR</button>
-            <h2 class="screen-title">MON PROFIL</h2>
-            <p class="screen-subtitle">Pour Le Crew et les contacts</p>
+            <header class="profile-page-heading">
+                <span>✦ ESPACE PERSONNEL</span>
+                <h2>MON PROFIL</h2>
+                <p>Ton identité AhOuai, tes liens et ta soirée.</p>
+            </header>
 
-            <!-- ★ Bug E-3b — CTA Mes amis (redirige vers écran centralisé Mes amis) -->
-            <button id="profile-friends-cta" onclick="if(typeof openMyFriendsScreen==='function') openMyFriendsScreen();" style="width:100%; padding:14px 16px; background:linear-gradient(135deg,rgba(0,224,196,0.12),rgba(0,210,255,0.08)); border:1px solid rgba(0,224,196,0.28); border-radius:14px; display:flex; align-items:center; gap:12px; cursor:pointer; margin:12px 0 6px; color:#fff;">
-                <span style="font-size:22px;">👥</span>
-                <div style="flex:1; text-align:left;">
-                    <div style="font-size:13px; font-weight:900; color:#fff;">Mes amis</div>
-                    <div id="profile-friends-cta-count" style="font-size:11px; font-weight:700; color:#ff3b30; margin-top:2px;"></div>
+            <section class="profile-hero-card">
+                <div class="profile-photo-section">
+                    <div class="profile-photo-circle" id="profile-photo-circle">
+                        <span class="photo-placeholder" id="photo-placeholder">✨</span>
+                        <img id="profile-photo-preview" class="photo-preview hidden" alt="Photo de profil">
+                    </div>
+                    <div class="photo-actions">
+                        <label class="photo-btn selfie-btn" for="camera-input">📸 MODIFIER LA PHOTO</label>
+                        <input type="file" id="camera-input" accept="image/*" capture="user" hidden>
+                        <button id="photo-delete" class="photo-delete-btn hidden" aria-label="Supprimer la photo">🗑️</button>
+                    </div>
                 </div>
-                <span style="font-size:16px; color:rgba(255,255,255,0.4);">›</span>
-            </button>
+                <div class="profile-hero-copy">
+                    <strong id="profile-display-name">Mon profil AhOuai</strong>
+                    <span id="profile-completion">Complète ton profil pour être reconnu par le crew.</span>
+                </div>
+            </section>
 
-            <!-- Photo -->
-            <div class="profile-photo-section">
-                <div class="profile-photo-circle" id="profile-photo-circle">
-                    <span class="photo-placeholder" id="photo-placeholder">📸</span>
-                    <img id="profile-photo-preview" class="photo-preview hidden" alt="Photo">
-                </div>
-                <div class="photo-actions">
-                    <label class="photo-btn selfie-btn" for="camera-input">📸 AJOUTER UNE PHOTO</label>
-                    <input type="file" id="camera-input" accept="image/*" capture="user" hidden>
-                    <button id="photo-delete" class="photo-delete-btn hidden">🗑️</button>
-                </div>
-            </div>
+            <div class="profile-section-label">SOCIAL</div>
+            <section class="profile-menu-card">
+                <button id="profile-friends-cta" class="profile-menu-row" onclick="if(typeof openMyFriendsScreen==='function') openMyFriendsScreen();">
+                    <span class="profile-menu-icon is-cyan">👥</span>
+                    <span class="profile-menu-copy"><b>Mes amis</b><small id="profile-friends-cta-count">Retrouve ton crew AhOuai</small></span>
+                    <span class="profile-menu-arrow">›</span>
+                </button>
+                <button id="profile-public-btn" class="profile-menu-row">
+                    <span class="profile-menu-icon is-violet">◉</span>
+                    <span class="profile-menu-copy"><b>Voir mon profil sur AhOuai</b><small>Tel que les autres le voient</small></span>
+                    <span class="profile-menu-arrow">›</span>
+                </button>
+            </section>
 
             <!-- Identity -->
             <form id="profile-form" onsubmit="event.preventDefault();">
@@ -386,6 +398,54 @@
                 <span>✅</span> ENREGISTRER
             </button>
             </form>
+
+            <div class="profile-section-label">APP AHO UAI</div>
+            <section class="profile-menu-card">
+                <button id="profile-download-app" class="profile-menu-row">
+                    <span class="profile-menu-icon is-pink">↓</span>
+                    <span class="profile-menu-copy"><b>Télécharger l’app AhOuai</b><small>Pour prolonger l’expérience</small></span>
+                    <span class="profile-menu-arrow">↗</span>
+                </button>
+            </section>
+
+            <div class="profile-section-label">MEMBERS</div>
+            <section class="profile-menu-card">
+                <button id="profile-founder-btn" class="profile-menu-row profile-menu-row--founder">
+                    <span class="profile-menu-icon is-gold">✦</span>
+                    <span class="profile-menu-copy"><b id="profile-founder-title">Devenir Founder</b><small id="profile-founder-subtitle">Rejoins les premiers membres AhOuai</small></span>
+                    <span class="profile-menu-arrow">›</span>
+                </button>
+            </section>
+
+            <section id="profile-party-section" class="profile-party-section">
+                <div class="profile-section-label">CETTE SOIRÉE</div>
+                <div class="profile-menu-card">
+                    <button id="profile-story-btn" class="profile-menu-row">
+                        <span class="profile-menu-icon is-cyan">▣</span>
+                        <span class="profile-menu-copy"><b>Voir la Story</b><small>Les moments qui resteront</small></span>
+                        <span class="profile-menu-arrow">›</span>
+                    </button>
+                    <button id="profile-quit-party" class="profile-menu-row profile-menu-row--danger">
+                        <span class="profile-menu-icon is-danger">↗</span>
+                        <span class="profile-menu-copy"><b>Quitter la soirée</b><small>Tu pourras retrouver son récap ensuite</small></span>
+                        <span class="profile-menu-arrow">›</span>
+                    </button>
+                </div>
+            </section>
+
+            <div class="profile-section-label">AIDE &amp; COMPTE</div>
+            <section class="profile-menu-card">
+                <button id="profile-claim-btn" class="profile-menu-row">
+                    <span class="profile-menu-icon is-orange">!</span>
+                    <span class="profile-menu-copy"><b>Faire une réclamation</b><small>Signaler un souci ou un contenu</small></span>
+                    <span class="profile-menu-arrow">↗</span>
+                </button>
+                <button id="profile-delete-account" class="profile-menu-row profile-menu-row--danger">
+                    <span class="profile-menu-icon is-danger">⌫</span>
+                    <span class="profile-menu-copy"><b>Supprimer mon compte</b><small>Action définitive, conforme RGPD</small></span>
+                    <span class="profile-menu-arrow">›</span>
+                </button>
+            </section>
             <div style="height: 30px"></div>
         </div>
         <!-- Scroll indicator -->

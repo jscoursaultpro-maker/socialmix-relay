@@ -156,7 +156,7 @@ function updateProfileBadge() {
   }
   // ★ Bug E-4 — Sync aussi un éventuel CTA "Mes amis" dans l'écran profile
   const friendsCta = document.getElementById('profile-friends-cta-count');
-  if (friendsCta) friendsCta.textContent = count > 0 ? `(${count} demande${count > 1 ? 's' : ''})` : '';
+  if (friendsCta) friendsCta.textContent = count > 0 ? `${count} demande${count > 1 ? 's' : ''} en attente` : 'Retrouve ton crew AhOuai';
 }
 
 // ★ Quick fix E-5a v2 — Toast clickable pour demande d'ami (tap → SOCIAL HUB + sheet detail)
@@ -787,6 +787,10 @@ async function handleSupabaseSession(session) {
     state.guestName = firstName;
     state.guestLastName = lastName;
     state.guestEmail = email;
+    state.foundersRank = user.foundersRank || null;
+    state.foundersIntentSubmitted = Boolean(user.foundersIntentSubmitted);
+    state.foundersIntentPosition = user.foundersIntentPosition || null;
+    if (typeof refreshProfileHub === 'function') refreshProfileHub();
     const oldUserId = state.userId;
     if (user.userId || user._id) state.userId = String(user.userId || user._id);
     if (state.userId && state.userId !== oldUserId) {
@@ -1486,10 +1490,12 @@ function setupProfile() {
   if (state.guestPhone) $('profile-phone').value = state.guestPhone;
   if (state.guestEmail) $('profile-email').value = state.guestEmail;
   if (state.guestInsta) $('profile-instagram').value = state.guestInsta;
+  refreshProfileHub();
   
   // Hide scroll indicator on scroll
   const profileScreen = $('profile-screen');
-  if (profileScreen) {
+  if (profileScreen && !profileScreen.dataset.profileScrollBound) {
+    profileScreen.dataset.profileScrollBound = 'true';
     profileScreen.addEventListener('scroll', () => {
       const ind = $('scroll-indicator');
       if (ind && profileScreen.scrollTop > 50) ind.style.opacity = '0';
@@ -1508,17 +1514,21 @@ function setupProfile() {
   setupEmojiGrid();
   
   // Photo handlers
-  $('camera-input').addEventListener('change', handlePhotoInput);
-  $('photo-delete').addEventListener('click', () => {
+  if (!$('camera-input').dataset.profileBound) {
+    $('camera-input').dataset.profileBound = 'true';
+    $('camera-input').addEventListener('change', handlePhotoInput);
+  }
+  if (!$('photo-delete').dataset.profileBound) $('photo-delete').addEventListener('click', () => {
     state.guestPhoto = null;
     $('profile-photo-preview').classList.add('hidden');
     $('photo-placeholder').style.display = '';
     $('profile-photo-circle').classList.remove('has-photo');
     $('photo-delete').classList.add('hidden');
   });
+  $('photo-delete').dataset.profileBound = 'true';
   
   // Back
-  $('profile-back').addEventListener('click', () => {
+  if (!$('profile-back').dataset.profileBound) $('profile-back').addEventListener('click', () => {
     if (state.editingFromCockpit) {
       state.editingFromCockpit = false;
       showScreen('cockpit');
@@ -1526,9 +1536,10 @@ function setupProfile() {
       showScreen('landing');
     }
   });
+  $('profile-back').dataset.profileBound = 'true';
   
   // Save
-  $('profile-save').addEventListener('click', () => {
+  if (!$('profile-save').dataset.profileBound) $('profile-save').addEventListener('click', () => {
     const fn = $('profile-firstname').value.trim();
     const ln = $('profile-lastname').value.trim();
     const alias = $('profile-alias') ? $('profile-alias').value.trim() : '';
@@ -1558,6 +1569,7 @@ function setupProfile() {
     state.guestEmail = em;
     state.guestInsta = insta;
     saveProfile();
+    refreshProfileHub();
     
     if (state.editingFromCockpit) {
       // Return to cockpit and update greeting
@@ -1601,6 +1613,120 @@ function setupProfile() {
       }
     }
   });
+  $('profile-save').dataset.profileBound = 'true';
+
+  bindProfileHubActions();
+}
+
+function refreshProfileHub() {
+  const screen = $('profile-screen');
+  if (!screen) return;
+  const displayName = [state.guestName, state.guestLastName].filter(Boolean).join(' ') || state.guestAlias || 'Mon profil AhOuai';
+  const heroName = $('profile-display-name');
+  const completion = $('profile-completion');
+  if (heroName) heroName.textContent = displayName;
+  if (completion) {
+    const ready = state.guestName && state.guestLastName && state.guestEmail;
+    completion.textContent = ready ? `Signature ${state.guestEmoji || '✨'} · profil prêt pour le crew` : 'Complète ton profil pour être reconnu par le crew.';
+  }
+  const inParty = Boolean(state.partyCode && (state.connected || state.editingFromCockpit || currentScreen === 'cockpit'));
+  screen.classList.toggle('is-in-party', inParty);
+
+  const founderTitle = $('profile-founder-title');
+  const founderSub = $('profile-founder-subtitle');
+  if (state.foundersRank) {
+    if (founderTitle) founderTitle.textContent = `Founder #${state.foundersRank}`;
+    if (founderSub) founderSub.textContent = 'Ta place est réservée.';
+  } else if (state.foundersIntentSubmitted) {
+    if (founderTitle) founderTitle.textContent = `Pré-Founder #${state.foundersIntentPosition || '—'}`;
+    if (founderSub) founderSub.textContent = 'Tu es déjà sur la liste.';
+  }
+}
+
+function bindProfileHubActions() {
+  const bindOnce = (id, handler) => {
+    const button = $(id);
+    if (!button || button.dataset.profileBound) return;
+    button.dataset.profileBound = 'true';
+    button.addEventListener('click', handler);
+  };
+  bindOnce('profile-download-app', () => window.open('https://ahouai.com/', '_blank', 'noopener'));
+  bindOnce('profile-story-btn', () => {
+    showScreen('cockpit');
+    if (typeof showTab === 'function') showTab('story');
+  });
+  bindOnce('profile-quit-party', () => $('exit-modal')?.classList.remove('hidden'));
+  bindOnce('profile-claim-btn', () => {
+    const subject = encodeURIComponent(`Réclamation AhOuai${state.partyCode ? ` — soirée ${state.partyCode}` : ''}`);
+    const body = encodeURIComponent(`Bonjour AhOuai,\n\nJe souhaite signaler le problème suivant :\n\n\nMon profil : ${[state.guestName, state.guestLastName].filter(Boolean).join(' ')}\nSoirée : ${state.partyCode || 'non renseignée'}`);
+    window.location.href = `mailto:contact@ahouai.com?subject=${subject}&body=${body}`;
+  });
+  bindOnce('profile-public-btn', showPublicProfilePreview);
+  bindOnce('profile-founder-btn', registerFoundersIntent);
+  bindOnce('profile-delete-account', requestAccountDeletion);
+}
+
+function showPublicProfilePreview() {
+  const existing = document.getElementById('profile-public-preview');
+  if (existing) existing.remove();
+  const name = escHtml([state.guestName, state.guestLastName].filter(Boolean).join(' ') || state.guestAlias || 'Guest AhOuai');
+  const alias = escHtml(state.guestAlias ? `@${state.guestAlias.replace(/^@/, '')}` : 'Membre AhOuai');
+  const portrait = state.guestPhoto ? `<img src="${escHtml(state.guestPhoto)}" alt="">` : escHtml(state.guestEmoji || '✨');
+  const overlay = document.createElement('div');
+  overlay.id = 'profile-public-preview';
+  overlay.className = 'profile-preview-overlay';
+  overlay.innerHTML = `<div class="profile-preview-card" role="dialog" aria-modal="true" aria-label="Aperçu du profil public">
+    <button type="button" class="profile-preview-close" aria-label="Fermer">×</button>
+    <span>◉ PROFIL PUBLIC</span><div class="profile-preview-avatar">${portrait}</div><h3>${name}</h3><p>${alias}</p>
+    <div class="profile-preview-badge">${state.foundersRank ? `✦ FOUNDER #${state.foundersRank}` : '✦ AHO UAI MEMBER'}</div>
+    <small>Voilà ce que les autres membres AhOuai peuvent reconnaître de toi.</small>
+  </div>`;
+  overlay.addEventListener('click', event => { if (event.target === overlay || event.target.closest('.profile-preview-close')) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+async function registerFoundersIntent() {
+  if (state.foundersRank || state.foundersIntentSubmitted) {
+    showToast(state.foundersRank ? `✨ Tu es déjà Founder #${state.foundersRank}` : `🎯 Tu es déjà Pré-Founder #${state.foundersIntentPosition || '—'}`);
+    return;
+  }
+  const email = String(state.guestEmail || $('profile-email')?.value || '').trim();
+  if (!email) { showToast('Ajoute ton email puis enregistre ton profil pour devenir Founder.', 4000); return; }
+  const button = $('profile-founder-btn');
+  button.disabled = true;
+  try {
+    const response = await fetch('/api/founders/intent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, userId: state.userId || state.guestId || null, source: 'guest-web-profile' }) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Impossible de rejoindre la liste');
+    state.foundersIntentSubmitted = true;
+    state.foundersIntentPosition = data.position;
+    refreshProfileHub();
+    showToast(data.alreadyIn ? `✨ Tu es déjà sur la liste, position #${data.position}` : `✨ Bienvenue Pré-Founder #${data.position} !`, 4500);
+  } catch (error) {
+    showToast(error.message === 'cap_reached' ? 'La liste Founder est complète.' : 'Impossible de rejoindre la liste Founder. Réessaie.', 4500);
+  } finally { button.disabled = false; }
+}
+
+async function getProfileJwt() {
+  if (!_supabaseClient) return null;
+  try { const { data: { session } } = await _supabaseClient.auth.getSession(); return session?.access_token || null; } catch (_) { return null; }
+}
+
+async function requestAccountDeletion() {
+  const jwt = await getProfileJwt();
+  if (!jwt) {
+    showToast('Connecte-toi avec Apple ou Google dans l’app AhOuai pour supprimer ton compte en toute sécurité.', 5500);
+    return;
+  }
+  if (!confirm('Supprimer définitivement ton compte AhOuai ? Cette action est irréversible.')) return;
+  try {
+    const response = await fetch('/api/me', { method: 'DELETE', headers: { Authorization: `Bearer ${jwt}` } });
+    if (!response.ok) throw new Error();
+    clearResumeSession();
+    localStorage.removeItem(PROFILE_KEY);
+    showToast('Ton compte a été supprimé.', 3500);
+    setTimeout(() => showScreen('landing'), 700);
+  } catch (_) { showToast('La suppression a échoué. Réessaie ou écris à contact@ahouai.com.', 5000); }
 }
 
 function handlePhotoInput(e) {
