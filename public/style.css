@@ -5206,3 +5206,18 @@ html, body {
   filter: drop-shadow(0 6px 24px rgba(233, 30, 148, 0.35));
 }
 .c5-logo-img { width: min(220px, 60vw); margin-bottom: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Desktop cap — l'app est designée mobile-first, on borne la largeur
+   sur desktop pour éviter les cartes AGIR géantes en 1200px+
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  #tab-agir,
+  #tab-soiree,
+  #tab-memories,
+  #tab-cockpit {
+    max-width: 440px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
