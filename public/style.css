@@ -5231,11 +5231,10 @@ html, body {
 #tab-soiree .v2-space-heading,
 #tab-hub    .v2-space-heading,
 #tab-memories .v2-space-heading {
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  gap: 6px;
+  gap: 10px;
   margin: 4px 0 18px;
   padding: 6px 0 0;
   position: relative;
@@ -5244,7 +5243,7 @@ html, body {
 
 #tab-soiree .v2-space-heading > div,
 #tab-hub    .v2-space-heading > div,
-#tab-memories .v2-space-heading > div { text-align: center; }
+#tab-memories .v2-space-heading > div { text-align: left; }
 
 /* h1 */
 #tab-soiree .v2-space-heading h1,
