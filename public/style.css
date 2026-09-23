@@ -5208,16 +5208,39 @@ html, body {
 .c5-logo-img { width: min(220px, 60vw); margin-bottom: 4px; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   Desktop cap — l'app est designée mobile-first, on borne la largeur
-   sur desktop pour éviter les cartes AGIR géantes en 1200px+
+   Desktop / tablet cap — l'app est designée mobile-first, on borne la
+   largeur sur desktop pour éviter les cartes AGIR géantes en 1200px+
+   tout en gardant une taille confortable (plus large qu'un iPhone).
    ═══════════════════════════════════════════════════════════════════ */
 @media (min-width: 768px) {
   #tab-agir,
   #tab-soiree,
   #tab-memories,
   #tab-cockpit {
-    max-width: 440px;
+    max-width: 560px;
     margin-left: auto;
     margin-right: auto;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  /* Bottom nav aussi centré et cappé */
+  .bottom-nav {
+    max-width: 560px;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%);
+    border-radius: 22px 22px 0 0;
+  }
+}
+/* Vrai desktop : un poil plus large pour respirer */
+@media (min-width: 1024px) {
+  #tab-agir,
+  #tab-soiree,
+  #tab-memories,
+  #tab-cockpit {
+    max-width: 620px;
+  }
+  .bottom-nav {
+    max-width: 620px;
   }
 }
