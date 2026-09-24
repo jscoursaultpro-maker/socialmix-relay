@@ -5471,6 +5471,49 @@ body.founder-program-open { overflow: hidden; }
 .moi-circle-chip b { font-size:10px; }.moi-circle-chip small { font-size:6px;letter-spacing:.08em; }
 .moi-circle-open { position:relative; z-index:1; min-height:38px; border-top:1px solid rgba(106,143,202,.14); }
 @media (max-width:380px) { .cercle-actions { flex-direction:column; }.cercle-univers-tease { display:none; }.univers-constellation { grid-template-columns:64px 1fr 64px; }.univers-constellation .univers-avatar { width:64px;height:64px; }.univers-scoreboard span { display:none; } }
+
+/* Mes univers — second point d’entrée depuis MOI */
+.moi-social-title { position:relative; z-index:1; display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+.moi-social-title>span { width:32px;height:32px;display:grid;place-items:center;border-radius:11px;color:#57e4df;background:rgba(64,220,214,.11);font-size:17px; }
+.moi-social-title>div { display:grid;gap:2px; }
+.moi-social-title small { color:#76849e;font:900 6px var(--font-display);letter-spacing:.14em; }
+.moi-social-title h2 { margin:0; }
+.moi-univers-panel { position:relative;overflow:hidden;padding:15px;background:radial-gradient(circle at 88% 0,rgba(229,75,194,.22),transparent 38%),linear-gradient(145deg,rgba(20,18,53,.96),rgba(8,32,49,.92)); }
+.moi-univers-panel::after { content:'✦';position:absolute;right:16px;top:12px;color:rgba(239,198,137,.16);font-size:45px;text-shadow:0 0 24px rgba(238,183,102,.3); }
+.moi-univers-intro { position:relative;z-index:1;margin:-3px 0 11px;color:#8996ad;font-size:9px; }
+.moi-univers-preview { position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px; }
+.my-univers-card { position:relative;display:grid;min-width:0;padding:14px;border:1px solid rgba(137,110,222,.23);border-radius:21px;color:#eef1f9;background:radial-gradient(circle at 100% 0,rgba(202,73,216,.16),transparent 38%),linear-gradient(145deg,#102238,#17142f);text-align:left;box-shadow:0 10px 25px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.04);cursor:pointer; }
+.my-univers-card__visual { display:grid;grid-template-columns:43px 1fr 43px;align-items:center;margin-bottom:14px; }
+.my-univers-card__visual>span { width:43px;height:43px;display:grid;place-items:center;overflow:hidden;border:2px solid #a479f3;border-radius:50%;background:#1c2841;font-size:19px;box-shadow:0 0 16px rgba(151,98,237,.2); }
+.my-univers-card__visual>span:first-child { border-color:#4bddda; }
+.my-univers-card__visual img { width:100%;height:100%;object-fit:cover; }
+.my-univers-card__visual i { height:2px;background:linear-gradient(90deg,#48ded9,#9a6cf2,#ed60c8);color:transparent;box-shadow:0 0 9px rgba(151,98,237,.7);transform:rotate(-4deg); }
+.my-univers-card>small { color:#5de3de;font:900 7px var(--font-display);letter-spacing:.16em; }
+.my-univers-card>strong { overflow:hidden;margin-top:3px;font:900 16px var(--font-display);text-overflow:ellipsis;white-space:nowrap; }
+.my-univers-card>p { overflow:hidden;margin:5px 0 12px;color:#8491a9;font-size:9px;text-overflow:ellipsis;white-space:nowrap; }
+.my-univers-card>em { display:flex;justify-content:space-between;color:#b99af5;font:normal 900 7px var(--font-display);letter-spacing:.08em; }
+.my-univers-card>em b { color:#f0ca8d;font-size:12px; }
+.my-univers-card.is-compact { padding:10px;border-radius:16px; }
+.my-univers-card.is-compact .my-univers-card__visual { grid-template-columns:33px 1fr 33px;margin-bottom:9px; }
+.my-univers-card.is-compact .my-univers-card__visual>span { width:33px;height:33px;font-size:14px; }
+.my-univers-card.is-compact>strong { font-size:11px; }.my-univers-card.is-compact>p { margin:3px 0 8px;font-size:7px; }.my-univers-card.is-compact>em { font-size:6px; }
+.moi-univers-empty { grid-column:1/-1;min-height:110px;display:grid;place-items:center;gap:3px;padding:16px;border:1px dashed rgba(157,112,229,.28);border-radius:18px;color:#9a88c8;background:rgba(11,20,39,.45); }
+.moi-univers-empty>span { color:#efc685;font-size:24px; }.moi-univers-empty>b { color:#e6e9f3;font:900 9px var(--font-display); }.moi-univers-empty>small { color:#7e899e;font-size:8px; }
+.my-univers-page { position:relative;max-width:620px;padding:18px 17px 70px; }
+.my-univers-page::before { content:'';position:fixed;z-index:-1;inset:0;background:radial-gradient(circle at 18% 14%,rgba(0,216,211,.11),transparent 25%),radial-gradient(circle at 88% 30%,rgba(186,70,231,.15),transparent 32%),linear-gradient(180deg,#07101c,#080b15); }
+.my-univers-heading { display:grid;justify-items:center;margin:20px 0 25px;text-align:center; }
+.my-univers-heading img { width:116px;margin-bottom:19px; }
+.my-univers-heading>span { color:#56e1dc;font:900 8px var(--font-display);letter-spacing:.25em; }
+.my-univers-heading h2 { margin:6px 0 4px;color:#f5f3f0;font:900 clamp(37px,11vw,56px)/1 var(--font-display);letter-spacing:-.065em; }
+.my-univers-heading p { max-width:370px;margin:6px 0;color:#929fb6;font-size:12px;line-height:1.45; }
+.my-univers-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px; }
+.my-univers-grid .my-univers-card { min-height:205px; }
+.my-univers-loading { grid-column:1/-1;min-height:310px;display:grid;place-items:center;align-content:center;gap:12px;color:#8f9bb3;font-size:10px; }
+.my-univers-loading i { width:38px;height:38px;border:3px solid rgba(85,226,220,.13);border-top-color:#55e2dc;border-radius:50%;animation:spin .8s linear infinite; }
+.my-univers-grid>.my-univers-empty { grid-column:1/-1;display:grid;justify-items:center;min-height:300px;align-content:center;padding:30px;border:1px dashed rgba(147,105,222,.28);border-radius:28px;text-align:center;background:linear-gradient(145deg,rgba(13,28,47,.7),rgba(25,17,49,.56)); }
+.my-univers-grid>.my-univers-empty span { color:#efc688;font-size:37px;text-shadow:0 0 23px rgba(238,191,126,.4); }.my-univers-grid>.my-univers-empty h3 { margin:10px 0 5px;color:#fff;font:900 23px var(--font-display); }.my-univers-grid>.my-univers-empty p { max-width:340px;margin:0 0 19px;color:#929db4;font-size:11px;line-height:1.5; }.my-univers-grid>.my-univers-empty button { min-height:44px;padding:10px 17px;border:1px solid rgba(82,225,220,.4);border-radius:13px;color:#06151d;background:#78e3df;font:900 8px var(--font-display); }
+.my-univers-signature { margin:31px 0;color:#e9c38a;text-align:center;font:800 10px var(--font-display); }
+@media(max-width:390px){.my-univers-grid{grid-template-columns:1fr}.my-univers-grid .my-univers-card{min-height:190px}.moi-univers-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .story-guest-copy { border: 0; padding: 0; text-align: left; background: transparent; }.story-friend-btn.is-friend { border-color: rgba(119,217,176,.4); color: #77d9b0; background: rgba(119,217,176,.1); }
 @keyframes spin { to { transform: rotate(360deg); } }
 

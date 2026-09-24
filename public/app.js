@@ -4795,6 +4795,13 @@ async function refreshFriendStatuses(cb) {
     }
     const data = await r.json();
     state._friendStatuses = {};
+    state._friendsDirectory = (data.friends || []).map(f => ({
+      friendUserId: f.id || f.friendUserId,
+      friendName: f.name || f.friendName,
+      friendPhoto: f.photo || f.friendPhoto,
+      friendEmoji: f.emoji || f.friendEmoji,
+      metAt: f.metAt || null
+    }));
     (data.friends || []).forEach(f => {
       state._friendStatuses[f.id || f.friendUserId] = { status: 'accepted' };
     });
@@ -4839,8 +4846,10 @@ async function openMyFriendsScreen(highlightUserId) {
       return;
     }
     const data = await r.json();
+    const friends = (data.friends || []).map(f => ({ friendUserId: f.id || f.friendUserId, friendName: f.name || f.friendName, friendPhoto: f.photo || f.friendPhoto, friendEmoji: f.emoji || f.friendEmoji, metAt: f.metAt || null }));
+    state._friendsDirectory = friends;
     _renderMyFriends({
-      friends: (data.friends || []).map(f => ({ friendUserId: f.id || f.friendUserId, friendName: f.name || f.friendName, friendPhoto: f.photo || f.friendPhoto, friendEmoji: f.emoji || f.friendEmoji })),
+      friends,
       pending: (data.pendingReceived || []).map(p => ({ fromUserId: p.id || p.fromUserId, fromName: p.name || p.fromName, fromPhoto: p.photo || p.fromPhoto, fromEmoji: p.emoji || p.fromEmoji })),
       sent: (data.pendingSent || []).map(s => ({ targetUserId: s.id || s.targetUserId, targetName: s.name || s.targetName, targetPhoto: s.photo || s.targetPhoto, targetEmoji: s.emoji || s.targetEmoji }))
     }, highlightUserId);
@@ -4849,6 +4858,38 @@ async function openMyFriendsScreen(highlightUserId) {
     _renderMyFriends({friends:[], pending:[], sent:[]}, highlightUserId);
   }
 }
+
+function _universDirectoryCard(friend, compact = false) {
+  const id = escapeHtml(friend.friendUserId || '');
+  const name = escapeHtml(friend.friendName || 'Ami AhOuai');
+  const portrait = friend.friendPhoto ? `<img src="${escapeHtml(friend.friendPhoto)}" alt="">` : `<span>${escapeHtml(friend.friendEmoji || '✦')}</span>`;
+  return `<button type="button" class="my-univers-card${compact ? ' is-compact' : ''}" onclick="openUniversModal('${id}')"><div class="my-univers-card__visual"><span class="my-univers-card__me">${state.guestPhoto ? `<img src="${escapeHtml(state.guestPhoto)}" alt="">` : escapeHtml(state.guestEmoji || '✦')}</span><i>〰</i><span>${portrait}</span></div><small>NOS UNIVERS</small><strong>${name}</strong><p>${friend.metAt ? `Croisés à ${escapeHtml(friend.metAt)}` : 'Découvrez ce qui vous relie'}</p><em>OUVRIR <b>→</b></em></button>`;
+}
+
+async function openMyUniversScreen() {
+  if (typeof showScreen === 'function') showScreen('my-univers');
+  const grid = $('my-univers-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div class="my-univers-loading"><i></i><p>Vos univers se rapprochent…</p></div>';
+  let friends = state._friendsDirectory || [];
+  if (!friends.length) {
+    const headers = await _friendsAuthHeaders();
+    if (!headers) {
+      grid.innerHTML = `<div class="cercle-auth"><span class="cercle-auth-orbit">✦</span><small>MES UNIVERS</small><h3>Retrouve tout ce qui vous relie.</h3><p>Reconnecte-toi pour révéler les univers construits avec tes amis.</p><div><button onclick="signInWithProvider('google')">CONTINUER AVEC GOOGLE</button><button onclick="signInWithProvider('apple')">CONTINUER AVEC APPLE</button></div></div>`;
+      return;
+    }
+    try {
+      const response = await fetch('/api/user/friends', { headers });
+      const data = await response.json();
+      if (!response.ok) throw new Error();
+      friends = (data.friends || []).map(f => ({ friendUserId:f.id || f.friendUserId, friendName:f.name || f.friendName, friendPhoto:f.photo || f.friendPhoto, friendEmoji:f.emoji || f.friendEmoji, metAt:f.metAt || null }));
+      state._friendsDirectory = friends;
+    } catch (_) { friends = []; }
+  }
+  grid.innerHTML = friends.length ? friends.map(friend => _universDirectoryCard(friend)).join('') : '<div class="my-univers-empty"><span>✦</span><h3>Le premier univers reste à créer.</h3><p>Ajoute une personne à ton Crew après un moment partagé. Votre histoire commune apparaîtra ici.</p><button onclick="openMyFriendsScreen()">DÉCOUVRIR MON CERCLE</button></div>';
+}
+
+window.openMyUniversScreen = openMyUniversScreen;
 
 function _renderMyFriends(data, highlightUserId) {
   const pending = data.pending || [];
@@ -6591,6 +6632,7 @@ function renderMoiOverview() {
   const requestsHere = (state.participants || []).filter(person => person.userId && friendStatuses[person.userId]?.status === 'pending_received').slice(0, 2);
   const newHere = (state.participants || []).filter(person => person.userId && !friendStatuses[person.userId] && person.name !== state.guestName).slice(0, 1);
   const circlePeople = [...friendsHere.map(person => ({ ...person, circleState: 'friend' })), ...requestsHere.map(person => ({ ...person, circleState: 'request' })), ...newHere.map(person => ({ ...person, circleState: 'new' }))].slice(0, 5);
+  const universeFriends = (state._friendsDirectory || []).slice(0, 2);
   const leaderRows = leaderboard.length
     ? (moiLeaderboardExpanded ? leaderboard.slice(0, 10) : leaderboard.slice(0, 3))
     : [];
@@ -6610,7 +6652,8 @@ function renderMoiOverview() {
   container.innerHTML = `
     <section class="moi-identity-card"><div class="moi-avatar">${portrait}</div><div class="moi-identity-copy"><strong>${escHtml(state.guestName || 'Moi')}</strong><small>MA SOIRÉE</small><div><b>★ ${points}</b><span>points</span><i></i><b class="moi-rank">♜ ${rank ? '#' + rank : '—'}</b><span>${rank ? 'ce soir' : 'classement'}</span></div></div></section>
     <section class="moi-panel"><h2>♫ MES TITRES CE SOIR</h2><div class="moi-track-filters"><button class="${moiTrackFilter === 'pending' ? 'is-active' : ''}" onclick="setMoiTrackFilter('pending')"><b>${pending}</b>En attente</button><button class="${moiTrackFilter === 'played' ? 'is-active' : ''}" onclick="setMoiTrackFilter('played')"><b>${played.length}</b>Joués</button><button class="${moiTrackFilter === 'support' ? 'is-active' : ''}" onclick="setMoiTrackFilter('support')"><b>${supportable}</b>À soutenir</button></div><div class="moi-track-list">${trackRows}</div></section>
-    <section class="moi-panel moi-circle-panel"><h2>♟ MON CERCLE CE SOIR</h2><div class="moi-circle-chips">${circlePeople.length ? circlePeople.map(person => `<button type="button" class="moi-circle-chip is-${person.circleState}" onclick="${person.circleState === 'request' ? `openMyFriendsScreen('${escHtml(person.userId)}')` : person.circleState === 'friend' ? `openUniversModal('${escHtml(person.userId)}')` : `sendFriendRequest('${escHtml(person.userId)}','${escHtml(person.name || 'cet invité').replace(/'/g, "\\'")}')`}">${person.photo ? `<img src="${escHtml(person.photo)}" alt="">` : `<span>${escHtml(person.emoji || '✨')}</span>`}<b>${escHtml(person.name || 'Invité')}</b><small>${person.circleState === 'friend' ? 'AMI PRÉSENT' : person.circleState === 'request' ? 'À RÉPONDRE' : '+ RENCONTRE'}</small></button>`).join('') : '<p class="moi-empty">Ton cercle de ce soir se construit avec les premières rencontres.</p>'}</div><button type="button" class="moi-circle-open" onclick="openMyFriendsScreen()">VOIR MON CERCLE →</button></section>
+    <section class="moi-panel moi-circle-panel"><div class="moi-social-title"><span>♟</span><div><small>ICI ET MAINTENANT</small><h2>MON CERCLE CE SOIR</h2></div></div><div class="moi-circle-chips">${circlePeople.length ? circlePeople.map(person => `<button type="button" class="moi-circle-chip is-${person.circleState}" onclick="${person.circleState === 'request' ? `openMyFriendsScreen('${escHtml(person.userId)}')` : person.circleState === 'friend' ? `openUniversModal('${escHtml(person.userId)}')` : `sendFriendRequest('${escHtml(person.userId)}','${escHtml(person.name || 'cet invité').replace(/'/g, "\\'")}')`}">${person.photo ? `<img src="${escHtml(person.photo)}" alt="">` : `<span>${escHtml(person.emoji || '✨')}</span>`}<b>${escHtml(person.name || 'Invité')}</b><small>${person.circleState === 'friend' ? 'AMI PRÉSENT' : person.circleState === 'request' ? 'À RÉPONDRE' : '+ RENCONTRE'}</small></button>`).join('') : '<p class="moi-empty">Ton cercle de ce soir se construit avec les premières rencontres.</p>'}</div><button type="button" class="moi-circle-open" onclick="openMyFriendsScreen()">VOIR MON CERCLE →</button></section>
+    <section class="moi-panel moi-univers-panel"><div class="moi-social-title"><span>✦</span><div><small>CE QUI VOUS RELIE</small><h2>MES UNIVERS</h2></div></div><p class="moi-univers-intro">La musique et les moments que tu partages avec ton Crew.</p><div class="moi-univers-preview">${universeFriends.length ? universeFriends.map(friend => _universDirectoryCard(friend, true)).join('') : '<button type="button" class="moi-univers-empty" onclick="openMyUniversScreen()"><span>✦</span><b>TES UNIVERS PRENNENT VIE ICI</b><small>Retrouve les liens construits avec ton Crew.</small></button>'}</div><button type="button" class="moi-circle-open" onclick="openMyUniversScreen()">VOIR TOUS MES UNIVERS →</button></section>
     <section class="moi-panel moi-ranking-panel"><h2>🏆 CLASSEMENT</h2><div class="moi-leader-list">${leaderboardRows}</div>${leaderboard.length > 3 ? `<button type="button" class="moi-leader-more" onclick="toggleMoiLeaderboard()">${moiLeaderboardExpanded ? 'Réduire ↑' : 'Voir le classement →'}</button>` : ''}</section>`;
 }
 
