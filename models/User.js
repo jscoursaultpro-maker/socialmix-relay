@@ -130,7 +130,11 @@ const userSchema = new Schema({
     marketingOptIn: { type: Boolean, default: false },
     discoverableByFriends: { type: Boolean, default: true },
     showInLeaderboard: { type: Boolean, default: true },
-    profilePublic: { type: Boolean, default: false }  // ★ B2.1: RGPD opt-in for public profile
+    profilePublic: { type: Boolean, default: false }, // ★ B2.1: RGPD opt-in for public profile
+    // ★ Univers V1 — opt-in par canal contact partagé aux amis acceptés
+    sharePhone: { type: Boolean, default: false },
+    shareEmail: { type: Boolean, default: false },
+    shareInsta: { type: Boolean, default: false }
   },
   
   // === SETTINGS ===

@@ -88,7 +88,9 @@ router.post('/request/:targetUserId', async (req, res) => {
         io.to(`user:${targetId}`).emit('friend:requestReceived', {
           fromUserId: currentUser._id.toString(),
           fromName: currentUser.profile?.firstName || 'Un invité',
-          fromEmoji: currentUser.profile?.emoji || '🎉'
+          fromEmoji: currentUser.profile?.emoji || '🎉',
+          at: new Date().toISOString(),
+          relationshipState: 'pending_received'
         });
         console.log(`[Push] 📩 ${currentUser.profile?.firstName} → user:${targetId} (friend:requestReceived)`);
       }
@@ -138,7 +140,9 @@ router.post('/accept/:fromUserId', async (req, res) => {
         io.to(`user:${fromId}`).emit('friend:requestAccepted', {
           acceptedByUserId: currentUser._id.toString(),
           acceptedByName: currentUser.profile?.firstName || 'Un invité',
-          acceptedByEmoji: currentUser.profile?.emoji || '🎉'
+          acceptedByEmoji: currentUser.profile?.emoji || '🎉',
+          at: new Date().toISOString(),
+          relationshipState: 'accepted'
         });
         console.log(`[Push] ✅ ${currentUser.profile?.firstName} → user:${fromId} (friend:requestAccepted)`);
       }
@@ -168,7 +172,20 @@ router.post('/decline/:fromUserId', async (req, res) => {
     ]);
     
     res.json({ status: 'declined' });
-    
+
+    // ★ Univers V1 : émit socket → payload contient relationshipState canonique
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${fromId}`).emit('friend:requestDeclined', {
+          fromUserId: currentUser._id.toString(),
+          at: new Date().toISOString(),
+          relationshipState: 'declined'
+        });
+        console.log(`[Push] ⛔ ${currentUser.profile?.firstName} → user:${fromId} (friend:requestDeclined)`);
+      }
+    } catch (e) { /* non-fatal */ }
+
   } catch (err) {
     console.error('[API] ❌ POST /api/user/friends/decline error:', err.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
@@ -194,13 +211,15 @@ router.delete('/request/:targetUserId', async (req, res) => {
     ]);
     
     res.json({ status: 'cancelled' });
-    
-    // ★ V7: Emit socket event so target cleans pending UI in real-time
+
+    // ★ Univers V1 : payload avec relationshipState canonique
     try {
       const io = req.app.get('io');
       if (io) {
         io.to(`user:${targetId}`).emit('friend:requestCancelled', {
-          fromUserId: currentUser._id.toString()
+          fromUserId: currentUser._id.toString(),
+          at: new Date().toISOString(),
+          relationshipState: 'none'
         });
         console.log(`[Push] 🚫 ${currentUser.profile?.firstName} → user:${targetId} (friend:requestCancelled)`);
       }
@@ -229,8 +248,28 @@ router.delete('/:friendUserId', async (req, res) => {
       })
     ]);
     
+    // Also delete Friendship record (source de vérité canonique)
+    try {
+      const [uA, uB] = [String(currentUser._id), String(friendId)].sort();
+      await Friendship.deleteOne({ userA: uA, userB: uB });
+    } catch (e) { console.warn('[unfriend] friendship delete fail:', e?.message); }
+
     res.json({ status: 'unfriended' });
-    
+
+    // ★ Univers V1 : émit socket bilatéral
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        const payload = {
+          fromUserId: currentUser._id.toString(),
+          at: new Date().toISOString(),
+          relationshipState: 'none'
+        };
+        io.to(`user:${friendId}`).emit('friend:unfriended', payload);
+        console.log(`[Push] 👋 ${currentUser.profile?.firstName} → user:${friendId} (friend:unfriended)`);
+      }
+    } catch (e) { /* non-fatal */ }
+
   } catch (err) {
     console.error('[API] ❌ DELETE /api/user/friends error:', err.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: err.message });

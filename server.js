@@ -52,6 +52,8 @@ import userParticipationsRouter from './routes/user-participations.js';
 import profileCompareRouter from './routes/profile-compare.js'; // ★ B2.2: GET /api/profile/compare/:handle1/:handle2
 import userCrewsRouter from './routes/user-crews.js'; // ★ B2.2: GET /api/user/crews
 import userRelationshipRouter from './routes/user-relationship.js'; // ★ B2.4: GET /api/user/relationship
+import userUniversRouter from './routes/user-univers.js'; // ★ Univers V1
+import userFriendsVCardRouter from './routes/user-friends-vcard.js'; // ★ Univers V1 vCard audit RGPD
 import trackSoloVotesRouter from './routes/track-solo-votes.js'; // ★ Track landing: POST /api/track/vote
 import userSuggestionsRouter from './routes/user-suggestions.js'; // ★ Mes suggestions: GET /api/user/me/suggestions
 import userLastSuggestionsRouter from './routes/user-last-suggestions.js';
@@ -1076,6 +1078,8 @@ app.use('/api/user/crews', userCrewsRouter);
 
 // ★ B2.4: User relationship (Supabase JWT auth)
 app.use('/api/user/relationship', userRelationshipRouter);
+app.use('/api/user/univers', userUniversRouter); // ★ Univers V1
+app.use('/api/user/friends', userFriendsVCardRouter); // ★ Univers V1 vCard (:friendUserId/vcard)
 
 // ★ Track landing page: anonymous solo votes (no auth, rate-limited by IP)
 app.use('/api/track', trackSoloVotesRouter);
