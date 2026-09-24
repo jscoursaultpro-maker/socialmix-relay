@@ -1779,24 +1779,46 @@ async function requestAccountDeletion() {
 function handlePhotoInput(e) {
   const file = e.target.files[0];
   if (!file) return;
-  
+
+  // ★ Bug fix — HEIC/HEIF non décodable par <img> hors Safari macOS/iOS.
+  // On refuse tôt avec un message clair plutôt que de laisser img.onload silencieux.
+  const name = (file.name || '').toLowerCase();
+  const isHeic = /\.(heic|heif)$/i.test(name) || file.type === 'image/heic' || file.type === 'image/heif';
+  if (isHeic) {
+    try { showToast('📸 Format HEIC non supporté — utilise JPG ou PNG (ou ouvre la photo dans l\'app Photos puis exporte en JPEG)', 5000); } catch(_) {}
+    try { e.target.value = ''; } catch(_) {}
+    return;
+  }
+  if (file.type && !file.type.startsWith('image/')) {
+    try { showToast('📸 Fichier non reconnu comme image', 4000); } catch(_) {}
+    try { e.target.value = ''; } catch(_) {}
+    return;
+  }
+
   const reader = new FileReader();
+  reader.onerror = () => {
+    try { showToast('📸 Impossible de lire le fichier', 4000); } catch(_) {}
+  };
   reader.onload = (ev) => {
     // Resize to save localStorage space
     const img = new Image();
+    img.onerror = () => {
+      try { showToast('📸 Image illisible — essaie un autre fichier (JPG ou PNG)', 5000); } catch(_) {}
+      try { e.target.value = ''; } catch(_) {}
+    };
     img.onload = () => {
       const canvas = document.createElement('canvas');
       const size = 200;
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
-      
+
       // Center crop
       const minDim = Math.min(img.width, img.height);
       const sx = (img.width - minDim) / 2;
       const sy = (img.height - minDim) / 2;
       ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-      
+
       state.guestPhoto = canvas.toDataURL('image/jpeg', 0.7);
       $('profile-photo-preview').src = state.guestPhoto;
       $('profile-photo-preview').classList.remove('hidden');

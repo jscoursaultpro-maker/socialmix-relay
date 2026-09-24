@@ -321,7 +321,9 @@
                 </div>
                 <div class="photo-actions">
                     <label class="photo-btn selfie-btn" for="camera-input">📸 MODIFIER LA PHOTO</label>
-                    <input type="file" id="camera-input" accept="image/*" capture="user" hidden>
+                    <!-- ★ HEIC exclu : Chrome/Firefox/Android ne décodent pas HEIC dans <img>, ça donne un écran figé silencieux (iPhone → utiliser Photos qui convertit en JPEG) -->
+                    <!-- ★ capture retiré : iOS/Android affichent alors le picker natif (Photothèque + Prendre photo + Fichiers) au lieu de forcer l'appareil photo selfie -->
+                    <input type="file" id="camera-input" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" hidden>
                     <button id="photo-delete" class="photo-delete-btn hidden" aria-label="Supprimer la photo">🗑️</button>
                     <button type="button" id="profile-edit-toggle" class="photo-btn selfie-btn edit-toggle-btn">✏️ MODIFIER TON PROFIL</button>
                 </div>
