@@ -482,40 +482,28 @@
         </div>
     </div>
 
-    <!-- ═══ ★ Bug E-3b — SCREEN "MES AMIS" (centralisé cross-parties) ═══ -->
+    <!-- ═══ CERCLE V1 — MES AMIS / DEMANDES / RENCONTRES ═══ -->
     <div id="my-friends-screen" class="screen">
-        <div class="profile-container" style="max-width:520px; padding:20px 16px 40px;">
+        <div class="profile-container cercle-page">
             <button id="my-friends-back" class="back-btn" onclick="if(typeof showScreen==='function') showScreen(state.previousScreen==='profile'?'profile':'cockpit')">‹ RETOUR</button>
-            <h2 class="screen-title">👥 MES AMIS</h2>
-            <p class="screen-subtitle">Toutes tes relations, en un seul endroit</p>
+            <header class="cercle-heading"><span>✦ LE MOMENT CONTINUE</span><h2>MON CERCLE</h2><p>Les liens qui restent après le moment.</p></header>
+            <nav class="cercle-tabs" aria-label="Mon cercle">
+                <button class="is-active" data-cercle-tab="pending">À RÉPONDRE <b id="mf-pending-count">0</b></button>
+                <button data-cercle-tab="friends">MON CREW <b id="mf-friends-count">0</b></button>
+                <button data-cercle-tab="recent">RENCONTRÉS <b id="mf-recent-count">0</b></button>
+            </nav>
+            <section id="mf-pending-section" class="cercle-pane is-active" data-cercle-pane="pending"><div id="mf-pending-list" class="cercle-list"></div></section>
+            <section class="cercle-pane" data-cercle-pane="friends"><div id="mf-friends-list" class="cercle-list"></div><div id="mf-sent-section"><div class="cercle-subtitle">DEMANDES ENVOYÉES <b id="mf-sent-count">0</b></div><div id="mf-sent-list" class="cercle-list"></div></div></section>
+            <section class="cercle-pane" data-cercle-pane="recent"><div id="mf-recent-list" class="cercle-list"></div></section>
+            <p class="cercle-signature">Les bons moments font les meilleurs liens.</p>
+        </div>
+    </div>
 
-            <!-- Section demandes reçues -->
-            <div id="mf-pending-section" style="margin-top:20px; display:none;">
-                <div style="font-size:11px; font-weight:900; color:#ff3b30; letter-spacing:1.5px; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-                    <span>🔔</span> DEMANDES REÇUES <span id="mf-pending-count" style="background:#ff3b30; color:#fff; padding:2px 8px; border-radius:10px; font-size:10px;">0</span>
-                </div>
-                <div id="mf-pending-list" style="display:flex; flex-direction:column; gap:8px;"></div>
-            </div>
-
-            <!-- Section amis acceptés -->
-            <div style="margin-top:24px;">
-                <div style="font-size:11px; font-weight:900; color:#00e0c4; letter-spacing:1.5px; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-                    <span>✅</span> MES AMIS <span id="mf-friends-count" style="background:rgba(0,224,196,0.2); color:#00e0c4; padding:2px 8px; border-radius:10px; font-size:10px;">0</span>
-                </div>
-                <div id="mf-friends-list" style="display:flex; flex-direction:column; gap:8px;">
-                    <div style="text-align:center; padding:24px; color:rgba(255,255,255,0.35); font-size:12px; font-style:italic;">Tu n'as pas encore d'amis AhOuai</div>
-                </div>
-            </div>
-
-            <!-- Section demandes envoyées -->
-            <div id="mf-sent-section" style="margin-top:24px; display:none;">
-                <div style="font-size:11px; font-weight:900; color:#f59e0b; letter-spacing:1.5px; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-                    <span>⏳</span> DEMANDES ENVOYÉES <span id="mf-sent-count" style="background:rgba(245,158,11,0.2); color:#f59e0b; padding:2px 8px; border-radius:10px; font-size:10px;">0</span>
-                </div>
-                <div id="mf-sent-list" style="display:flex; flex-direction:column; gap:8px;"></div>
-            </div>
-
-            <p style="text-align:center; margin-top:32px; font-size:11px; color:rgba(255,255,255,0.3);">Croise du monde en soirée pour agrandir ton crew 🎉</p>
+    <!-- Univers V1 — données relationnelles, jamais de coordonnées brutes -->
+    <div id="univers-modal" class="univers-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="univers-title">
+        <div class="univers-sheet">
+            <button type="button" class="univers-close" aria-label="Fermer" onclick="closeUniversModal()">×</button>
+            <div id="univers-content" class="univers-content"></div>
         </div>
     </div>
 

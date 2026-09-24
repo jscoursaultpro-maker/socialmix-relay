@@ -2485,13 +2485,16 @@ function connectToRelay() {
     }
     showFriendActionToast(`🔔 ${emoji} ${name} veut être ton ami — Répondre →`, data?.fromUserId, 6000);
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-    refreshFriendStatuses(); // refresh serveur en background (source de vérité)
+    handleFriendSocketUpdate('friend:requestReceived', data);
   });
   socket.on('friend:requestAccepted', (data) => {
     console.log('[Friends] ✅ Demande acceptée par', data?.acceptedByName);
     showToast(`🎉 ${data?.acceptedByName || 'Un invité'} a accepté ta demande d'ami !`, 4500);
     if (navigator.vibrate) navigator.vibrate([200]);
-    refreshFriendStatuses();
+    handleFriendSocketUpdate('friend:requestAccepted', data);
+  });
+  ['friend:requestDeclined', 'friend:requestCancelled', 'friend:unfriended', 'friend:blocked'].forEach(eventName => {
+    socket.on(eventName, payload => handleFriendSocketUpdate(eventName, payload || {}));
   });
 
   // ★ Bug J — Patch artwork résolu server-side (fallback DB/Deezer pour tracks iOS Jukebox local)
@@ -4481,6 +4484,46 @@ function sendFriendRequest(targetUserId, targetName) {
   .catch(err => console.error('[Friends] Request failed:', err));
 }
 
+function handleFriendSocketUpdate(eventName, payload) {
+  const targetUserId = String(payload.fromUserId || payload.targetUserId || payload.userId || '');
+  const nextState = payload.relationshipState || ({
+    'friend:requestReceived': 'pending_received',
+    'friend:requestAccepted': 'accepted',
+    'friend:requestDeclined': 'declined',
+    'friend:requestCancelled': 'none',
+    'friend:unfriended': 'none',
+    'friend:blocked': 'blocked'
+  })[eventName] || 'none';
+  state._friendStatuses = state._friendStatuses || {};
+  if (targetUserId) {
+    state._friendStatuses[targetUserId] = {
+      ...(state._friendStatuses[targetUserId] || {}),
+      status: nextState,
+      friendshipId: payload.friendshipId || state._friendStatuses[targetUserId]?.friendshipId,
+      fromName: payload.fromName || state._friendStatuses[targetUserId]?.fromName
+    };
+  }
+  if (state._universCache && targetUserId) delete state._universCache[targetUserId];
+  console.log('[Cercle]', eventName, targetUserId || 'unknown', '→', nextState);
+  if (typeof updateProfileBadge === 'function') updateProfileBadge();
+  if (typeof refreshTrombiBadges === 'function') refreshTrombiBadges();
+  window.rerenderAgirBoostIfVisible?.();
+  window.renderMonCercleSoirIfVisible?.();
+  window.rerenderMesAmisIfVisible?.();
+  window.rerenderSouvenirsIfVisible?.();
+  refreshFriendStatuses();
+}
+
+window.handleFriendSocketUpdate = handleFriendSocketUpdate;
+window.rerenderAgirBoostIfVisible = window.rerenderAgirBoostIfVisible || function() {};
+window.renderMonCercleSoirIfVisible = function() {
+  const tab = document.getElementById('tab-moi');
+  if (tab?.classList.contains('active') && typeof renderMoiOverview === 'function') renderMoiOverview();
+};
+window.rerenderMesAmisIfVisible = function() {
+  if (document.getElementById('my-friends-screen')?.classList.contains('active')) openMyFriendsScreen();
+};
+
 // ★ Bug E-3a — Fetch statuts amis (list + pending reçues + sent envoyées) et remplit state._friendStatuses
 function refreshFriendStatuses(cb) {
   if (!state.sessionToken) { cb && cb(); return; }
@@ -4546,82 +4589,142 @@ function _renderMyFriends(data, highlightUserId) {
   const pending = data.pending || [];
   const friends = data.friends || [];
   const sent = data.sent || [];
+  state._myFriendsData = { pending, friends, sent };
+  const avatar = (photo, emoji) => photo ? `<img src="${escapeHtml(photo)}" alt="">` : escapeHtml(emoji || '✦');
+  const empty = message => `<div class="cercle-empty"><span>✦</span><p>${message}</p></div>`;
+  const pendingList = $('mf-pending-list');
+  const friendsList = $('mf-friends-list');
+  const sentList = $('mf-sent-list');
+  if ($('mf-pending-count')) $('mf-pending-count').textContent = pending.length;
+  if ($('mf-friends-count')) $('mf-friends-count').textContent = friends.length;
+  if ($('mf-sent-count')) $('mf-sent-count').textContent = sent.length;
 
-  // Section demandes reçues
-  const pendingSection = document.getElementById('mf-pending-section');
-  const pendingList = document.getElementById('mf-pending-list');
-  const pendingCount = document.getElementById('mf-pending-count');
-  if (pendingSection && pendingList && pendingCount) {
-    pendingCount.textContent = pending.length;
-    if (pending.length === 0) {
-      pendingSection.style.display = 'none';
-    } else {
-      pendingSection.style.display = 'block';
-      pendingList.innerHTML = pending.map(p => {
-        const name = escapeHtml(p.fromName || 'Un invité');
-        const emoji = p.fromEmoji || '🎉';
-        const highlight = highlightUserId && p.fromUserId === highlightUserId ? 'box-shadow:0 0 0 2px #ff3b30;' : '';
-        return `<div class="mf-card mf-card-pending" style="display:flex; align-items:center; gap:12px; padding:12px; background:linear-gradient(135deg,rgba(255,59,48,0.10),rgba(255,107,53,0.06)); border:1px solid rgba(255,59,48,0.30); border-radius:12px; ${highlight}">
-          <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;">${emoji}</div>
-          <div style="flex:1; min-width:0;">
-            <div style="font-size:14px; font-weight:900; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</div>
-            <div style="font-size:10px; font-weight:600; color:rgba(255,255,255,0.5); margin-top:2px;">veut être ton ami</div>
-          </div>
-          <button onclick="acceptFriendRequest('${p._id}', '${name.replace(/'/g, "\\'")}')" style="padding:8px 12px; background:linear-gradient(135deg,#00e0c4,#00b8a9); border:none; border-radius:10px; font-size:11px; font-weight:900; color:#0a0e1a; cursor:pointer; flex-shrink:0;">✅</button>
-          <button onclick="declineFriendRequest('${p._id}', '${name.replace(/'/g, "\\'")}')" style="padding:8px 10px; background:rgba(255,59,48,0.12); border:1px solid rgba(255,59,48,0.4); border-radius:10px; font-size:11px; font-weight:900; color:#ff3b30; cursor:pointer; flex-shrink:0;">✕</button>
-        </div>`;
-      }).join('');
-    }
-  }
+  pendingList.innerHTML = pending.length ? pending.map(p => {
+    const name = escapeHtml(p.fromName || 'Un invité');
+    return `<article class="cercle-person${highlightUserId === p.fromUserId ? ' is-highlighted' : ''}"><span class="cercle-avatar">${avatar(p.fromPhoto, p.fromEmoji)}</span><span class="cercle-person-copy"><b>${name}</b><small>Souhaite rejoindre ton Crew</small></span><span class="cercle-actions"><button class="is-soft" onclick="declineFriendRequest('${p._id}','${name.replace(/'/g, "\\'")}')">IGNORER</button><button class="is-primary" onclick="acceptFriendRequest('${p._id}','${name.replace(/'/g, "\\'")}')">ACCEPTER</button></span></article>`;
+  }).join('') : empty('Aucune demande pour le moment.');
 
-  // Section amis acceptés
-  const friendsList = document.getElementById('mf-friends-list');
-  const friendsCount = document.getElementById('mf-friends-count');
-  if (friendsList && friendsCount) {
-    friendsCount.textContent = friends.length;
-    if (friends.length === 0) {
-      friendsList.innerHTML = '<div style="text-align:center; padding:24px; color:rgba(255,255,255,0.35); font-size:12px; font-style:italic;">Tu n\'as pas encore d\'amis AhOuai — croise du monde en soirée !</div>';
-    } else {
-      friendsList.innerHTML = friends.map(f => {
-        const name = escapeHtml(f.friendName || 'Ami');
-        const emoji = f.friendEmoji || '🎉';
-        const metAt = f.metAt ? `Rencontré à <b style="color:#00e0c4;">${escapeHtml(f.metAt)}</b>` : 'Ami AhOuai';
-        return `<div class="mf-card mf-card-friend" style="display:flex; align-items:center; gap:12px; padding:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px;">
-          <div style="width:42px; height:42px; border-radius:50%; background:rgba(0,224,196,0.12); border:2px solid rgba(0,224,196,0.35); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;">${emoji}</div>
-          <div style="flex:1; min-width:0;">
-            <div style="font-size:14px; font-weight:900; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</div>
-            <div style="font-size:10px; font-weight:600; color:rgba(255,255,255,0.5); margin-top:2px;">${metAt}</div>
-          </div>
-          <span style="font-size:16px; color:#00e0c4;">✓</span>
-        </div>`;
-      }).join('');
-    }
-  }
+  friendsList.innerHTML = friends.length ? friends.map(f => {
+    const id = f.friendUserId || '';
+    const name = escapeHtml(f.friendName || 'Ami AhOuai');
+    return `<button type="button" class="cercle-person cercle-person-button" onclick="openUniversModal('${escapeHtml(id)}')"><span class="cercle-avatar">${avatar(f.friendPhoto, f.friendEmoji)}</span><span class="cercle-person-copy"><b>${name}</b><small>${f.metAt ? `Rencontré à ${escapeHtml(f.metAt)}` : 'Dans ton Crew'}</small></span><span class="cercle-status is-friend">AMI</span><span class="cercle-arrow">›</span></button>`;
+  }).join('') : empty('Ton Crew se construit dans les moments partagés.');
 
-  // Section demandes envoyées
-  const sentSection = document.getElementById('mf-sent-section');
-  const sentList = document.getElementById('mf-sent-list');
-  const sentCount = document.getElementById('mf-sent-count');
-  if (sentSection && sentList && sentCount) {
-    sentCount.textContent = sent.length;
-    if (sent.length === 0) {
-      sentSection.style.display = 'none';
-    } else {
-      sentSection.style.display = 'block';
-      sentList.innerHTML = sent.map(s => {
-        const name = escapeHtml(s.targetName || 'Invité');
-        const emoji = s.targetEmoji || '🎉';
-        return `<div class="mf-card mf-card-sent" style="display:flex; align-items:center; gap:12px; padding:10px; background:rgba(255,255,255,0.02); border:1px dashed rgba(245,158,11,0.35); border-radius:12px; opacity:0.85;">
-          <div style="width:36px; height:36px; border-radius:50%; background:rgba(245,158,11,0.10); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">${emoji}</div>
-          <div style="flex:1; min-width:0;">
-            <div style="font-size:13px; font-weight:800; color:rgba(255,255,255,0.85); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</div>
-            <div style="font-size:10px; font-weight:600; color:#f59e0b; margin-top:2px;">⏳ En attente de sa réponse</div>
-          </div>
-        </div>`;
-      }).join('');
-    }
+  const sentSection = $('mf-sent-section');
+  sentSection.style.display = sent.length ? '' : 'none';
+  sentList.innerHTML = sent.map(s => `<article class="cercle-person"><span class="cercle-avatar">${avatar(s.targetPhoto, s.targetEmoji)}</span><span class="cercle-person-copy"><b>${escapeHtml(s.targetName || 'Invité')}</b><small>La demande est partie</small></span><span class="cercle-status">DEMANDE ENVOYÉE</span></article>`).join('');
+
+  const friendIds = new Set(friends.map(f => String(f.friendUserId || '')));
+  const pendingIds = new Set([...pending.map(p => String(p.fromUserId || '')), ...sent.map(s => String(s.targetUserId || ''))]);
+  const seen = new Set();
+  const recent = (state.participants || []).filter(person => {
+    const id = String(person.userId || person.id || '');
+    if (!id || id === String(state.userId || state.guestId || '') || friendIds.has(id) || pendingIds.has(id) || seen.has(id)) return false;
+    seen.add(id); return true;
+  }).slice(0, 12);
+  if ($('mf-recent-count')) $('mf-recent-count').textContent = recent.length;
+  $('mf-recent-list').innerHTML = recent.length ? recent.map(person => {
+    const id = String(person.userId || person.id || '');
+    return `<article class="cercle-person"><span class="cercle-avatar">${avatar(person.photo || person.avatar, person.emoji)}</span><span class="cercle-person-copy"><b>${escapeHtml(person.name || 'Invité')}</b><small>Croisé dans ce moment</small></span><button class="cercle-add" onclick="sendFriendRequest('${escapeHtml(id)}','${escapeHtml(person.name || 'cet invité').replace(/'/g, "\\'")}')">+ AJOUTER AU CREW</button></article>`;
+  }).join('') : empty('Les nouvelles rencontres apparaîtront ici.');
+
+  document.querySelectorAll('[data-cercle-tab]').forEach(button => button.onclick = () => {
+    document.querySelectorAll('[data-cercle-tab]').forEach(item => item.classList.toggle('is-active', item === button));
+    document.querySelectorAll('[data-cercle-pane]').forEach(pane => pane.classList.toggle('is-active', pane.dataset.cerclePane === button.dataset.cercleTab));
+  });
+}
+
+const CERCLE_RELATION_LABELS = {
+  none: 'RENCONTRÉ', pending_sent: 'DEMANDE ENVOYÉE', pending_received: 'À RÉPONDRE',
+  accepted: 'DANS TON CREW', declined: 'RENCONTRÉ', blocked: 'INDISPONIBLE'
+};
+
+async function openUniversModal(targetUserId) {
+  if (!targetUserId) return;
+  const modal = $('univers-modal');
+  const content = $('univers-content');
+  if (!modal || !content) return;
+  modal.classList.remove('hidden');
+  document.body.classList.add('univers-open');
+  content.innerHTML = '<div class="univers-loader"><i></i><p>Vos moments se retrouvent…</p></div>';
+  try {
+    const jwt = await getProfileJwt();
+    if (!jwt) throw Object.assign(new Error('AUTH_MISSING'), { status: 401 });
+    const response = await fetch(`/api/user/univers/${encodeURIComponent(targetUserId)}`, {
+      headers: { Authorization: `Bearer ${jwt}` }, cache: 'no-store'
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw Object.assign(new Error(data.error || 'UNIVERS_ERROR'), { status: response.status });
+    state._universCache = state._universCache || {};
+    state._universCache[targetUserId] = data;
+    _renderUnivers(data);
+  } catch (error) {
+    console.warn('[Cercle] Univers indisponible', error);
+    const message = error.status === 404 ? 'Compte introuvable.'
+      : error.status === 403 ? 'Vous ne partagez encore rien. Rejoignez un moment ensemble.'
+      : error.status === 401 ? 'Reconnecte-toi pour retrouver vos moments communs.'
+      : 'Impossible de retrouver cet univers pour le moment.';
+    content.innerHTML = `<div class="univers-error"><span>✦</span><h2>Nos univers</h2><p>${message}</p><button onclick="closeUniversModal()">FERMER</button></div>`;
   }
 }
+
+function closeUniversModal() {
+  $('univers-modal')?.classList.add('hidden');
+  document.body.classList.remove('univers-open');
+}
+
+function _universDate(value) {
+  if (!value) return '';
+  try { return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value)); }
+  catch (_) { return ''; }
+}
+
+function _renderUnivers(data) {
+  const content = $('univers-content');
+  if (!content) return;
+  const person = data.targetPublic || {};
+  const name = escapeHtml(person.firstName || person.handle || 'Un membre AhOuai');
+  const avatar = person.photo ? `<img src="${escapeHtml(person.photo)}" alt="">` : escapeHtml(person.emoji || '✦');
+  const context = data.meetContext;
+  const relationship = data.relationshipState || 'none';
+  const collection = (title, count, items, renderer, emptyText) => `<section class="univers-section"><div class="univers-section-head"><h3>${title}</h3><b>${Number(count || 0)}</b></div><div class="univers-rail">${items.length ? items.map(renderer).join('') : `<p class="univers-section-empty">${emptyText}</p>`}</div></section>`;
+  const trackCard = item => `<article class="univers-track">${item.artworkUrl ? `<img src="${escapeHtml(item.artworkUrl)}" alt="">` : '<span>♫</span>'}<div><b>${escapeHtml(item.title || '')}</b><small>${escapeHtml(item.artist || '')}</small></div></article>`;
+  const afterglowCard = item => `<article class="univers-afterglow"${item.coverUrl ? ` style="background-image:linear-gradient(180deg,rgba(7,11,24,.05),rgba(7,11,24,.92)),url('${escapeHtml(item.coverUrl)}')"` : ''}><b>${escapeHtml(item.title || 'Un moment partagé')}</b><small>${_universDate(item.occurredAt)}</small></article>`;
+  if (relationship === 'blocked') {
+    content.innerHTML = '<div class="univers-error"><span>✦</span><h2>Univers indisponible</h2><p>Cette relation n’est pas accessible.</p></div>';
+    return;
+  }
+  content.innerHTML = `
+    <header class="univers-person"><span class="univers-avatar">${avatar}</span><div><small>NOS UNIVERS</small><h2 id="univers-title">${name}</h2><em class="is-${relationship}">${CERCLE_RELATION_LABELS[relationship] || 'RENCONTRÉ'}</em></div></header>
+    ${context ? `<section class="univers-meet"${context.coverUrl ? ` style="background-image:linear-gradient(90deg,rgba(8,12,24,.96),rgba(8,12,24,.48)),url('${escapeHtml(context.coverUrl)}')"` : ''}><small>NOTRE PREMIER MOMENT</small><b>${escapeHtml(context.partyName || 'Un moment AhOuai')}</b><p>${[context.venueName, _universDate(context.metAt)].filter(Boolean).map(escapeHtml).join(' · ')}</p></section>` : ''}
+    ${collection('Titres communs', data.counts?.commonTracks, data.commonTracks || [], trackCard, 'Vos titres communs apparaîtront ici.')}
+    ${collection('Suggestions communes', data.counts?.commonSuggestions, data.commonSuggestions || [], trackCard, 'Le prochain morceau partagé reste à trouver.')}
+    ${collection('Afterglows communs', data.counts?.commonAfterglows, data.commonAfterglows || [], afterglowCard, 'Un premier moment partagé. La suite vous appartient.')}
+    ${data.contactAvailable && relationship === 'accepted' ? `<button class="univers-vcard" onclick="downloadFriendVCard('${escapeHtml(data.targetUserId)}', this)">⌁ AJOUTER À MES CONTACTS</button>` : ''}`;
+}
+
+async function downloadFriendVCard(friendUserId, button) {
+  try {
+    const jwt = await getProfileJwt();
+    if (!jwt) throw new Error('AUTH_MISSING');
+    const response = await fetch(`/api/user/friends/${encodeURIComponent(friendUserId)}/vcard`, { headers: { Authorization: `Bearer ${jwt}` }, cache: 'no-store' });
+    if (!response.ok) throw new Error('VCARD_FAILED');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = 'contact-ahouai.vcf'; document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (button) { button.textContent = '✓ CONTACT PRÊT'; button.disabled = true; }
+    showToast('Le contact est prêt à être enregistré.', 3200);
+  } catch (error) {
+    console.warn('[Cercle] vCard indisponible', error);
+    showToast('Impossible de préparer ce contact pour le moment.', 3500);
+  }
+}
+
+window.openUniversModal = openUniversModal;
+window.closeUniversModal = closeUniversModal;
+window.downloadFriendVCard = downloadFriendVCard;
 
 // ★ Bug E-3a — Compter les demandes reçues non traitées
 function countPendingReceived() {
@@ -6164,6 +6267,9 @@ function renderMoiOverview() {
     person.userId && friendStatuses[person.userId]?.status === 'accepted' && person.name !== state.guestName
   );
   const visibleFriends = friendsHere.slice(0, 4);
+  const requestsHere = (state.participants || []).filter(person => person.userId && friendStatuses[person.userId]?.status === 'pending_received').slice(0, 2);
+  const newHere = (state.participants || []).filter(person => person.userId && !friendStatuses[person.userId] && person.name !== state.guestName).slice(0, 1);
+  const circlePeople = [...friendsHere.map(person => ({ ...person, circleState: 'friend' })), ...requestsHere.map(person => ({ ...person, circleState: 'request' })), ...newHere.map(person => ({ ...person, circleState: 'new' }))].slice(0, 5);
   const leaderRows = leaderboard.length
     ? (moiLeaderboardExpanded ? leaderboard.slice(0, 10) : leaderboard.slice(0, 3))
     : [];
@@ -6183,7 +6289,7 @@ function renderMoiOverview() {
   container.innerHTML = `
     <section class="moi-identity-card"><div class="moi-avatar">${portrait}</div><div class="moi-identity-copy"><strong>${escHtml(state.guestName || 'Moi')}</strong><small>MA SOIRÉE</small><div><b>★ ${points}</b><span>points</span><i></i><b class="moi-rank">♜ ${rank ? '#' + rank : '—'}</b><span>${rank ? 'ce soir' : 'classement'}</span></div></div></section>
     <section class="moi-panel"><h2>♫ MES TITRES CE SOIR</h2><div class="moi-track-filters"><button class="${moiTrackFilter === 'pending' ? 'is-active' : ''}" onclick="setMoiTrackFilter('pending')"><b>${pending}</b>En attente</button><button class="${moiTrackFilter === 'played' ? 'is-active' : ''}" onclick="setMoiTrackFilter('played')"><b>${played.length}</b>Joués</button><button class="${moiTrackFilter === 'support' ? 'is-active' : ''}" onclick="setMoiTrackFilter('support')"><b>${supportable}</b>À soutenir</button></div><div class="moi-track-list">${trackRows}</div></section>
-    <section class="moi-panel moi-circle-panel"><h2>♟ MON CERCLE</h2><div class="moi-circle-row"><div class="moi-friends">${visibleFriends.length ? visibleFriends.map(person => `<span title="${escHtml(person.name || '')}">${person.photo ? `<img src="${escHtml(person.photo)}" alt="">` : escHtml(person.emoji || '✨')}</span>`).join('') : '<span class="moi-friend-empty">+</span>'}</div><p><b>${friendsHere.length}</b> ami${friendsHere.length > 1 ? 's' : ''}<br>présent${friendsHere.length > 1 ? 's' : ''}</p><button type="button" onclick="showPartyQR()">+ Inviter</button></div></section>
+    <section class="moi-panel moi-circle-panel"><h2>♟ MON CERCLE CE SOIR</h2><div class="moi-circle-chips">${circlePeople.length ? circlePeople.map(person => `<button type="button" class="moi-circle-chip is-${person.circleState}" onclick="${person.circleState === 'request' ? `openMyFriendsScreen('${escHtml(person.userId)}')` : person.circleState === 'friend' ? `openUniversModal('${escHtml(person.userId)}')` : `sendFriendRequest('${escHtml(person.userId)}','${escHtml(person.name || 'cet invité').replace(/'/g, "\\'")}')`}">${person.photo ? `<img src="${escHtml(person.photo)}" alt="">` : `<span>${escHtml(person.emoji || '✨')}</span>`}<b>${escHtml(person.name || 'Invité')}</b><small>${person.circleState === 'friend' ? 'AMI PRÉSENT' : person.circleState === 'request' ? 'À RÉPONDRE' : '+ RENCONTRE'}</small></button>`).join('') : '<p class="moi-empty">Ton cercle de ce soir se construit avec les premières rencontres.</p>'}</div><button type="button" class="moi-circle-open" onclick="openMyFriendsScreen()">VOIR MON CERCLE →</button></section>
     <section class="moi-panel moi-ranking-panel"><h2>🏆 CLASSEMENT</h2><div class="moi-leader-list">${leaderboardRows}</div>${leaderboard.length > 3 ? `<button type="button" class="moi-leader-more" onclick="toggleMoiLeaderboard()">${moiLeaderboardExpanded ? 'Réduire ↑' : 'Voir le classement →'}</button>` : ''}</section>`;
 }
 
@@ -7801,18 +7907,14 @@ function renderSouvenirs() {
   const storyGuestsList = document.getElementById('story-guests-list');
   const storyGuestsCount = document.getElementById('story-guests-count');
   if (storyGuestsEl && storyGuestsList) {
-    // ★ On inclut le host + dédup par nom normalisé (Romeo == romeo-2).
-    // On exclut seulement soi-même pour ne pas s'afficher.
-    const _normGuest = (n) => (n || '')
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .toLowerCase().replace(/\s+/g, ' ').replace(/-\d+$/, '').trim();
+    // Identité sûre : userId, puis email. Un nom seul ne fusionne jamais deux personnes.
     const seenGuest = new Set();
     const guests = participants.filter(person => {
       const personId = person.userId || person.id || '';
       if (personId && String(personId) === String(myId)) return false;
-      const nk = _normGuest(person.name);
-      if (nk && seenGuest.has(nk)) return false; // doublon Romeo/romeo-2
-      if (nk) seenGuest.add(nk);
+      const stableKey = personId ? `id:${personId}` : person.email ? `email:${String(person.email).trim().toLowerCase()}` : '';
+      if (stableKey && seenGuest.has(stableKey)) return false;
+      if (stableKey) seenGuest.add(stableKey);
       return true;
     });
     if (!guests.length) {
@@ -7827,16 +7929,15 @@ function renderSouvenirs() {
           : _souvEscape(person.emoji || '✦');
         let action = '';
         if (personId && status === 'accepted') {
-          action = '<span class="story-friend-state is-friend">✓ AMIS</span>';
+          action = `<button type="button" class="story-friend-btn is-friend" data-story-univers-id="${_souvEscape(personId)}">✓ DANS TON CREW</button>`;
         } else if (personId && status === 'pending_sent') {
-          action = '<span class="story-friend-state">EN ATTENTE</span>';
+          action = '<span class="story-friend-state">DEMANDE ENVOYÉE</span>';
         } else if (personId && status === 'pending_received') {
           action = `<button type="button" class="story-friend-btn is-accept" data-story-friend-action="accept" data-story-friend-id="${_souvEscape(personId)}" data-story-friend-name="${_souvEscape(name)}">ACCEPTER</button>`;
         } else if (personId) {
-          action = `<button type="button" class="story-friend-btn" data-story-friend-action="invite" data-story-friend-id="${_souvEscape(personId)}" data-story-friend-name="${_souvEscape(name)}">+ AMI</button>`;
+          action = `<button type="button" class="story-friend-btn" data-story-friend-action="invite" data-story-friend-id="${_souvEscape(personId)}" data-story-friend-name="${_souvEscape(name)}">+ AJOUTER AU CREW</button>`;
         }
-        const contact = `<button type="button" class="story-contact-btn" data-story-contact-name="${_souvEscape(name)}" data-story-contact-emoji="${_souvEscape(person.emoji || '✦')}">⌁ CONTACT</button>`;
-        return `<div class="story-guest-row"><span class="story-guest-avatar">${avatar}</span><span class="story-guest-copy"><b>${_souvEscape(name)}</b><small>${person.isHost ? 'Hôte de la soirée' : 'Était à la soirée'}</small></span><span class="story-guest-actions">${action}${contact}</span></div>`;
+        return `<div class="story-guest-row"><span class="story-guest-avatar">${avatar}</span><button type="button" class="story-guest-copy"${personId ? ` data-story-univers-id="${_souvEscape(personId)}"` : ''}><b>${_souvEscape(name)}</b><small>${person.isHost ? 'Hôte de la soirée' : 'Était à la soirée'}</small></button><span class="story-guest-actions">${action}</span></div>`;
       }).join('');
     }
     storyGuestsList.querySelectorAll('[data-story-friend-action]').forEach(button => {
@@ -7852,16 +7953,7 @@ function renderSouvenirs() {
         renderSouvenirs();
       });
     });
-    storyGuestsList.querySelectorAll('[data-story-contact-name]').forEach(button => {
-      button.addEventListener('click', () => {
-        const name = button.dataset.storyContactName || 'Invité AhOuai';
-        const emoji = button.dataset.storyContactEmoji || '✦';
-        downloadVCard(name, emoji, '', '', '');
-        button.textContent = '✓ AJOUTÉ';
-        button.classList.add('is-saved');
-        showToast(`${name} est prêt à être ajouté à tes contacts`, 3000);
-      });
-    });
+    storyGuestsList.querySelectorAll('[data-story-univers-id]').forEach(button => button.addEventListener('click', () => openUniversModal(button.dataset.storyUniversId)));
     if (storyGuestsCount) storyGuestsCount.textContent = `${guests.length} invité${guests.length > 1 ? 's' : ''}`;
     storyGuestsEl.style.display = '';
   }
