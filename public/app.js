@@ -4455,9 +4455,13 @@ function showTrombiContact(idx) {
 
 // Send friend request via REST API
 async function sendFriendRequest(targetUserId, targetName) {
-  if (!state.sessionToken || !targetUserId) return;
+  if (!targetUserId) return;
   const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
-  if (!jwt) return;
+  if (!jwt) {
+    console.warn('[Friends] Pas de JWT Supabase — le user doit être authentifié pour ajouter des amis');
+    if (typeof showToast === 'function') showToast('Connecte-toi pour ajouter des amis', 3000);
+    return;
+  }
 
   if (!state._friendStatuses) state._friendStatuses = {};
   state._friendStatuses[targetUserId] = { status: 'pending_sent' };
@@ -4529,7 +4533,6 @@ window.rerenderMesAmisIfVisible = function() {
 
 // ★ Bug E-3a — Fetch statuts amis (list + pending reçues + sent envoyées) et remplit state._friendStatuses
 async function refreshFriendStatuses(cb) {
-  if (!state.sessionToken) { cb && cb(); return; }
   const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
   if (!jwt) { cb && cb(); return; }
 
@@ -4576,7 +4579,7 @@ async function openMyFriendsScreen(highlightUserId) {
   if (typeof showScreen === 'function') showScreen('my-friends');
   
   const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
-  if (!state.sessionToken || !jwt) {
+  if (!jwt) {
     _renderMyFriends({friends:[], pending:[], sent:[]}, highlightUserId);
     return;
   }
@@ -4781,9 +4784,12 @@ function refreshTrombiBadges() {
 
 // ★ Bug E-3a — Accepter une demande d'ami
 async function acceptFriendRequest(fromUserId, fromName) {
-  if (!state.sessionToken || !fromUserId) return;
+  if (!fromUserId) return;
   const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
-  if (!jwt) return;
+  if (!jwt) {
+    if (typeof showToast === 'function') showToast('Connecte-toi pour accepter', 3000);
+    return;
+  }
 
   console.log(`[Friends] sending POST /api/user/friends/accept/${fromUserId}`);
   try {
@@ -4817,7 +4823,7 @@ async function acceptFriendRequest(fromUserId, fromName) {
 
 // ★ Bug E-3a — Décliner une demande d'ami
 async function declineFriendRequest(fromUserId, fromName) {
-  if (!state.sessionToken || !fromUserId) return;
+  if (!fromUserId) return;
   const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
   if (!jwt) return;
 
