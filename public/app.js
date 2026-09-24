@@ -4424,7 +4424,7 @@ function showTrombiContact(idx) {
       friendBtn.style.color = '#0a0e1a';
       friendBtn.onclick = (e) => {
         e.stopPropagation();
-        acceptFriendRequest(rel.friendshipId, u.name);
+        acceptFriendRequest(u.userId, u.name);
       };
       const declineBtn = document.createElement('button');
       declineBtn.className = 'trombi-decline-btn';
@@ -4432,7 +4432,7 @@ function showTrombiContact(idx) {
       declineBtn.textContent = '✕ REFUSER';
       declineBtn.onclick = (e) => {
         e.stopPropagation();
-        declineFriendRequest(rel.friendshipId, u.name);
+        declineFriendRequest(u.userId, u.name);
       };
       friendBtn.parentNode.insertBefore(declineBtn, friendBtn.nextSibling);
     } else {
@@ -4454,26 +4454,38 @@ function showTrombiContact(idx) {
 }
 
 // Send friend request via REST API
-function sendFriendRequest(targetUserId, targetName) {
+async function sendFriendRequest(targetUserId, targetName) {
   if (!state.sessionToken || !targetUserId) return;
+  const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
+  if (!jwt) return;
+
   if (!state._friendStatuses) state._friendStatuses = {};
   state._friendStatuses[targetUserId] = { status: 'pending_sent' };
 
-  fetch('/api/friends/request', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-session-token': state.sessionToken
-    },
-    body: JSON.stringify({ targetUserId, partyCode: state.partyCode })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.ok) {
+  console.log(`[Friends] sending POST /api/user/friends/request/${targetUserId}`);
+  try {
+    const r = await fetch(`/api/user/friends/request/${targetUserId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${jwt}` }
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok || data.ok) {
       console.log(`[Friends] ✅ Request sent to ${targetName}`);
-      if (data.friendship?._id) {
-        state._friendStatuses[targetUserId] = { status: 'pending_sent', friendshipId: data.friendship._id };
+      state._friendStatuses[targetUserId] = { status: 'pending_sent' };
+    } else {
+      console.warn(`[Friends] ⚠️ ${data.error || 'Erreur'}`);
+      if (r.status === 401 || r.status === 403) {
+        showToast('Veuillez vous reconnecter pour ajouter des amis.', 3000);
+        if (_supabaseClient?.auth) _supabaseClient.auth.getSession();
       }
+      if (data.status === 'accepted') state._friendStatuses[targetUserId] = { status: 'accepted' };
+    }
+    refreshTrombiBadges();
+    if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
+  } catch (err) {
+    console.error('[Friends] Request failed:', err);
+  }
+}
     } else {
       console.warn(`[Friends] ⚠️ ${data.error}`);
       if (data.status === 'accepted') state._friendStatuses[targetUserId] = { status: 'accepted' };
@@ -4525,64 +4537,79 @@ window.rerenderMesAmisIfVisible = function() {
 };
 
 // ★ Bug E-3a — Fetch statuts amis (list + pending reçues + sent envoyées) et remplit state._friendStatuses
-function refreshFriendStatuses(cb) {
+async function refreshFriendStatuses(cb) {
   if (!state.sessionToken) { cb && cb(); return; }
+  const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
+  if (!jwt) { cb && cb(); return; }
+
   if (!state._friendStatuses) state._friendStatuses = {};
-  const headers = { 'x-session-token': state.sessionToken };
-  Promise.all([
-    fetch('/api/friends/list', { headers }).then(r => r.json()).catch(() => ({ friends: [] })),
-    fetch('/api/friends/pending', { headers }).then(r => r.json()).catch(() => ({ pending: [] })),
-    fetch('/api/friends/sent', { headers }).then(r => r.json()).catch(() => ({ sent: [] }))
-  ]).then(([listData, pendingData, sentData]) => {
-    state._friendStatuses = {};
-    // Accepted friends
-    (listData.friends || []).forEach(f => {
-      state._friendStatuses[f.friendUserId] = { status: 'accepted', friendshipId: f._id };
+  console.log("[Friends] sending GET /api/user/friends");
+  
+  try {
+    const r = await fetch('/api/user/friends', {
+      headers: { 'Authorization': `Bearer ${jwt}` }
     });
-    // Received (I'm the target, someone else asked)
-    (pendingData.pending || []).forEach(p => {
-      state._friendStatuses[p.fromUserId] = {
+    if (r.status === 401 || r.status === 403) {
+      console.warn('[Friends] Unauthorized in refresh');
+      cb && cb(); return;
+    }
+    const data = await r.json();
+    state._friendStatuses = {};
+    (data.friends || []).forEach(f => {
+      state._friendStatuses[f.id || f.friendUserId] = { status: 'accepted' };
+    });
+    (data.pendingReceived || []).forEach(p => {
+      state._friendStatuses[p.id || p.fromUserId] = {
         status: 'pending_received',
-        friendshipId: p._id,
-        fromName: p.fromName || null
+        fromName: p.name || p.fromName || null
       };
     });
-    // Sent (I asked, other side hasn't replied)
-    (sentData.sent || []).forEach(s => {
-      state._friendStatuses[s.targetUserId] = {
-        status: 'pending_sent',
-        friendshipId: s._id
+    (data.pendingSent || []).forEach(s => {
+      state._friendStatuses[s.id || s.targetUserId] = {
+        status: 'pending_sent'
       };
     });
     refreshTrombiBadges();
     if (typeof updateProfileBadge === 'function') updateProfileBadge();
     if (typeof renderMoiOverview === 'function') renderMoiOverview();
     if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
-    cb && cb();
-  }).catch(err => { console.warn('[Friends] refreshFriendStatuses fail:', err); cb && cb(); });
+  } catch(err) {
+    console.warn('[Friends] refreshFriendStatuses fail:', err);
+  }
+  cb && cb();
 }
 
 // ★ Bug E-3b — Écran centralisé "Mes amis" (cross-parties)
-function openMyFriendsScreen(highlightUserId) {
-  // Track previous screen pour le back button
+async function openMyFriendsScreen(highlightUserId) {
   state.previousScreen = (state.chantier5?.screen === 'profile' || document.getElementById('profile-screen')?.classList.contains('active')) ? 'profile' : 'cockpit';
   if (typeof showScreen === 'function') showScreen('my-friends');
-  // Fetch data + render
-  const headers = { 'x-session-token': state.sessionToken };
-  if (!state.sessionToken) {
+  
+  const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
+  if (!state.sessionToken || !jwt) {
     _renderMyFriends({friends:[], pending:[], sent:[]}, highlightUserId);
     return;
   }
-  Promise.all([
-    fetch('/api/friends/list', { headers }).then(r => r.json()).catch(() => ({friends:[]})),
-    fetch('/api/friends/pending', { headers }).then(r => r.json()).catch(() => ({pending:[]})),
-    fetch('/api/friends/sent', { headers }).then(r => r.json()).catch(() => ({sent:[]}))
-  ]).then(([l, p, s]) => {
-    _renderMyFriends({friends: l.friends || [], pending: p.pending || [], sent: s.sent || []}, highlightUserId);
-  }).catch(err => {
+  
+  console.log("[Friends] sending GET /api/user/friends");
+  try {
+    const r = await fetch('/api/user/friends', {
+      headers: { 'Authorization': `Bearer ${jwt}` }
+    });
+    if (r.status === 401 || r.status === 403) {
+      if (_supabaseClient?.auth) _supabaseClient.auth.getSession();
+      _renderMyFriends({friends:[], pending:[], sent:[]}, highlightUserId);
+      return;
+    }
+    const data = await r.json();
+    _renderMyFriends({
+      friends: (data.friends || []).map(f => ({ friendUserId: f.id || f.friendUserId, friendName: f.name || f.friendName, friendPhoto: f.photo || f.friendPhoto, friendEmoji: f.emoji || f.friendEmoji })),
+      pending: (data.pendingReceived || []).map(p => ({ fromUserId: p.id || p.fromUserId, fromName: p.name || p.fromName, fromPhoto: p.photo || p.fromPhoto, fromEmoji: p.emoji || p.fromEmoji })),
+      sent: (data.pendingSent || []).map(s => ({ targetUserId: s.id || s.targetUserId, targetName: s.name || s.targetName, targetPhoto: s.photo || s.targetPhoto, targetEmoji: s.emoji || s.targetEmoji }))
+    }, highlightUserId);
+  } catch(err) {
     console.warn('[MyFriends] fetch fail:', err);
     _renderMyFriends({friends:[], pending:[], sent:[]}, highlightUserId);
-  });
+  }
 }
 
 function _renderMyFriends(data, highlightUserId) {
@@ -4601,7 +4628,7 @@ function _renderMyFriends(data, highlightUserId) {
 
   pendingList.innerHTML = pending.length ? pending.map(p => {
     const name = escapeHtml(p.fromName || 'Un invité');
-    return `<article class="cercle-person${highlightUserId === p.fromUserId ? ' is-highlighted' : ''}"><span class="cercle-avatar">${avatar(p.fromPhoto, p.fromEmoji)}</span><span class="cercle-person-copy"><b>${name}</b><small>Souhaite rejoindre ton Crew</small></span><span class="cercle-actions"><button class="is-soft" onclick="declineFriendRequest('${p._id}','${name.replace(/'/g, "\\'")}')">IGNORER</button><button class="is-primary" onclick="acceptFriendRequest('${p._id}','${name.replace(/'/g, "\\'")}')">ACCEPTER</button></span></article>`;
+    return `<article class="cercle-person${highlightUserId === p.fromUserId ? ' is-highlighted' : ''}"><span class="cercle-avatar">${avatar(p.fromPhoto, p.fromEmoji)}</span><span class="cercle-person-copy"><b>${name}</b><small>Souhaite rejoindre ton Crew</small></span><span class="cercle-actions"><button class="is-soft" onclick="declineFriendRequest('${p.fromUserId || p.id}','${name.replace(/'/g, "\\'")}')">IGNORER</button><button class="is-primary" onclick="acceptFriendRequest('${p.fromUserId || p.id}','${name.replace(/'/g, "\\'")}')">ACCEPTER</button></span></article>`;
   }).join('') : empty('Aucune demande pour le moment.');
 
   friendsList.innerHTML = friends.length ? friends.map(f => {
@@ -4762,54 +4789,70 @@ function refreshTrombiBadges() {
 }
 
 // ★ Bug E-3a — Accepter une demande d'ami
-function acceptFriendRequest(friendshipId, fromName) {
-  if (!state.sessionToken || !friendshipId) return;
-  fetch('/api/friends/accept', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-session-token': state.sessionToken },
-    body: JSON.stringify({ friendshipId })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.ok) {
+async function acceptFriendRequest(fromUserId, fromName) {
+  if (!state.sessionToken || !fromUserId) return;
+  const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
+  if (!jwt) return;
+
+  console.log(`[Friends] sending POST /api/user/friends/accept/${fromUserId}`);
+  try {
+    const r = await fetch(`/api/user/friends/accept/${fromUserId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${jwt}` }
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 401 || r.status === 403) {
+      showToast('❌ Session expirée, reconnectez-vous.', 3000);
+      if (_supabaseClient?.auth) _supabaseClient.auth.getSession();
+      return;
+    }
+    if (r.ok || data.ok) {
       showToast(`✅ Tu es maintenant ami avec ${fromName || 'ce guest'}`, 3500);
       if (navigator.vibrate) navigator.vibrate([100, 30, 100]);
       refreshFriendStatuses();
       const lb = $('trombi-lightbox');
       if (lb) lb.style.display = 'none';
-      // ★ Bug E-3b — Refresh écran Mes amis si actif
       if (document.getElementById('my-friends-screen')?.classList.contains('active')) {
         openMyFriendsScreen();
       }
     } else {
       showToast(`❌ ${data.error || 'Erreur acceptation'}`, 3000);
     }
-  })
-  .catch(err => { console.error('[Friends] Accept failed:', err); showToast('❌ Erreur réseau', 3000); });
+  } catch (err) {
+    console.error('[Friends] Accept failed:', err);
+    showToast('❌ Erreur réseau', 3000);
+  }
 }
 
 // ★ Bug E-3a — Décliner une demande d'ami
-function declineFriendRequest(friendshipId, fromName) {
-  if (!state.sessionToken || !friendshipId) return;
-  fetch('/api/friends/decline', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-session-token': state.sessionToken },
-    body: JSON.stringify({ friendshipId })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.ok) {
+async function declineFriendRequest(fromUserId, fromName) {
+  if (!state.sessionToken || !fromUserId) return;
+  const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
+  if (!jwt) return;
+
+  console.log(`[Friends] sending POST /api/user/friends/decline/${fromUserId}`);
+  try {
+    const r = await fetch(`/api/user/friends/decline/${fromUserId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${jwt}` }
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 401 || r.status === 403) {
+       if (_supabaseClient?.auth) _supabaseClient.auth.getSession();
+       return;
+    }
+    if (r.ok || data.ok) {
       showToast(`Demande de ${fromName || 'ce guest'} déclinée`, 2500);
       refreshFriendStatuses();
       const lb = $('trombi-lightbox');
       if (lb) lb.style.display = 'none';
-      // ★ Bug E-3b — Refresh écran Mes amis si actif
       if (document.getElementById('my-friends-screen')?.classList.contains('active')) {
         openMyFriendsScreen();
       }
     }
-  })
-  .catch(err => console.error('[Friends] Decline failed:', err));
+  } catch(err) {
+    console.error('[Friends] Decline failed:', err);
+  }
 }
 
 // Show all contacts in a full-screen overlay
@@ -7946,7 +7989,7 @@ function renderSouvenirs() {
         const name = button.dataset.storyFriendName || 'cet invité';
         if (button.dataset.storyFriendAction === 'accept') {
           const rel = state._friendStatuses?.[personId];
-          if (rel?.friendshipId && typeof acceptFriendRequest === 'function') acceptFriendRequest(rel.friendshipId, name);
+          if (rel?.status === 'pending_received' && typeof acceptFriendRequest === 'function') acceptFriendRequest(personId, name);
         } else if (typeof sendFriendRequest === 'function') {
           sendFriendRequest(personId, name);
         }
