@@ -99,6 +99,7 @@ let state = {
   guestLastName: '',
   guestEmoji: '🎉',
   guestPhoto: null,
+  guestPhotoOriginal: null, // ★ full-res (max 800px) pour recadrage ultérieur
   guestEmail: '',
   guestInsta: '',
   partyCode: '',
@@ -1507,25 +1508,53 @@ function setupProfile() {
     $('profile-photo-preview').classList.remove('hidden');
     $('photo-placeholder').style.display = 'none';
     $('profile-photo-circle').classList.add('has-photo');
-    $('photo-delete').classList.remove('hidden');
   }
-  
+
   // Emoji grid
   setupEmojiGrid();
-  
+
   // Photo handlers
   if (!$('camera-input').dataset.profileBound) {
     $('camera-input').dataset.profileBound = 'true';
     $('camera-input').addEventListener('change', handlePhotoInput);
   }
-  if (!$('photo-delete').dataset.profileBound) $('photo-delete').addEventListener('click', () => {
-    state.guestPhoto = null;
-    $('profile-photo-preview').classList.add('hidden');
-    $('photo-placeholder').style.display = '';
-    $('profile-photo-circle').classList.remove('has-photo');
-    $('photo-delete').classList.add('hidden');
-  });
-  $('photo-delete').dataset.profileBound = 'true';
+  // ★ Bouton "MODIFIER LA PHOTO" — si photo existe : action sheet (Remplacer/Recadrer/Supprimer)
+  // Sinon : ouvre directement le picker natif.
+  const photoEditBtn = $('photo-edit-btn');
+  if (photoEditBtn && !photoEditBtn.dataset.profileBound) {
+    photoEditBtn.dataset.profileBound = 'true';
+    photoEditBtn.addEventListener('click', () => {
+      if (state.guestPhoto) openPhotoActionSheet();
+      else $('camera-input').click();
+    });
+  }
+  // Action sheet bindings (une seule fois)
+  const sheet = $('photo-action-sheet');
+  if (sheet && !sheet.dataset.profileBound) {
+    sheet.dataset.profileBound = 'true';
+    sheet.addEventListener('click', (ev) => {
+      if (ev.target.dataset.closeSheet) { closePhotoActionSheet(); return; }
+      const action = ev.target.dataset.photoAction;
+      if (!action) return;
+      closePhotoActionSheet();
+      if (action === 'replace') $('camera-input').click();
+      else if (action === 'crop') openPhotoCropModal();
+      else if (action === 'delete') deleteGuestPhoto();
+    });
+  }
+  // Crop modal bindings (une seule fois)
+  const cropModal = $('photo-crop-modal');
+  if (cropModal && !cropModal.dataset.profileBound) {
+    cropModal.dataset.profileBound = 'true';
+    cropModal.addEventListener('click', (ev) => {
+      if (ev.target.dataset.cropCancel) closePhotoCropModal();
+    });
+    const applyBtn = $('photo-crop-apply');
+    if (applyBtn) applyBtn.addEventListener('click', applyPhotoCrop);
+    const zoomSlider = $('photo-crop-zoom');
+    if (zoomSlider) zoomSlider.addEventListener('input', () => { photoCropState.zoom = parseInt(zoomSlider.value, 10) / 100; drawPhotoCrop(); });
+    initPhotoCropDrag();
+  }
   
   // Back
   if (!$('profile-back').dataset.profileBound) $('profile-back').addEventListener('click', () => {
@@ -1807,28 +1836,145 @@ function handlePhotoInput(e) {
       try { e.target.value = ''; } catch(_) {}
     };
     img.onload = () => {
+      // ★ Downscale l'original (max 800px) pour permettre un recadrage ultérieur sans exploser localStorage
+      const maxOrigin = 800;
+      const originScale = Math.min(1, maxOrigin / Math.max(img.width, img.height));
+      const originW = Math.round(img.width * originScale);
+      const originH = Math.round(img.height * originScale);
+      const originCanvas = document.createElement('canvas');
+      originCanvas.width = originW; originCanvas.height = originH;
+      originCanvas.getContext('2d').drawImage(img, 0, 0, originW, originH);
+      state.guestPhotoOriginal = originCanvas.toDataURL('image/jpeg', 0.85);
+
+      // Preview 200x200 center-crop pour le circle
       const canvas = document.createElement('canvas');
       const size = 200;
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
-
-      // Center crop
       const minDim = Math.min(img.width, img.height);
       const sx = (img.width - minDim) / 2;
       const sy = (img.height - minDim) / 2;
       ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-
       state.guestPhoto = canvas.toDataURL('image/jpeg', 0.7);
+
       $('profile-photo-preview').src = state.guestPhoto;
       $('profile-photo-preview').classList.remove('hidden');
       $('photo-placeholder').style.display = 'none';
       $('profile-photo-circle').classList.add('has-photo');
-      $('photo-delete').classList.remove('hidden');
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+// ═══════════════════════════════════════════
+// PHOTO — Action sheet + Cropper (V1)
+// ═══════════════════════════════════════════
+
+function openPhotoActionSheet() {
+  const sheet = $('photo-action-sheet');
+  if (sheet) sheet.classList.remove('hidden');
+}
+function closePhotoActionSheet() {
+  const sheet = $('photo-action-sheet');
+  if (sheet) sheet.classList.add('hidden');
+}
+
+function deleteGuestPhoto() {
+  if (!confirm('Supprimer ta photo de profil ?')) return;
+  state.guestPhoto = null;
+  state.guestPhotoOriginal = null;
+  const preview = $('profile-photo-preview');
+  const placeholder = $('photo-placeholder');
+  const circle = $('profile-photo-circle');
+  if (preview) { preview.classList.add('hidden'); preview.src = ''; }
+  if (placeholder) placeholder.style.display = '';
+  if (circle) circle.classList.remove('has-photo');
+  try { saveSession && saveSession(); } catch(_) {}
+  try { showToast('🗑️ Photo supprimée', 2500); } catch(_) {}
+}
+
+// État du recadrage — pan (offsetX/Y) + zoom
+const photoCropState = { img: null, offsetX: 0, offsetY: 0, zoom: 1, baseScale: 1, dragging: false, lastX: 0, lastY: 0 };
+
+function openPhotoCropModal() {
+  const source = state.guestPhotoOriginal || state.guestPhoto;
+  if (!source) { try { showToast('📸 Aucune photo à recadrer', 3000); } catch(_) {} return; }
+  const modal = $('photo-crop-modal');
+  if (!modal) return;
+  const img = new Image();
+  img.onload = () => {
+    photoCropState.img = img;
+    const stage = 280;
+    photoCropState.baseScale = Math.max(stage / img.width, stage / img.height);
+    photoCropState.zoom = 1;
+    photoCropState.offsetX = (stage - img.width * photoCropState.baseScale) / 2;
+    photoCropState.offsetY = (stage - img.height * photoCropState.baseScale) / 2;
+    const zoomSlider = $('photo-crop-zoom');
+    if (zoomSlider) zoomSlider.value = '100';
+    modal.classList.remove('hidden');
+    drawPhotoCrop();
+  };
+  img.onerror = () => { try { showToast('📸 Impossible de charger la photo', 3000); } catch(_) {} };
+  img.src = source;
+}
+
+function closePhotoCropModal() {
+  const modal = $('photo-crop-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function drawPhotoCrop() {
+  const canvas = $('photo-crop-canvas');
+  const img = photoCropState.img;
+  if (!canvas || !img) return;
+  const ctx = canvas.getContext('2d');
+  const stage = 280;
+  ctx.clearRect(0, 0, stage, stage);
+  const s = photoCropState.baseScale * photoCropState.zoom;
+  const drawW = img.width * s;
+  const drawH = img.height * s;
+  // Clamp l'offset pour ne jamais laisser voir le fond (couverture totale du stage)
+  const minX = stage - drawW;
+  const minY = stage - drawH;
+  photoCropState.offsetX = Math.min(0, Math.max(minX, photoCropState.offsetX));
+  photoCropState.offsetY = Math.min(0, Math.max(minY, photoCropState.offsetY));
+  ctx.drawImage(img, photoCropState.offsetX, photoCropState.offsetY, drawW, drawH);
+}
+
+function initPhotoCropDrag() {
+  const canvas = $('photo-crop-canvas');
+  if (!canvas || canvas.dataset.dragBound) return;
+  canvas.dataset.dragBound = 'true';
+  const start = (x, y) => { photoCropState.dragging = true; photoCropState.lastX = x; photoCropState.lastY = y; };
+  const move = (x, y) => {
+    if (!photoCropState.dragging) return;
+    photoCropState.offsetX += (x - photoCropState.lastX);
+    photoCropState.offsetY += (y - photoCropState.lastY);
+    photoCropState.lastX = x; photoCropState.lastY = y;
+    drawPhotoCrop();
+  };
+  const end = () => { photoCropState.dragging = false; };
+  canvas.addEventListener('mousedown', (e) => start(e.clientX, e.clientY));
+  window.addEventListener('mousemove', (e) => move(e.clientX, e.clientY));
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', (e) => { const t = e.touches[0]; start(t.clientX, t.clientY); }, { passive: true });
+  canvas.addEventListener('touchmove', (e) => { const t = e.touches[0]; move(t.clientX, t.clientY); e.preventDefault(); }, { passive: false });
+  canvas.addEventListener('touchend', end);
+}
+
+function applyPhotoCrop() {
+  const src = $('photo-crop-canvas');
+  if (!src) return;
+  const out = document.createElement('canvas');
+  out.width = 200; out.height = 200;
+  out.getContext('2d').drawImage(src, 0, 0, 280, 280, 0, 0, 200, 200);
+  state.guestPhoto = out.toDataURL('image/jpeg', 0.85);
+  $('profile-photo-preview').src = state.guestPhoto;
+  try { saveSession && saveSession(); } catch(_) {}
+  closePhotoCropModal();
+  try { showToast('✂️ Photo recadrée', 2000); } catch(_) {}
 }
 
 function setupEmojiGrid() {

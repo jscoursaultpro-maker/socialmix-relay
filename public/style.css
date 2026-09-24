@@ -5529,26 +5529,101 @@ html {
   line-height: 1.35;
 }
 
-/* Boutons : centrés, même hauteur, même largeur */
+/* Boutons profil : côte à côte horizontal, sans wrap (garanti mobile + desktop) */
 .profile-hero-card .photo-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: center;
   align-items: stretch;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  width: 100%;
 }
 .profile-hero-card .photo-actions .photo-btn {
-  flex: 1 1 140px;
-  max-width: 220px;
-  min-height: 38px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+  min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   white-space: nowrap;
-  padding: 8px 14px;
+  padding: 8px 10px;
   font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-#profile-edit-toggle:active { transform: scale(0.97); }
+#profile-edit-toggle:active,
+#photo-edit-btn:active { transform: scale(0.97); }
+
+/* ★ Photo action sheet (bottom modal quand une photo existe déjà) */
+.photo-action-sheet { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: flex-end; justify-content: center; }
+.photo-action-sheet.hidden { display: none; }
+.photo-action-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); }
+.photo-action-panel {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 480px;
+  background: linear-gradient(180deg, #0f2540 0%, #0a1730 100%);
+  border-top: 1px solid rgba(24,229,218,0.35);
+  border-radius: 20px 20px 0 0;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 10px;
+  animation: photoSheetSlideUp .18s ease-out;
+}
+@keyframes photoSheetSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.photo-action-title { color: var(--turquoise); font-size: 11px; letter-spacing: 2px; font-weight: 900; text-align: center; padding: 2px 0 8px; text-transform: uppercase; }
+.photo-action-item {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: #f8f8ff;
+  font-family: var(--font); font-weight: 800; font-size: 14px;
+  padding: 14px 16px; border-radius: 14px;
+  cursor: pointer; text-align: left;
+  transition: background .15s;
+}
+.photo-action-item:active { background: rgba(24,229,218,0.14); }
+.photo-action-item.is-danger { color: #ff6b8a; border-color: rgba(255,107,138,0.30); }
+.photo-action-item.is-danger:active { background: rgba(255,107,138,0.14); }
+.photo-action-item.is-cancel { color: #8ca0bd; text-align: center; margin-top: 4px; background: transparent; border-color: rgba(255,255,255,0.05); }
+
+/* ★ Modal recadrage photo */
+.photo-crop-modal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.photo-crop-modal.hidden { display: none; }
+.photo-crop-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); }
+.photo-crop-panel {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 360px;
+  background: linear-gradient(180deg, #0f2540 0%, #0a1730 100%);
+  border: 1px solid rgba(24,229,218,0.35);
+  border-radius: 20px;
+  padding: 18px 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.photo-crop-title { color: var(--turquoise); font-size: 11px; letter-spacing: 2px; font-weight: 900; text-align: center; text-transform: uppercase; }
+.photo-crop-stage {
+  position: relative;
+  width: 280px; height: 280px;
+  margin: 0 auto;
+  overflow: hidden; border-radius: 12px;
+  background: #000;
+  touch-action: none; /* évite scroll natif pendant drag */
+  user-select: none;
+}
+.photo-crop-stage canvas { display: block; width: 280px; height: 280px; cursor: grab; }
+.photo-crop-stage canvas:active { cursor: grabbing; }
+.photo-crop-mask {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  box-shadow: 0 0 0 999px rgba(0,0,0,0.55) inset;
+  border-radius: 50%;
+}
+.photo-crop-controls { display: flex; flex-direction: column; gap: 6px; padding: 0 6px; }
+.photo-crop-zoom-label { color: #8ca0bd; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+.photo-crop-controls input[type=range] { width: 100%; accent-color: var(--turquoise); }
+.photo-crop-actions { display: flex; gap: 10px; }
+.photo-crop-btn { flex: 1; font-family: var(--font); font-weight: 900; font-size: 12px; padding: 12px 14px; border-radius: 50px; cursor: pointer; border: none; }
+.photo-crop-btn.is-ghost { background: rgba(255,255,255,0.06); color: #8ca0bd; border: 1px solid rgba(255,255,255,0.10); }
+.photo-crop-btn.is-primary { background: var(--green); color: var(--bg-dark); }
+.photo-crop-btn:active { transform: scale(0.97); }
 
 /* Bangers — compteur détaillé Me / Others par titre (23/09/26) */
 .v2-banger-fires {
