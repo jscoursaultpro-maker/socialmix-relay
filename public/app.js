@@ -791,13 +791,19 @@ async function handleSupabaseSession(session) {
     const user = await meRes.json();
     console.log('[SSO] User Mongo récupéré:', user.email, user.userId || user._id);
 
-    // Pré-remplir state
+    // Pré-remplir state (V1 A+B — restaure aussi photo/phone/insta/emoji depuis User.profile)
     const firstName = user.profile?.firstName || user.firstName || session.user?.user_metadata?.given_name || '';
     const lastName  = user.profile?.lastName  || user.lastName  || session.user?.user_metadata?.family_name || '';
     const email     = user.email || session.user?.email || '';
     state.guestName = firstName;
     state.guestLastName = lastName;
     state.guestEmail = email;
+    // ★ V1 A+B — hydrate contact + emoji + photo (custom OU SSO Google/Apple)
+    if (user.profile?.emoji) state.guestEmoji = user.profile.emoji;
+    if (user.profile?.phone !== undefined) state.guestPhone = user.profile.phone || '';
+    if (user.profile?.instagram !== undefined) state.guestInsta = user.profile.instagram || '';
+    if (user.profile?.photoURL) state.guestPhoto = user.profile.photoURL;
+    try { if (typeof saveProfile === 'function') saveProfile(); } catch(_) {}
     state.foundersRank = user.foundersRank || null;
     state.foundersIntentSubmitted = Boolean(user.foundersIntentSubmitted);
     state.foundersIntentPosition = user.foundersIntentPosition || null;
@@ -1631,6 +1637,9 @@ function setupProfile() {
       });
     }
 
+    // ★ V1 A+B — Persist all profile changes (texte + photo custom) to User doc via PATCH
+    persistProfileToUser();
+
     // ★ Stay on profile screen + toast confirmation (au lieu de rediriger vers cockpit)
     state.editingFromCockpit = false;
     if (typeof showToast === 'function') {
@@ -1931,11 +1940,67 @@ function handlePhotoInput(e) {
       $('profile-photo-preview').classList.remove('hidden');
       $('photo-placeholder').style.display = 'none';
       $('profile-photo-circle').classList.add('has-photo');
+      // ★ V1 A+B — persist upload nouvelle photo côté serveur
+      persistProfileToUser();
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 }
+
+// ═══════════════════════════════════════════
+// PROFILE PERSISTENCE (V1 A+B — cross-device via User.profile.*)
+// ═══════════════════════════════════════════
+// Fire-and-forget PATCH pour persister tous les champs profil (dont photo dataURL).
+// Appelé après tout changement (save form, crop, delete photo, upload nouvelle photo).
+async function persistProfileToUser() {
+  // Refresh instantané du participant côté RAM party (au cas où seul un photo/crop a changé,
+  // hors formulaire — le socket emit re-registre correctement via la dedup renforcée).
+  try {
+    if (socket && socket.connected && state.partyCode) {
+      socket.emit('guest:join', {
+        name: state.guestName, lastName: state.guestLastName, alias: state.guestAlias,
+        emoji: state.guestEmoji, photo: state.guestPhoto,
+        phone: state.guestPhone, email: state.guestEmail, instagram: state.guestInsta,
+        partyCode: state.partyCode
+      });
+    }
+  } catch(_) {}
+  // Persist User doc (Mongo) via PATCH — cross-device / cross-session
+  try {
+    const headers = await _friendsAuthHeaders();
+    if (!headers) {
+      console.log('[Profile] persist skipped — pas d\'auth Supabase (local + socket suffisent)');
+      return;
+    }
+    const body = {
+      firstName: state.guestName || undefined,
+      lastName: state.guestLastName || '',
+      emoji: state.guestEmoji || '🎉',
+      phone: state.guestPhone || '',
+      instagram: state.guestInsta || '',
+      photoURL: state.guestPhoto || null
+    };
+    if (!body.firstName) delete body.firstName;
+    const r = await fetch('/api/user/me/profile', {
+      method: 'PATCH',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (r.ok) {
+      console.log('[Profile] ✅ Persisted to User doc');
+    } else {
+      const data = await r.json().catch(() => ({}));
+      console.warn('[Profile] ⚠️ persist failed:', r.status, data.error || '');
+      if (r.status === 413 && typeof showToast === 'function') {
+        showToast('⚠️ Photo trop lourde — recadre plus serré', 4000);
+      }
+    }
+  } catch (err) {
+    console.warn('[Profile] persist error:', err.message);
+  }
+}
+window.persistProfileToUser = persistProfileToUser;
 
 // ═══════════════════════════════════════════
 // PHOTO — Action sheet + Cropper (V1)
@@ -1962,6 +2027,8 @@ function deleteGuestPhoto() {
   if (circle) circle.classList.remove('has-photo');
   try { saveSession && saveSession(); } catch(_) {}
   try { showToast('🗑️ Photo supprimée', 2500); } catch(_) {}
+  // ★ V1 A+B — persist la suppression côté serveur (photoURL: null)
+  persistProfileToUser();
 }
 
 // État du recadrage — pan (offsetX/Y) + zoom
@@ -2044,6 +2111,8 @@ function applyPhotoCrop() {
   try { saveSession && saveSession(); } catch(_) {}
   closePhotoCropModal();
   try { showToast('✂️ Photo recadrée', 2000); } catch(_) {}
+  // ★ V1 A+B — persist le recadrage côté serveur
+  persistProfileToUser();
 }
 
 function setupEmojiGrid() {

@@ -38,15 +38,18 @@ const userSchema = new Schema({
     lastName:  { type: String, trim: true, maxlength: 40 },
     emoji: { type: String, default: '🎉' },
     userEdited: { type: Boolean, default: false },
-    photoURL: String,
-    handle: { 
-      type: String, 
-      lowercase: true, 
-      unique: true, 
+    photoURL: String, // ★ Peut être URL absolue (SSO Google/Apple) OU dataURL base64 (upload custom guest)
+    handle: {
+      type: String,
+      lowercase: true,
+      unique: true,
       sparse: true,
       match: /^[a-z0-9_-]{3,20}$/
     },
-    bio: { type: String, maxlength: 160 }
+    bio: { type: String, maxlength: 160 },
+    // ★ Contact info persisté (opt-in RGPD via preferences.share*)
+    phone: { type: String, trim: true, maxlength: 32 },
+    instagram: { type: String, trim: true, maxlength: 40 }
   },
   
   // === HISTORIQUE ALIAS (multi-personas) ===

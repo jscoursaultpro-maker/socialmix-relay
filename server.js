@@ -6012,6 +6012,10 @@ io.on('connection', (socket) => {
     if (existingParticipant) {
       existingParticipant.id = socket.id;
       existingParticipant.connected = true;
+      // ★ V1 A+B — refresh photo/emoji depuis User.profile (peut avoir été édité via PATCH depuis)
+      if (user.profile?.photoURL) existingParticipant.photo = user.profile.photoURL;
+      if (user.profile?.emoji) existingParticipant.emoji = user.profile.emoji;
+      if (user.profile?.firstName) existingParticipant.name = user.profile.firstName;
       socket.partyCode = code;
       socket.join(`guest:${code}`);
       joinUserRoom(socket, userIdStr); // ★ Bug E-1
