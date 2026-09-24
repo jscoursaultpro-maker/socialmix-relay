@@ -364,7 +364,10 @@
             <div class="profile-section-label">SOCIAL</div>
             <section class="profile-menu-card">
                 <button id="profile-friends-cta" class="profile-menu-row" onclick="if(typeof openMyFriendsScreen==='function') openMyFriendsScreen();">
-                    <span class="profile-menu-icon is-cyan">👥</span>
+                    <span class="profile-menu-icon is-cyan">
+                        👥
+                        <span id="profile-friends-cta-badge" class="profile-menu-badge hidden" aria-label="Demandes d'amis en attente">0</span>
+                    </span>
                     <span class="profile-menu-copy"><b>Mes amis</b><small id="profile-friends-cta-count">Retrouve ton crew AhOuai</small></span>
                     <span class="profile-menu-arrow">›</span>
                 </button>
