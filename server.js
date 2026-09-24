@@ -6562,10 +6562,14 @@ io.on('connection', (socket) => {
 
           if (!isOK) {
             socket.emit('suggestion:status', {
-              title, artist, status: 'phase_wait',
+              title, artist, deezerID, status: 'phase_wait',
               message: 'Pas le bon moment — on la garde pour plus tard !'
             });
             console.log(`[${party.code}] SUGGEST PHASE MISMATCH: "${title}" (track:${trackPhase} vs party:${currentPhase})`);
+            // ★ Fix UX — la suggestion EST stockée côté serveur (même en phase_wait),
+            // donc on renvoie ok:true au client pour que le bouton bascule en ✓ ENVOYÉ.
+            cb({ ok: true, eventId: data.eventId, status: 'phase_wait' });
+            logEvent({ partyCode: party.code, eventType: 'suggest', eventId: data.eventId, guestId: data.guestId, decision: 'phase_wait' });
             return;
           }
         }
@@ -6575,17 +6579,17 @@ io.on('connection', (socket) => {
         const msg = pendingCount <= 3
           ? 'Le DJ a bien reçu ta suggestion !'
           : 'Suggestion notée, le DJ gère la playlist !';
-        socket.emit('suggestion:status', { title, artist, status: 'received', message: msg });
+        socket.emit('suggestion:status', { title, artist, deezerID, status: 'received', message: msg });
 
       } catch (_) {
         socket.emit('suggestion:status', {
-          title, artist, status: 'received',
+          title, artist, deezerID, status: 'received',
           message: 'Suggestion reçue ! Le DJ va évaluer'
         });
       }
     } else {
       socket.emit('suggestion:status', {
-        title, artist, status: 'received',
+        title, artist, deezerID, status: 'received',
         message: 'Suggestion reçue ! Le DJ va évaluer'
       });
     }

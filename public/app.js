@@ -2671,13 +2671,29 @@ function connectToRelay() {
       saveSession();
     }
 
+    // ★ Bug fix — Le serveur a bien reçu la suggestion (received | phase_wait | next |
+    // played | boosted). On marque la track comme envoyée pour que le bouton
+    // PROPOSER bascule en ✓ ENVOYÉ dans MyTops/MySugs/V2Bangers.
+    // phase_wait = track stockée mais gardée pour plus tard → toujours "envoyée".
+    const ACCEPTED_STATUSES = new Set(['received', 'phase_wait', 'next', 'played', 'boosted']);
+    if (ACCEPTED_STATUSES.has(data.status)) {
+      const deezerID = (sugg && sugg.deezerID) || (data.deezerID) || 0;
+      const trackKey = `${deezerID}:${(data.title || '').toLowerCase()}`;
+      if (!resuggestedTrackIds.has(trackKey)) {
+        resuggestedTrackIds.add(trackKey);
+        try { renderMyTops(); } catch(_) {}
+        try { renderMySugs(); } catch(_) {}
+        try { if (typeof v2SuggestionSource !== 'undefined' && v2SuggestionSource === 'bangers') renderV2Bangers(); } catch(_) {}
+      }
+    }
+
     // ★ fix Bug Benjamin #2: skip le toast "next" pour eviter la superposition
     // avec "played" qui arrive quelques secondes apres (les 2 toasts se chevauchent
     // pendant la transition CSS 0.4s). Le badge reste updated pour le status "next".
     if (data.status !== 'next') {
       showSuggestionToast(data.message || `Suggestion: ${data.status}`, data.status);
     }
-    
+
     // Update persistent status badge in suggestion list
     updateSuggestionBadge(data.title, data.status, data.message);
     renderCaMonte();
