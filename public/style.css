@@ -5375,7 +5375,11 @@ body.founder-program-open { overflow: hidden; }
 .moi-circle-chips { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }.moi-circle-chip { display: grid; place-items: center; gap: 3px; min-width: 0; padding: 9px 4px; border: 1px solid rgba(129,216,220,.2); border-radius: 13px; color: #f3f0ec; background: rgba(13,24,47,.75); }.moi-circle-chip img,.moi-circle-chip>span { display:grid;place-items:center;width:34px;height:34px;object-fit:cover;border-radius:50%;background:#20274a; }.moi-circle-chip b { max-width: 100%; overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }.moi-circle-chip small { color: #81d8dc; font-size: 6px; font-weight: 900; }.moi-circle-chip.is-request { border-color: rgba(233,92,155,.45); }.moi-circle-open { width: 100%; margin-top: 10px; padding: 10px; border: 0; color: #81d8dc; background: transparent; font: 900 9px var(--font-display); }
 
 /* ═══ CERCLE SIGNATURE V2 ═══════════════════════════════════════════ */
-.cercle-page { position: relative; max-width: 600px; padding: 18px 17px 70px; }
+#my-friends-screen,
+#my-univers-screen { flex-direction: column; align-items: stretch; background: linear-gradient(180deg,var(--bg-deep),var(--bg-dark) 30%); }
+#my-friends-screen .cercle-page,
+#my-univers-screen .my-univers-page { width:100%; max-width:560px; margin:0 auto; padding:18px 16px 70px; }
+.cercle-page { position: relative; }
 .cercle-page::before { content:''; position: fixed; z-index:-1; inset:0; background: radial-gradient(circle at 14% 14%,rgba(0,220,213,.105),transparent 25%),radial-gradient(circle at 92% 34%,rgba(176,71,255,.12),transparent 30%),linear-gradient(180deg,#07101c,#070b14 70%); }
 .cercle-heading { margin: 27px 0 20px; }
 .cercle-heading h2 { font-size: clamp(38px,11vw,57px); letter-spacing: -.07em; text-shadow: 0 8px 30px rgba(0,0,0,.35); }
