@@ -7,29 +7,29 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Friendship from '../models/Friendship.js';
 import FoundersIntent from '../models/FoundersIntent.js';
-import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
-import { findOrCreateFromSupabase } from '../services/userService.js';
+import { verifyGuestAuth } from '../middleware/authGuest.js';
 
 const router = Router();
 
-// Middleware: extract authenticated user from JWT
-async function requireAuth(req, res, next) {
-  try {
-    const authHeader = req.headers.authorization || '';
-    if (!authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'AUTH_MISSING', message: 'Authorization: Bearer <token> required' });
-    }
-    const token = authHeader.slice(7);
-    const payload = await verifySupabaseJWT(token);
-    const user = await findOrCreateFromSupabase(payload);
-    req.currentUser = user;
+/**
+ * ★ Fix Sprint B — utiliser verifyGuestAuth au lieu de requireAuth :
+ * - Supporte Supabase JWT (iOS host, ahouai-web) ET
+ * - Session UUID Sprint B (web guest sbauth-bypass) ET
+ * - Legacy JWT (iOS host historique) ET
+ * - hostSecret (iOS host)
+ * Sinon les guests Sprint B (sans session Supabase browser) ne peuvent
+ * pas envoyer/accepter de demande d'ami.
+ *
+ * Compat : verifyGuestAuth set req.user au lieu de req.currentUser →
+ * on assigne les deux pour ne pas casser les handlers existants.
+ */
+function requireAuth(req, res, next) {
+  return verifyGuestAuth(req, res, (err) => {
+    if (err) return next(err);
+    // Assurer que les handlers historiques trouvent req.currentUser
+    req.currentUser = req.user;
     next();
-  } catch (err) {
-    if (err.name === 'AuthError') {
-      return res.status(401).json({ error: 'AUTH_FAILED', message: err.message });
-    }
-    return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
-  }
+  });
 }
 
 router.use(requireAuth);

@@ -4454,11 +4454,26 @@ function showTrombiContact(idx) {
 }
 
 // Send friend request via REST API
+/**
+ * ★ Helper — Auth headers pour toutes les routes /api/user/friends/*.
+ * verifyGuestAuth serveur supporte : Supabase JWT, JWT legacy, session UUID
+ * Sprint B (avec X-Party-Code). Priorité Supabase JWT si dispo, sinon
+ * fallback sessionToken + partyCode.
+ */
+async function _friendsAuthHeaders() {
+  const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
+  const bearer = jwt || state.sessionToken || null;
+  if (!bearer) return null;
+  const h = { 'Authorization': `Bearer ${bearer}` };
+  if (!jwt && state.partyCode) h['X-Party-Code'] = state.partyCode;
+  return h;
+}
+
 async function sendFriendRequest(targetUserId, targetName) {
   if (!targetUserId) return;
-  const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
-  if (!jwt) {
-    console.warn('[Friends] Pas de JWT Supabase — le user doit être authentifié pour ajouter des amis');
+  const headers = await _friendsAuthHeaders();
+  if (!headers) {
+    console.warn('[Friends] Pas d\'auth — user doit être identifié');
     if (typeof showToast === 'function') showToast('Connecte-toi pour ajouter des amis', 3000);
     return;
   }
@@ -4470,7 +4485,7 @@ async function sendFriendRequest(targetUserId, targetName) {
   try {
     const r = await fetch(`/api/user/friends/request/${targetUserId}`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${jwt}` }
+      headers
     });
     const data = await r.json().catch(() => ({}));
     if (r.ok || data.ok) {
@@ -4533,16 +4548,14 @@ window.rerenderMesAmisIfVisible = function() {
 
 // ★ Bug E-3a — Fetch statuts amis (list + pending reçues + sent envoyées) et remplit state._friendStatuses
 async function refreshFriendStatuses(cb) {
-  const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
-  if (!jwt) { cb && cb(); return; }
+  const headers = await _friendsAuthHeaders();
+  if (!headers) { cb && cb(); return; }
 
   if (!state._friendStatuses) state._friendStatuses = {};
   console.log("[Friends] sending GET /api/user/friends");
-  
+
   try {
-    const r = await fetch('/api/user/friends', {
-      headers: { 'Authorization': `Bearer ${jwt}` }
-    });
+    const r = await fetch('/api/user/friends', { headers });
     if (r.status === 401 || r.status === 403) {
       console.warn('[Friends] Unauthorized in refresh');
       cb && cb(); return;
@@ -4578,17 +4591,15 @@ async function openMyFriendsScreen(highlightUserId) {
   state.previousScreen = (state.chantier5?.screen === 'profile' || document.getElementById('profile-screen')?.classList.contains('active')) ? 'profile' : 'cockpit';
   if (typeof showScreen === 'function') showScreen('my-friends');
   
-  const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
-  if (!jwt) {
+  const headers = await _friendsAuthHeaders();
+  if (!headers) {
     _renderMyFriends({friends:[], pending:[], sent:[]}, highlightUserId);
     return;
   }
-  
+
   console.log("[Friends] sending GET /api/user/friends");
   try {
-    const r = await fetch('/api/user/friends', {
-      headers: { 'Authorization': `Bearer ${jwt}` }
-    });
+    const r = await fetch('/api/user/friends', { headers });
     if (r.status === 401 || r.status === 403) {
       if (_supabaseClient?.auth) _supabaseClient.auth.getSession();
       _renderMyFriends({friends:[], pending:[], sent:[]}, highlightUserId);
@@ -4785,8 +4796,8 @@ function refreshTrombiBadges() {
 // ★ Bug E-3a — Accepter une demande d'ami
 async function acceptFriendRequest(fromUserId, fromName) {
   if (!fromUserId) return;
-  const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
-  if (!jwt) {
+  const headers = await _friendsAuthHeaders();
+  if (!headers) {
     if (typeof showToast === 'function') showToast('Connecte-toi pour accepter', 3000);
     return;
   }
@@ -4795,7 +4806,7 @@ async function acceptFriendRequest(fromUserId, fromName) {
   try {
     const r = await fetch(`/api/user/friends/accept/${fromUserId}`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${jwt}` }
+      headers
     });
     const data = await r.json().catch(() => ({}));
     if (r.status === 401 || r.status === 403) {
@@ -4824,14 +4835,14 @@ async function acceptFriendRequest(fromUserId, fromName) {
 // ★ Bug E-3a — Décliner une demande d'ami
 async function declineFriendRequest(fromUserId, fromName) {
   if (!fromUserId) return;
-  const jwt = typeof getProfileJwt === 'function' ? await getProfileJwt() : null;
-  if (!jwt) return;
+  const headers = await _friendsAuthHeaders();
+  if (!headers) return;
 
   console.log(`[Friends] sending POST /api/user/friends/decline/${fromUserId}`);
   try {
     const r = await fetch(`/api/user/friends/decline/${fromUserId}`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${jwt}` }
+      headers
     });
     const data = await r.json().catch(() => ({}));
     if (r.status === 401 || r.status === 403) {
