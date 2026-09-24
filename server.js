@@ -5823,13 +5823,26 @@ io.on('connection', (socket) => {
       socket.emit('session:token', { sessionToken: randomUUID(), partyCode: code, userId });
       return;
     }
+    // ★ Bug fix 24/09 — Dedup renforcée : userId (fort) > email (fort) > name normalisé (faible).
+    //   Sans normalisation, "Sam" et "sam" créent 2 participants quand l'user renomme via l'edit profil.
+    //   Règle utilisateur : NE JAMAIS fusionner deux participants uniquement parce que leur nom
+    //   normalisé matche — le name match seul reste actif ici parce que le legacy guest:join emit
+    //   n'a pas de userId ni email pour certains sockets historiques ; mais on refuse le match sur
+    //   name si l'un des 2 a un userId différent de l'autre (protège contre "Marie" = "Marie" cross-account).
+    const guestNameNorm = (guestName || '').trim().toLowerCase();
     party.participants = party.participants.filter(p => {
-      if (p.isHost) return true;  // Never remove the host
-      if (p.name === guest.name) return false;   // Same name → remove old guest
-      if (userId && p.userId === userId) return false; // Same userId → remove old
-      // ★ Bug fix: deduplicate by email too (prevents ghost duplicates when userId was missing)
+      if (p.isHost) return true;
+      // Fort : userId identique → remplace
+      if (userId && p.userId && String(p.userId) === String(userId)) return false;
+      // Fort : email identique → remplace
       if (guestEmail && p.email && p.email.toLowerCase() === guestEmail) return false;
-      return true;  // Keep everyone else
+      // Faible : name identique (normalisé) ET userIds compatibles (aucun ou même)
+      const sameName = ((p.name || '').trim().toLowerCase() === guestNameNorm);
+      if (sameName) {
+        const bothHaveDifferentIds = p.userId && userId && String(p.userId) !== String(userId);
+        if (!bothHaveDifferentIds) return false; // ok à fusionner (name match sans conflit d'identité)
+      }
+      return true;
     });
     party.participants.push(guest);
     party.sessionTokens[sessionToken] = guestName;

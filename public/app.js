@@ -1567,8 +1567,14 @@ function setupProfile() {
   }
   
   // Back
+  // ★ Bug fix — Si le guest est dans une soirée active (partyCode + socket connecté),
+  //   RETOUR revient TOUJOURS au cockpit. La landing marketing est un dead-end
+  //   qui bloque toute navigation vers la party en cours (bug remonté 24/09).
   if (!$('profile-back').dataset.profileBound) $('profile-back').addEventListener('click', () => {
-    if (state.editingFromCockpit) {
+    if (state.partyCode) {
+      state.editingFromCockpit = false;
+      showScreen('cockpit');
+    } else if (state.editingFromCockpit) {
       state.editingFromCockpit = false;
       showScreen('cockpit');
     } else {
