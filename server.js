@@ -6020,6 +6020,9 @@ io.on('connection', (socket) => {
       const sessionToken = randomUUID();
       const guest = {
         id: socket.id, userId: userIdStr, name: firstName, emoji: '🎉',
+        // ★ Bug Cercle — photo depuis User.profile.photoURL (SSO Google/Apple) sinon null.
+        //   Sans ça les participants Sprint B apparaissent sans avatar dans RENCONTRÉS.
+        photo: user.profile?.photoURL || null,
         email: emailRaw.toLowerCase(), firstName, lastName,
         partyCode: code, joinedAt: new Date().toISOString(),
         sessionToken, connected: true
@@ -6109,9 +6112,16 @@ io.on('connection', (socket) => {
     party.pendingGuests.splice(pendingIdx, 1);
 
     const sessionToken = randomUUID();
+    // ★ Bug Cercle — récupérer photo depuis User.profile.photoURL pour ne pas perdre l'avatar
+    let approvedPhoto = null;
+    try {
+      const approvedUser = await User.findById(targetUserId).select('profile.photoURL').lean();
+      approvedPhoto = approvedUser?.profile?.photoURL || null;
+    } catch (_) { /* silent — photo optionnelle */ }
     const guest = {
       id: pendingEntry.socketId, userId: targetUserId, name: pendingEntry.firstName,
-      emoji: '🎉', email: pendingEntry.email, firstName: pendingEntry.firstName,
+      emoji: '🎉', photo: approvedPhoto,
+      email: pendingEntry.email, firstName: pendingEntry.firstName,
       lastName: pendingEntry.lastName, partyCode: party.code,
       joinedAt: new Date().toISOString(), sessionToken, connected: true
     };

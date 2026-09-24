@@ -158,6 +158,16 @@ function updateProfileBadge() {
   // ★ Bug E-4 — Sync aussi un éventuel CTA "Mes amis" dans l'écran profile
   const friendsCta = document.getElementById('profile-friends-cta-count');
   if (friendsCta) friendsCta.textContent = count > 0 ? `${count} demande${count > 1 ? 's' : ''} en attente` : 'Retrouve ton crew AhOuai';
+  // ★ Pastille rouge sur l'icône Mes amis (miroir du badge notification top-right)
+  const friendsBadge = document.getElementById('profile-friends-cta-badge');
+  if (friendsBadge) {
+    if (count > 0) {
+      friendsBadge.textContent = count > 9 ? '9+' : String(count);
+      friendsBadge.classList.remove('hidden');
+    } else {
+      friendsBadge.classList.add('hidden');
+    }
+  }
 }
 
 // ★ Quick fix E-5a v2 — Toast clickable pour demande d'ami (tap → SOCIAL HUB + sheet detail)
@@ -4714,6 +4724,18 @@ async function sendFriendRequest(targetUserId, targetName) {
   if (!state._friendStatuses) state._friendStatuses = {};
   state._friendStatuses[targetUserId] = { status: 'pending_sent' };
 
+  // ★ Bug fix — Optimistic UI : swap immediat de tous les boutons "+ CREW"
+  //   pointant sur cet userId en "✓ ENVOYÉ" disabled, pour un retour instantané
+  //   même avant la réponse serveur / le refetch REST.
+  try {
+    document.querySelectorAll(`button.cercle-add[onclick*="'${targetUserId}'"]`).forEach(btn => {
+      btn.textContent = '✓ ENVOYÉ';
+      btn.classList.add('is-sent');
+      btn.disabled = true;
+      btn.setAttribute('onclick', '');
+    });
+  } catch(_) {}
+
   console.log(`[Friends] sending POST /api/user/friends/request/${targetUserId}`);
   try {
     const r = await fetch(`/api/user/friends/request/${targetUserId}`, {
@@ -4724,6 +4746,11 @@ async function sendFriendRequest(targetUserId, targetName) {
     if (r.ok || data.ok) {
       console.log(`[Friends] ✅ Request sent to ${targetName}`);
       state._friendStatuses[targetUserId] = { status: 'pending_sent' };
+      if (typeof showToast === 'function') showToast(`Demande envoyée à ${targetName}`, 2500);
+      // Refetch amis/pending/sent puis re-render MON CERCLE pour que la personne
+      // migre de RENCONTRÉS vers la section sent.
+      try { await refreshFriendStatuses(); } catch(_) {}
+      if (typeof window.rerenderMesAmisIfVisible === 'function') window.rerenderMesAmisIfVisible();
     } else {
       console.warn(`[Friends] ⚠️ ${data.error || 'Erreur'}`);
       if (r.status === 401 || r.status === 403) {
@@ -4731,11 +4758,15 @@ async function sendFriendRequest(targetUserId, targetName) {
         if (_supabaseClient?.auth) _supabaseClient.auth.getSession();
       }
       if (data.status === 'accepted') state._friendStatuses[targetUserId] = { status: 'accepted' };
+      // Rollback optimistic si erreur non-idempotente
+      if (r.status >= 500 && typeof window.rerenderMesAmisIfVisible === 'function') window.rerenderMesAmisIfVisible();
     }
     refreshTrombiBadges();
     if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
   } catch (err) {
     console.error('[Friends] Request failed:', err);
+    if (typeof showToast === 'function') showToast('⚠️ Impossible d\'envoyer la demande', 3000);
+    if (typeof window.rerenderMesAmisIfVisible === 'function') window.rerenderMesAmisIfVisible();
   }
 }
 

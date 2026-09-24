@@ -379,7 +379,20 @@ html, body {
 .profile-menu-row { width: 100%; min-height: 67px; display: flex; align-items: center; gap: 11px; padding: 11px 14px; border: 0; border-bottom: 1px solid rgba(153,171,222,.12); background: transparent; color: white; font-family: var(--font); text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .profile-menu-row:last-child { border-bottom: 0; }
 .profile-menu-row:active { background: rgba(0,224,196,.08); transform: scale(.995); }
-.profile-menu-icon { width: 33px; height: 33px; flex: 0 0 33px; display: grid; place-items: center; border-radius: 11px; font-size: 17px; font-weight: 900; background: rgba(0,224,196,.13); color: #29eee3; }
+.profile-menu-icon { width: 33px; height: 33px; flex: 0 0 33px; display: grid; place-items: center; border-radius: 11px; font-size: 17px; font-weight: 900; background: rgba(0,224,196,.13); color: #29eee3; position: relative; }
+/* ★ Pastille rouge pending demandes d'amis sur la carte Mes amis */
+.profile-menu-badge {
+  position: absolute; top: -5px; right: -6px;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ff3b5c, #ff6b35);
+  color: #fff; font-family: var(--font);
+  font-size: 10px; font-weight: 900; line-height: 18px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(255,59,92,0.45), 0 0 0 2px #0a1730;
+  z-index: 2;
+}
+.profile-menu-badge.hidden { display: none; }
 .profile-menu-icon.is-violet { background: rgba(174,92,255,.16); color: #be79ff; }
 .profile-menu-icon.is-pink { background: rgba(251,61,189,.14); color: #ff74d0; }
 .profile-menu-icon.is-gold { background: rgba(255,174,42,.16); color: #ffb53f; }
@@ -5345,6 +5358,9 @@ body.founder-program-open { overflow: hidden; }
 .cercle-avatar { display: grid; place-items: center; width: 44px; height: 44px; overflow: hidden; flex: 0 0 44px; border: 1px solid rgba(129,216,220,.7); border-radius: 50%; background: #19213a; font-size: 20px; }.cercle-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .cercle-person-copy { display: grid; min-width: 0; flex: 1; gap: 3px; }.cercle-person-copy b { overflow: hidden; font: 850 13px var(--font-display); text-overflow: ellipsis; white-space: nowrap; }.cercle-person-copy small { color: #a9aec0; font-size: 9px; }
 .cercle-actions { display: flex; gap: 5px; }.cercle-actions button,.cercle-add { padding: 8px 9px; border: 1px solid rgba(129,216,220,.32); border-radius: 10px; font: 900 8px var(--font-display); }.cercle-actions .is-soft { color: #a9aec0; background: transparent; }.cercle-actions .is-primary,.cercle-add { color: #07131a; background: #81d8dc; }
+/* ★ Bouton "+ CREW" bascule en "✓ ENVOYÉ" après clic (optimistic UI) */
+.cercle-add.is-sent { background: rgba(129,216,220,0.18); color: #81d8dc; border-color: rgba(129,216,220,0.35); cursor: default; }
+.cercle-add.is-sent:hover { transform: none; }
 .cercle-status { padding: 6px 8px; border: 1px solid rgba(182,165,232,.28); border-radius: 9px; color: #b6a5e8; font: 900 7px var(--font-display); }.cercle-status.is-friend { color: #77d9b0; border-color: rgba(119,217,176,.3); }.cercle-arrow { color: #81d8dc; font-size: 22px; }
 .cercle-subtitle { margin: 22px 4px 9px; color: #a9aec0; font: 850 9px var(--font-display); letter-spacing: .13em; }.cercle-subtitle b { color: #b6a5e8; }
 .cercle-empty { display: grid; place-items: center; min-height: 160px; padding: 25px; border: 1px dashed rgba(182,165,232,.2); border-radius: 18px; color: #a9aec0; text-align: center; }.cercle-empty span { color: #ddbA8c; font-size: 26px; }.cercle-empty p { max-width: 230px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
