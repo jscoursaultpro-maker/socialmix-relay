@@ -2,6 +2,8 @@ import express from 'express';
 import crypto from 'crypto';
 import FoundersIntent from '../models/FoundersIntent.js';
 import { sendFoundersConfirmationEmail } from '../services/foundersEmailService.js';
+import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
+import { findOrCreateFromSupabase } from '../services/userService.js';
 
 const router = express.Router();
 
@@ -128,6 +130,27 @@ router.post('/intent', async (req, res) => {
     }
     console.error('[founders/intent] error', err.message);
     res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// Libérer une réservation exige une session AhOuai vérifiée. Un email seul
+// ne doit jamais permettre de supprimer le siège de quelqu'un d'autre.
+router.delete('/intent', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'AUTH_MISSING' });
+    const payload = await verifySupabaseJWT(authHeader.slice(7));
+    const user = await findOrCreateFromSupabase(payload);
+    const normalizedEmail = String(user.email || payload.email || '').trim().toLowerCase();
+    if (!normalizedEmail) return res.status(400).json({ error: 'EMAIL_MISSING' });
+    const deleted = await FoundersIntent.findOneAndDelete({ email: normalizedEmail });
+    if (!deleted) return res.status(404).json({ error: 'SEAT_NOT_FOUND' });
+    invalidateFoundersCountCache();
+    return res.json({ released: true });
+  } catch (err) {
+    if (err.name === 'AuthError') return res.status(401).json({ error: err.code || 'AUTH_FAILED' });
+    console.error('[founders/intent] release error', err.message);
+    return res.status(500).json({ error: 'server_error' });
   }
 });
 

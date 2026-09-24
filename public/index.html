@@ -495,6 +495,41 @@
         </div>
     </div>
 
+    <!-- ═══ FOUNDER PROGRAM — découverte, réservation et libération du siège ═══ -->
+    <div id="founder-program" class="founder-program hidden" role="dialog" aria-modal="true" aria-labelledby="founder-program-title">
+        <div class="founder-program__backdrop" data-founder-close></div>
+        <article class="founder-program__sheet">
+            <button type="button" class="founder-program__close" data-founder-close aria-label="Fermer">×</button>
+            <div class="founder-program__halo" aria-hidden="true"></div>
+            <img class="founder-program__logo" src="assets/ahouai-wordmark.png" alt="AhOuai">
+            <div class="founder-program__eyebrow">LE CERCLE DES PREMIERS</div>
+            <div class="founder-program__seat" aria-hidden="true"><span>✦</span></div>
+            <div id="founder-program-available">
+                <h2 id="founder-program-title">Prends place au tout début de l’histoire.</h2>
+                <p class="founder-program__lead">2 500 sièges. Un numéro unique. Une place à vie parmi celles et ceux qui auront fait grandir AhOuai dès ses premiers moments.</p>
+                <div class="founder-program__counter">
+                    <div><strong id="founder-seats-left">—</strong><span>sièges encore disponibles</span></div>
+                    <div class="founder-program__meter"><i id="founder-meter-fill"></i></div>
+                    <small><b id="founder-seats-taken">—</b> pionniers ont déjà pris place</small>
+                </div>
+                <section class="founder-program__promise">
+                    <h3>Ce que ton siège raconte</h3>
+                    <div><span>01</span><p><b>Ton numéro Founder</b><small>Un rang personnel visible sur ton profil AhOuai.</small></p></div>
+                    <div><span>02</span><p><b>Ton tarif ne bouge plus</b><small>39 € à l’ouverture, puis 25 € par an à vie.</small></p></div>
+                    <div><span>03</span><p><b>Tout le Premium, toujours</b><small>Les futures fonctions Premium incluses dans ton siège.</small></p></div>
+                </section>
+                <label class="founder-program__consent"><input id="founder-consent" type="checkbox"><span>Je comprends qu’il s’agit aujourd’hui d’une réservation gratuite. Je serai prévenu avant toute activation payante.</span></label>
+                <button id="founder-claim-seat" class="founder-program__cta" type="button" disabled>VALIDER MON SIÈGE <span>→</span></button>
+                <p class="founder-program__fineprint">Aucun paiement aujourd’hui · Une confirmation sera envoyée par email.</p>
+            </div>
+            <div id="founder-program-reserved" class="hidden">
+                <div class="founder-program__confirmed"><span>✓</span><small>TON SIÈGE EST RÉSERVÉ</small><strong>PRÉ-FOUNDER <b id="founder-seat-position">#—</b></strong><p>Tu fais désormais partie des premiers à croire au moment AhOuai. On te préviendra avant l’ouverture officielle du programme.</p></div>
+                <button type="button" class="founder-program__secondary" data-founder-close>RETOURNER À MON PROFIL</button>
+                <button id="founder-release-seat" type="button" class="founder-program__release">Libérer mon siège</button>
+            </div>
+        </article>
+    </div>
+
     <!-- ═══ SCREEN 3: CODE ENTRY ═══ -->
     <div id="code-screen" class="screen">
         <div class="code-container">

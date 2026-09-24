@@ -1709,7 +1709,7 @@ function bindProfileHubActions() {
     window.location.href = `mailto:contact@ahouai.com?subject=${subject}&body=${body}`;
   });
   bindOnce('profile-public-btn', showPublicProfilePreview);
-  bindOnce('profile-founder-btn', registerFoundersIntent);
+  bindOnce('profile-founder-btn', openFounderProgram);
   bindOnce('profile-delete-account', requestAccountDeletion);
   bindOnce('profile-logout', handleLogout);
 }
@@ -1761,14 +1761,45 @@ function showPublicProfilePreview() {
   document.body.appendChild(overlay);
 }
 
-async function registerFoundersIntent() {
-  if (state.foundersRank || state.foundersIntentSubmitted) {
-    showToast(state.foundersRank ? `✨ Tu es déjà Founder #${state.foundersRank}` : `🎯 Tu es déjà Pré-Founder #${state.foundersIntentPosition || '—'}`);
-    return;
+async function openFounderProgram() {
+  const modal = $('founder-program');
+  if (!modal) return;
+  const reserved = Boolean(state.foundersRank || state.foundersIntentSubmitted);
+  $('founder-program-available')?.classList.toggle('hidden', reserved);
+  $('founder-program-reserved')?.classList.toggle('hidden', !reserved);
+  const position = state.foundersRank || state.foundersIntentPosition || '—';
+  if ($('founder-seat-position')) $('founder-seat-position').textContent = `#${position}`;
+  modal.classList.remove('hidden');
+  document.body.classList.add('founder-program-open');
+
+  if (!modal.dataset.bound) {
+    modal.dataset.bound = 'true';
+    modal.addEventListener('click', event => { if (event.target.closest('[data-founder-close]')) closeFounderProgram(); });
+    $('founder-consent')?.addEventListener('change', event => { $('founder-claim-seat').disabled = !event.target.checked; });
+    $('founder-claim-seat')?.addEventListener('click', registerFoundersIntent);
+    $('founder-release-seat')?.addEventListener('click', releaseFoundersIntent);
   }
+  try {
+    const response = await fetch('/api/founders/count');
+    const data = await response.json();
+    if (response.ok) {
+      const taken = Number(data.count || 0), cap = Number(data.cap || 2500), left = Math.max(0, cap - taken);
+      if ($('founder-seats-left')) $('founder-seats-left').textContent = left.toLocaleString('fr-FR');
+      if ($('founder-seats-taken')) $('founder-seats-taken').textContent = taken.toLocaleString('fr-FR');
+      if ($('founder-meter-fill')) $('founder-meter-fill').style.width = `${Math.min(100, (taken / cap) * 100)}%`;
+    }
+  } catch (_) {}
+}
+
+function closeFounderProgram() {
+  $('founder-program')?.classList.add('hidden');
+  document.body.classList.remove('founder-program-open');
+}
+
+async function registerFoundersIntent() {
   const email = String(state.guestEmail || $('profile-email')?.value || '').trim();
-  if (!email) { showToast('Ajoute ton email puis enregistre ton profil pour devenir Founder.', 4000); return; }
-  const button = $('profile-founder-btn');
+  if (!email) { closeFounderProgram(); showToast('Ajoute ton email puis enregistre ton profil pour réserver ton siège.', 4000); expandProfileForm(); return; }
+  const button = $('founder-claim-seat');
   button.disabled = true;
   try {
     const response = await fetch('/api/founders/intent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, userId: state.userId || state.guestId || null, source: 'guest-web-profile' }) });
@@ -1777,9 +1808,31 @@ async function registerFoundersIntent() {
     state.foundersIntentSubmitted = true;
     state.foundersIntentPosition = data.position;
     refreshProfileHub();
-    showToast(data.alreadyIn ? `✨ Tu es déjà sur la liste, position #${data.position}` : `✨ Bienvenue Pré-Founder #${data.position} !`, 4500);
+    await openFounderProgram();
+    showToast(data.alreadyIn ? `Ton siège #${data.position} était déjà réservé.` : `Bienvenue Pré-Founder #${data.position}. Ton siège est réservé.`, 4500);
   } catch (error) {
     showToast(error.message === 'cap_reached' ? 'La liste Founder est complète.' : 'Impossible de rejoindre la liste Founder. Réessaie.', 4500);
+  } finally { button.disabled = !$('founder-consent')?.checked; }
+}
+
+async function releaseFoundersIntent() {
+  if (state.foundersRank) { showToast('Ton rang Founder définitif ne peut pas être libéré depuis le web.', 4500); return; }
+  if (!confirm('Libérer ton siège Pré-Founder ? Ton numéro sera remis à disposition et cette action est immédiate.')) return;
+  const jwt = await getProfileJwt();
+  if (!jwt) { showToast('Reconnecte-toi à AhOuai pour libérer ton siège en toute sécurité.', 5000); return; }
+  const button = $('founder-release-seat');
+  button.disabled = true;
+  try {
+    const response = await fetch('/api/founders/intent', { method: 'DELETE', headers: { Authorization: `Bearer ${jwt}` } });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'release_failed');
+    state.foundersIntentSubmitted = false;
+    state.foundersIntentPosition = null;
+    refreshProfileHub();
+    closeFounderProgram();
+    showToast('Ton siège a été libéré.', 4000);
+  } catch (_) {
+    showToast('Impossible de libérer ton siège maintenant. Réessaie.', 4500);
   } finally { button.disabled = false; }
 }
 
