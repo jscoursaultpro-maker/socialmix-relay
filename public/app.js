@@ -4486,15 +4486,6 @@ async function sendFriendRequest(targetUserId, targetName) {
     console.error('[Friends] Request failed:', err);
   }
 }
-    } else {
-      console.warn(`[Friends] ⚠️ ${data.error}`);
-      if (data.status === 'accepted') state._friendStatuses[targetUserId] = { status: 'accepted' };
-    }
-    refreshTrombiBadges();
-    if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
-  })
-  .catch(err => console.error('[Friends] Request failed:', err));
-}
 
 function handleFriendSocketUpdate(eventName, payload) {
   const targetUserId = String(payload.fromUserId || payload.targetUserId || payload.userId || '');
