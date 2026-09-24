@@ -4826,7 +4826,7 @@ async function openMyFriendsScreen(highlightUserId) {
   
   const headers = await _friendsAuthHeaders();
   if (!headers) {
-    _renderMyFriends({friends:[], pending:[], sent:[]}, highlightUserId);
+    _renderMyFriends({friends:[], pending:[], sent:[], authRequired:true}, highlightUserId);
     return;
   }
 
@@ -4835,7 +4835,7 @@ async function openMyFriendsScreen(highlightUserId) {
     const r = await fetch('/api/user/friends', { headers });
     if (r.status === 401 || r.status === 403) {
       if (_supabaseClient?.auth) _supabaseClient.auth.getSession();
-      _renderMyFriends({friends:[], pending:[], sent:[]}, highlightUserId);
+      _renderMyFriends({friends:[], pending:[], sent:[], authRequired:true}, highlightUserId);
       return;
     }
     const data = await r.json();
@@ -4864,20 +4864,37 @@ function _renderMyFriends(data, highlightUserId) {
   if ($('mf-friends-count')) $('mf-friends-count').textContent = friends.length;
   if ($('mf-sent-count')) $('mf-sent-count').textContent = sent.length;
 
+  const friendIdsForPulse = new Set(friends.map(f => String(f.friendUserId || '')));
+  const participantsForPulse = (state.participants || []).filter(person => person.userId && String(person.userId) !== String(state.userId || ''));
+  const friendsHereCount = participantsForPulse.filter(person => friendIdsForPulse.has(String(person.userId))).length;
+  const newFacesCount = participantsForPulse.filter(person => !friendIdsForPulse.has(String(person.userId))).length;
+  if ($('mf-pulse-friends')) $('mf-pulse-friends').textContent = friends.length;
+  if ($('mf-pulse-shared')) $('mf-pulse-shared').textContent = friendsHereCount;
+  if ($('mf-pulse-new')) $('mf-pulse-new').textContent = newFacesCount;
+
+  if (data.authRequired) {
+    const authCard = `<div class="cercle-auth"><span class="cercle-auth-orbit">✦</span><small>RETROUVE TON CERCLE</small><h3>Vos moments méritent une suite.</h3><p>Reconnecte-toi pour retrouver tes amis, répondre aux invitations et ouvrir vos univers communs.</p><div><button onclick="signInWithProvider('google')">CONTINUER AVEC GOOGLE</button><button onclick="signInWithProvider('apple')">CONTINUER AVEC APPLE</button></div></div>`;
+    pendingList.innerHTML = authCard;
+    friendsList.innerHTML = authCard;
+    $('mf-recent-list').innerHTML = authCard;
+    if ($('mf-recent-count')) $('mf-recent-count').textContent = '—';
+    return;
+  }
+
   pendingList.innerHTML = pending.length ? pending.map(p => {
     const name = escapeHtml(p.fromName || 'Un invité');
-    return `<article class="cercle-person${highlightUserId === p.fromUserId ? ' is-highlighted' : ''}"><span class="cercle-avatar">${avatar(p.fromPhoto, p.fromEmoji)}</span><span class="cercle-person-copy"><b>${name}</b><small>Souhaite rejoindre ton Crew</small></span><span class="cercle-actions"><button class="is-soft" onclick="declineFriendRequest('${p.fromUserId || p.id}','${name.replace(/'/g, "\\'")}')">IGNORER</button><button class="is-primary" onclick="acceptFriendRequest('${p.fromUserId || p.id}','${name.replace(/'/g, "\\'")}')">ACCEPTER</button></span></article>`;
+    return `<article class="cercle-person cercle-person--request${highlightUserId === p.fromUserId ? ' is-highlighted' : ''}"><span class="cercle-avatar">${avatar(p.fromPhoto, p.fromEmoji)}</span><span class="cercle-person-copy"><small>VEUT REJOINDRE TON CREW</small><b>${name}</b><em>Un lien né d’un moment partagé.</em></span><span class="cercle-actions"><button class="is-soft" aria-label="Ignorer" onclick="declineFriendRequest('${p.fromUserId || p.id}','${name.replace(/'/g, "\\'")}')">×</button><button class="is-primary" onclick="acceptFriendRequest('${p.fromUserId || p.id}','${name.replace(/'/g, "\\'")}')">ACCEPTER</button></span></article>`;
   }).join('') : empty('Aucune demande pour le moment.');
 
   friendsList.innerHTML = friends.length ? friends.map(f => {
     const id = f.friendUserId || '';
     const name = escapeHtml(f.friendName || 'Ami AhOuai');
-    return `<button type="button" class="cercle-person cercle-person-button" onclick="openUniversModal('${escapeHtml(id)}')"><span class="cercle-avatar">${avatar(f.friendPhoto, f.friendEmoji)}</span><span class="cercle-person-copy"><b>${name}</b><small>${f.metAt ? `Rencontré à ${escapeHtml(f.metAt)}` : 'Dans ton Crew'}</small></span><span class="cercle-status is-friend">AMI</span><span class="cercle-arrow">›</span></button>`;
+    return `<button type="button" class="cercle-person cercle-person-button cercle-person--friend" onclick="openUniversModal('${escapeHtml(id)}')"><span class="cercle-avatar">${avatar(f.friendPhoto, f.friendEmoji)}</span><span class="cercle-person-copy"><small>DANS TON CREW</small><b>${name}</b><em>${f.metAt ? `Rencontré à ${escapeHtml(f.metAt)}` : 'Découvrez ce qui vous relie'}</em></span><span class="cercle-univers-tease"><i>〰</i><b>NOS UNIVERS</b></span><span class="cercle-arrow">›</span></button>`;
   }).join('') : empty('Ton Crew se construit dans les moments partagés.');
 
   const sentSection = $('mf-sent-section');
   sentSection.style.display = sent.length ? '' : 'none';
-  sentList.innerHTML = sent.map(s => `<article class="cercle-person"><span class="cercle-avatar">${avatar(s.targetPhoto, s.targetEmoji)}</span><span class="cercle-person-copy"><b>${escapeHtml(s.targetName || 'Invité')}</b><small>La demande est partie</small></span><span class="cercle-status">DEMANDE ENVOYÉE</span></article>`).join('');
+  sentList.innerHTML = sent.map(s => `<article class="cercle-person"><span class="cercle-avatar">${avatar(s.targetPhoto, s.targetEmoji)}</span><span class="cercle-person-copy"><small>INVITATION ENVOYÉE</small><b>${escapeHtml(s.targetName || 'Invité')}</b><em>La suite est entre ses mains.</em></span><span class="cercle-status">EN ATTENTE</span></article>`).join('');
 
   const friendIds = new Set(friends.map(f => String(f.friendUserId || '')));
   const pendingIds = new Set([...pending.map(p => String(p.fromUserId || '')), ...sent.map(s => String(s.targetUserId || ''))]);
@@ -4890,7 +4907,7 @@ function _renderMyFriends(data, highlightUserId) {
   if ($('mf-recent-count')) $('mf-recent-count').textContent = recent.length;
   $('mf-recent-list').innerHTML = recent.length ? recent.map(person => {
     const id = String(person.userId || person.id || '');
-    return `<article class="cercle-person"><span class="cercle-avatar">${avatar(person.photo || person.avatar, person.emoji)}</span><span class="cercle-person-copy"><b>${escapeHtml(person.name || 'Invité')}</b><small>Croisé dans ce moment</small></span><button class="cercle-add" onclick="sendFriendRequest('${escapeHtml(id)}','${escapeHtml(person.name || 'cet invité').replace(/'/g, "\\'")}')">+ AJOUTER AU CREW</button></article>`;
+    return `<article class="cercle-person cercle-person--recent"><span class="cercle-avatar">${avatar(person.photo || person.avatar, person.emoji)}</span><span class="cercle-person-copy"><small>CROISÉ DANS CE MOMENT</small><b>${escapeHtml(person.name || 'Invité')}</b><em>Et si ce n’était que le début ?</em></span><button class="cercle-add" onclick="sendFriendRequest('${escapeHtml(id)}','${escapeHtml(person.name || 'cet invité').replace(/'/g, "\\'")}')">+ CREW</button></article>`;
   }).join('') : empty('Les nouvelles rencontres apparaîtront ici.');
 
   document.querySelectorAll('[data-cercle-tab]').forEach(button => button.onclick = () => {
@@ -4925,6 +4942,10 @@ async function openUniversModal(targetUserId) {
     _renderUnivers(data);
   } catch (error) {
     console.warn('[Cercle] Univers indisponible', error);
+    if (error.status === 401) {
+      content.innerHTML = `<div class="univers-auth"><img src="assets/ahouai-wordmark.png" alt="AhOuai"><span>✦</span><small>NOS UNIVERS</small><h2>Ce qui vous relie mérite d’être retrouvé.</h2><p>Reconnecte-toi pour révéler vos morceaux, vos suggestions et les moments que vous avez vécus ensemble.</p><button onclick="signInWithProvider('google')">CONTINUER AVEC GOOGLE</button><button class="is-apple" onclick="signInWithProvider('apple')">CONTINUER AVEC APPLE</button><em>Aucune publication automatique.</em></div>`;
+      return;
+    }
     const message = error.status === 404 ? 'Compte introuvable.'
       : error.status === 403 ? 'Vous ne partagez encore rien. Rejoignez un moment ensemble.'
       : error.status === 401 ? 'Reconnecte-toi pour retrouver vos moments communs.'
@@ -4949,23 +4970,39 @@ function _renderUnivers(data) {
   if (!content) return;
   const person = data.targetPublic || {};
   const name = escapeHtml(person.firstName || person.handle || 'Un membre AhOuai');
-  const avatar = person.photo ? `<img src="${escapeHtml(person.photo)}" alt="">` : escapeHtml(person.emoji || '✦');
+  const targetAvatar = person.photo ? `<img src="${escapeHtml(person.photo)}" alt="">` : escapeHtml(person.emoji || '✦');
+  const myAvatar = state.guestPhoto ? `<img src="${escapeHtml(state.guestPhoto)}" alt="">` : escapeHtml(state.guestEmoji || '✦');
   const context = data.meetContext;
   const relationship = data.relationshipState || 'none';
-  const collection = (title, count, items, renderer, emptyText) => `<section class="univers-section"><div class="univers-section-head"><h3>${title}</h3><b>${Number(count || 0)}</b></div><div class="univers-rail">${items.length ? items.map(renderer).join('') : `<p class="univers-section-empty">${emptyText}</p>`}</div></section>`;
+  const collection = (icon, title, kicker, count, items, renderer, emptyText) => `<section class="univers-section"><div class="univers-section-head"><div><span>${icon}</span><p><small>${kicker}</small><h3>${title}</h3></p></div><b>${Number(count || 0)}</b></div><div class="univers-rail">${items.length ? items.map(renderer).join('') : `<p class="univers-section-empty">${emptyText}</p>`}</div></section>`;
   const trackCard = item => `<article class="univers-track">${item.artworkUrl ? `<img src="${escapeHtml(item.artworkUrl)}" alt="">` : '<span>♫</span>'}<div><b>${escapeHtml(item.title || '')}</b><small>${escapeHtml(item.artist || '')}</small></div></article>`;
   const afterglowCard = item => `<article class="univers-afterglow"${item.coverUrl ? ` style="background-image:linear-gradient(180deg,rgba(7,11,24,.05),rgba(7,11,24,.92)),url('${escapeHtml(item.coverUrl)}')"` : ''}><b>${escapeHtml(item.title || 'Un moment partagé')}</b><small>${_universDate(item.occurredAt)}</small></article>`;
   if (relationship === 'blocked') {
     content.innerHTML = '<div class="univers-error"><span>✦</span><h2>Univers indisponible</h2><p>Cette relation n’est pas accessible.</p></div>';
     return;
   }
+  const counts = data.counts || {};
+  const intensity = Math.min(99, Math.max(12, 18 + Number(counts.commonTracks || 0) * 8 + Number(counts.commonSuggestions || 0) * 5 + Number(counts.commonAfterglows || 0) * 14));
+  const relationAction = relationship === 'pending_received'
+    ? `<button class="univers-relation-cta" onclick="acceptFriendRequest('${escapeHtml(data.targetUserId)}','${name.replace(/'/g, "\\'")}');closeUniversModal()">ACCEPTER DANS MON CREW</button>`
+    : ['none','declined'].includes(relationship)
+      ? `<button class="univers-relation-cta" onclick="sendFriendRequest('${escapeHtml(data.targetUserId)}','${name.replace(/'/g, "\\'")}')">+ AJOUTER À MON CREW</button>`
+      : relationship === 'pending_sent' ? '<span class="univers-relation-wait">✓ INVITATION ENVOYÉE</span>' : '';
   content.innerHTML = `
-    <header class="univers-person"><span class="univers-avatar">${avatar}</span><div><small>NOS UNIVERS</small><h2 id="univers-title">${name}</h2><em class="is-${relationship}">${CERCLE_RELATION_LABELS[relationship] || 'RENCONTRÉ'}</em></div></header>
-    ${context ? `<section class="univers-meet"${context.coverUrl ? ` style="background-image:linear-gradient(90deg,rgba(8,12,24,.96),rgba(8,12,24,.48)),url('${escapeHtml(context.coverUrl)}')"` : ''}><small>NOTRE PREMIER MOMENT</small><b>${escapeHtml(context.partyName || 'Un moment AhOuai')}</b><p>${[context.venueName, _universDate(context.metAt)].filter(Boolean).map(escapeHtml).join(' · ')}</p></section>` : ''}
-    ${collection('Titres communs', data.counts?.commonTracks, data.commonTracks || [], trackCard, 'Vos titres communs apparaîtront ici.')}
-    ${collection('Suggestions communes', data.counts?.commonSuggestions, data.commonSuggestions || [], trackCard, 'Le prochain morceau partagé reste à trouver.')}
-    ${collection('Afterglows communs', data.counts?.commonAfterglows, data.commonAfterglows || [], afterglowCard, 'Un premier moment partagé. La suite vous appartient.')}
-    ${data.contactAvailable && relationship === 'accepted' ? `<button class="univers-vcard" onclick="downloadFriendVCard('${escapeHtml(data.targetUserId)}', this)">⌁ AJOUTER À MES CONTACTS</button>` : ''}`;
+    <header class="univers-hero">
+      <img class="univers-logo" src="assets/ahouai-wordmark.png" alt="AhOuai">
+      <small>NOS UNIVERS</small><h2 id="univers-title">Ce qui nous relie.</h2>
+      <div class="univers-constellation"><span class="univers-avatar is-me">${myAvatar}<b>TOI</b></span><i><em style="--affinity:${intensity}%"></em><strong>${intensity}%</strong><small>D’AFFINITÉ</small></i><span class="univers-avatar">${targetAvatar}<b>${name}</b></span></div>
+      <p>${relationship === 'accepted' ? 'Deux histoires. Des sons, des visages et des moments qui se répondent.' : 'Un premier moment partagé. La suite vous appartient.'}</p>
+      <div class="univers-relationship"><em class="is-${relationship}">${CERCLE_RELATION_LABELS[relationship] || 'RENCONTRÉ'}</em>${relationAction}</div>
+    </header>
+    <section class="univers-scoreboard"><div><strong>${Number(counts.commonTracks || 0)}</strong><span>bangers<br>en commun</span></div><div><strong>${Number(counts.commonSuggestions || 0)}</strong><span>titres<br>proposés</span></div><div><strong>${Number(counts.commonAfterglows || 0)}</strong><span>moments<br>partagés</span></div></section>
+    ${context ? `<section class="univers-meet"${context.coverUrl ? ` style="background-image:linear-gradient(90deg,rgba(8,12,24,.96),rgba(8,12,24,.48)),url('${escapeHtml(context.coverUrl)}')"` : ''}><small>LÀ OÙ VOS UNIVERS SE SONT CROISÉS</small><b>${escapeHtml(context.partyName || 'Un moment AhOuai')}</b><p>${[context.venueName, _universDate(context.metAt)].filter(Boolean).map(escapeHtml).join(' · ')}</p></section>` : ''}
+    ${collection('♫','VOS BANGERS','CES TITRES VOUS RASSEMBLENT', counts.commonTracks, data.commonTracks || [], trackCard, 'Votre premier banger commun reste à trouver.')}
+    ${collection('✦','VOS CHOIX','PROPOSÉS PAR L’UN OU L’AUTRE', counts.commonSuggestions, data.commonSuggestions || [], trackCard, 'Le prochain morceau partagé reste à trouver.')}
+    ${collection('▣','VOS MOMENTS','CE QUE VOUS AVEZ DÉJÀ VÉCU', counts.commonAfterglows, data.commonAfterglows || [], afterglowCard, 'Un premier moment partagé. La suite vous appartient.')}
+    <section class="univers-next"><small>ET MAINTENANT ?</small><h3>Créez le prochain souvenir.</h3><p>Un morceau, un dîner, un brunch ou une nuit : votre univers n’attend qu’un nouveau moment.</p></section>
+    ${data.contactAvailable && relationship === 'accepted' ? `<button class="univers-vcard" onclick="downloadFriendVCard('${escapeHtml(data.targetUserId)}', this)">⌁ ENREGISTRER ${name.toUpperCase()} DANS MES CONTACTS</button>` : ''}`;
 }
 
 async function downloadFriendVCard(friendUserId, button) {

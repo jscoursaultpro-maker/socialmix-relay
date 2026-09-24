@@ -555,7 +555,14 @@
     <div id="my-friends-screen" class="screen">
         <div class="profile-container cercle-page">
             <button id="my-friends-back" class="back-btn" onclick="if(typeof showScreen==='function') showScreen(state.previousScreen==='profile'?'profile':'cockpit')">‹ RETOUR</button>
-            <header class="cercle-heading"><span>✦ LE MOMENT CONTINUE</span><h2>MON CERCLE</h2><p>Les liens qui restent après le moment.</p></header>
+            <header class="cercle-heading"><span>✦ LE MOMENT CONTINUE</span><h2>MON CERCLE</h2><p>Les personnes croisées deviennent une histoire.</p></header>
+            <section class="cercle-pulse" aria-label="Résumé du cercle">
+                <div><strong id="mf-pulse-friends">0</strong><span>dans ton Crew</span></div>
+                <i></i>
+                <div><strong id="mf-pulse-shared">0</strong><span>présents ce soir</span></div>
+                <i></i>
+                <div><strong id="mf-pulse-new">0</strong><span>nouveaux visages</span></div>
+            </section>
             <nav class="cercle-tabs" aria-label="Mon cercle">
                 <button class="is-active" data-cercle-tab="pending">À RÉPONDRE <b id="mf-pending-count">0</b></button>
                 <button data-cercle-tab="friends">MON CREW <b id="mf-friends-count">0</b></button>
@@ -564,7 +571,7 @@
             <section id="mf-pending-section" class="cercle-pane is-active" data-cercle-pane="pending"><div id="mf-pending-list" class="cercle-list"></div></section>
             <section class="cercle-pane" data-cercle-pane="friends"><div id="mf-friends-list" class="cercle-list"></div><div id="mf-sent-section"><div class="cercle-subtitle">DEMANDES ENVOYÉES <b id="mf-sent-count">0</b></div><div id="mf-sent-list" class="cercle-list"></div></div></section>
             <section class="cercle-pane" data-cercle-pane="recent"><div id="mf-recent-list" class="cercle-list"></div></section>
-            <p class="cercle-signature">Les bons moments font les meilleurs liens.</p>
+            <p class="cercle-signature"><span>✦</span> Les bons moments font les meilleurs liens.<small>À bientôt, quelque part.</small></p>
         </div>
     </div>
 
