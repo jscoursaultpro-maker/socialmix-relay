@@ -2138,14 +2138,10 @@ function enterCockpit() {
 
   // Hub buttons (top + bottom)
   if ($('hub-card-btn')) $('hub-card-btn').addEventListener('click', () => showScreen('hub'));
-  // Profile edit button → go to profile screen for editing
-  // ★ Bug E-3b — Raccourci intelligent : si pending>0, va direct sur Mes amis (économise 1 tap)
+  // Profile edit button → toujours vers MON PROFIL (l'user va sur Mes Amis via la carte SOCIAL)
+  // ★ Reverted bug E-3b shortcut : le badge notification indiquait des demandes d'amis mais
+  // l'user veut d'abord voir son profil, puis choisir Mes Amis parmi les entrées SOCIAL.
   $('edit-profile-btn').addEventListener('click', () => {
-    const pending = typeof countPendingReceived === 'function' ? countPendingReceived() : 0;
-    if (pending > 0 && typeof openMyFriendsScreen === 'function') {
-      openMyFriendsScreen();
-      return;
-    }
     state.editingFromCockpit = true;
     showScreen('profile');
     setupProfile();
