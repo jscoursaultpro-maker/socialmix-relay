@@ -31,21 +31,6 @@ import { computeIdentityKey, findMatches } from '../utils/participantDedup.js';
 
 const router = Router();
 
-const rateLimitMap = new Map();
-function applyRateLimit(userId) {
-  const now = Date.now();
-  const windowMs = 60 * 1000;
-  const idStr = String(userId);
-  let record = rateLimitMap.get(idStr);
-  if (!record || record.resetAt < now) {
-    record = { count: 1, resetAt: now + windowMs };
-    rateLimitMap.set(idStr, record);
-    return true;
-  }
-  record.count++;
-  return record.count <= 30;
-}
-
 async function requireAuth(req, res, next) {
   try {
     const authType = req.headers['x-auth-type'];
@@ -117,12 +102,6 @@ router.get('/:targetUserId', requireAuth, async (req, res) => {
   try {
     const me = req.currentUser;
     const targetIdStr = String(req.params.targetUserId || '');
-    const authType = req.headers['x-auth-type'] || 'supabase';
-
-    if (!applyRateLimit(me._id)) {
-      console.log(`[AUDIT] UniversAccess:`, JSON.stringify({ currentUserId: me._id, targetUserId: targetIdStr, timestamp: new Date().toISOString(), authType, decision: '429_RATE_LIMIT' }));
-      return res.status(429).json({ error: 'TOO_MANY_REQUESTS' });
-    }
 
     if (!mongoose.Types.ObjectId.isValid(targetIdStr)) {
       return res.status(400).json({ error: 'INVALID_TARGET_ID' });
@@ -149,7 +128,6 @@ router.get('/:targetUserId', requireAuth, async (req, res) => {
 
     // Cas bloqué : 200 OK, response neutralisée (règle "aucune donnée sociale")
     if (meBlockedTarget || targetBlockedMe) {
-      console.log(`[AUDIT] UniversAccess:`, JSON.stringify({ currentUserId: me._id, targetUserId: targetIdStr, timestamp: new Date().toISOString(), authType, decision: '200_BLOCKED' }));
       return res.status(200).json(buildBlockedResponse(target._id));
     }
 
@@ -180,7 +158,7 @@ router.get('/:targetUserId', requireAuth, async (req, res) => {
 
     const sharedCount = await Party.countDocuments(sharedQuery);
     if (sharedCount === 0) {
-      console.log(`[AUDIT] UniversAccess:`, JSON.stringify({ currentUserId: me._id, targetUserId: targetIdStr, timestamp: new Date().toISOString(), authType, decision: '403_FORBIDDEN_NOT_SHARED_PARTY' }));
+      console.log(`[AUDIT] UniversAccess:`, JSON.stringify({ currentUserId: me._id, targetUserId: targetIdStr, timestamp: new Date().toISOString(), authType: req.headers['x-auth-type'], decision: '403_FORBIDDEN_NOT_SHARED_PARTY' }));
       return res.status(403).json({ error: 'FORBIDDEN_NOT_SHARED_PARTY' });
     }
 
@@ -189,7 +167,7 @@ router.get('/:targetUserId', requireAuth, async (req, res) => {
       .select('code name createdAt endedAt coverPhotoURL suggestions trackHistory guestVotes participants')
       .lean();
 
-    console.log(`[AUDIT] UniversAccess:`, JSON.stringify({ currentUserId: me._id, targetUserId: targetIdStr, timestamp: new Date().toISOString(), authType, decision: '200_OK' }));
+    console.log(`[AUDIT] UniversAccess:`, JSON.stringify({ currentUserId: me._id, targetUserId: targetIdStr, timestamp: new Date().toISOString(), authType: req.headers['x-auth-type'], decision: '200_OK' }));
 
     // ─── Common tracks : intersection des fires 🔥 sur trackHistory ──
     const meIdStr = String(me._id);
