@@ -6446,6 +6446,44 @@ async function init() {
         setupSocialHub();
         setupExitModal();
         
+        try {
+          const metaRes = await fetch(`/api/party/${state.partyCode}/meta`);
+          if (metaRes.ok) {
+            const m = await metaRes.json();
+            const isInParty = m.guests?.some(g => (g.userId || g.id) === state.userId) || m.hostProfile?.userId === state.userId;
+            
+            if (!isInParty) {
+              console.log('[init] priority 2 edge case: user not in party. Emitting guest:requestJoin');
+              if (typeof connectToRelay === 'function' && (!socket || !socket.connected)) {
+                connectToRelay();
+              }
+              const doJoin = () => {
+                socket.emit('guest:requestJoin', {
+                  partyCode: state.partyCode,
+                  profile: {
+                    userId: state.userId,
+                    firstName: state.guestName,
+                    lastName: state.guestLastName,
+                    email: state.guestEmail,
+                    handle: user.handle || '',
+                    emoji: state.guestEmoji,
+                    photo: state.guestPhoto
+                  }
+                });
+                enterCockpit();
+              };
+              if (socket && socket.connected) {
+                doJoin();
+              } else if (socket) {
+                socket.once('connect', doJoin);
+              }
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('[init] meta check for priority 2 failed:', err);
+        }
+
         console.log('[init] sb=1 cookie bypass successful, jumping to cockpit');
         enterCockpit();
         return; // Skip normal init sequence completely
