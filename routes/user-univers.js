@@ -26,12 +26,37 @@ import Party from '../models/Party.js';
 import Friendship from '../models/Friendship.js';
 import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
 import { findOrCreateFromSupabase } from '../services/userService.js';
+import { verifyGuestAuth } from '../middleware/authGuest.js';
 import { computeIdentityKey, findMatches } from '../utils/participantDedup.js';
 
 const router = Router();
 
+const rateLimitMap = new Map();
+function applyRateLimit(userId) {
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  const idStr = String(userId);
+  let record = rateLimitMap.get(idStr);
+  if (!record || record.resetAt < now) {
+    record = { count: 1, resetAt: now + windowMs };
+    rateLimitMap.set(idStr, record);
+    return true;
+  }
+  record.count++;
+  return record.count <= 30;
+}
+
 async function requireAuth(req, res, next) {
   try {
+    const authType = req.headers['x-auth-type'];
+    if (authType === 'sbauth') {
+      return verifyGuestAuth(req, res, (err) => {
+        if (err) return next(err);
+        req.currentUser = req.user;
+        next();
+      });
+    }
+
     const authHeader = req.headers.authorization || '';
     if (!authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'AUTH_MISSING', message: 'Authorization: Bearer <token> required' });
@@ -92,6 +117,12 @@ router.get('/:targetUserId', requireAuth, async (req, res) => {
   try {
     const me = req.currentUser;
     const targetIdStr = String(req.params.targetUserId || '');
+    const authType = req.headers['x-auth-type'] || 'supabase';
+
+    if (!applyRateLimit(me._id)) {
+      console.log(`[AUDIT] UniversAccess:`, JSON.stringify({ currentUserId: me._id, targetUserId: targetIdStr, timestamp: new Date().toISOString(), authType, decision: '429_RATE_LIMIT' }));
+      return res.status(429).json({ error: 'TOO_MANY_REQUESTS' });
+    }
 
     if (!mongoose.Types.ObjectId.isValid(targetIdStr)) {
       return res.status(400).json({ error: 'INVALID_TARGET_ID' });
@@ -118,6 +149,7 @@ router.get('/:targetUserId', requireAuth, async (req, res) => {
 
     // Cas bloqué : 200 OK, response neutralisée (règle "aucune donnée sociale")
     if (meBlockedTarget || targetBlockedMe) {
+      console.log(`[AUDIT] UniversAccess:`, JSON.stringify({ currentUserId: me._id, targetUserId: targetIdStr, timestamp: new Date().toISOString(), authType, decision: '200_BLOCKED' }));
       return res.status(200).json(buildBlockedResponse(target._id));
     }
 
@@ -134,60 +166,30 @@ router.get('/:targetUserId', requireAuth, async (req, res) => {
     const afterglowsLimit = parseIntSafe(req.query.afterglowsLimit, 10, 50);
     const afterglowsOffset = parseIntSafe(req.query.afterglowsOffset, 0, 100000);
 
-    // Vérifier co-participation à au moins une party
-    // Utilise findMatches + computeIdentityKey pour matcher userId prioritaire
-    const meKey = computeIdentityKey({ userId: String(me._id), email: me.email });
-    const targetKey = computeIdentityKey({ userId: String(target._id), email: target.email });
-    const meParticipantIds = [me._id, String(me._id)];
-    const targetParticipantIds = [target._id, String(target._id)];
+    const meP = [me._id, String(me._id)];
+    const targetP = [target._id, String(target._id)];
 
-    const partyAccessMatch = {
-      endedAt: { $ne: null },
-      'participants.userId': { $in: meParticipantIds },
-      $expr: {
-        $gt: [
-          { $size: {
-              $ifNull: [
-                { $setIntersection: [
-                    { $map: { input: '$participants', as: 'p', in: '$$p.userId' } },
-                    targetParticipantIds
-                  ]},
-                []
-              ]
-            }
-          },
-          0
-        ]
-      }
+    // Règle A : partagé AU MOINS 1 soirée
+    const sharedQuery = {
+      $or: [
+        { hostUserId: { $in: meP }, 'participants.userId': { $in: targetP } },
+        { hostUserId: { $in: targetP }, 'participants.userId': { $in: meP } },
+        { $and: [{ 'participants.userId': { $in: meP } }, { 'participants.userId': { $in: targetP } }] }
+      ]
     };
 
-    let coParticipations = [];
-    if (!areFriends) {
-      // Cherche uniquement les parties partagées
-      coParticipations = await Party.find(partyAccessMatch)
-        .select('code name createdAt endedAt coverPhotoURL')
-        .lean();
+    const sharedCount = await Party.countDocuments(sharedQuery);
+    if (sharedCount === 0) {
+      console.log(`[AUDIT] UniversAccess:`, JSON.stringify({ currentUserId: me._id, targetUserId: targetIdStr, timestamp: new Date().toISOString(), authType, decision: '403_FORBIDDEN_NOT_SHARED_PARTY' }));
+      return res.status(403).json({ error: 'FORBIDDEN_NOT_SHARED_PARTY' });
     }
 
-    if (!areFriends && coParticipations.length === 0) {
-      return res.status(403).json({
-        error: 'UNIVERS_NOT_AVAILABLE',
-        message: 'Aucun univers commun.',
-      });
-    }
+    // Récupérer TOUTES les parties communes
+    const partiesWithDetail = await Party.find(sharedQuery)
+      .select('code name createdAt endedAt coverPhotoURL suggestions trackHistory guestVotes participants')
+      .lean();
 
-    // Récupérer TOUTES les parties communes (pour intersection tracks/sugg/afterglows)
-    // Query commune quel que soit le statut (amis peuvent avoir 0 party commune)
-    const commonParties = coParticipations.length > 0
-      ? coParticipations
-      : await Party.find(partyAccessMatch).select('code name createdAt endedAt coverPhotoURL suggestions trackHistory guestVotes participants').lean();
-
-    // Charger avec le détail si pas déjà fait
-    const partiesWithDetail = coParticipations.length > 0
-      ? await Party.find({ _id: { $in: commonParties.map(p => p._id) } })
-          .select('code name createdAt endedAt coverPhotoURL suggestions trackHistory guestVotes participants')
-          .lean()
-      : commonParties;
+    console.log(`[AUDIT] UniversAccess:`, JSON.stringify({ currentUserId: me._id, targetUserId: targetIdStr, timestamp: new Date().toISOString(), authType, decision: '200_OK' }));
 
     // ─── Common tracks : intersection des fires 🔥 sur trackHistory ──
     const meIdStr = String(me._id);
