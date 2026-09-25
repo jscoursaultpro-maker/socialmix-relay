@@ -25,6 +25,31 @@ export const verifyGuestAuth = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     let token = null;
 
+    // ★ Fix 25/09 : si le client déclare X-Auth-Type: sbauth, traiter le
+    // Bearer token comme payload sbauth base64 (userId encodé) plutôt que
+    // comme JWT/Supabase access_token. Résout la boucle 401 sur
+    // openUniversModal pour les guests sbauth-bypass.
+    const authType = (req.headers['x-auth-type'] || '').toLowerCase();
+    if (authType === 'sbauth' && authHeader && authHeader.startsWith('Bearer ')) {
+      const sbauthToken = authHeader.split(' ')[1];
+      try {
+        const payloadStr = Buffer.from(decodeURIComponent(sbauthToken), 'base64').toString('utf8');
+        const payload = JSON.parse(payloadStr);
+        if (payload && payload.userId) {
+          const user = await User.findById(payload.userId);
+          if (user && !user.isDeleted && !user.isBanned) {
+            console.log('[authGuest] auth via Bearer sbauth (X-Auth-Type: sbauth)');
+            req.user = user;
+            return next();
+          }
+        }
+      } catch (e) {
+        console.warn('[authGuest] Bearer sbauth decode failed:', e.message);
+      }
+      // Si sbauth déclaré mais échec → 401 direct plutôt que tenter JWT/Supabase
+      return res.status(401).json({ error: 'Invalid sbauth token' });
+    }
+
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
     } else {
