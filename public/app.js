@@ -6411,11 +6411,21 @@ async function init() {
         state.guestName = authData.firstName;
         state.guestEmail = authData.email || '';
         state.guestEmoji = '🎉';
-        
+
+        // ★ Fix 25/09 : poser le cookie sbauth pour que getAuthCredential()
+        // le retrouve plus tard (ex: openUniversModal). Sans cela, un guest
+        // sbauth-bypass tombe sur l'écran reconnexion SSO quand il clique
+        // "Nos Univers" alors qu'il est déjà authentifié.
+        try {
+          const cookieValue = encodeURIComponent(sbAuth);
+          const oneYear = 60 * 60 * 24 * 365;
+          document.cookie = `sbauth=${cookieValue}; Domain=.ahouai.com; Path=/; Max-Age=${oneYear}; Secure; SameSite=Lax`;
+        } catch (_) { /* cookie set fail non bloquant */ }
+
         saveProfile();
         setupSocialHub();
         setupExitModal();
-        
+
         console.log('[init] sb=1 URL bypass successful');
         enterCockpit();
         return;
