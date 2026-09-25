@@ -1746,13 +1746,23 @@ async function handleLogout() {
     if (_supabaseClient) {
       await _supabaseClient.auth.signOut().catch(e => console.warn('[logout] supabase signOut fail:', e));
     }
-    // Efface aussi cookies partagés .ahouai.com (Sprint B sbauth-bypass)
+    // Efface aussi cookies partagés .ahouai.com (Sprint B sbauth-bypass) et Supabase (chunkés)
     try {
-      const domainAttr = /\.ahouai\.com$/.test(location.hostname) ? '; domain=.ahouai.com' : '';
       document.cookie.split(';').forEach(c => {
         const name = c.split('=')[0].trim();
         if (name.startsWith('sb-') || name === 'sbauth') {
-          document.cookie = `${name}=; max-age=0; path=/${domainAttr}`;
+          // Bruteforce all possible domain/path/samesite combinations to ensure deletion
+          const opts = [
+            'path=/; domain=.ahouai.com; Secure; SameSite=Lax',
+            'path=/; domain=.ahouai.com; Secure; SameSite=None',
+            'path=/; domain=.ahouai.com',
+            'path=/; Secure; SameSite=Lax',
+            'path=/; Secure; SameSite=None',
+            'path=/'
+          ];
+          opts.forEach(opt => {
+            document.cookie = `${name}=; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; ${opt}`;
+          });
         }
       });
     } catch {}
