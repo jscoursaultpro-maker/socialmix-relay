@@ -1866,6 +1866,20 @@ async function getProfileJwt() {
   try { const { data: { session } } = await _supabaseClient.auth.getSession(); return session?.access_token || null; } catch (_) { return null; }
 }
 
+async function getAuthCredential() {
+  if (typeof _supabaseClient !== 'undefined' && _supabaseClient) {
+    try {
+      const { data: { session } } = await _supabaseClient.auth.getSession();
+      if (session?.access_token) return { type: 'supabase', token: session.access_token };
+    } catch (_) {}
+  }
+  const match = document.cookie.match(/(?:^|;\s*)sbauth=([^;]+)/);
+  if (match) {
+    return { type: 'sbauth', token: match[1] };
+  }
+  return null;
+}
+
 async function requestAccountDeletion() {
   const jwt = await getProfileJwt();
   if (!jwt) {
@@ -5077,10 +5091,14 @@ async function openUniversModal(targetUserId) {
   document.body.classList.add('univers-open');
   content.innerHTML = '<div class="univers-loader"><i></i><p>Vos moments se retrouvent…</p></div>';
   try {
-    const jwt = await getProfileJwt();
-    if (!jwt) throw Object.assign(new Error('AUTH_MISSING'), { status: 401 });
+    const cred = await getAuthCredential();
+    if (!cred) throw Object.assign(new Error('AUTH_MISSING'), { status: 401 });
+    const headers = { Authorization: `Bearer ${cred.token}`, 'X-Auth-Type': cred.type };
+    if (cred.type === 'sbauth' && typeof state !== 'undefined' && state.partyCode) {
+      headers['X-Party-Code'] = state.partyCode;
+    }
     const response = await fetch(`/api/user/univers/${encodeURIComponent(targetUserId)}`, {
-      headers: { Authorization: `Bearer ${jwt}` }, cache: 'no-store'
+      headers, cache: 'no-store'
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw Object.assign(new Error(data.error || 'UNIVERS_ERROR'), { status: response.status });
