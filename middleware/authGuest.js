@@ -36,9 +36,22 @@ export const verifyGuestAuth = async (req, res, next) => {
         const payloadStr = Buffer.from(decodeURIComponent(sbauthToken), 'base64').toString('utf8');
         const payload = JSON.parse(payloadStr);
         if (payload && payload.userId) {
-          const user = await User.findById(payload.userId);
+          // ★ Fix 25/09 : le sbauth payload contient le userId Supabase (UUID),
+          // pas le _id MongoDB (ObjectId). Chercher d'abord par supabaseUserId,
+          // puis email, puis _id en dernier fallback (au cas où un legacy sbauth
+          // contiendrait un ObjectId).
+          let user = null;
+          const isObjectId = /^[0-9a-fA-F]{24}$/.test(payload.userId);
+          if (!isObjectId) {
+            user = await User.findOne({ supabaseUserId: payload.userId });
+            if (!user && payload.email) {
+              user = await User.findOne({ email: payload.email });
+            }
+          } else {
+            user = await User.findById(payload.userId);
+          }
           if (user && !user.isDeleted && !user.isBanned) {
-            console.log('[authGuest] auth via Bearer sbauth (X-Auth-Type: sbauth)');
+            console.log(`[authGuest] auth via Bearer sbauth (X-Auth-Type: sbauth), resolved user ${user._id} from ${isObjectId ? 'ObjectId' : 'supabaseUserId'}`);
             req.user = user;
             return next();
           }
@@ -69,9 +82,20 @@ export const verifyGuestAuth = async (req, res, next) => {
           const payloadStr = Buffer.from(decodeURIComponent(cookies['sbauth']), 'base64').toString('utf8');
           const payload = JSON.parse(payloadStr);
           if (payload && payload.userId) {
-            const user = await User.findById(payload.userId);
+            // ★ Fix 25/09 : sbauth cookie contient un userId Supabase (UUID) —
+            // résoudre via supabaseUserId ou email au lieu de _id direct.
+            let user = null;
+            const isObjectId = /^[0-9a-fA-F]{24}$/.test(payload.userId);
+            if (!isObjectId) {
+              user = await User.findOne({ supabaseUserId: payload.userId });
+              if (!user && payload.email) {
+                user = await User.findOne({ email: payload.email });
+              }
+            } else {
+              user = await User.findById(payload.userId);
+            }
             if (user && !user.isDeleted && !user.isBanned) {
-              console.log('[authGuest] auth via cookie sbauth');
+              console.log(`[authGuest] auth via cookie sbauth, resolved user ${user._id} from ${isObjectId ? 'ObjectId' : 'supabaseUserId'}`);
               req.user = user;
               return next();
             }
