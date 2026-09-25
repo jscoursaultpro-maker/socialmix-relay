@@ -6,14 +6,79 @@ import { supabasePublic } from '../utils/supabase.js';
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) throw new Error('JWT_SECRET env var required');
 
+const cookieAuthRateLimit = new Map();
+function checkCookieRateLimit(ip) {
+  const now = Date.now();
+  const entry = cookieAuthRateLimit.get(ip) || { count: 0, resetTime: now + 60000 };
+  if (now > entry.resetTime) {
+    entry.count = 1;
+    entry.resetTime = now + 60000;
+  } else {
+    entry.count++;
+  }
+  cookieAuthRateLimit.set(ip, entry);
+  return entry.count <= 30;
+}
+
 export const verifyGuestAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Missing or invalid Authorization header' });
-    }
+    let token = null;
 
-    const token = authHeader.split(' ')[1];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else {
+      const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+      if (!checkCookieRateLimit(ip)) {
+        return res.status(429).json({ error: 'Too Many Requests' });
+      }
+
+      const cookieStr = req.headers.cookie || '';
+      const cookies = Object.fromEntries(cookieStr.split(';').map(c => {
+        const parts = c.split('=');
+        return [parts[0].trim(), parts.slice(1).join('=')];
+      }));
+
+      if (cookies['sbauth']) {
+        try {
+          const payloadStr = Buffer.from(decodeURIComponent(cookies['sbauth']), 'base64').toString('utf8');
+          const payload = JSON.parse(payloadStr);
+          if (payload && payload.userId) {
+            const user = await User.findById(payload.userId);
+            if (user && !user.isDeleted && !user.isBanned) {
+              console.log('[authGuest] auth via cookie sbauth');
+              req.user = user;
+              return next();
+            }
+          }
+        } catch (e) {
+          console.warn('[authGuest] sbauth decode failed:', e.message);
+        }
+      }
+
+      const sbTokens = Object.keys(cookies).filter(k => k.match(/^sb-.*-auth-token/)).sort();
+      if (sbTokens.length > 0) {
+        try {
+          const combined = sbTokens.map(k => cookies[k]).join('');
+          const decodedCookie = decodeURIComponent(combined);
+          let jsonStr = decodedCookie;
+          if (jsonStr.startsWith('base64-')) {
+            jsonStr = Buffer.from(jsonStr.replace('base64-', ''), 'base64').toString('utf8');
+          }
+          const sessionObj = JSON.parse(jsonStr);
+          if (sessionObj && sessionObj.access_token) {
+            console.log('[authGuest] auth via cookie supabase');
+            token = sessionObj.access_token;
+          }
+        } catch (e) {
+          console.warn('[authGuest] supabase cookie parse failed:', e.message);
+        }
+      }
+
+      if (!token) {
+        return res.status(401).json({ error: 'Missing or invalid Authorization header' });
+      }
+    }
     if (!token) {
       return res.status(401).json({ error: 'Token missing' });
     }
