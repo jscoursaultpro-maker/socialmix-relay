@@ -7948,7 +7948,10 @@ function renderV2ShareActivity() {
 
   const photos = (state.myPhotos || []).slice().reverse().slice(0, 6);
   photosEl.innerHTML = photos.length ? `<div class="v2-share-photo-grid">${photos.map(url => `
-    <button type="button" class="v2-share-photo-thumb" onclick="showPhotoLightbox('${escAttr(url)}', '${escAttr(state.guestName || 'Moi')}')"><img src="${esc(url)}" alt="Ma photo"></button>`).join('')}</div>` : '<p class="v2-share-empty">Tes photos prises pendant la soirée apparaîtront ici.</p>';
+    <div style="position:relative; display:inline-block;">
+      <button type="button" class="v2-share-photo-thumb" onclick="showPhotoLightbox('${escAttr(url)}', '${escAttr(state.guestName || 'Moi')}')"><img src="${esc(url)}" alt="Ma photo"></button>
+      <button onclick="deleteMyPhoto('${escAttr(url)}')" style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.6); border:none; border-radius:50%; width:24px; height:24px; font-size:12px; color:white; cursor:pointer;" aria-label="Supprimer">🗑️</button>
+    </div>`).join('')}</div>` : '<p class="v2-share-empty">Tes photos prises pendant la soirée apparaîtront ici.</p>';
 }
 
 // ★ AGIR Partager : composer message inline (ne switch pas vers STORY)
@@ -7991,6 +7994,26 @@ window.deleteMyMessage = function(id, text) {
       // Remove locally instantly for better UX
       state.liveMessages = state.liveMessages.filter(m => !(m.guestName === state.guestName && (m.id === id || m.message === text)));
       if (typeof renderV2ShareActivity === 'function') renderV2ShareActivity();
+    }
+  }
+};
+
+window.deleteMyPhoto = function(url) {
+  if (confirm("Supprimer cette photo ?")) {
+    if (socket && socket.connected) {
+      socket.emit('guest:deletePhoto', { dataURL: url, guestName: state.guestName || 'Guest' });
+      // Delete locally
+      if (state.myPhotos) {
+        state.myPhotos = state.myPhotos.filter(u => u !== url);
+      }
+      if (state.allPhotos) {
+        state.allPhotos = state.allPhotos.filter(p => !(((p.url === url) || (p.dataUrl === url) || (p.dataURL === url)) && p.guestName === state.guestName));
+      }
+      if (state.photos) {
+        state.photos = state.photos.filter(p => !(((p.url === url) || (p.dataUrl === url) || (p.dataURL === url)) && p.guestName === state.guestName));
+      }
+      if (typeof renderV2ShareActivity === 'function') renderV2ShareActivity();
+      if (typeof window.renderSouvenirsIfVisible === 'function') window.renderSouvenirsIfVisible();
     }
   }
 };
@@ -8357,12 +8380,18 @@ function renderSouvenirs() {
   if (photosEl && photosGrid) {
     const usable = photos.map(p => typeof p === 'string' ? { url: p } : p)
       .filter(p => p && (p.url || p.dataUrl)).slice(0, 6);
-    photosGrid.innerHTML = usable.map(p => `
-      <div class="souvenirs-photo-item">
-        <img src="${_souvEscape(p.url || p.dataUrl)}" alt="" loading="lazy">
+    photosGrid.innerHTML = usable.map(p => {
+      const isMine = (!p.guestName || p.guestName === state.guestName);
+      const url = p.url || p.dataUrl || p.dataURL || '';
+      const delBtn = isMine ? `<button onclick="deleteMyPhoto('${_souvEscape(url)}')" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.6); border:none; border-radius:50%; width:28px; height:28px; font-size:14px; color:white; cursor:pointer; z-index:10;" aria-label="Supprimer">🗑️</button>` : '';
+      return `
+      <div class="souvenirs-photo-item" style="position:relative;">
+        <img src="${_souvEscape(url)}" alt="" loading="lazy">
         ${p.guestName ? `<div class="souvenirs-photo-caption">${_souvEscape(p.guestName)}</div>` : ''}
+        ${delBtn}
       </div>
-    `).join('') || '<div class="story-empty-state story-empty-state--photos">La première photo de la soirée apparaîtra ici.</div>';
+      `;
+    }).join('') || '<div class="story-empty-state story-empty-state--photos">La première photo de la soirée apparaîtra ici.</div>';
     // Section toujours affichée (permet upload même si 0 photo — mais grid vide OK)
     photosEl.style.display = '';
   }
