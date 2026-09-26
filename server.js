@@ -7222,6 +7222,22 @@ io.on('connection', (socket) => {
     addPoints(party, resolveGuestUserId(party, socket), data.guestName || 'Guest', 10, 'message');
   });
 
+  socket.on('guest:deleteMessage', (data) => {
+    const party = getMutableParty(socket); if (!party) return;
+    const msgId = data && data.id;
+    const msgText = data && data.message;
+    const guestName = data && data.guestName;
+    if (guestName && party.messages) {
+      const idx = party.messages.findIndex(m => m.guestName === guestName && (m.id === msgId || (msgText && m.message === msgText)));
+      if (idx !== -1) {
+        party.messages.splice(idx, 1);
+        io.to(`host:${party.code}`).emit('messages:update', party.messages);
+        io.to(`guest:${party.code}`).emit('messages:update', party.messages);
+        console.log(`💬 [${party.code}] Message DELETED by guest: ${guestName}`);
+      }
+    }
+  });
+
   // ★ Mes suggestions inline: fetch all suggestions by this guest across ALL parties
   socket.on('guest:getMySuggestions', async (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};

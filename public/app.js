@@ -2939,6 +2939,7 @@ function connectToRelay() {
 
   socket.on('messages:update', (messages) => {
     state.liveMessages = (messages || []).map(message => ({
+      id: message?.id,
       message: message?.message || message?.text || '',
       guestName: message?.guestName || 'Guest',
       sentAt: message?.sentAt || ''
@@ -2951,7 +2952,7 @@ function connectToRelay() {
   // ★ Task #104: receive messages from other guests for diaporama
   socket.on('guest:message', (msg) => {
     if (!msg || !msg.message) return;
-    state.liveMessages.push({ message: msg.message, guestName: msg.guestName || 'Guest', sentAt: msg.sentAt || new Date().toISOString() });
+    state.liveMessages.push({ id: msg.id, message: msg.message, guestName: msg.guestName || 'Guest', sentAt: msg.sentAt || new Date().toISOString() });
     updateDiapoButton();
     updateDiapoCounter();
     if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
@@ -4523,7 +4524,7 @@ function sendGuestMessage(inputId = 'guest-message-input') {
     console.log('[Message] Sent:', message);
     state.messagesSent = (state.messagesSent || 0) + 1;
     // ★ Task #104: own message also feeds diaporama
-    state.liveMessages.push({ message, guestName: state.guestName || 'Guest', sentAt: new Date().toISOString() });
+    state.liveMessages.push({ id: `local-${Date.now()}`, message, guestName: state.guestName || 'Guest', sentAt: new Date().toISOString() });
     if (typeof renderV2ShareActivity === 'function') renderV2ShareActivity();
     updateDiapoButton();
     updateDiapoCounter();
@@ -7939,9 +7940,10 @@ function renderV2ShareActivity() {
     m && (m.message || m.text) && (!m.guestName || m.guestName === state.guestName)
   ).slice(-3).reverse();
   messagesEl.innerHTML = mine.length ? mine.map(m => `
-    <article class="v2-share-message-card">
+    <article class="v2-share-message-card" style="display:flex; align-items:center;">
       <span class="v2-share-message-avatar">${esc(state.guestEmoji || '✨')}</span>
-      <div><strong>${esc(m.message || m.text || '')}</strong><small>Moi · à l'instant</small></div>
+      <div style="flex:1;"><strong>${esc(m.message || m.text || '')}</strong><small>Moi · à l'instant</small></div>
+      <button onclick="deleteMyMessage('${escAttr(m.id || '')}', '${escAttr(m.message || m.text || '')}')" class="v2-msg-delete" style="background:none; border:none; font-size:18px; color:var(--ag-danger, #ff4444); cursor:pointer; padding:4px;" aria-label="Supprimer">🗑️</button>
     </article>`).join('') : '<p class="v2-share-empty">Ton premier mot apparaîtra ici.</p>';
 
   const photos = (state.myPhotos || []).slice().reverse().slice(0, 6);
@@ -7980,6 +7982,17 @@ window.sendAgirMessage = function() {
   }
   // Rerender pour voir le message ajouté (petit délai pour laisser le socket faire son round-trip)
   setTimeout(() => { if (typeof renderAgirSharePanel === 'function') renderAgirSharePanel(); }, 400);
+};
+
+window.deleteMyMessage = function(id, text) {
+  if (confirm("Supprimer ce message ?")) {
+    if (socket && socket.connected) {
+      socket.emit('guest:deleteMessage', { id: id, message: text, guestName: state.guestName || 'Guest' });
+      // Remove locally instantly for better UX
+      state.liveMessages = state.liveMessages.filter(m => !(m.guestName === state.guestName && (m.id === id || m.message === text)));
+      if (typeof renderV2ShareActivity === 'function') renderV2ShareActivity();
+    }
+  }
 };
 
 // ★ AGIR Partager : rendu "Mes photos" + "Mes mots" + empty state
@@ -8364,12 +8377,19 @@ function renderSouvenirs() {
       .slice(-6)
       .reverse()
       .slice(0, 4);
-    msgList.innerHTML = recent.map(m => `
-      <div class="souvenirs-message-item">
-        <div class="souvenirs-message-author">${_souvEscape(m.guestName || 'Guest')}</div>
-        <div class="souvenirs-message-text">${_souvEscape(m.message || m.text || '')}</div>
+    msgList.innerHTML = recent.map(m => {
+      const isMine = (!m.guestName || m.guestName === state.guestName);
+      const delBtn = isMine ? `<button onclick="deleteMyMessage('${_souvEscape(m.id || '')}', '${_souvEscape(m.message || m.text || '')}')" class="v2-msg-delete" style="background:none; border:none; font-size:16px; color:var(--ag-danger, #ff4444); cursor:pointer; padding:2px; margin-left:auto;" aria-label="Supprimer">🗑️</button>` : '';
+      return `
+      <div class="souvenirs-message-item" style="display:flex; align-items:center;">
+        <div style="flex:1; min-width:0;">
+          <div class="souvenirs-message-author">${_souvEscape(m.guestName || 'Guest')}</div>
+          <div class="souvenirs-message-text">${_souvEscape(m.message || m.text || '')}</div>
+        </div>
+        ${delBtn}
       </div>
-    `).join('') || '<div class="story-empty-state">Les mots partagés dans AGIR apparaîtront ici.</div>';
+      `;
+    }).join('') || '<div class="story-empty-state">Les mots partagés dans AGIR apparaîtront ici.</div>';
     // Section toujours affichée (permet posting même si 0 message)
     msgEl.style.display = '';
   }
