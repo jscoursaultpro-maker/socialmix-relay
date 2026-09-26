@@ -3344,6 +3344,7 @@ function setupGenreTrends() {
     const isSelected = state.selectedGenre === genre && !myVoteExpired;
     const isExpired  = state.selectedGenre === genre && myVoteExpired;
     btn.className = 'genre-btn' + (isSelected ? ' selected' : '') + (isExpired ? ' expired' : '');
+    btn.dataset.genre = genre;
     if (isExpired) btn.style.cssText = 'opacity:0.5;border-color:rgba(255,152,0,0.4);';
     const genreIcons = { 'Chill': '☾', 'Pop': '✦', 'Rock': '⚡', 'Rap': '◼', 'Latin': '◒', 'Old school': '◈', 'Urban Groove': '◉', 'Dance': '◌', 'Électro': '⌁' };
     btn.innerHTML = `
@@ -8307,7 +8308,10 @@ function renderSouvenirs() {
   const tempsEl = document.getElementById('souvenirs-tempsforts');
   const tempsList = document.getElementById('souvenirs-tempsforts-list');
   if (tempsEl && tempsList) {
-    const rest = scored.slice(1, 6); // top 2 à 6 (5 items)
+    // "Le moment" is a highlight, not a removal from the soundtrack. Keeping
+    // the first track here avoids an empty music section when only one title
+    // has been played and makes the list match the actual party history.
+    const rest = scored.slice(0, 6);
     if (rest.length === 0) {
       tempsList.innerHTML = '<div class="story-empty-state">Les titres joués pendant la soirée apparaîtront ici.</div>';
       tempsEl.style.display = '';
