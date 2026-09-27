@@ -5,6 +5,14 @@
  * Auth: verifyGuestAuth (supports legacy JWT + Supabase).
  *
  * Lighter version of user-fire-votes.js, using verifyGuestAuth.
+ *
+ * ★ fix(#28) — Sécurité cross-user (calqué sur Fix #18 / Chantier C) :
+ *   1. Guard strict: userEmail OU userId Mongo requis (userName seul insuffisant)
+ *   2. Suppression du match _guestName global (fuite cross-parties par prénom homonyme)
+ *   3. Guards $ne userEmail "" pour éviter match des votes anonymes (email vide → 3048+ votes)
+ *
+ * Doctrine 3.9 : quand on fixe un pattern (agrégation, guard identité), grep TOUS
+ * les fichiers utilisant le même pattern avant de considérer le fix complet.
  */
 import { Router } from 'express';
 import { verifyGuestAuth } from '../middleware/authGuest.js';
@@ -20,7 +28,13 @@ router.get('/tracks/favorites', verifyGuestAuth, async (req, res) => {
       .filter(Boolean).join(' ').trim() || user.profile?.firstName || user.firstName || '';
     const userEmail = (user.email || '').toLowerCase().trim();
 
-    if (!userId && !userName && !userEmail) {
+    // ★ fix(#28) — Guard strict : userId Mongo OU email valide requis.
+    // userName seul est insuffisant : un prénom commun ("Nicolas", "Sarah") matcherait
+    // TOUS les participants homonymes cross-parties → fuite de données.
+    const hasValidEmail  = userEmail.length > 0;
+    const hasValidUserId = /^[0-9a-f]{24}$/i.test(userId);
+    if (!hasValidEmail && !hasValidUserId) {
+      console.warn(`[MeTracksFavorites] ⚠️ GUARD: no valid identity (userId='${userId}' email='${userEmail}') → returning empty`);
       return res.json({ tracks: [] });
     }
 
@@ -28,11 +42,15 @@ router.get('/tracks/favorites', verifyGuestAuth, async (req, res) => {
     const excludeCode = req.query.excludeCode || null;
 
     // Match ended parties where user participated
+    // ★ fix(#28) — Ne matcher par email QUE si email non-vide, sinon on match
+    // tous les participants anonymes (email="" → 3048+ votes dans la BDD).
+    const emailFilter = hasValidEmail
+      ? [{ 'participants.email': userEmail }, { hostEmail: userEmail }]
+      : [];
     const partyMatch = {
       endedAt: { $ne: null },
       $or: [
-        { 'participants.email': userEmail },
-        { hostEmail: userEmail },
+        ...emailFilter,
         { hostUserId: userId },
         { hostUserId: user._id }
       ].filter(Boolean)
@@ -72,22 +90,29 @@ router.get('/tracks/favorites', verifyGuestAuth, async (req, res) => {
                       as: "gv",
                       cond: {
                         $or: [
+                          // ★ fix(#28) — Clause host : guard $ne "" sur hostEmail
                           { $and: [
                               { $eq: ["$$gv.k", "host"] },
                               { $or: [
-                                  { $eq: ["$hostEmail", userEmail] },
+                                  // hostEmail : seulement si email non-vide
+                                  { $and: [{ $ne: [userEmail, ""] }, { $eq: ["$hostEmail", userEmail] }] },
                                   { $eq: [{ $toString: "$hostUserId" }, userId] }
                               ]}
                           ]},
+                          // Clause socketId direct
                           { $eq: ["$$gv.k", userId] },
-                          { $eq: ["$$gv.v._guestName", userName] },
+                          // ★ fix(#28) — _guestName SUPPRIMÉ : match global par prénom
+                          // "Nicolas" matchait TOUS les Nicolas cross-parties.
+                          // L'identification doit passer par userId ou email uniquement.
+                          // Clause participants.email : guard $ne "" pour éviter match anonymes
                           { $in: ["$$gv.k", {
                               $map: {
                                 input: {
                                   $filter: {
                                     input: { $ifNull: ["$participants", []] },
                                     as: "p",
-                                    cond: { $eq: ["$$p.email", userEmail] }
+                                    // ★ fix(#28) — guard email vide
+                                    cond: { $and: [{ $ne: [userEmail, ""] }, { $eq: ["$$p.email", userEmail] }] }
                                   }
                                 },
                                 as: "pMatch",
