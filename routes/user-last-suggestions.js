@@ -38,33 +38,34 @@ router.get('/', requireAuth, async (req, res) => {
     const userName = [currentUser.profile?.firstName, currentUser.profile?.lastName]
       .filter(Boolean).join(' ').trim() || currentUser.profile?.firstName || '';
 
-    if (!userEmail && !userName) {
+    const userIdStr = currentUser._id.toString();
+
+    // ★ fix(#18) — GUARD SÉCURITÉ CROSS-USER
+    // Identité forte = email non-vide OU userId Mongo 24-char
+    // Avant: if (!userEmail && !userName) → userName vide passait le guard
+    const hasValidEmail  = userEmail.length > 0;
+    const hasValidUserId = /^[0-9a-f]{24}$/i.test(userIdStr);
+
+    if (!hasValidEmail && !hasValidUserId) {
+      console.warn(`[UserLastSuggestions] ⚠️ GUARD: no valid identity (email="${userEmail}", userId="${userIdStr}") → returning empty`);
       return res.json({ suggestions: [] });
     }
 
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 15, 1), 50);
     const excludeCode = req.query.excludeCode;
 
-    // Build match condition for suggestions by this user
-    const suggestionMatchConditions = [];
-    if (userName) {
-      suggestionMatchConditions.push({ 'suggestions.guestName': userName });
-    }
-    if (currentUser.profile?.firstName && currentUser.profile.firstName !== userName) {
-      suggestionMatchConditions.push({ 'suggestions.guestName': currentUser.profile.firstName });
-    }
-
     const pipeline = [];
 
-    // Stage 1: Find parties where this user participated (exclude if specified)
-    const partyMatch = {
-      $or: [
-        { 'participants.email': userEmail },
-        { hostEmail: userEmail },
-        { hostUserId: currentUser._id.toString() },
-        { hostUserId: currentUser._id }
-      ].filter(Boolean)
-    };
+    // Build match condition for parties where this user participated
+    // ★ fix(#18): conditionne les clauses email sur hasValidEmail
+    const partyMatchOr = [
+      hasValidEmail ? { 'participants.email': userEmail } : null,
+      hasValidEmail ? { hostEmail: userEmail }            : null,
+      { hostUserId: userIdStr },
+      { hostUserId: currentUser._id }
+    ].filter(Boolean);
+
+    const partyMatch = { $or: partyMatchOr };
     if (excludeCode) {
       partyMatch.code = { $ne: excludeCode };
     }
@@ -73,25 +74,28 @@ router.get('/', requireAuth, async (req, res) => {
     // Stage 2: Unwind suggestions
     pipeline.push({ $unwind: '$suggestions' });
 
-    // Stage 3: Match suggestions by this user's name OR host marker (V6 fix)
-    const suggMatchOr = [];
-    if (userName) suggMatchOr.push({ 'suggestions.guestName': userName });
-    if (currentUser.profile?.firstName && currentUser.profile.firstName !== userName) {
-      suggMatchOr.push({ 'suggestions.guestName': currentUser.profile.firstName });
-    }
-    // Host-marked suggestions: guestId='host' OR isHost=true, uniquement pour les parties hostées par ce user
-    const userIdStr = currentUser._id.toString();
-    suggMatchOr.push({ 'suggestions.isHost': true, $or: [
-      { hostUserId: currentUser._id },
-      { hostUserId: userIdStr }
-    ]});
-    suggMatchOr.push({ 'suggestions.guestId': 'host', $or: [
-      { hostUserId: currentUser._id },
-      { hostUserId: userIdStr }
-    ]});
+    // Stage 3: Match suggestions by this user
+    // ★ fix(#18): SUPPRIMÉ les matchs par guestName (source de fuite cross-user par prénom commun)
+    //   ex: userName="Nicolas" matchait TOUS les Nicolas de TOUTES les soirées.
+    //   On ne conserve que les identifiants forts:
+    //   - guestId === userId Mongo
+    //   - suggestions faites en tant que host (guestId='host' + party.hostUserId === user._id)
+    const suggMatchOr = [
+      // Suggestion soumise avec userId exact
+      { 'suggestions.guestId': userIdStr },
+      // Host-marked suggestions: guestId='host' OU isHost=true, uniquement si user est l'hôte
+      { 'suggestions.isHost': true, $or: [
+        { hostUserId: currentUser._id },
+        { hostUserId: userIdStr }
+      ]},
+      { 'suggestions.guestId': 'host', $or: [
+        { hostUserId: currentUser._id },
+        { hostUserId: userIdStr }
+      ]},
+    ];
 
     const validDeezerIdCondition = { 'suggestions.deezerID': { $exists: true, $ne: null, $ne: 0 } };
-    const finalMatchOr = (suggMatchOr.length > 0 ? suggMatchOr : [{ 'suggestions.guestName': '___NOMATCH___' }]).map(cond => ({ $and: [cond, validDeezerIdCondition] }));
+    const finalMatchOr = suggMatchOr.map(cond => ({ $and: [cond, validDeezerIdCondition] }));
     pipeline.push({ $match: { $or: finalMatchOr } });
 
     // UX-2: Exclude fake titles/artists
@@ -179,7 +183,8 @@ router.get('/', requireAuth, async (req, res) => {
         const userIdStr = currentUser._id.toString();
         const alreadySuggestedKeys = new Set(
           activeParty.suggestions
-            .filter(s => String(s.guestId) === userIdStr || String(s.userId) === userIdStr || String(s.suggestedByUserId) === userIdStr || s.guestName === userName)
+            // ★ fix(#18): plus de match par guestName (cross-user). UserId uniquement.
+            .filter(s => String(s.guestId) === userIdStr || String(s.userId) === userIdStr || String(s.suggestedByUserId) === userIdStr)
             .map(s => {
               if (s.deezerID && s.deezerID !== 0) return String(s.deezerID);
               return s.title && s.artist ? (s.title.toLowerCase().trim() + '|' + s.artist.toLowerCase().trim()) : null;
