@@ -8624,3 +8624,23 @@ window.rerenderSouvenirsIfVisible = function() {
     try { renderSouvenirs(); } catch (e) { console.warn('[souvenirs] rerender failed:', e); }
   }
 };
+
+
+// [KB-FIX] masquer la nav du bas pendant la saisie (bug clavier mobile, 27/09)
+// Presentation only : ajoute/retire la classe body.kb-open selon le focus d'un
+// champ de saisie. Ne touche ni au routing, ni aux sockets, ni a la nav .hidden.
+(function () {
+  const isField = (el) => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  let blurTimer = null;
+  document.addEventListener('focusin', (e) => {
+    if (!isField(e.target)) return;
+    if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; }
+    document.body.classList.add('kb-open');
+  });
+  document.addEventListener('focusout', (e) => {
+    if (!isField(e.target)) return;
+    blurTimer = setTimeout(() => {
+      if (!isField(document.activeElement)) document.body.classList.remove('kb-open');
+    }, 120);
+  });
+})();

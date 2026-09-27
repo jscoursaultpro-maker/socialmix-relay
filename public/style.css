@@ -5879,3 +5879,11 @@ html {
 }
 .v2-banger-fires .is-me { color: #ff9130; }
 .v2-banger-fires .is-others { color: #17e0c4; }
+
+
+/* [KB-FIX] Bug clavier mobile (27/09) : masquer la nav du bas pendant la saisie
+   pour qu'elle ne flotte plus au-dessus du clavier (iPhone + Android). */
+body.kb-open .bottom-nav {
+  transform: translateY(120%);
+  pointer-events: none;
+}
