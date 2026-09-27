@@ -5254,7 +5254,9 @@ io.on('connection', (socket) => {
             artist:              _capturedDoc.artist || null,
             playedAt:            new Date(),
             phase:               _capturedPhase || _capturedDoc.phase,
-            wasSuggestedByGuest: !!_capturedDoc.suggestedBy
+            wasSuggestedByGuest: !!_capturedDoc.suggestedBy,
+            // ★ fix(#24) — Tracker le provider audio actif pour analytics cross-party
+            provider:            party.streamingProvider || null
           };
 
           // Retry 1x avec backoff 500ms si create échoue (transient MongoDB errors)

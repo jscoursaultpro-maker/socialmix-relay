@@ -64,10 +64,12 @@ const PartySchema = new mongoose.Schema({
     hostDisconnectedAt: { type: Date, default: null }
   },
   // ★ Task #81: Persistance & Afterglow V1
+  // ★ fix(#24) — enum étendu + index pour queries analytics cross-party
   streamingProvider: {
     type: String,
-    enum: ['appleMusic', 'spotify', 'deezer'],
-    default: null
+    enum: ['apple_music', 'appleMusic', 'spotify', 'deezer', 'just_play', null],
+    default: null,
+    index: true
   },
   moments: [{
     type: {

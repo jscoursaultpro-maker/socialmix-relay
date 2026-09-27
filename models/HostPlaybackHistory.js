@@ -23,7 +23,10 @@ const HostPlaybackHistorySchema = new mongoose.Schema({
   wasHostOverride: { type: Boolean, default: false },
   suggestedBy:   { type: String,  default: null },       // guestId ou null
   skipReason:    { type: String,  enum: [null, 'host_skip', 'auto_next', 'guest_skip'],
-                   default: null }
+                   default: null },
+  // ★ fix(#24) — Provider audio actif au moment de la lecture (analytics + audit)
+  provider:      { type: String,  enum: ['apple_music', 'spotify', 'deezer', 'just_play', null],
+                   default: null, index: true }
 });
 
 // Compound dedup guard: même track, même host, même soirée — interdit le double-log
