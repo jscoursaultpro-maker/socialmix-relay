@@ -48,10 +48,11 @@ const PartySchema = new mongoose.Schema({
   phaseStartedAt:   { type: Date, default: null, index: true }, // ★ Full Restart Refactor: decouple phase from createdAt
   createdAt:        { type: Date, default: Date.now },
   endedAt:          { type: Date, default: null },
+  mergedInto:       { type: String, default: null },
   lifecycle: {
     status: { 
       type: String, 
-      enum: ['draft', 'scheduled', 'live', 'paused', 'ended', 'archived', 'host_disconnected'],
+      enum: ['draft', 'scheduled', 'live', 'paused', 'ended', 'archived', 'host_disconnected', 'merged'],
       default: 'live'
     },
     startedAt: { type: Date, default: Date.now },
