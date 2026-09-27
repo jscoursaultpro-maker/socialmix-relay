@@ -3582,6 +3582,15 @@ body.founder-program-open { overflow: hidden; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.souvenirs-track-attribution {
+  font-size: 10px;
+  color: rgba(20,184,166,0.9);
+  font-weight: 700;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .souvenirs-track-stats {
   font-size: 10px;
   color: rgba(255,107,53,0.85);

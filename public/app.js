@@ -8365,6 +8365,7 @@ function renderSouvenirs() {
             <div class="souvenirs-track-info">
               <div class="souvenirs-track-title">${_souvEscape(t.title || '')}</div>
               <div class="souvenirs-track-artist">${_souvEscape(t.artist || '')}</div>
+              ${(t.suggestedByName || t.suggestedBy) ? `<div class="souvenirs-track-attribution">✨ Suggéré par ${_souvEscape(t.suggestedByName || t.suggestedBy)}</div>` : ''}
             </div>
             ${feu > 0 ? `<div class="souvenirs-track-stats">🔥 ${feu}</div>` : ''}
           </div>
