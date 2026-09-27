@@ -27,6 +27,27 @@ router.post('/:code/suggest', async (req, res) => {
       return res.status(403).json({ error: 'NOT_PARTICIPANT', message: 'You must join the party first' });
     }
 
+    // ★ fix(#19) — Regex anti-parasites: rejette les titres suspects (ads Spotify, URLs, injections)
+    const SUSPICIOUS_PATTERNS = [
+      { pattern: /sur toutes les principales apps/i, name: 'ad_principale_apps' },
+      { pattern: /avec ce lien/i, name: 'ad_avec_lien' },
+      { pattern: /écoute sur (spotify|apple music|deezer)/i, name: 'ad_ecoute_sur_provider' },
+      { pattern: /https?:\/\//i, name: 'url_in_title' },
+      { pattern: /:\/\//i, name: 'protocol_in_title' },
+      { pattern: /\.(com|fr|net|io|app)\b/i, name: 'domain_in_title' },
+    ];
+    const titleToCheck = `${title ?? ''} ${artist ?? ''}`;
+    const matchedPattern = SUSPICIOUS_PATTERNS.find(({ pattern }) => pattern.test(titleToCheck));
+    if (matchedPattern) {
+      console.warn(`[suggest] ⚠️ SUSPICIOUS_TITLE_PATTERN "${matchedPattern.name}" in: "${title}"`);
+      return res.status(400).json({
+        error: 'SUSPICIOUS_TITLE_PATTERN',
+        message: `Titre rejeté (pattern: ${matchedPattern.name})`,
+        pattern: matchedPattern.name
+      });
+    }
+
+
     const suggestion = {
       id: randomUUID(),
       title,
