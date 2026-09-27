@@ -2,6 +2,11 @@
  * routes/user-fire-votes.js
  * ★ GET /api/user/me/fire-votes
  * Returns tracks fire-voted by the user cross-parties.
+ *
+ * ★ fix(#18) — Sécurité cross-user:
+ *   1. Guard strict: userEmail OU userId Mongo 24-char requis (plus || !userName)
+ *   2. Suppression du match _guestName global (source de fuite cross-user par prénom commun)
+ *   3. Guards contre userEmail="" dans les $eq Mongo (évite match des 3048 votes anonymes)
  */
 import { Router } from 'express';
 import Party from '../models/Party.js';
@@ -36,13 +41,22 @@ router.get('/', requireAuth, async (req, res) => {
     const userName = [currentUser.profile?.firstName, currentUser.profile?.lastName]
       .filter(Boolean).join(' ').trim() || currentUser.profile?.firstName || '';
 
-    if (!userEmail && !userName) {
+    const _idStr = currentUser._id.toString();
+
+    // ★ fix(#18) — GUARD SÉCURITÉ CROSS-USER
+    // Identité forte = email non-vide OU userId Mongo valide (24 hex chars)
+    // Avant : if (!userEmail && !userName) → userName vide passait guard si email="",
+    //         exposant les votes anonymes et les homonymes cross-parties.
+    const hasValidEmail  = userEmail.length > 0;
+    const hasValidUserId = /^[0-9a-f]{24}$/i.test(_idStr);
+
+    if (!hasValidEmail && !hasValidUserId) {
+      console.warn(`[UserFireVotes] ⚠️ GUARD: no valid identity (email="${userEmail}", userId="${_idStr}") → returning empty`);
       return res.json({ fireVotes: [] });
     }
 
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 15, 1), 500);
     const excludeCode = req.query.excludeCode;
-    const _idStr = currentUser._id.toString();
 
     // Helper: Normalize text for deduplication
     const normalizeText = (text) => {
@@ -55,14 +69,15 @@ router.get('/', requireAuth, async (req, res) => {
     };
 
     // Build match condition for parties where this user participated
-    const partyMatch = {
-      $or: [
-        { 'participants.email': userEmail },
-        { hostEmail: userEmail },
-        { hostUserId: _idStr },
-        { hostUserId: currentUser._id }
-      ].filter(Boolean)
-    };
+    // ★ fix(#18): conditionne chaque clause email sur hasValidEmail pour éviter match chaîne vide
+    const partyMatchOr = [
+      hasValidEmail ? { 'participants.email': userEmail } : null,
+      hasValidEmail ? { hostEmail: userEmail }            : null,
+      { hostUserId: _idStr },
+      { hostUserId: currentUser._id }
+    ].filter(Boolean);
+
+    const partyMatch = { $or: partyMatchOr };
     if (excludeCode) {
       partyMatch.code = { $ne: excludeCode };
     }
@@ -98,22 +113,39 @@ router.get('/', requireAuth, async (req, res) => {
                       as: "gv",
                       cond: {
                         $or: [
+                          // Clause 1: key === "host" ET (email exact non-vide OU userId exact)
+                          // ★ fix(#18): $and avec $ne ["", userEmail] évite le match email vide
                           { $and: [
                               { $eq: ["$$gv.k", "host"] },
                               { $or: [
-                                  { $eq: ["$hostEmail", userEmail] },
+                                  // Email match: seulement si userEmail non-vide
+                                  { $and: [
+                                      { $ne: [userEmail, ""] },
+                                      { $eq: ["$hostEmail", userEmail] }
+                                  ]},
+                                  // UserId match: toujours safe (24-char Mongo ID)
                                   { $eq: [{ $toString: "$hostUserId" }, _idStr] }
                               ]}
                           ]},
+                          // Clause 2: key === userId exact (24-char Mongo ID, toujours safe)
                           { $eq: ["$$gv.k", _idStr] },
-                          { $eq: ["$$gv.v._guestName", userName] },
+                          // Clause 3: key est un userId de participant dont l'email == userEmail
+                          // ★ fix(#18): guard userEmail non-vide DANS la condition $filter participants
+                          // ★ fix(#18): SUPPRIMÉ { $eq: ["$$gv.v._guestName", userName] }
+                          //   → source de fuite cross-user: "Nicolas" matchait TOUS les Nicolas
                           { $in: ["$$gv.k", {
                               $map: {
                                 input: {
                                   $filter: {
                                     input: { $ifNull: ["$participants", []] },
                                     as: "p",
-                                    cond: { $eq: ["$$p.email", userEmail] }
+                                    cond: {
+                                      // ★ fix(#18): guard chaîne vide — $and avec $ne userEmail ""
+                                      $and: [
+                                        { $ne: [userEmail, ""] },
+                                        { $eq: ["$$p.email", userEmail] }
+                                      ]
+                                    }
                                   }
                                 },
                                 as: "pMatch",
@@ -235,7 +267,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     fireVotes = fireVotes.slice(0, limit);
 
-    console.log(`[UserFireVotes] user=${userName} email=${userEmail} → agg ${aggResult.length} tracks, deduped ${fireVotes.length} tracks (took ${Date.now() - startAgg}ms)`);
+    console.log(`[UserFireVotes] user=${userName} email=${userEmail} hasValidEmail=${hasValidEmail} hasValidUserId=${hasValidUserId} → agg ${aggResult.length} tracks, deduped ${fireVotes.length} tracks (took ${Date.now() - startAgg}ms)`);
     return res.json({ fireVotes: fireVotes.map(fv => ({
       id: fv.id, title: fv.title, artist: fv.artist,
       deezerID: fv.deezerID, coverURL: fv.coverURL,
