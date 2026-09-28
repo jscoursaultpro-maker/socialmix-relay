@@ -473,17 +473,25 @@ app.use((req, res, next) => {
 });
 
 // ─── Legacy QR redirect (join.ahouai.com/?code=X → ahouai.com/join/X) ───
+// ★ fix(#41-hotfix 28/09): Les bots WhatsApp/Telegram/iMessage recevaient un 302
+// et scrappaient ahouai.com/join/X (OG tags statiques = triangle blanc).
+// Fix : les bots BYPASSEN le redirect → atteint le middleware OG SSR (L490+) qui
+// sert le HTML avec og:title/description/image dynamiques.
 app.use((req, res, next) => {
   const host = req.hostname || req.headers.host || '';
   const isJoinDomain = host.includes('join.ahouai.com');
   const isRootPath = req.path === '/' || req.path === '';
   const hasCode = req.query && req.query.code;
   const hasSprintBMarker = req.query && req.query.sb === '1';
-  
-  if (isJoinDomain && isRootPath && hasCode && !hasSprintBMarker) {
+
+  // ★ Bots sociaux : bypass du redirect → laisser le middleware OG SSR servir le HTML
+  const ua = req.headers['user-agent'] || '';
+  const isSocialBot = /whatsapp|facebookexternalhit|telegrambot|twitterbot|slackbot|discordbot|linkedinbot|imessage|applebot|googlebot|bingbot|embedly|ia_archiver|rogerbot|showyoubot|outbrain|pinterest|vkshare|wget|curl|python-requests/i.test(ua);
+
+  if (isJoinDomain && isRootPath && hasCode && !hasSprintBMarker && !isSocialBot) {
     return res.redirect(302, `https://ahouai.com/join/${req.query.code}`);
   }
-  
+
   next();
 });
 
