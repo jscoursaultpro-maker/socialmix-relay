@@ -7633,15 +7633,17 @@ function openV2SuggestionSearch() {
 let v2SuggestionSource = 'explore';
 let v2BangersShown = 6;
 
-function setV2SuggestionToggle(label) {
-  const button = document.getElementById('v2-suggest-source-toggle');
-  if (button) button.innerHTML = label;
+function setV2SuggestionSourceButtons(source) {
+  const explorer = document.getElementById('v2-suggest-explore');
+  const bangers = document.getElementById('v2-suggest-bangers');
+  explorer?.classList.toggle('is-active', source === 'explore');
+  bangers?.classList.toggle('is-active', source === 'bangers');
 }
 
 function resetV2SuggestionSource() {
   v2SuggestionSource = 'explore';
   v2BangersShown = 6;
-  setV2SuggestionToggle('🔥 Mes Bangers');
+  setV2SuggestionSourceButtons('explore');
   const library = document.getElementById('v2-bangers-library');
   const results = document.getElementById('suggest-results');
   if (library) library.hidden = true;
@@ -7650,7 +7652,7 @@ function resetV2SuggestionSource() {
 
 function showV2Explorer() {
   v2SuggestionSource = 'explore';
-  setV2SuggestionToggle('🔥 Mes Bangers');
+  setV2SuggestionSourceButtons('explore');
   const library = document.getElementById('v2-bangers-library');
   const results = document.getElementById('suggest-results');
   if (library) library.hidden = true;
@@ -7658,17 +7660,9 @@ function showV2Explorer() {
   loadTrendingSuggestions();
 }
 
-function toggleV2SuggestionSource() {
-  if (v2SuggestionSource === 'bangers') {
-    showV2Explorer();
-    return;
-  }
-  showV2Bangers();
-}
-
 function showV2Bangers() {
   v2SuggestionSource = 'bangers';
-  setV2SuggestionToggle('♫ Explorer');
+  setV2SuggestionSourceButtons('bangers');
   const results = document.getElementById('suggest-results');
   const hint = document.getElementById('suggest-hint');
   if (results) results.style.display = 'none';
