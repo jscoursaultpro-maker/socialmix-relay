@@ -185,7 +185,7 @@ const STATE = {
 };
 
 // ─── Constants ──────────────────────────────────────────
-const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing streaming';
+const SCOPES = 'user-read-private user-read-playback-state user-modify-playback-state user-read-currently-playing streaming';
 const REDIRECT_URI = window.location.origin + window.location.pathname;
 const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
@@ -575,8 +575,18 @@ async function probePlayback() {
   STATE.isPlaying = data.is_playing;
   STATE.currentItemId = item.id;
 
-  // AutoPlay detection
-  const isAutoPlay = !STATE.queuedUris.has(item.uri);
+  // AutoPlay detection — relink-aware (Spotify Track Relinking)
+  // Spotify peut substituer un track ID (ex: édition régionale) → item.linked_from.uri contient l'URI originale
+  const linkedFromUri = item.linked_from?.uri || null;
+  const isOurs = STATE.queuedUris.has(item.uri) || (linkedFromUri && STATE.queuedUris.has(linkedFromUri));
+  const isAutoPlay = !isOurs;
+
+  if (linkedFromUri && STATE.queuedUris.has(linkedFromUri) && !STATE.queuedUris.has(item.uri)) {
+    // Relink détecté : ajouter l'URI jouée au Set pour éviter re-déclenchements
+    STATE.queuedUris.add(item.uri);
+    log(`🔗 RELINK : demandé ${linkedFromUri} → joué ${item.uri} (${item.name})`, 'info');
+  }
+
   $('autoplay-indicator').classList.toggle('hidden', !isAutoPlay);
   if (isAutoPlay) log(`⚡ AUTOPLAY détecté : ${item.name} (${item.uri}) — pas dans notre queue`, 'warn');
 
