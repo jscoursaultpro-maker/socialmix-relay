@@ -2549,6 +2549,7 @@ function connectToRelay() {
           existing.status    = serverSugg.status    || existing.status;
           existing.boostCount= serverSugg.boostCount != null ? serverSugg.boostCount : existing.boostCount;
           existing.boostedBy = serverSugg.boostedBy || existing.boostedBy;
+          existing.boostedByUsers = serverSugg.boostedByUsers || existing.boostedByUsers; // #29 noms des boosteurs
         } else {
           // Add new suggestion (from other guests)
           state.suggestions.push(serverSugg);
@@ -4337,15 +4338,22 @@ function renderCaMonte() {
   const statusIcon = isConfirmedNext ? '🎯' : '🔥';
   const cardClass = isConfirmedNext ? 'soiree-monte-card soiree-monte-next' : 'soiree-monte-card';
 
-  // Resolve booster names
-  const boosterNames = resolveBoosterNames(top.boostedBy || []);
+  // Boosteurs : priorite aux noms envoyes par le serveur (#29 boostedByUsers),
+  // fallback sur l'ancienne resolution via participants presents.
+  const boostUsers = Array.isArray(top.boostedByUsers) ? top.boostedByUsers : [];
+  let boosterNames = boostUsers.map(u => u && u.firstName).filter(Boolean);
+  if (boosterNames.length === 0) boosterNames = resolveBoosterNames(top.boostedBy || []);
+  // Total reel de boosteurs (source de verite) pour un "+N" juste (inclut anonymes filtres)
+  const totalBoosters = Math.max(top.boostCount || 0, (top.boostedBy || []).length, boosterNames.length);
   let boostersHtml = '';
   if (boosterNames.length > 0) {
     const shown = boosterNames.slice(0, 3);
-    const rest = boosterNames.length - shown.length;
+    const rest = Math.max(0, totalBoosters - shown.length);
     let namesStr = shown.map(n => escapeHtml(n)).join(', ');
-    if (rest > 0) namesStr += ` +${rest} autre${rest > 1 ? 's' : ''}`;
+    if (rest > 0) namesStr += ` +${rest}`;
     boostersHtml = `<div class="soiree-monte-boosters">Boosté par <strong>${namesStr}</strong></div>`;
+  } else if (totalBoosters > 0) {
+    boostersHtml = `<div class="soiree-monte-boosters">Boosté par <strong>${totalBoosters} personne${totalBoosters > 1 ? 's' : ''}</strong></div>`;
   }
 
   // Cover image
