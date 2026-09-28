@@ -89,6 +89,7 @@
     <button onclick="queueTrack('b')">📋 Queue B</button>
     <button onclick="nextTrack()">⏭ Next</button>
     <button class="secondary" onclick="pauseResume()">⏸ Pause / ▶ Resume</button>
+    <button class="secondary" onclick="inspectQueue()">📋 Voir la file</button>
   </div>
 
   <!-- Now Playing -->
@@ -174,6 +175,7 @@ const STATE = {
   devices: [],
   selectedDeviceId: null,
   queuedUris: new Set(),   // Track URIs we've explicitly played/queued
+  hasInteracted: false,     // true after first Play/Queue — guards AutoPlay detection
   isPlaying: false,
   currentItemId: null,
   wakeLock: null,
@@ -492,6 +494,7 @@ async function playTrack(which) {
   if (!uri) { log('❌ URI vide', 'error'); return; }
 
   STATE.queuedUris.add(uri);
+  STATE.hasInteracted = true;
   const result = await spotifyApi('PUT', `/me/player/play?device_id=${deviceId}`, { uris: [uri] });
   if (result !== null) {
     log(`▶ PLAY ${which.toUpperCase()} → ${uri}`, 'ok');
@@ -506,9 +509,12 @@ async function queueTrack(which) {
   if (!uri) { log('❌ URI vide', 'error'); return; }
 
   STATE.queuedUris.add(uri);
+  STATE.hasInteracted = true;
   const result = await spotifyApi('POST', `/me/player/queue?uri=${encodeURIComponent(uri)}&device_id=${deviceId}`);
   if (result !== null) {
     log(`📋 QUEUE ${which.toUpperCase()} → ${uri}`, 'ok');
+    // Vérifier que la track est bien dans la file côté Spotify
+    await inspectQueue();
     scheduleProbe(1500);
   }
 }
@@ -545,12 +551,20 @@ function scheduleProbe(delayMs) {
   STATE.probeTimers.push(timer);
 }
 
+// ─── Inspect Queue ──────────────────────────────────────
+async function inspectQueue() {
+  const data = await spotifyApi('GET', '/me/player/queue');
+  if (!data) { log('❌ Impossible de lire la file', 'error'); return; }
+  const current = data.currently_playing?.name || '(rien)';
+  const queue = (data.queue || []).slice(0, 5).map(t => t.name);
+  log(`📋 FILE : en cours="${current}" → file=[${queue.join(', ') || '(vide)'}]`, 'info');
+}
+
 async function probePlayback() {
   const data = await spotifyApi('GET', '/me/player');
   if (!data || !data.item) {
     $('now-playing').classList.add('hidden');
     if (data === null) {
-      // 404 device or no active playback
       log('ℹ️ Pas de lecture active (device éteint ?)', 'warn');
     }
     return;
@@ -561,6 +575,9 @@ async function probePlayback() {
   const item = data.item;
   const progress = data.progress_ms || 0;
   const duration = item.duration_ms || 1;
+
+  // Enriched probe log — full state in one line
+  log(`🔍 SONDE : ${data.is_playing ? '▶' : '⏸'} "${item.name}" (${item.uri}) ${ms2time(progress)}/${ms2time(duration)} on=${data.device?.name || '?'} ctx=${data.context?.uri || 'null'} repeat=${data.repeat_state} shuffle=${data.shuffle_state}`, 'info');
 
   $('np-title').textContent = item.name || '—';
   $('np-artist').textContent = (item.artists || []).map(a => a.name).join(', ') || '—';
@@ -579,10 +596,9 @@ async function probePlayback() {
   // Spotify peut substituer un track ID (ex: édition régionale) → item.linked_from.uri contient l'URI originale
   const linkedFromUri = item.linked_from?.uri || null;
   const isOurs = STATE.queuedUris.has(item.uri) || (linkedFromUri && STATE.queuedUris.has(linkedFromUri));
-  const isAutoPlay = !isOurs;
+  const isAutoPlay = !isOurs && STATE.hasInteracted; // Don't flag before any Play/Queue
 
   if (linkedFromUri && STATE.queuedUris.has(linkedFromUri) && !STATE.queuedUris.has(item.uri)) {
-    // Relink détecté : ajouter l'URI jouée au Set pour éviter re-déclenchements
     STATE.queuedUris.add(item.uri);
     log(`🔗 RELINK : demandé ${linkedFromUri} → joué ${item.uri} (${item.name})`, 'info');
   }
