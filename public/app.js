@@ -8620,21 +8620,19 @@ window.rerenderSouvenirsIfVisible = function() {
 };
 
 
-// [KB-FIX] masquer la nav du bas pendant la saisie (bug clavier mobile, 27/09)
-// Presentation only : ajoute/retire la classe body.kb-open selon le focus d'un
-// champ de saisie. Ne touche ni au routing, ni aux sockets, ni a la nav .hidden.
+// [KB-FIX] masquer la nav du bas UNIQUEMENT quand le clavier est reellement
+// ouvert (detecte via visualViewport = retrecissement de la zone visible).
+// Le simple focus d'un champ (ex: recherche auto-focus dans "On met quoi")
+// ne doit PAS masquer la nav. Presentation only : ne touche ni au routing,
+// ni aux sockets, ni a la nav .hidden.
 (function () {
-  const isField = (el) => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
-  let blurTimer = null;
-  document.addEventListener('focusin', (e) => {
-    if (!isField(e.target)) return;
-    if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; }
-    document.body.classList.add('kb-open');
-  });
-  document.addEventListener('focusout', (e) => {
-    if (!isField(e.target)) return;
-    blurTimer = setTimeout(() => {
-      if (!isField(document.activeElement)) document.body.classList.remove('kb-open');
-    }, 120);
-  });
+  const vv = window.visualViewport;
+  if (!vv) return; // pas de detection fiable -> on ne masque jamais la nav
+  const update = () => {
+    const keyboardOpen = (window.innerHeight - vv.height) > 150;
+    document.body.classList.toggle('kb-open', keyboardOpen);
+  };
+  vv.addEventListener('resize', update);
+  vv.addEventListener('scroll', update);
+  update();
 })();
