@@ -31,7 +31,8 @@ router.get('/:code/suggestions', async (req, res) => {
     const validIds = rawIds.filter(id => OID_RE.test(String(id)));
     const users = validIds.length > 0
       ? await User.find({ _id: { $in: validIds } })
-          .select('profile.firstName profile.emoji foundersRank')
+          // ★ feat(#29) — ajouter photoURL pour afficher l'avatar du suggesteur
+          .select('profile.firstName profile.emoji profile.photoURL foundersRank')
           .lean()
       : [];
     const userMap = new Map(users.map(u => [u._id.toString(), u]));
@@ -56,14 +57,20 @@ router.get('/:code/suggestions', async (req, res) => {
         suggestedBy: user ? {
           userId: uid,
           firstName: user.profile?.firstName || s.guestName || 'Guest',
-          emoji: user.profile?.emoji || '👽',
-          foundersRank: user.foundersRank || null
+          photoURL:  user.profile?.photoURL  || null,   // ★ feat(#29)
+          emoji:     user.profile?.emoji     || '👽',
+          foundersRank: user.foundersRank    || null
         } : {
           userId: uid,
           firstName: isHost ? hostName : (s.guestName || 'Guest'),
-          emoji: isHost ? hostEmoji : '👽',
+          photoURL:  null,                              // ★ feat(#29)
+          emoji:     isHost ? hostEmoji : '👽',
           foundersRank: null
-        }
+        },
+        // ★ feat(#29) — boostedByUsers[] pour afficher "Boosté par [nom] + avatar"
+        // Repasse le tableau déjà enrichi au write-time par les handlers de boost.
+        // Si absent (soirées historiques), array vide — migré par Phase 3.
+        boostedByUsers: s.boostedByUsers || []
       };
     });
 

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { verifyGuestAuth } from '../middleware/authGuest.js';
 import Party from '../models/Party.js';
+import { enrichUserInfo } from '../services/enrichUserInfo.js'; // ★ feat(#29)
 import { randomUUID } from 'crypto';
 
 const router = Router();
@@ -152,6 +153,16 @@ router.post('/:code/suggest/:suggestionId/boost', async (req, res) => {
 
     suggestion.boostedBy.push(userId);
     suggestion.boostCount = (suggestion.boostCount || 0) + 1;
+
+    // ★ feat(#29) — Enrichir boostedByUsers[] au write-time pour afficher
+    // "Boosté par [nom] + avatar" côté web sans lookup supplémentaire au read.
+    // Rétrocompat iOS : boostedBy[] conservé en parallèle.
+    if (!suggestion.boostedByUsers) suggestion.boostedByUsers = [];
+    if (!suggestion.boostedByUsers.find(b => b.userId === userId)) {
+      const boosterInfo = await enrichUserInfo(userId);
+      suggestion.boostedByUsers.push(boosterInfo);
+    }
+
     party.markModified('suggestions');
     await party.save();
 
@@ -163,6 +174,8 @@ router.post('/:code/suggest/:suggestionId/boost', async (req, res) => {
       if (ramSugg) {
         ramSugg.boostedBy = [...suggestion.boostedBy];
         ramSugg.boostCount = suggestion.boostCount;
+        // ★ feat(#29) — sync boostedByUsers[] dans le RAM aussi
+        ramSugg.boostedByUsers = suggestion.boostedByUsers ? [...suggestion.boostedByUsers] : [];
         ramParty.isDirty = true;
         console.log(`[boost] ✅ RAM synced: boostedBy=${ramSugg.boostedBy.length}, count=${ramSugg.boostCount}`);
       } else {
