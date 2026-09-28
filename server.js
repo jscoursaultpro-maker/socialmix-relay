@@ -41,6 +41,7 @@ import { reconcileAllVotes } from './services/voteReconciliation.js'; // ★ Tas
 import { enrichUserInfo } from './services/enrichUserInfo.js'; // ★ feat(#29): enrich boostedByUsers[]
 import Meta, { bumpSeedVersion, getSeedVersion } from './models/Meta.js'; // ★ Chantier 2: seed versioning
 import tracksSeedRouter from './routes/tracks-seed.js'; // ★ Chantier 2: GET /api/tracks/seed
+import tracksByArtistRouter from './routes/tracks-by-artist.js'; // ★ feat(#30): GET /api/tracks/by-artist
 import foundersRankRouter from './routes/founders-rank.js'; // ★ Task #81: GET+POST /api/user/me/founders-rank
 import { fetchUserFoundersData } from './utils/founders.js'; // ★ Prompt 2a: Founders enrichment
 import foundersIntentRouter from './routes/founders-intent.js';
@@ -1054,6 +1055,10 @@ app.use('/auth', authCallbackRouter);
 
 // ★ Chantier 2: Public Track catalogue seed (no auth — public data)
 app.use('/api/tracks/seed', compression(), tracksSeedRouter);
+
+// ★ feat(#30): Recherche par artiste + tri AhOuai + pagination (verifyGuestAuth)
+// IMPORTANT: monter AVANT les routes inline /api/tracks/:id/... (L~1019)
+app.use('/api/tracks', tracksByArtistRouter);
 
 // ★ Task #81: Founders program — opt-in, 2500 slots, Supabase JWT auth
 app.use('/api/user/me/founders-rank', foundersRankRouter);
