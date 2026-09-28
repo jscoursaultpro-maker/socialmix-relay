@@ -2999,7 +2999,9 @@ app.get('/api/afterglow/:base62', async (req, res) => {
     //   $lookup joins Track to always resolve metadata; $ifNull falls back to HPH inline fields.
     const hph = await HostPlaybackHistory.aggregate([
       { $match: { partyCode: party.code } },
-      { $sort: { playedAt: 1 } },
+      // ★ fix(#31) — Tri DÉCROISSANT (dernière track jouée en premier, style fil d'actualité)
+      // Décision Jean-Sé 28/09 : chronologique DESC plus engageant que ASC pour AfterGlow
+      { $sort: { playedAt: -1 } },
       { $lookup: {
           from: 'tracks',
           localField: 'trackId',
