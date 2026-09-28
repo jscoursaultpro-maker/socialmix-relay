@@ -74,6 +74,7 @@ import partyJoinAsUserRouter from './routes/party-join-as-user.js';
 import userProfileUpdateRouter from './routes/user-profile-update.js';
 import partySuggestRouter from './routes/party-suggest.js';
 import partySuggestionsListRouter from './routes/party-suggestions-list.js';
+import partyPhotosRouter from './routes/party-photos.js'; // ★ feat(#39): DELETE photo ACL + GET photos
 import configRouter from './routes/config.js';
 import meCrewsRouter from './routes/me-crews.js';
 import authCallbackRouter from './routes/auth-callback.js';
@@ -1224,6 +1225,7 @@ app.use('/api/party', partyPublicInfoRouter);
 app.use('/api/party', partyJoinAsUserRouter);
 app.use('/api/party', partySuggestRouter);
 app.use('/api/party', partySuggestionsListRouter);
+app.use('/api/party', partyPhotosRouter); // ★ feat(#39): DELETE /:code/photo/:id + GET /:code/photos
 
 // ★ V1: Provider vote (Deezer gated, extensible Qobuz/Tidal)
 app.use('/api/user/vote', userVotesRouter);
@@ -4326,14 +4328,15 @@ function buildLightState(party, isHost = false) {
     // Recent messages (last 50) for resync
     messages: (party.messages || []).slice(-50),
     // Strip legacy Base64 dataURLs to prevent massive payloads and socket crashes
-    photos: (party.photos || []).map(p => {
+    // ★ feat(#39) — Filtrer les photos soft-supprimées (deletedAt != null)
+    photos: (party.photos || []).filter(p => !p.deletedAt).map(p => {
       const cleanPhoto = { ...p };
       if (cleanPhoto.dataURL && cleanPhoto.dataURL.length > 500) {
         delete cleanPhoto.dataURL;
       }
       return cleanPhoto;
     }),
-    photosCount: (party.photos || []).length,
+    photosCount: (party.photos || []).filter(p => !p.deletedAt).length,
     playedKeys: party.playedKeys || [],  // ★ Phase 3: anti-replay keys
     createdAt: party.createdAt,          // ★ Phase 4: restore DJBrain session start date
     phaseStartedAt: party.phaseStartedAt, // ★ Full Restart Refactor
@@ -7215,6 +7218,9 @@ io.on('connection', (socket) => {
           sizeKB: Math.round((data.dataURL?.length || 0) / 1024) || 0,
           caption: photo.caption || '',
           uploadSource: data.source || 'live',
+          // ★ feat(#39) — uploaderUserId pour ACL delete
+          // resolveGuestUserId retourne le userId Mongo stable (ou socketId fallback)
+          uploaderUserId: resolveGuestUserId(party, socket) || null,
         });
         photoDocId = photoDoc._id.toString();
         console.log(`📸 [${party.code}] Photo persisted to MongoDB: ${photoDoc._id}`);
@@ -7263,7 +7269,16 @@ io.on('connection', (socket) => {
   socket.on('guest:message', (data) => {
     const party = getMutableParty(socket); if (!party) return;
     updateActivity(party);
-    const msg = { id: Date.now().toString(), guestName: data.guestName || 'Guest', message: data.message || '', guestPhoto: data.guestPhoto || null, guestEmoji: data.guestEmoji || '🎉', sentAt: new Date().toISOString() };
+    const msg = {
+      id:          Date.now().toString(),
+      guestName:   data.guestName || 'Guest',
+      message:     data.message  || '',
+      guestPhoto:  data.guestPhoto  || null,
+      guestEmoji:  data.guestEmoji  || '🎉',
+      sentAt:      new Date().toISOString(),
+      // ★ feat(#39) V1.1 prep — authorUserId pour future ACL delete messages
+      authorUserId: resolveGuestUserId(party, socket) || null
+    };
     // Store in party state for resync
     if (!party.messages) party.messages = [];
     party.messages.push(msg);
