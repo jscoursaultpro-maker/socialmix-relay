@@ -487,6 +487,141 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─── feat(#41): OG SSR Middleware — Dynamic Open Graph tags for /?code=X ─────
+// Intercepte GET / avec ?code=X, fait un lookup Party + host,
+// injecte meta og:title/description/image dynamiques avant envoi du SPA.
+// WhatsApp, iMessage, Telegram lisent ces tags pour le preview.
+
+let _indexHtmlCache = null; // Cache RAM — lire index.html une seule fois
+const OG_IMAGE_URL = 'https://api.ahouai.com/og-invite.png';
+const OG_FALLBACK_TITLE = '🎉 AhOuai — La soirée continue';
+const OG_FALLBACK_DESC  = 'Rejoins la soirée, vote pour la musique 🎧';
+
+// Escape HTML pour éviter XSS dans les attributs dynamiques
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Remplace le bloc OG statique dans le HTML par des tags dynamiques
+function injectOgTags(html, { title, description, url }) {
+  const safeTitle = escHtml(title);
+  const safeDesc  = escHtml(description);
+  const safeUrl   = escHtml(url);
+
+  const ogBlock = `    <!-- ★ feat(#41): OG dynamique injecté côté serveur pour /?code=X -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="${safeTitle}">
+    <meta property="og:description" content="${safeDesc}">
+    <meta property="og:image" content="${OG_IMAGE_URL}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="${safeUrl}">
+    <meta property="og:site_name" content="AhOuai">
+    <meta property="og:locale" content="fr_FR">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${safeTitle}">
+    <meta name="twitter:description" content="${safeDesc}">
+    <meta name="twitter:image" content="${OG_IMAGE_URL}">`;
+
+  // Remplacer le bloc OG statique (entre les deux commentaires dans index.html)
+  // Stratégie : remplacer depuis <!-- ★ Open Graph jusqu'au dernier meta twitter:image
+  let patched = html.replace(
+    /<!--\s*★ Open Graph[\s\S]*?<meta name="twitter:image"[^>]*>/,
+    ogBlock
+  );
+
+  // Remplacer aussi le <title> pour que l'onglet/iMessage affiche le bon titre
+  patched = patched.replace(
+    /<title>[^<]*<\/title>/,
+    `<title>${safeTitle}</title>`
+  );
+
+  return patched;
+}
+
+app.use(async (req, res, next) => {
+  // Uniquement GET / avec ?code=X
+  const isRoot = req.path === '/' || req.path === '';
+  const code   = (req.query && req.query.code) ? String(req.query.code).toUpperCase().slice(0, 10) : null;
+
+  if (!isRoot || !code || req.method !== 'GET') return next();
+
+  // Détecter les bots (WhatsApp, iMessage, Telegram, Facebook, Twitter, Slack, Discord...)
+  // On sert le SSR uniquement si c'est un bot pour ne pas pénaliser les users normaux
+  const ua = req.headers['user-agent'] || '';
+  const isBot = /whatsapp|facebookexternalhit|telegrambot|twitterbot|slackbot|discordbot|linkedinbot|imessage|applebot|googlebot|bingbot|embedly|quora|outbrain|pinterest|vkshare|rogerbot|showyoubot|ia_archiver|w3c_validator|wget|curl|python-requests/i.test(ua);
+
+  // Lire index.html une fois (cache RAM)
+  if (!_indexHtmlCache) {
+    try {
+      const { readFileSync } = await import('fs');
+      _indexHtmlCache = readFileSync(join(__dirname, 'public', 'index.html'), 'utf8');
+    } catch (e) {
+      console.error('[OG SSR] ❌ Cannot read index.html:', e.message);
+      return next();
+    }
+  }
+
+  try {
+    // Lookup Party + host (rapide, avec .lean())
+    const party = await Party.findOne({ code }, {
+      code: 1, hostUserId: 1, participants: 1, trackHistory: 1,
+      hostProfile: 1, partyName: 1
+    }).lean();
+
+    let ogTitle, ogDesc, ogUrl;
+    ogUrl = `https://join.ahouai.com/?code=${code}`;
+
+    if (!party) {
+      // Fallback : code invalide
+      ogTitle = OG_FALLBACK_TITLE;
+      ogDesc  = OG_FALLBACK_DESC;
+    } else {
+      // Résoudre le prénom de l'host
+      let hostFirstName = party.hostProfile?.name || null;
+      if (!hostFirstName && party.hostUserId) {
+        const hostUser = await User.findById(party.hostUserId)
+          .select('profile.firstName').lean();
+        hostFirstName = hostUser?.profile?.firstName || null;
+      }
+
+      const friendCount = (party.participants || []).filter(p => !p.isHost).length;
+      const trackCount  = (party.trackHistory || []).length;
+
+      ogTitle = hostFirstName
+        ? `🎉 Rejoins la soirée de ${hostFirstName} sur AhOuai`
+        : '🎉 Rejoins la soirée sur AhOuai';
+
+      const parts = [];
+      if (friendCount > 0) parts.push(`${friendCount} ami${friendCount > 1 ? 's' : ''} déjà là`);
+      if (trackCount > 0)  parts.push(`${trackCount} titre${trackCount > 1 ? 's' : ''} joué${trackCount > 1 ? 's' : ''}`);
+      ogDesc = parts.length > 0 ? parts.join(' · ') : OG_FALLBACK_DESC;
+    }
+
+    if (isBot) {
+      // Pour les bots : HTML SSR complet avec OG tags injectés
+      const html = injectOgTags(_indexHtmlCache, { title: ogTitle, description: ogDesc, url: ogUrl });
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60'); // 1 min cache pour les bots
+      return res.send(html);
+    } else {
+      // Pour les users normaux : injecter aussi les tags (bénéfice SEO + onglet)
+      // mais sans overhead grâce au cache RAM
+      const html = injectOgTags(_indexHtmlCache, { title: ogTitle, description: ogDesc, url: ogUrl });
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      return res.send(html);
+    }
+
+  } catch (err) {
+    console.error('[OG SSR] ❌ Error for code', code, ':', err.message);
+    // Fallback propre : servir le HTML statique original sans bloquer
+    next();
+  }
+});
+
+
 // ─── Static files ───────────────────────────────────────────────────
 app.use((req, res, next) => {
   if (req.path.endsWith('.html') || req.path.endsWith('.js') || req.path.endsWith('.css') || req.path === '/') {
