@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AhOuai — Spike Spotify Web API</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #181818; color: #e0e0e0; padding: 12px; max-width: 600px; margin: 0 auto; font-size: 14px; }
+    h1 { font-size: 18px; color: #1DB954; margin-bottom: 8px; }
+    h2 { font-size: 15px; color: #b3b3b3; margin: 16px 0 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+    button { background: #1DB954; color: #000; border: none; padding: 10px 16px; border-radius: 20px; font-weight: 700; font-size: 13px; cursor: pointer; margin: 4px; }
+    button:hover { background: #1ed760; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.secondary { background: #333; color: #e0e0e0; }
+    button.danger { background: #e74c3c; color: #fff; }
+    input { background: #282828; border: 1px solid #444; color: #e0e0e0; padding: 8px; border-radius: 4px; font-size: 12px; width: 100%; margin: 4px 0; font-family: monospace; }
+    .card { background: #282828; border-radius: 8px; padding: 12px; margin: 8px 0; }
+    .status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+    .status.ok { background: #1DB954; color: #000; }
+    .status.warn { background: #f39c12; color: #000; }
+    .status.err { background: #e74c3c; color: #fff; }
+    .device { padding: 8px; border: 1px solid #444; border-radius: 6px; margin: 4px 0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .device.active { border-color: #1DB954; background: rgba(29,185,84,0.1); }
+    .device.selected { border-color: #1DB954; border-width: 2px; }
+    .now-playing { display: flex; gap: 12px; align-items: center; }
+    .now-playing img { width: 64px; height: 64px; border-radius: 4px; }
+    .progress-bar { width: 100%; height: 4px; background: #444; border-radius: 2px; margin: 6px 0; }
+    .progress-fill { height: 100%; background: #1DB954; border-radius: 2px; transition: width 0.3s; }
+    #log-area { background: #111; border: 1px solid #333; border-radius: 4px; padding: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; }
+    .log-entry { margin: 2px 0; }
+    .log-entry.error { color: #e74c3c; }
+    .log-entry.warn { color: #f39c12; }
+    .log-entry.ok { color: #1DB954; }
+    .log-entry.info { color: #3498db; }
+    .hidden { display: none !important; }
+    .autoplay-warn { background: #f39c12; color: #000; padding: 6px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; margin: 6px 0; }
+    .wake-lock-status { font-size: 11px; color: #888; }
+    label { font-size: 12px; color: #888; display: block; margin-top: 6px; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+    .counter { font-size: 12px; color: #888; margin: 4px 0; }
+  </style>
+</head>
+<body>
+
+<h1>🎵 AhOuai — Spike Spotify Connect</h1>
+<p style="font-size:12px;color:#888;margin-bottom:12px;">Proof-of-concept : piloter Spotify depuis un navigateur via Web API. Jetable.</p>
+
+<!-- ═══ AUTH ═══ -->
+<section id="auth-section" class="card">
+  <h2>1. Connexion Spotify (PKCE)</h2>
+  <div id="auth-status"></div>
+  <div id="auth-pre">
+    <label>Client ID (Spotify Dashboard)</label>
+    <input type="text" id="client-id-input" placeholder="Colle ton Client ID Spotify ici">
+    <button onclick="startAuth()">Se connecter à Spotify</button>
+  </div>
+  <div id="auth-post" class="hidden">
+    <p>Connecté : <strong id="user-name"></strong></p>
+    <p>Compte : <span id="user-product" class="status"></span></p>
+    <p id="premium-warning" class="hidden" style="color:#e74c3c;font-weight:700;margin-top:6px;">⚠️ Spotify Premium requis pour piloter la lecture. Ce spike ne fonctionnera pas avec un compte Free.</p>
+    <button class="secondary" onclick="logout()">Déconnexion</button>
+  </div>
+</section>
+
+<!-- ═══ DEVICES ═══ -->
+<section id="devices-section" class="card hidden">
+  <h2>2. Appareils Spotify Connect</h2>
+  <div class="btn-row">
+    <button onclick="refreshDevices()">🔄 Rafraîchir</button>
+    <button class="secondary" onclick="openSpotifyApp()">Ouvrir Spotify</button>
+  </div>
+  <div id="devices-list"></div>
+  <p id="devices-empty" class="hidden" style="color:#f39c12;font-size:12px;margin-top:6px;">
+    Aucun appareil trouvé. Ouvre l'app Spotify, lance un titre 1 seconde, reviens ici et rafraîchis.
+  </p>
+  <p style="font-size:11px;color:#666;margin-top:4px;">Clique sur un appareil pour le sélectionner comme cible.</p>
+</section>
+
+<!-- ═══ PLAYBACK ═══ -->
+<section id="playback-section" class="card hidden">
+  <h2>3. Contrôle Lecture</h2>
+  <label>Track A (URI)</label>
+  <input type="text" id="track-a" value="spotify:track:4cOdK2wGLETKBW3PvgPWqT">
+  <label>Track B (URI)</label>
+  <input type="text" id="track-b" value="spotify:track:0VjIjW4GlUZAMYd2vXMi4i">
+  <div class="btn-row">
+    <button onclick="playTrack('a')">▶ Play A</button>
+    <button onclick="queueTrack('b')">📋 Queue B</button>
+    <button onclick="nextTrack()">⏭ Next</button>
+    <button class="secondary" onclick="pauseResume()">⏸ Pause / ▶ Resume</button>
+  </div>
+
+  <!-- Now Playing -->
+  <div id="now-playing" class="hidden" style="margin-top: 12px;">
+    <h2>4. État de lecture</h2>
+    <div class="now-playing">
+      <img id="np-art" src="" alt="">
+      <div>
+        <strong id="np-title">—</strong><br>
+        <span id="np-artist" style="color:#b3b3b3;font-size:12px;">—</span><br>
+        <span id="np-device" style="color:#888;font-size:11px;">—</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="np-progress"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;">
+      <span id="np-elapsed">0:00</span>
+      <span><span id="np-playing-status"></span></span>
+      <span id="np-duration">0:00</span>
+    </div>
+    <p id="np-timestamp" style="font-size:10px;color:#555;margin-top:4px;"></p>
+    <div id="autoplay-indicator" class="autoplay-warn hidden">⚡ AutoPlay suspecté — ce titre n'a pas été mis en file par vous</div>
+  </div>
+
+  <div class="wake-lock-status" id="wake-lock-status">WakeLock : —</div>
+</section>
+
+<!-- ═══ BONUS DESKTOP ═══ -->
+<section id="desktop-section" class="card hidden">
+  <h2>5. Bonus Desktop — Jouer dans ce navigateur</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:8px;">Le Web Playback SDK permet à Chrome desktop de devenir un appareil Spotify.</p>
+  <button id="web-player-btn" onclick="initWebPlayer()">🖥 Jouer dans ce navigateur</button>
+  <p id="web-player-status" style="font-size:12px;color:#888;margin-top:4px;"></p>
+</section>
+
+<!-- ═══ LOG ═══ -->
+<section class="card">
+  <h2>6. Journal API</h2>
+  <div class="counter">Appels API : <strong id="api-counter">0</strong></div>
+  <div class="btn-row">
+    <button class="secondary" onclick="copyLog()">📋 Copier le log</button>
+    <button class="secondary" onclick="clearLog()">🗑 Vider</button>
+  </div>
+  <div id="log-area"></div>
+</section>
+
+<!-- ═══ README inline ═══ -->
+<details style="margin-top:16px;">
+  <summary style="cursor:pointer;color:#1DB954;font-size:13px;">📖 README / Setup</summary>
+  <div class="card" style="font-size:12px;">
+    <p><strong>URIs à déclarer dans le dashboard Spotify :</strong></p>
+    <ul style="margin:6px 0;padding-left:16px;">
+      <li><code>http://127.0.0.1:3000/spike/spotify.html</code> (dev local)</li>
+      <li><code>https://api.ahouai.com/spike/spotify.html</code> (test téléphone prod)</li>
+      <li>Toute URL HTTPS de preview (Render, Vercel...)</li>
+    </ul>
+    <p><strong>Lancement local :</strong></p>
+    <ol style="margin:6px 0;padding-left:16px;">
+      <li><code>cd relay-server && npm start</code></li>
+      <li>Ouvrir <code>http://127.0.0.1:3000/spike/spotify.html</code></li>
+    </ol>
+    <p><strong>Test téléphone :</strong></p>
+    <ol style="margin:6px 0;padding-left:16px;">
+      <li>Déployer sur Render (push branche)</li>
+      <li>Ouvrir <code>https://api.ahouai.com/spike/spotify.html</code> dans Chrome Android</li>
+      <li>Assurer que l'app Spotify est ouverte en arrière-plan avec un titre en pause</li>
+    </ol>
+  </div>
+</details>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// SPIKE SPOTIFY WEB — PKCE Auth + Connect + Web Playback SDK
+// ═══════════════════════════════════════════════════════════
+
+// ─── State ──────────────────────────────────────────────
+const STATE = {
+  clientId: '',
+  accessToken: null,
+  refreshToken: null,
+  tokenExpiry: 0,
+  userId: null,
+  isPremium: false,
+  devices: [],
+  selectedDeviceId: null,
+  queuedUris: new Set(),   // Track URIs we've explicitly played/queued
+  isPlaying: false,
+  currentItemId: null,
+  wakeLock: null,
+  probeTimers: [],
+  apiCallCount: 0,
+  logEntries: [],
+  webPlayer: null,
+  webPlayerDeviceId: null
+};
+
+// ─── Constants ──────────────────────────────────────────
+const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing streaming';
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+// ─── Utils ──────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function ms2time(ms) { const s = Math.floor(ms/1000); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+
+// ─── Logging ────────────────────────────────────────────
+function log(msg, level = 'info') {
+  const ts = new Date().toISOString().slice(11, 23);
+  const entry = `[${ts}] ${msg}`;
+  STATE.logEntries.push(entry);
+  const el = document.createElement('div');
+  el.className = `log-entry ${level}`;
+  el.textContent = entry;
+  const area = $('log-area');
+  area.appendChild(el);
+  area.scrollTop = area.scrollHeight;
+}
+
+function copyLog() {
+  const text = STATE.logEntries.join('\n') + `\n\n--- Total API calls: ${STATE.apiCallCount} ---`;
+  navigator.clipboard.writeText(text).then(() => log('Log copié dans le presse-papier', 'ok'));
+}
+function clearLog() { $('log-area').innerHTML = ''; STATE.logEntries = []; STATE.apiCallCount = 0; $('api-counter').textContent = '0'; }
+
+// ─── PKCE Helpers ───────────────────────────────────────
+function generateRandomString(len) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const arr = crypto.getRandomValues(new Uint8Array(len));
+  return Array.from(arr, v => chars[v % chars.length]).join('');
+}
+async function sha256(plain) {
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(plain));
+}
+function base64url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// ─── Auth: Start PKCE ───────────────────────────────────
+async function startAuth() {
+  const clientId = $('client-id-input').value.trim();
+  if (!clientId || clientId.length < 20) {
+    log('❌ Client ID manquant ou invalide', 'error');
+    return;
+  }
+  STATE.clientId = clientId;
+  sessionStorage.setItem('sp_client_id', clientId);
+
+  const verifier = generateRandomString(128);
+  sessionStorage.setItem('sp_pkce_verifier', verifier);
+
+  const challenge = base64url(await sha256(verifier));
+  const state = generateRandomString(16);
+  sessionStorage.setItem('sp_auth_state', state);
+
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: clientId,
+    scope: SCOPES,
+    redirect_uri: REDIRECT_URI,
+    state: state,
+    code_challenge_method: 'S256',
+    code_challenge: challenge,
+  });
+
+  log(`AUTH → redirect PKCE (redirect_uri: ${REDIRECT_URI})`, 'info');
+  window.location.href = 'https://accounts.spotify.com/authorize?' + params.toString();
+}
+
+// ─── Auth: Handle Callback ──────────────────────────────
+async function handleCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  const error = params.get('error');
+
+  if (error) {
+    log(`❌ Auth error: ${error}`, 'error');
+    return;
+  }
+  if (!code) return; // Not a callback
+
+  const savedState = sessionStorage.getItem('sp_auth_state');
+  if (state !== savedState) {
+    log('❌ Auth state mismatch — possible CSRF', 'error');
+    return;
+  }
+
+  const verifier = sessionStorage.getItem('sp_pkce_verifier');
+  const clientId = sessionStorage.getItem('sp_client_id');
+  STATE.clientId = clientId;
+
+  log('AUTH ← code reçu, échange contre tokens...', 'info');
+
+  const resp = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: REDIRECT_URI,
+      client_id: clientId,
+      code_verifier: verifier,
+    }),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    log(`❌ Token exchange failed: ${resp.status} ${err}`, 'error');
+    return;
+  }
+
+  const data = await resp.json();
+  setTokens(data);
+
+  // Clean URL
+  window.history.replaceState({}, '', window.location.pathname);
+
+  await fetchProfile();
+}
+
+function setTokens(data) {
+  STATE.accessToken = data.access_token;
+  STATE.refreshToken = data.refresh_token || STATE.refreshToken;
+  STATE.tokenExpiry = Date.now() + (data.expires_in * 1000);
+  sessionStorage.setItem('sp_access_token', STATE.accessToken);
+  sessionStorage.setItem('sp_refresh_token', STATE.refreshToken);
+  sessionStorage.setItem('sp_token_expiry', String(STATE.tokenExpiry));
+  log(`TOKEN ✅ access_token set, expires in ${data.expires_in}s`, 'ok');
+  scheduleRefresh(data.expires_in);
+}
+
+function scheduleRefresh(expiresIn) {
+  const refreshMs = Math.max((expiresIn - 60) * 1000, 10000);
+  setTimeout(() => refreshAccessToken(), refreshMs);
+  log(`TOKEN refresh scheduled in ${Math.round(refreshMs/1000)}s`, 'info');
+}
+
+async function refreshAccessToken() {
+  if (!STATE.refreshToken || !STATE.clientId) return;
+  log('TOKEN → refreshing...', 'info');
+  try {
+    const resp = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: STATE.refreshToken,
+        client_id: STATE.clientId,
+      }),
+    });
+    if (!resp.ok) throw new Error(`${resp.status}`);
+    const data = await resp.json();
+    setTokens(data);
+  } catch (e) {
+    log(`❌ TOKEN refresh failed: ${e.message}`, 'error');
+  }
+}
+
+// ─── Restore session ────────────────────────────────────
+function restoreSession() {
+  const token = sessionStorage.getItem('sp_access_token');
+  const refresh = sessionStorage.getItem('sp_refresh_token');
+  const expiry = Number(sessionStorage.getItem('sp_token_expiry') || 0);
+  const clientId = sessionStorage.getItem('sp_client_id');
+
+  if (token && expiry > Date.now() && clientId) {
+    STATE.accessToken = token;
+    STATE.refreshToken = refresh;
+    STATE.tokenExpiry = expiry;
+    STATE.clientId = clientId;
+    const remainingSec = Math.round((expiry - Date.now()) / 1000);
+    log(`SESSION restored (expires in ${remainingSec}s)`, 'ok');
+    scheduleRefresh(remainingSec);
+    return true;
+  }
+  return false;
+}
+
+// ─── API call wrapper ───────────────────────────────────
+async function spotifyApi(method, endpoint, body = null, retryOn429 = true) {
+  if (!STATE.accessToken) { log('❌ No access token', 'error'); return null; }
+  // Auto-refresh if near expiry
+  if (STATE.tokenExpiry - Date.now() < 30000) await refreshAccessToken();
+
+  STATE.apiCallCount++;
+  $('api-counter').textContent = String(STATE.apiCallCount);
+
+  const url = endpoint.startsWith('https://') ? endpoint : `https://api.spotify.com/v1${endpoint}`;
+  const opts = {
+    method,
+    headers: { 'Authorization': `Bearer ${STATE.accessToken}`, 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+
+  const t0 = performance.now();
+  try {
+    const resp = await fetch(url, opts);
+    const ms = Math.round(performance.now() - t0);
+    const statusOk = resp.status >= 200 && resp.status < 300;
+
+    let respBody = '';
+    if (resp.status !== 204) {
+      try { respBody = await resp.text(); } catch(_) {}
+    }
+
+    const logLevel = resp.status === 429 ? 'warn' : statusOk ? 'ok' : 'error';
+    log(`${method} ${endpoint} → ${resp.status} (${ms}ms)${respBody && !statusOk ? ' ' + respBody.slice(0, 200) : ''}`, logLevel);
+
+    if (resp.status === 429 && retryOn429) {
+      const retryAfter = parseInt(resp.headers.get('Retry-After') || '5', 10);
+      log(`⚠️ RATE LIMITED — Retry-After: ${retryAfter}s. Attente...`, 'warn');
+      await new Promise(r => setTimeout(r, retryAfter * 1000));
+      return spotifyApi(method, endpoint, body, false);
+    }
+
+    if (resp.status === 401) {
+      log('TOKEN expiré — refresh...', 'warn');
+      await refreshAccessToken();
+      return spotifyApi(method, endpoint, body, false);
+    }
+
+    if (!statusOk) return null;
+    if (resp.status === 204) return {};
+    try { return JSON.parse(respBody); } catch(_) { return {}; }
+  } catch (e) {
+    log(`❌ NETWORK ERROR ${method} ${endpoint}: ${e.message}`, 'error');
+    return null;
+  }
+}
+
+// ─── Profile ────────────────────────────────────────────
+async function fetchProfile() {
+  const me = await spotifyApi('GET', '/me');
+  if (!me) return;
+  STATE.userId = me.id;
+  STATE.isPremium = me.product === 'premium';
+  $('user-name').textContent = me.display_name || me.id;
+  const badge = $('user-product');
+  badge.textContent = me.product;
+  badge.className = `status ${STATE.isPremium ? 'ok' : 'err'}`;
+  $('auth-pre').classList.add('hidden');
+  $('auth-post').classList.remove('hidden');
+  if (!STATE.isPremium) {
+    $('premium-warning').classList.remove('hidden');
+    log('⚠️ Compte non-Premium détecté — playback control bloqué', 'warn');
+  } else {
+    $('devices-section').classList.remove('hidden');
+    $('playback-section').classList.remove('hidden');
+    if (!isMobile) $('desktop-section').classList.remove('hidden');
+    else log('ℹ️ Web Playback SDK masqué (navigateur mobile détecté)', 'info');
+    await refreshDevices();
+  }
+}
+
+// ─── Devices ────────────────────────────────────────────
+async function refreshDevices() {
+  const data = await spotifyApi('GET', '/me/player/devices');
+  if (!data) return;
+  STATE.devices = data.devices || [];
+  renderDevices();
+}
+
+function renderDevices() {
+  const container = $('devices-list');
+  container.innerHTML = '';
+  $('devices-empty').classList.toggle('hidden', STATE.devices.length > 0);
+
+  STATE.devices.forEach(d => {
+    const div = document.createElement('div');
+    div.className = `device ${d.is_active ? 'active' : ''} ${d.id === STATE.selectedDeviceId ? 'selected' : ''}`;
+    div.innerHTML = `<span>${d.is_active ? '🟢 ' : '⚪ '}<strong>${d.name}</strong> (${d.type})</span><span style="font-size:11px;color:#888;">${d.volume_percent}%</span>`;
+    div.onclick = () => { STATE.selectedDeviceId = d.id; renderDevices(); log(`DEVICE selected: ${d.name} (${d.type}) id=${d.id}`, 'ok'); };
+    container.appendChild(div);
+  });
+
+  // Auto-select active device
+  if (!STATE.selectedDeviceId && STATE.devices.length > 0) {
+    const active = STATE.devices.find(d => d.is_active) || STATE.devices[0];
+    STATE.selectedDeviceId = active.id;
+    renderDevices();
+  }
+}
+
+function openSpotifyApp() {
+  window.location.href = 'spotify://';
+  log('DEEP LINK → spotify://', 'info');
+}
+
+// ─── Playback Controls ──────────────────────────────────
+function getDeviceId() {
+  if (!STATE.selectedDeviceId) {
+    log('❌ Aucun appareil sélectionné', 'error');
+    return null;
+  }
+  return STATE.selectedDeviceId;
+}
+
+async function playTrack(which) {
+  const deviceId = getDeviceId(); if (!deviceId) return;
+  const uri = $(which === 'a' ? 'track-a' : 'track-b').value.trim();
+  if (!uri) { log('❌ URI vide', 'error'); return; }
+
+  STATE.queuedUris.add(uri);
+  const result = await spotifyApi('PUT', `/me/player/play?device_id=${deviceId}`, { uris: [uri] });
+  if (result !== null) {
+    log(`▶ PLAY ${which.toUpperCase()} → ${uri}`, 'ok');
+    requestWakeLock();
+    scheduleProbe(1500);
+  }
+}
+
+async function queueTrack(which) {
+  const deviceId = getDeviceId(); if (!deviceId) return;
+  const uri = $(which === 'a' ? 'track-a' : 'track-b').value.trim();
+  if (!uri) { log('❌ URI vide', 'error'); return; }
+
+  STATE.queuedUris.add(uri);
+  const result = await spotifyApi('POST', `/me/player/queue?uri=${encodeURIComponent(uri)}&device_id=${deviceId}`);
+  if (result !== null) {
+    log(`📋 QUEUE ${which.toUpperCase()} → ${uri}`, 'ok');
+    scheduleProbe(1500);
+  }
+}
+
+async function nextTrack() {
+  const deviceId = getDeviceId(); if (!deviceId) return;
+  const result = await spotifyApi('POST', `/me/player/next?device_id=${deviceId}`);
+  if (result !== null) {
+    log('⏭ NEXT', 'ok');
+    scheduleProbe(1500);
+  }
+}
+
+async function pauseResume() {
+  const deviceId = getDeviceId(); if (!deviceId) return;
+  if (STATE.isPlaying) {
+    await spotifyApi('PUT', `/me/player/pause?device_id=${deviceId}`);
+    log('⏸ PAUSE', 'ok');
+  } else {
+    await spotifyApi('PUT', `/me/player/play?device_id=${deviceId}`);
+    log('▶ RESUME', 'ok');
+  }
+  scheduleProbe(1500);
+}
+
+// ─── Probing Strategy ───────────────────────────────────
+function clearProbes() {
+  STATE.probeTimers.forEach(t => clearTimeout(t));
+  STATE.probeTimers = [];
+}
+
+function scheduleProbe(delayMs) {
+  const timer = setTimeout(() => probePlayback(), delayMs);
+  STATE.probeTimers.push(timer);
+}
+
+async function probePlayback() {
+  const data = await spotifyApi('GET', '/me/player');
+  if (!data || !data.item) {
+    $('now-playing').classList.add('hidden');
+    if (data === null) {
+      // 404 device or no active playback
+      log('ℹ️ Pas de lecture active (device éteint ?)', 'warn');
+    }
+    return;
+  }
+
+  $('now-playing').classList.remove('hidden');
+
+  const item = data.item;
+  const progress = data.progress_ms || 0;
+  const duration = item.duration_ms || 1;
+
+  $('np-title').textContent = item.name || '—';
+  $('np-artist').textContent = (item.artists || []).map(a => a.name).join(', ') || '—';
+  $('np-art').src = item.album?.images?.[1]?.url || item.album?.images?.[0]?.url || '';
+  $('np-elapsed').textContent = ms2time(progress);
+  $('np-duration').textContent = ms2time(duration);
+  $('np-progress').style.width = `${Math.min(100, (progress / duration) * 100)}%`;
+  $('np-playing-status').textContent = data.is_playing ? '▶ Playing' : '⏸ Paused';
+  $('np-device').textContent = `🔊 ${data.device?.name || '?'} (${data.device?.type || '?'})`;
+  $('np-timestamp').textContent = `Sonde : ${new Date().toISOString().slice(11, 23)}`;
+
+  STATE.isPlaying = data.is_playing;
+  STATE.currentItemId = item.id;
+
+  // AutoPlay detection
+  const isAutoPlay = !STATE.queuedUris.has(item.uri);
+  $('autoplay-indicator').classList.toggle('hidden', !isAutoPlay);
+  if (isAutoPlay) log(`⚡ AUTOPLAY détecté : ${item.name} (${item.uri}) — pas dans notre queue`, 'warn');
+
+  // Smart probing schedule
+  clearProbes();
+  if (!data.is_playing) return; // Paused — no need to probe
+
+  const remaining = duration - progress;
+  const half = duration / 2 - progress;
+
+  // Probe at mid-track if we haven't passed it
+  if (half > 2000) scheduleProbe(half);
+  // Probe at duration - 15s
+  if (remaining > 17000) scheduleProbe(remaining - 15000);
+  // Then every 5s until track changes
+  if (remaining <= 17000 && remaining > 1000) {
+    for (let t = 5000; t < remaining + 5000; t += 5000) {
+      scheduleProbe(t);
+    }
+  }
+}
+
+// ─── Wake Lock ──────────────────────────────────────────
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) {
+    $('wake-lock-status').textContent = 'WakeLock : non supporté';
+    return;
+  }
+  try {
+    STATE.wakeLock = await navigator.wakeLock.request('screen');
+    $('wake-lock-status').textContent = 'WakeLock : ✅ actif';
+    log('WAKE LOCK ✅ acquired', 'ok');
+    STATE.wakeLock.addEventListener('release', () => {
+      $('wake-lock-status').textContent = 'WakeLock : relâché';
+      log('WAKE LOCK released', 'warn');
+    });
+  } catch (e) {
+    $('wake-lock-status').textContent = `WakeLock : ❌ ${e.message}`;
+    log(`WAKE LOCK ❌ ${e.message}`, 'warn');
+  }
+}
+
+// Re-acquire on visibility change
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') {
+    log('PAGE visible — sonde immédiate', 'info');
+    if (STATE.accessToken) {
+      probePlayback();
+      requestWakeLock();
+    }
+  }
+});
+
+// ─── Web Playback SDK (Desktop bonus) ───────────────────
+function initWebPlayer() {
+  if (isMobile) {
+    log('❌ Web Playback SDK non supporté sur mobile', 'error');
+    return;
+  }
+
+  $('web-player-status').textContent = 'Chargement du SDK...';
+  log('WEB PLAYER → loading SDK...', 'info');
+
+  const script = document.createElement('script');
+  script.src = 'https://sdk.scdn.co/spotify-player.js';
+  document.body.appendChild(script);
+
+  window.onSpotifyWebPlaybackSDKReady = () => {
+    log('WEB PLAYER SDK loaded ✅', 'ok');
+
+    const player = new Spotify.Player({
+      name: 'AhOuai Web',
+      getOAuthToken: cb => {
+        // Refresh if needed
+        if (STATE.tokenExpiry - Date.now() < 30000) {
+          refreshAccessToken().then(() => cb(STATE.accessToken));
+        } else {
+          cb(STATE.accessToken);
+        }
+      },
+      volume: 0.8,
+    });
+
+    player.addListener('ready', ({ device_id }) => {
+      STATE.webPlayerDeviceId = device_id;
+      log(`WEB PLAYER ✅ ready — device_id=${device_id} (name: "AhOuai Web")`, 'ok');
+      $('web-player-status').textContent = `✅ Device "AhOuai Web" enregistré. Rafraîchis les appareils et sélectionne-le.`;
+      // Auto-refresh devices
+      refreshDevices();
+    });
+
+    player.addListener('not_ready', ({ device_id }) => {
+      log(`WEB PLAYER not ready: ${device_id}`, 'warn');
+      $('web-player-status').textContent = '⚠️ Player not ready';
+    });
+
+    player.addListener('initialization_error', ({ message }) => {
+      log(`WEB PLAYER init error: ${message}`, 'error');
+      $('web-player-status').textContent = `❌ ${message}`;
+    });
+
+    player.addListener('authentication_error', ({ message }) => {
+      log(`WEB PLAYER auth error: ${message}`, 'error');
+    });
+
+    player.addListener('playback_error', ({ message }) => {
+      log(`WEB PLAYER playback error: ${message}`, 'error');
+    });
+
+    player.addListener('player_state_changed', (state) => {
+      if (state) {
+        log(`WEB PLAYER state: ${state.paused ? '⏸' : '▶'} ${state.track_window?.current_track?.name || '?'}`, 'info');
+      }
+    });
+
+    player.connect().then(ok => {
+      if (ok) log('WEB PLAYER connected ✅', 'ok');
+      else log('WEB PLAYER connect failed', 'error');
+    });
+
+    STATE.webPlayer = player;
+  };
+}
+
+// ─── Logout ─────────────────────────────────────────────
+function logout() {
+  sessionStorage.clear();
+  STATE.accessToken = null;
+  STATE.refreshToken = null;
+  clearProbes();
+  if (STATE.webPlayer) { STATE.webPlayer.disconnect(); STATE.webPlayer = null; }
+  log('LOGOUT ✅', 'ok');
+  location.reload();
+}
+
+// ─── Init ───────────────────────────────────────────────
+async function init() {
+  log(`SPIKE INIT — ${isMobile ? 'MOBILE' : 'DESKTOP'} — ${navigator.userAgent.slice(0, 80)}`, 'info');
+  log(`Redirect URI: ${REDIRECT_URI}`, 'info');
+
+  // Hide desktop section on mobile
+  if (isMobile) $('desktop-section').classList.add('hidden');
+
+  // Try to restore or handle callback
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('code')) {
+    await handleCallback();
+  } else if (restoreSession()) {
+    await fetchProfile();
+  } else {
+    log('Pas de session active — connexion requise.', 'info');
+    // Pre-fill client ID if saved
+    const saved = sessionStorage.getItem('sp_client_id');
+    if (saved) $('client-id-input').value = saved;
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
