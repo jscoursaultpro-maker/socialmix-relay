@@ -27,6 +27,9 @@ router.get('/:code/suggestions', async (req, res) => {
 
     // Collect unique userIds to batch-fetch (filter out non-ObjectId markers like "host")
     const OID_RE = /^[0-9a-fA-F]{24}$/;
+    // ★ feat(#43): currentUserId pour calcul isMine
+    const currentUserId = req.user ? String(req.user._id) : null;
+
     const rawIds = [...new Set(pending.map(s => s.suggestedBy || s.guestId).filter(Boolean))];
     const validIds = rawIds.filter(id => OID_RE.test(String(id)));
     const users = validIds.length > 0
@@ -46,6 +49,17 @@ router.get('/:code/suggestions', async (req, res) => {
       const uid = (s.suggestedBy || s.guestId || '').toString();
       const isHost = uid === 'host' || !OID_RE.test(uid);
       const user = userMap.get(uid);
+
+      // ★ feat(#43): isMine calculé serveur — triple fallback par ordre de fiabilité
+      // 1. authorUserId (stable cross-session, MongoDB _id string) — le plus fiable
+      // 2. suggestedBy  (path REST Supabase JWT)
+      // 3. guestId      (fallback si guestId est un MongoDB ObjectId 24hex — rare)
+      const isMine = currentUserId ? (
+        (s.authorUserId && String(s.authorUserId) === currentUserId) ||
+        (s.suggestedBy  && OID_RE.test(String(s.suggestedBy)) && String(s.suggestedBy) === currentUserId) ||
+        (s.guestId      && OID_RE.test(String(s.guestId))     && String(s.guestId)     === currentUserId)
+      ) : false;
+
       return {
         id: (s._id || s.id || '').toString(),
         title: s.title,
@@ -70,7 +84,8 @@ router.get('/:code/suggestions', async (req, res) => {
         // ★ feat(#29) — boostedByUsers[] pour afficher "Boosté par [nom] + avatar"
         // Repasse le tableau déjà enrichi au write-time par les handlers de boost.
         // Si absent (soirées historiques), array vide — migré par Phase 3.
-        boostedByUsers: s.boostedByUsers || []
+        boostedByUsers: s.boostedByUsers || [],
+        isMine         // ★ feat(#43): booléen précalculé serveur, front dérive canBoost = !isMine
       };
     });
 

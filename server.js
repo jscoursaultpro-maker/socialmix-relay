@@ -6724,6 +6724,10 @@ io.on('connection', (socket) => {
       socketId: socket.id,
       boostCount: 0,          // ★ boost: compteur
       boostedBy: [],          // ★ boost: [guestId] anti-double/auto
+      // ★ feat(#43): authorUserId stable (MongoDB _id) — cross-session ownership
+      // socket.user est posé par verifyGuestAuth/guest:join authentifié (Supabase JWT)
+      // null pour guests anonymes (socketId éphémère uniquement)
+      authorUserId: socket.user?._id ? socket.user._id.toString() : null,
       foundersRank: participantCache.foundersRank || null,
       foundersIntentSubmitted: participantCache.foundersIntentSubmitted || false,
       foundersIntentPosition: participantCache.foundersIntentPosition || null
@@ -6735,11 +6739,13 @@ io.on('connection', (socket) => {
     // ★ Task #114 fix (14/08) — ISRC + deezerID + isrc étaient OMIS du write-through
     // Impact : RatingFlush (L5422) findOne({isrc:...}) échouait silencieusement
     // → feuRatio stagnait à 0.00 sur toutes les tracks. Fix : capturer isrc/deezerID/fallbackHash.
+    // ★ feat(#43): authorUserId ajouté au write-through (socketId éphémère ≠ stable cross-session)
     Party.findOneAndUpdate(
       { code: party.code },
       { $push: { suggestions: { id: suggestion.id, title: suggestion.title, artist: suggestion.artist,
           guestName: suggestion.guestName, guestId: suggestion.guestId, status: 'pending',
           sentAt: suggestion.sentAt, boostCount: 0,
+          authorUserId: suggestion.authorUserId || null, // ★ feat(#43)
           // ★ Task #114 — clés de matching Track catalogue pour RatingFlush
           isrc: suggestion.isrc || null,
           deezerID: suggestion.deezerID || suggestion.deezerId || null,

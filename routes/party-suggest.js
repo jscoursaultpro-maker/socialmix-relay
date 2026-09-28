@@ -58,8 +58,9 @@ router.post('/:code/suggest', async (req, res) => {
       deezerID: deezerID || trackId,
       isrc: isrc || null,
       guestName,
-      guestId: userId.toString(),
-      suggestedBy: userId,
+      guestId:      userId.toString(),
+      suggestedBy:  userId.toString(),    // ★ feat(#43): String pour query OID_RE côté lecture
+      authorUserId: userId.toString(),    // ★ feat(#43): champ stable cross-session (MongoDB _id)
       status: 'pending',
       sentAt: new Date().toISOString(),
       boostCount: 0,
@@ -69,12 +70,30 @@ router.post('/:code/suggest', async (req, res) => {
 
     // ★ Task #15 fix — atomic $push évite les VersionError intermittents
     // quand plusieurs guests proposent en même temps.
+    // ★ feat(#43) fix write-through — authorUserId + suggestedBy maintenant persistés en BDD
+    // (audit Phase 1 : suggestedBy était dans l'objet RAM mais absent du $push MongoDB)
     await Party.updateOne(
       { _id: party._id },
       {
         $push: {
           suggestions: {
-            $each: [suggestion],
+            $each: [{
+              id:           suggestion.id,
+              title:        suggestion.title,
+              artist:       suggestion.artist,
+              artworkUrl:   suggestion.artworkUrl   || null,
+              trackId:      suggestion.trackId      || null,
+              deezerID:     suggestion.deezerID     || null,
+              isrc:         suggestion.isrc          || null,
+              guestName:    suggestion.guestName,
+              guestId:      suggestion.guestId,
+              suggestedBy:  suggestion.suggestedBy,   // ★ feat(#43): maintenant persisté
+              authorUserId: suggestion.authorUserId,  // ★ feat(#43): champ stable cross-session
+              status:       suggestion.status,
+              sentAt:       suggestion.sentAt,
+              boostCount:   0,
+              boostedBy:    []
+            }],
             $slice: -200  // cap à 200 en gardant les plus récents
           }
         }
