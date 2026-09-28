@@ -4353,19 +4353,51 @@ body.founder-program-open { overflow: hidden; }
 }
 .v2-suggest-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 10px;
 }
 .v2-suggest-actions button {
-  min-height: 34px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 6px 4px;
   border: 1px solid rgba(31, 194, 248, 0.38);
-  border-radius: 18px;
+  border-radius: 14px;
   color: #d9faff;
   background: rgba(0, 115, 143, 0.14);
-  font: 800 10px var(--font-display);
+  font: 800 9px var(--font-display);
+  line-height: 1.05;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease, transform .18s ease;
 }
-.v2-suggest-actions button:first-child { color: var(--v2-cyan); }
+.v2-suggest-actions button:active { transform: scale(.97); }
+.v2-suggest-actions button.is-active {
+  border-color: rgba(32, 225, 235, .82);
+  color: var(--v2-cyan);
+  background: rgba(0, 181, 201, .2);
+  box-shadow: 0 0 14px rgba(0, 224, 195, .14);
+}
+.v2-suggest-action-icon { font-size: 15px; line-height: 1; }
+.v2-music-services { display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 16px; }
+.v2-music-services i {
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  font: 900 7px/1 var(--font-display);
+  font-style: normal;
+}
+.v2-music-services .is-deezer { color: #fff; background: linear-gradient(135deg, #ff2ca6, #7d42ff); }
+.v2-music-services .is-spotify { border-radius: 50%; color: #07140d; background: #1ed760; }
+.v2-music-services .is-apple { color: #05070b; background: #fff; }
+@media (max-width: 360px) {
+  .v2-suggest-actions { gap: 5px; }
+  .v2-suggest-actions button { min-height: 46px; padding-inline: 2px; font-size: 8px; }
+}
 .v2-bangers-library { margin-top: 9px; }
 .v2-bangers-summary {
   display: flex;

@@ -817,9 +817,6 @@
                 <div class="soiree-section-title">
                   <span>✨</span> RECHERCHE
                 </div>
-                <button id="suggest-explore-btn" class="soiree-explore-btn" onclick="showV2Explorer()">
-                  🎵 EXPLORER
-                </button>
               </div>
               <div class="soiree-suggest-input-row">
                 <input type="text" id="suggest-input" placeholder="Titre, artiste, ou colle un lien..."
@@ -827,9 +824,21 @@
                 <button id="suggest-search-btn" class="soiree-search-btn"
                         onclick="searchDeezerSuggestions()" style="display:none;">🔍</button>
               </div>
-              <div class="v2-suggest-actions">
-                <button type="button" id="v2-suggest-source-toggle" onclick="toggleV2SuggestionSource()">🔥 Mes Bangers</button>
-                <button type="button" onclick="pasteV2SuggestionLink()">↗ Coller un lien</button>
+              <div class="v2-suggest-actions" role="group" aria-label="Sources de suggestions musicales">
+                <button type="button" id="v2-suggest-explore" class="is-active" onclick="showV2Explorer()">
+                  <span class="v2-suggest-action-icon" aria-hidden="true">♫</span>
+                  <span>Explorer</span>
+                </button>
+                <button type="button" id="v2-suggest-bangers" onclick="showV2Bangers()">
+                  <span class="v2-suggest-action-icon" aria-hidden="true">🔥</span>
+                  <span>Mes Bangers</span>
+                </button>
+                <button type="button" id="v2-suggest-paste" onclick="pasteV2SuggestionLink()" aria-label="Coller un lien Deezer, Spotify ou Apple Music">
+                  <span class="v2-music-services" aria-hidden="true">
+                    <i class="is-deezer">D</i><i class="is-spotify">S</i><i class="is-apple">●</i>
+                  </span>
+                  <span>Coller le lien</span>
+                </button>
               </div>
               <div id="suggest-source-badge" class="soiree-source-badge" style="display:none;"></div>
               <div id="suggest-results" class="soiree-suggest-results"></div>
