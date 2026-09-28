@@ -8097,15 +8097,46 @@ async function pasteV2SuggestionLink() {
   const input = document.getElementById('suggest-input');
   if (!input) return;
   input.focus();
+
+  let pasted = '';
   try {
-    const pasted = await navigator.clipboard.readText();
-    if (!pasted) return;
-    input.value = pasted;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
+    pasted = await navigator.clipboard.readText();
   } catch (_) {
-    // iOS may deny programmatic clipboard reads. The focused field still
-    // exposes the native Paste action without interrupting the guest flow.
+    // iOS/Safari peut refuser la lecture programmatique du presse-papier.
+    // Sélectionner le champ expose l'action "Coller" native du système.
     input.select();
+    return;
+  }
+
+  if (!pasted || pasted.trim().length < 3) return;
+  const text = pasted.trim();
+
+  // ★ fix(#42): Appeler directement parseStreamingPaste (même logique que le
+  // handler 'paste' natif L3472). Le dispatch 'input' précédent ne déclenchait
+  // PAS le handler 'paste' et tombait dans searchDeezerSuggestions() avec
+  // le lien brut comme query → 0 résultats Deezer.
+  const parsed = await parseStreamingPaste(text);
+  if (parsed) {
+    const searchQuery = `${parsed.title} ${parsed.artist}`;
+    input.value = searchQuery;
+    const searchBtn = document.getElementById('suggest-search-btn');
+    if (searchBtn) searchBtn.style.display = 'block';
+    const hint = document.getElementById('suggest-hint');
+    if (hint) hint.style.display = 'none';
+    if (typeof showDetectionBadge === 'function') showDetectionBadge(parsed.source || 'Musique', parsed.color);
+    clearTimeout(_suggestDebounce);
+    searchDeezerSuggestions();
+    console.log(`[Suggest] ✅ Coller le lien → parsed ${parsed.source}: "${parsed.title}" — ${parsed.artist}`);
+  } else {
+    // Lien non reconnu ou texte libre → injecter tel quel + lancer recherche normale
+    input.value = text;
+    const searchBtn = document.getElementById('suggest-search-btn');
+    if (searchBtn) searchBtn.style.display = 'block';
+    const hint = document.getElementById('suggest-hint');
+    if (hint) hint.style.display = 'none';
+    clearTimeout(_suggestDebounce);
+    searchDeezerSuggestions();
+    console.log(`[Suggest] ℹ️ Coller le lien → texte libre: "${text.slice(0, 40)}"`);
   }
 }
 
