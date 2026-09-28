@@ -38,6 +38,7 @@ import { encodeObjectId, decodeToObjectId } from './utils/base62.js'; // ★ Tas
 import { computeMoments } from './services/moments.js'; // ★ Task #81: post-party moments
 import { computeUserStats } from './services/userStats.js'; // ★ Task #81 B2: post-party user stats
 import { reconcileAllVotes } from './services/voteReconciliation.js'; // ★ Task #114 bis: cron réconciliation Party.guestVotes → Track.performance
+import { enrichUserInfo } from './services/enrichUserInfo.js'; // ★ feat(#29): enrich boostedByUsers[]
 import Meta, { bumpSeedVersion, getSeedVersion } from './models/Meta.js'; // ★ Chantier 2: seed versioning
 import tracksSeedRouter from './routes/tracks-seed.js'; // ★ Chantier 2: GET /api/tracks/seed
 import foundersRankRouter from './routes/founders-rank.js'; // ★ Task #81: GET+POST /api/user/me/founders-rank
@@ -1174,6 +1175,29 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
 
   sugg.boostCount = (sugg.boostCount || 0) + 1;
   sugg.boostedBy.push(guestId);
+
+  // ★ feat(#29) — Enrichir boostedByUsers[] au write-time (legacy iOS boost handler)
+  // isHostBoost : firstName="Hôte", emoji du hostProfile, pas de photoURL
+  if (!sugg.boostedByUsers) sugg.boostedByUsers = [];
+  if (!sugg.boostedByUsers.find(b => b.userId === String(guestId))) {
+    let boosterInfo;
+    if (isHostBoost) {
+      boosterInfo = {
+        userId:    String(guestId),
+        firstName: party.hostProfile?.firstName || 'Hôte',
+        photoURL:  null,
+        emoji:     party.hostProfile?.emoji || '🎧'
+      };
+    } else {
+      boosterInfo = await enrichUserInfo(guestId);
+      // Complète firstName si enrichUserInfo retourne fallback et qu'on a guestName
+      if (boosterInfo.firstName === 'Un invité' && guestName) {
+        boosterInfo = { ...boosterInfo, firstName: guestName.split(' ')[0] || 'Un invité' };
+      }
+    }
+    sugg.boostedByUsers.push(boosterInfo);
+  }
+
   party.isDirty = true;
 
   if (!isHostBoost) {
@@ -2737,6 +2761,27 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   // Appliquer le boost
   sugg.boostCount = (sugg.boostCount || 0) + 1;
   sugg.boostedBy.push(guestId);
+
+  // ★ feat(#29) — Enrichir boostedByUsers[] au write-time (guest:boost Socket.IO handler)
+  if (!sugg.boostedByUsers) sugg.boostedByUsers = [];
+  if (!sugg.boostedByUsers.find(b => b.userId === String(guestId))) {
+    let boosterInfo;
+    if (isHostBoost) {
+      boosterInfo = {
+        userId:    String(guestId),
+        firstName: party.hostProfile?.firstName || 'Hôte',
+        photoURL:  null,
+        emoji:     party.hostProfile?.emoji || '🎧'
+      };
+    } else {
+      boosterInfo = await enrichUserInfo(guestId);
+      if (boosterInfo.firstName === 'Un invité' && guestName) {
+        boosterInfo = { ...boosterInfo, firstName: guestName.split(' ')[0] || 'Un invité' };
+      }
+    }
+    sugg.boostedByUsers.push(boosterInfo);
+  }
+
   party.isDirty = true;
 
   // Gamification :
