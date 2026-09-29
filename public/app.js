@@ -5826,6 +5826,21 @@ function _renderLightboxActions(overlay, src) {
   if (del) del.addEventListener('click', (e) => { e.stopPropagation(); deletePhoto(meta && meta.id, src); });
 }
 
+// ★ #39 — actions photos Partager par index (evite les dataURL geantes dans onclick).
+let _partagerPhotos = [];
+window.openMyPhotoAt = function (i) {
+  const u = _partagerPhotos[i];
+  if (u && typeof showPhotoLightbox === 'function') showPhotoLightbox(u, state.guestName || 'Moi');
+};
+window.downloadMyPhotoAt = function (i) {
+  const u = _partagerPhotos[i];
+  if (u) downloadPhoto(u);
+};
+window.deleteMyPhotoAt = function (i) {
+  const u = _partagerPhotos[i];
+  if (u && typeof deleteMyPhoto === 'function') deleteMyPhoto(u);
+};
+
 function showPhotoLightbox(src, name, entryGuestId) {
   // Remove existing lightbox
   const existing = document.querySelector('.photo-lightbox');
@@ -8177,10 +8192,12 @@ function renderV2ShareActivity() {
     </article>`).join('') : '<p class="v2-share-empty">Ton premier mot apparaîtra ici.</p>';
 
   const photos = (state.myPhotos || []).slice().reverse().slice(0, 6);
-  photosEl.innerHTML = photos.length ? `<div class="v2-share-photo-grid">${photos.map(url => `
+  _partagerPhotos = photos;
+  photosEl.innerHTML = photos.length ? `<div class="v2-share-photo-grid">${photos.map((url, i) => `
     <div style="position:relative; display:inline-block;">
-      <button type="button" class="v2-share-photo-thumb" onclick="showPhotoLightbox('${escAttr(url)}', '${escAttr(state.guestName || 'Moi')}')"><img src="${esc(url)}" alt="Ma photo"></button>
-      <button onclick="deleteMyPhoto('${escAttr(url)}')" style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.6); border:none; border-radius:50%; width:24px; height:24px; font-size:12px; color:white; cursor:pointer;" aria-label="Supprimer">🗑️</button>
+      <button type="button" class="v2-share-photo-thumb" onclick="openMyPhotoAt(${i})"><img src="${esc(url)}" alt="Ma photo"></button>
+      <button type="button" onclick="downloadMyPhotoAt(${i})" style="position:absolute; top:4px; left:4px; background:rgba(0,0,0,0.62); border:none; border-radius:50%; width:24px; height:24px; font-size:12px; color:#00e0c3; cursor:pointer;" aria-label="Télécharger">⬇️</button>
+      <button type="button" onclick="deleteMyPhotoAt(${i})" style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.62); border:none; border-radius:50%; width:24px; height:24px; font-size:12px; color:white; cursor:pointer;" aria-label="Supprimer">🗑️</button>
     </div>`).join('')}</div>` : '<p class="v2-share-empty">Tes photos prises pendant la soirée apparaîtront ici.</p>';
 }
 
