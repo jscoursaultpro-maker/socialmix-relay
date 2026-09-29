@@ -5943,16 +5943,16 @@ body.kb-open .bottom-nav {
 .soiree-monte-boosters-label { margin-right: 8px; }
 .soiree-monte-boosters { display: flex; align-items: center; flex-wrap: wrap; }
 .ag-boost-avatar {
-  width: 22px; height: 22px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 800; color: #fff; line-height: 1;
+  font-size: 14px; font-weight: 800; color: #fff; line-height: 1;
   background: rgba(255,255,255,0.14); border: 1.5px solid #141024;
-  margin-left: -6px; box-sizing: border-box;
+  margin-left: -7px; box-sizing: border-box;
 }
 .ag-boost-avatars .ag-boost-avatar:first-child { margin-left: 0; }
 .ag-boost-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.ag-boost-avatar--emoji { font-size: 13px; }
-.ag-boost-avatar--more { background: rgba(255,46,136,0.18); color: #ff2e88; font-size: 10px; }
+.ag-boost-avatar--emoji { font-size: 16px; }
+.ag-boost-avatar--more { background: rgba(255,46,136,0.18); color: #ff2e88; font-size: 12px; }
 
 /* #30 — Mode artiste (Voir plus de titres de [Artiste]) */
 .artist-mode-cta {
@@ -5981,4 +5981,4 @@ body.kb-open .bottom-nav {
 
 /* #44 — avatar du suggéreur inline dans "Titres à booster" (plus petit) */
 .agir-boost-by { display: inline-flex; align-items: center; vertical-align: middle; margin-left: 2px; }
-.agir-boost-by .ag-boost-avatar { width: 24px; height: 24px; font-size: 12px; }
+.agir-boost-by .ag-boost-avatar { width: 32px; height: 32px; font-size: 14px; }
