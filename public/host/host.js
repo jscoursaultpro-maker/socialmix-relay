@@ -56,7 +56,8 @@ const STATE = {
 
 window.HOST = {
   signIn, signOut, setVisibility, onCoverChange, onSpotifyCardClick,
-  launchParty, justPlay, next, prev, togglePlay, share, retryDevices
+  launchParty, justPlay, next, prev, togglePlay, share, retryDevices,
+  onFirstNameInput
 };
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
@@ -148,11 +149,31 @@ async function _initSupabase() {
     const secureFlag     = location.protocol === 'https:' ? '; Secure' : '';
     const storageKey     = `sb-${new URL(cfg.url).hostname.split('.')[0]}-auth-token`;
 
+    // ★ fix(host-web): @supabase/ssr (ahouai-web) fragmente la session en cookies
+    // sb-*-auth-token.0, .1, etc. (valeur JSON tronquée à ~3800 chars par chunk).
+    // Le SDK standalone (relay) ne sait pas assembler ces chunks → session non lue.
+    // Cette fonction lit et assemble les chunks si la clé directe est absente.
+    function _readCookieChunked(key) {
+      // Lecture directe (cas relay→relay ou déjà non-fragmenté)
+      const escaped = key.replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&');
+      const direct  = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
+      if (direct) return decodeURIComponent(direct[1]);
+      // Lecture chunked : .0, .1, .2 … jusqu'à chunk absent
+      let assembled = '';
+      for (let i = 0; i < 10; i++) {
+        const esc = (key + '.' + i).replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&');
+        const m   = document.cookie.match(new RegExp('(?:^|; )' + esc + '=([^;]*)'));
+        if (!m) break;
+        assembled += decodeURIComponent(m[1]);
+      }
+      return assembled || null;
+    }
+
     const crossDomainStorage = {
       getItem: (key) => {
         try {
-          const match = document.cookie.match(new RegExp('(?:^|; )' + key.replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&') + '=([^;]*)'));
-          if (match) return decodeURIComponent(match[1]);
+          const fromCookie = _readCookieChunked(key);
+          if (fromCookie) return fromCookie;
           return localStorage.getItem(key);
         } catch { return null; }
       },
@@ -182,7 +203,7 @@ async function _initSupabase() {
         storage:            crossDomainStorage
       }
     });
-    _log(`Supabase init OK (cookie domain=${cookieDomain || 'localhost'})`);
+    _log(`Supabase init OK (cookie domain=${cookieDomain || 'localhost'} | storageKey=${storageKey})`);
 
     // ★ Poll actif 200ms (pattern app.js L719-736) :
     // Le SDK Supabase peut mettre 500-2000ms à parser le hash #access_token
@@ -200,6 +221,8 @@ async function _initSupabase() {
         } else if (attempts >= 30) {
           clearInterval(poll); // arrêt après 6s
           _log('Pas de session après 6s — non connecté', 'info');
+          // ★ Redirect prod vers ahouai.com/login si pas de session et domaine prod
+          _redirectToLoginIfNeeded();
         }
       } catch (e) { _log('getSession poll fail: ' + e, 'warn'); }
     }, 200);
@@ -234,15 +257,18 @@ async function _onSupabaseSession(session) {
     const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${jwt}` } });
     if (!res.ok) { _log('/api/me refus', 'warn'); return; }
     const user = await res.json();
+    // firstName : priorité profil BDD > given_name OAuth > null (= compte email sans prénom)
+    const rawFirst = user.profile?.firstName || user.firstName
+      || session.user?.user_metadata?.given_name || null;
     STATE.user = {
-      id:           user._id || user.userId,
-      email:        user.email || session.user?.email,
-      firstName:    user.profile?.firstName || user.firstName || session.user?.user_metadata?.given_name || 'Hôte',
-      photoURL:     user.profile?.photoURL || null,
-      emoji:        user.profile?.emoji || '🎧',
+      id:            user._id || user.userId,
+      email:         user.email || session.user?.email,
+      firstName:     rawFirst,          // null si compte email sans prénom renseigné
+      photoURL:      user.profile?.photoURL || null,
+      emoji:         user.profile?.emoji || '🎧',
       supabaseToken: jwt
     };
-    _log(`SSO OK : ${STATE.user.firstName} (${STATE.user.email})`, 'ok');
+    _log(`SSO OK : ${STATE.user.firstName || '(prénom manquant)'} (${STATE.user.email})`, 'ok');
     _renderUser();
     _enableCreateForm();
     _connectSocket();
@@ -257,15 +283,15 @@ function _renderUser() {
   const nameEl  = document.getElementById('user-name');
   if (!STATE.user) { chip.style.display = 'none'; return; }
   chip.style.display = 'flex';
-  nameEl.textContent = STATE.user.firstName;
+  nameEl.textContent = STATE.user.firstName || STATE.user.email?.split('@')[0] || 'Hôte';
   if (STATE.user.photoURL) {
     avatar.innerHTML = `<img src="${STATE.user.photoURL}" alt="">`;
   } else {
-    avatar.textContent = (STATE.user.firstName || 'H')[0].toUpperCase();
+    avatar.textContent = (STATE.user.firstName || STATE.user.email || 'H')[0].toUpperCase();
   }
-  // Pré-remplir nom soirée
+  // Pré-remplir nom soirée si prénom connu
   const nameInput = document.getElementById('party-name');
-  if (!nameInput.value) {
+  if (!nameInput.value && STATE.user.firstName) {
     nameInput.value = `Chez ${STATE.user.firstName}, ce soir`;
   }
 }
@@ -273,20 +299,35 @@ function _renderUser() {
 function _enableCreateForm() {
   document.getElementById('auth-gate').style.display   = 'none';
   document.getElementById('create-form').style.display = 'block';
+  // Si l'utilisateur n'a pas de prénom (compte email sans profil complet),
+  // afficher un champ prénom obligatoire au-dessus du nom de soirée.
+  const firstNameGroup = document.getElementById('firstname-group');
+  if (firstNameGroup) {
+    firstNameGroup.style.display = STATE.user?.firstName ? 'none' : 'block';
+  }
 }
 
+// ★ Redirect prod → ahouai.com/login?redirect=<URL courante encodée>
+// Mode dev (127.0.0.1 / localhost) : bouton Google local conservé.
+// Liste blanche : join.ahouai.com déjà autorisé dans auth/callback/route.ts.
+function _redirectToLoginIfNeeded() {
+  if (STATE.sessionHandled || STATE.user) return;
+  const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+  if (isLocal) { _log('Mode dev — bouton Google local disponible', 'info'); return; }
+  const next     = encodeURIComponent(window.location.origin + '/host/');
+  const loginUrl = `https://ahouai.com/login?redirect=${next}`;
+  _log(`Pas de session → redirect login : ${loginUrl}`);
+  window.location.replace(loginUrl);
+}
+
+// Bouton Google natif (mode dev uniquement)
 async function signIn() {
-  if (!_supabase) {
-    _log('Supabase non initialisé — redirection ahouai.com', 'warn');
-    window.location.href = 'https://ahouai.com';
-    return;
-  }
+  const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+  if (!isLocal) { _redirectToLoginIfNeeded(); return; }
+  if (!_supabase) { _log('Supabase non initialisé', 'warn'); return; }
   try {
-    // redirectTo = origin + '/host/' (jamais window.location.href :
-    // contiendrait les params OAuth du retour et casserait le callback).
-    // Pattern app.js L763 : origin + pathname, sans params.
     const redirectTo = `${window.location.origin}/host/`;
-    _log(`signIn Google → redirectTo: ${redirectTo}`);
+    _log(`signIn Google (dev) → redirectTo: ${redirectTo}`);
     const { error } = await _supabase.auth.signInWithOAuth({
       provider: 'google',
       options:  { redirectTo }
@@ -301,12 +342,54 @@ async function signIn() {
 async function signOut() {
   if (_supabase) await _supabase.auth.signOut();
   STATE.user = null;
+  const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+  if (!isLocal) {
+    // En prod : retour sur ahouai.com/login (cookie sera renvoyé)
+    window.location.href = 'https://ahouai.com/login';
+    return;
+  }
   document.getElementById('auth-gate').style.display   = 'block';
   document.getElementById('create-form').style.display = 'none';
   document.getElementById('user-chip').style.display   = 'none';
 }
 
+
+// Champ prénom (comptes email sans profil) — debounce 1s + save /api/me
+let _firstNameSaveTimer = null;
+function onFirstNameInput(event) {
+  const value = event.target.value.trim();
+  if (!value) return;
+  // Pré-remplir nom soirée
+  const nameInput = document.getElementById('party-name');
+  if (nameInput && !nameInput.dataset.userEdited) {
+    nameInput.value = `Chez ${value}, ce soir`;
+  }
+  // Debounce save
+  clearTimeout(_firstNameSaveTimer);
+  _firstNameSaveTimer = setTimeout(async () => {
+    if (!STATE.user?.supabaseToken) return;
+    try {
+      await fetch('/api/me/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${STATE.user.supabaseToken}`
+        },
+        body: JSON.stringify({ firstName: value })
+      });
+      STATE.user.firstName = value;
+      _log(`Prénom sauvegardé : ${value}`, 'ok');
+      // Cacher le champ prénom
+      const grp = document.getElementById('firstname-group');
+      if (grp) grp.style.display = 'none';
+    } catch (e) {
+      _log(`Sauvegarde prénom erreur : ${e.message}`, 'error');
+    }
+  }, 1000);
+}
+
 // ─── Socket.IO (pattern socketAuth.js L22) ────────────────────────────────────
+
 
 function _connectSocket() {
   if (_socket?.connected) return;
