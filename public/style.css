@@ -5978,3 +5978,7 @@ body.kb-open .bottom-nav {
   font-size: 12px; font-weight: 800; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* #44 — avatar du suggéreur inline dans "Titres à booster" (plus petit) */
+.agir-boost-by { display: inline-flex; align-items: center; vertical-align: middle; margin-left: 2px; }
+.agir-boost-by .ag-boost-avatar { width: 16px; height: 16px; font-size: 9px; }

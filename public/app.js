@@ -2551,6 +2551,7 @@ function connectToRelay() {
           existing.boostedBy = serverSugg.boostedBy || existing.boostedBy;
           existing.boostedByUsers = serverSugg.boostedByUsers || existing.boostedByUsers; // #29 noms des boosteurs
           existing.isMine = serverSugg.isMine != null ? serverSugg.isMine : existing.isMine; // flag serveur "a moi"
+          existing.suggestedByUser = serverSugg.suggestedByUser || existing.suggestedByUser; // #44 auteur (avatar)
         } else {
           // Add new suggestion (from other guests)
           state.suggestions.push(serverSugg);
@@ -8031,7 +8032,7 @@ function renderAgirBoostList() {
         ${artOf(s)}
         <div class="agir-boost-info">
           <div class="agir-boost-title">${escape(s.title || 'Titre')}</div>
-          <div class="agir-boost-meta">${escape(s.artist || '')}${s.guestName ? ` · par ${escape(s.guestName)}` : ''}</div>
+          <div class="agir-boost-meta">${escape(s.artist || '')}${(() => { const su = s.suggestedByUser || (s.guestName ? { firstName: s.guestName } : null); return su ? ` · par <span class="agir-boost-by">${_boosterAvatars([su], 1)}</span>` : ''; })()}</div>
         </div>
         ${btnHtml}
       </div>`;
