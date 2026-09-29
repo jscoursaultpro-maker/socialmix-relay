@@ -48,7 +48,7 @@ const STATE = {
   isPlaying:     false,
   queueTimer:    null,
   transTimer:    null,
-  debugMode:     new URLSearchParams(window.location.search).has('debug'),
+  debugMode:     new URLSearchParams(window.location.search).has('debug') || sessionStorage.getItem('host_debug') === '1',
   sessionHandled: false  // guard double-appel onAuthStateChange/poll
 };
 
@@ -513,6 +513,8 @@ async function _checkSpotifyPremium() {
 async function onSpotifyCardClick() {
   const token = sessionStorage.getItem('sp_access_token');
   if (token) return; // déjà connecté
+  // Persister le mode debug à travers le redirect PKCE (Spotify supprime ?debug=1)
+  if (STATE.debugMode) sessionStorage.setItem('host_debug', '1');
   await _spotify.startPKCE();
 }
 
@@ -611,6 +613,8 @@ async function _createAndStartParty(partyName, fast) {
   // 4. Vérifier Spotify
   if (!_spotify?.accessToken) {
     _showToast('Connexion Spotify…', 'info');
+    // Persister le mode debug à travers le redirect PKCE
+    if (STATE.debugMode) sessionStorage.setItem('host_debug', '1');
     await _spotify.startPKCE();
     return; // redirect → callback va reprendre
   }
