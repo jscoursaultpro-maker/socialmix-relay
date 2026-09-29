@@ -5919,3 +5919,21 @@ body.kb-open .bottom-nav {
   transform: translateY(120%);
   pointer-events: none;
 }
+
+/* Booster — section repliable "Mes suggestions" + badge emoji (29/09) */
+.agir-boost-mine-section { margin-bottom: 10px; }
+.agir-boost-mine-toggle {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  gap: 10px; padding: 10px 12px; border-radius: 14px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+  color: #fff; font: 800 12px var(--font-display, sans-serif); letter-spacing: .3px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.agir-boost-mine-toggle-right { display: inline-flex; align-items: center; gap: 8px; }
+.agir-boost-chevron { color: rgba(255,255,255,0.55); font-size: 12px; }
+.agir-boost-mine-body { display: grid; gap: 8px; margin-top: 8px; }
+.agir-boost-mine-body[hidden] { display: none; }
+.agir-boost-mine-badge {
+  flex-shrink: 0; font-size: 13px; font-weight: 800; color: #fff;
+  background: rgba(255,255,255,0.06); border-radius: 20px; padding: 4px 10px; white-space: nowrap;
+}

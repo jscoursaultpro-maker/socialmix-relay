@@ -2550,6 +2550,7 @@ function connectToRelay() {
           existing.boostCount= serverSugg.boostCount != null ? serverSugg.boostCount : existing.boostCount;
           existing.boostedBy = serverSugg.boostedBy || existing.boostedBy;
           existing.boostedByUsers = serverSugg.boostedByUsers || existing.boostedByUsers; // #29 noms des boosteurs
+          existing.isMine = serverSugg.isMine != null ? serverSugg.isMine : existing.isMine; // flag serveur "a moi"
         } else {
           // Add new suggestion (from other guests)
           state.suggestions.push(serverSugg);
@@ -7815,6 +7816,7 @@ function openV2Boosts() {
 // d'autres guests, avec bouton Booster. Ne double pas ÇA MONTE : celui-ci
 // n'affiche que les suggestions déjà boostées. Ici on affiche aussi celles
 // à 0 boost pour donner à l'invité un vrai catalogue à soutenir.
+let _myBoostOpen = false; // etat repli section "Mes suggestions" (ecran Booster)
 function renderAgirBoostList() {
   const container = document.getElementById('agir-live-content');
   if (!container) return;
@@ -7844,13 +7846,18 @@ function renderAgirBoostList() {
   console.log('[boost list]', { myId, myName, total: all.length,
     sample: all.slice(0, 3).map(s => ({ t: s.title, gid: s.guestId, gn: s.guestName, st: s.status })) });
 
-  // TOUTES les suggestions actives (mines + autres) — user voit la file complète
-  // Les miennes seront affichées avec badge "Ma sugg" désactivé (pas boostable)
-  // Sécurité : le serveur a anti-auto-boost Guard 2 (L2692) + anti-double Guard 3 (L2712)
-  const others = all.filter(s => ['pending', 'queued', 'next'].includes(s.status))
+  // Detection "a moi" : priorite au flag serveur isMine (fiable), fallback id/prenom.
+  // Les anciennes suggestions sans auteur restent "des autres" (dette acceptee serveur).
+  const isMineSugg = (s) => s.isMine === true
+    || String(s.guestId || '') === String(myId)
+    || (!!s.guestName && !!myName && s.guestName === myName);
+  const active = all.filter(s => ['pending', 'queued', 'next'].includes(s.status));
+  const mine = active.filter(isMineSugg)
+    .sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
+  const others = active.filter(s => !isMineSugg(s))
     .sort((a, b) => (b.boostCount || 0) - (a.boostCount || 0) || new Date(a.sentAt) - new Date(b.sentAt));
 
-  if (others.length === 0) {
+  if (mine.length === 0 && others.length === 0) {
     panel.innerHTML = `
       <div class="agir-boost-empty">
         <div class="agir-boost-empty-icon">💫</div>
@@ -7873,43 +7880,81 @@ function renderAgirBoostList() {
     ['pending', 'queued', 'next'].includes(s.status)
   ).length;
 
-  const header = `
-    <div class="agir-boost-header">
-      <span class="agir-boost-header-title">🔥 Titres à booster</span>
-      <span class="agir-boost-header-count">${others.length}</span>
-    </div>`;
+  const artOf = (s) => {
+    const u = s.artworkUrl || s.artworkURL || s.coverURL || s.cover || '';
+    return `<div class="agir-boost-art">${u ? `<img src="${escapeAttrLocal(u)}" alt="" loading="lazy">` : '🎵'}</div>`;
+  };
 
-  const items = others.map(s => {
-    const isMine = String(s.guestId || '') === String(myId);
-    const alreadyBoosted = !isMine && Array.isArray(s.boostedBy) && s.boostedBy.includes(myId);
-    const boostCount = s.boostCount || 0;
-    const suggId = s.id || '';
-    const artUrl = s.artworkUrl || s.artworkURL || '';
+  // ── Section 1 : MES suggestions de la soiree (repliable, non boostables) ──
+  let mineSection = '';
+  if (mine.length > 0) {
+    const open = _myBoostOpen;
+    const mineItems = mine.map(s => {
+      const boostCount = s.boostCount || 0;
+      const emojis = (Array.isArray(s.boostedByUsers) ? s.boostedByUsers : [])
+        .map(u => u && u.emoji).filter(Boolean).slice(0, 5).join(' ');
+      const badge = emojis
+        ? `<span class="agir-boost-mine-badge">${escape(emojis)}</span>`
+        : (boostCount > 0 ? `<span class="agir-boost-mine-badge">🔥 ${boostCount}</span>` : '');
+      return `
+      <div class="agir-boost-item is-mine-item" data-sugg-id="${escapeAttrLocal(s.id || '')}">
+        ${artOf(s)}
+        <div class="agir-boost-info">
+          <div class="agir-boost-title">${escape(s.title || 'Titre')}</div>
+          <div class="agir-boost-meta">${escape(s.artist || '')}</div>
+        </div>
+        ${badge}
+      </div>`;
+    }).join('');
+    mineSection = `
+      <div class="agir-boost-mine-section">
+        <button type="button" class="agir-boost-mine-toggle" onclick="toggleMyBoostSection()" aria-expanded="${open ? 'true' : 'false'}">
+          <span class="agir-boost-mine-toggle-label">🎵 Mes suggestions de la soirée</span>
+          <span class="agir-boost-mine-toggle-right"><span class="agir-boost-header-count">${mine.length}</span><span class="agir-boost-chevron">${open ? '▾' : '▸'}</span></span>
+        </button>
+        <div class="agir-boost-mine-body"${open ? '' : ' hidden'}>${mineItems}</div>
+      </div>`;
+  }
 
-    let btnHtml;
-    if (isMine) {
-      btnHtml = `<button type="button" class="agir-boost-btn is-mine" disabled>Ma sugg${boostCount > 0 ? ` · 🔥${boostCount}` : ''}</button>`;
-    } else if (alreadyBoosted) {
-      const label = boostCount > 1 ? `✓ Boostée · ${boostCount}` : '✓ Boostée';
-      btnHtml = `<button type="button" class="agir-boost-btn is-boosted" disabled>${label}</button>`;
-    } else {
-      const label = boostCount > 0 ? `🔥 Booster · ${boostCount}` : '🔥 Booster';
-      btnHtml = `<button type="button" class="agir-boost-btn" onclick="boostSuggestion('${escapeAttrLocal(suggId)}','${escapeAttrLocal(s.title)}')">${label}</button>`;
-    }
-
-    return `
-      <div class="agir-boost-item${isMine ? ' is-mine-item' : ''}" data-sugg-id="${escapeAttrLocal(suggId)}">
-        <div class="agir-boost-art">${artUrl ? `<img src="${escapeAttrLocal(artUrl)}" alt="" loading="lazy">` : '🎵'}</div>
+  // ── Section 2 : TITRES A BOOSTER (uniquement les autres) ──
+  let othersSection = '';
+  if (others.length > 0) {
+    const othersItems = others.map(s => {
+      const alreadyBoosted = Array.isArray(s.boostedBy) && s.boostedBy.includes(myId);
+      const boostCount = s.boostCount || 0;
+      const suggId = s.id || '';
+      let btnHtml;
+      if (alreadyBoosted) {
+        const label = boostCount > 1 ? `✓ Boostée · ${boostCount}` : '✓ Boostée';
+        btnHtml = `<button type="button" class="agir-boost-btn is-boosted" disabled>${label}</button>`;
+      } else {
+        const label = boostCount > 0 ? `🔥 Booster · ${boostCount}` : '🔥 Booster';
+        btnHtml = `<button type="button" class="agir-boost-btn" onclick="boostSuggestion('${escapeAttrLocal(suggId)}','${escapeAttrLocal(s.title)}')">${label}</button>`;
+      }
+      return `
+      <div class="agir-boost-item" data-sugg-id="${escapeAttrLocal(suggId)}">
+        ${artOf(s)}
         <div class="agir-boost-info">
           <div class="agir-boost-title">${escape(s.title || 'Titre')}</div>
           <div class="agir-boost-meta">${escape(s.artist || '')}${s.guestName ? ` · par ${escape(s.guestName)}` : ''}</div>
         </div>
         ${btnHtml}
       </div>`;
-  }).join('');
+    }).join('');
+    othersSection = `
+      <div class="agir-boost-header">
+        <span class="agir-boost-header-title">🔥 Titres à booster</span>
+        <span class="agir-boost-header-count">${others.length}</span>
+      </div>${othersItems}`;
+  }
 
-  panel.innerHTML = header + items;
+  panel.innerHTML = mineSection + othersSection;
 }
+
+window.toggleMyBoostSection = function () {
+  _myBoostOpen = !_myBoostOpen;
+  if (typeof renderAgirBoostList === 'function') renderAgirBoostList();
+};
 
 // Auto-rerender du panneau Booster quand une nouvelle suggestion arrive
 // ou qu'un boost se propage — uniquement si AGIR est en mode boost visible.
