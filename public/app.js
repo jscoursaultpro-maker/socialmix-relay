@@ -3652,6 +3652,7 @@ function searchDeezerSuggestions() {
     .then(json => {
       const tracks = (json.data || []);
       renderSuggestResults(tracks);
+      _maybeAddArtistCta(tracks);
     })
     .catch(err => {
       console.error('[Suggest] Search error:', err);
@@ -3817,6 +3818,80 @@ function loadTrendingSuggestions() {
     });
 }
 
+
+// ★ #30 — Mode artiste : "Voir plus de titres de [Artiste]" via /api/tracks/by-artist
+let _lastSearchTopArtist = '';
+let _artistMode = { name: '', tracks: [], total: 0, hasMore: false, loading: false };
+
+// CTA ajoute sous les resultats de recherche : propose de voir plus de titres de l'artiste principal.
+function _maybeAddArtistCta(tracks) {
+  const container = $('suggest-results');
+  if (!container || !tracks || !tracks.length) return;
+  const topArtist = tracks[0] && tracks[0].artist && tracks[0].artist.name;
+  if (!topArtist) return;
+  _lastSearchTopArtist = topArtist;
+  container.insertAdjacentHTML('beforeend',
+    `<button type="button" class="artist-mode-cta" onclick="enterArtistMode()">🎤 Voir plus de titres de ${escapeHtml(topArtist)} →</button>`);
+}
+
+window.enterArtistMode = function () {
+  if (!_lastSearchTopArtist) return;
+  _artistMode = { name: _lastSearchTopArtist, tracks: [], total: 0, hasMore: false, loading: false };
+  loadArtistTracks();
+};
+window.exitArtistMode = function () {
+  if (typeof searchDeezerSuggestions === 'function') searchDeezerSuggestions();
+};
+window.loadMoreArtistTracks = function () { loadArtistTracks(); };
+
+function loadArtistTracks() {
+  if (_artistMode.loading) return;
+  _artistMode.loading = true;
+  const container = $('suggest-results');
+  const offset = _artistMode.tracks.length;
+  if (offset === 0 && container) {
+    container.innerHTML = '<div style="text-align:center;padding:10px;font-size:11px;color:rgba(255,255,255,0.4);">🔍 Titres de ' + escapeHtml(_artistMode.name) + '...</div>';
+  }
+  fetch(`/api/tracks/by-artist?name=${encodeURIComponent(_artistMode.name)}&offset=${offset}&limit=6`)
+    .then(r => r.json())
+    .then(json => {
+      _artistMode.tracks = _artistMode.tracks.concat(json.tracks || []);
+      _artistMode.total = json.total || _artistMode.tracks.length;
+      _artistMode.hasMore = !!json.hasMore;
+      if (json.artistName) _artistMode.name = json.artistName;
+      _artistMode.loading = false;
+      renderArtistMode();
+    })
+    .catch(err => {
+      console.error('[Artist] load error:', err);
+      _artistMode.loading = false;
+      if (container) container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:#ff6b6b;">❌ Erreur de chargement</div>';
+    });
+}
+
+function renderArtistMode() {
+  const container = $('suggest-results');
+  if (!container) return;
+  const norm = _artistMode.tracks.map(t => ({
+    id: t.deezerID || t.id,
+    title: t.title,
+    artist: { name: t.artist || _artistMode.name },
+    album: { cover_medium: t.artworkUrl || '' },
+    duration: t.duration || 0
+  }));
+  if (!norm.length) {
+    container.innerHTML = `<div style="text-align:center;padding:10px;font-size:11px;color:rgba(255,255,255,0.4);">Aucun titre trouvé pour ${escapeHtml(_artistMode.name)}</div>`;
+    return;
+  }
+  renderSuggestResults(norm);
+  const remaining = Math.max(0, (_artistMode.total || norm.length) - norm.length);
+  container.insertAdjacentHTML('afterbegin',
+    `<div class="artist-mode-header"><span>🎤 Titres de <strong>${escapeHtml(_artistMode.name)}</strong></span><button type="button" class="artist-mode-back" onclick="exitArtistMode()">← Retour</button></div>`);
+  if (_artistMode.hasMore) {
+    container.insertAdjacentHTML('beforeend',
+      `<button type="button" class="artist-mode-more" onclick="loadMoreArtistTracks()">Voir plus${remaining > 0 ? ` (${remaining})` : ''} ↓</button>`);
+  }
+}
 
 function renderSuggestResults(tracks) {
   const container = $('suggest-results');

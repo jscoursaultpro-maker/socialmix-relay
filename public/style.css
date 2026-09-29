@@ -5953,3 +5953,28 @@ body.kb-open .bottom-nav {
 .ag-boost-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ag-boost-avatar--emoji { font-size: 13px; }
 .ag-boost-avatar--more { background: rgba(255,46,136,0.18); color: #ff2e88; font-size: 10px; }
+
+/* #30 — Mode artiste (Voir plus de titres de [Artiste]) */
+.artist-mode-cta {
+  display: block; width: 100%; margin-top: 8px; padding: 10px 12px;
+  border-radius: 12px; border: 1px solid rgba(0,224,195,0.35);
+  background: rgba(0,224,195,0.08); color: #00e0c3;
+  font-size: 12px; font-weight: 800; cursor: pointer; text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.artist-mode-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 2px 4px 10px; color: #fff; font-size: 13px; font-weight: 800;
+}
+.artist-mode-header strong { color: #00e0c3; }
+.artist-mode-back {
+  background: none; border: none; color: rgba(255,255,255,0.6);
+  font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.artist-mode-more {
+  display: block; width: 100%; margin-top: 8px; padding: 10px;
+  border-radius: 12px; border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04); color: #fff;
+  font-size: 12px; font-weight: 800; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
