@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0f">
+  <title>AhOuai — Ce soir, c'est chez toi</title>
+  <meta name="description" content="Crée ta soirée en moins de 30 secondes et pilote Spotify depuis ton navigateur.">
+  <!-- Pas de meta robots : page hôte, accès direct seulement -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/host/host.css">
+
+  <!-- Supabase SDK (chargé dynamiquement via /api/config/supabase) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- Socket.IO client -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN 1 — Formulaire « Je crée une soirée »
+  ══════════════════════════════════════════════════════ -->
+  <div id="screen-create" class="screen active">
+
+    <div class="host-header">
+      <div class="logo">AhOuai</div>
+      <div class="user-chip" id="user-chip" style="display:none" onclick="HOST.signOut()">
+        <div class="avatar" id="user-avatar">J</div>
+        <span id="user-name">Prénom</span>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>Ce soir,<br><span class="gradient">c'est chez toi.</span></h1>
+      <p class="subtitle">Crée ta soirée en moins de 30 secondes.</p>
+    </div>
+
+    <!-- Auth gate (affiché si non connecté) -->
+    <div id="auth-gate" class="card" style="text-align:center">
+      <p style="color:var(--muted);font-size:14px;margin-bottom:16px;">
+        Connecte-toi pour créer une soirée et piloter la musique.
+      </p>
+      <button class="btn-primary" onclick="HOST.signIn()">
+        Se connecter sur ahouai.com
+      </button>
+      <div class="footer-hint" style="margin-top:12px;">
+        <a href="https://ahouai.com" target="_blank" style="color:var(--cyan);text-decoration:none;">
+          ahouai.com
+        </a>
+      </div>
+    </div>
+
+    <!-- Formulaire (affiché si connecté) -->
+    <div id="create-form" style="display:none">
+
+      <!-- Nom de soirée -->
+      <div class="card">
+        <div class="card-title">Ta soirée</div>
+        <div class="form-group">
+          <label for="party-name">Nom</label>
+          <input type="text" id="party-name" placeholder="Chez moi, ce soir" maxlength="60">
+        </div>
+
+        <!-- Photo de couverture -->
+        <div class="form-group">
+          <label>Photo de couverture <span style="color:var(--muted)">(optionnel)</span></label>
+          <div class="cover-upload" id="cover-upload" onclick="document.getElementById('cover-input').click()">
+            <span class="upload-hint">📷 Ajoute une photo</span>
+            <img id="cover-preview" class="preview" style="display:none" alt="Couverture">
+            <input type="file" id="cover-input" accept="image/*" onchange="HOST.onCoverChange(event)">
+          </div>
+        </div>
+
+        <!-- Date -->
+        <div class="form-group">
+          <label for="party-date">Date</label>
+          <input type="date" id="party-date">
+        </div>
+
+        <!-- Visibilité -->
+        <div class="form-group">
+          <label>Qui peut voir la soirée ?</label>
+          <div class="visibility-toggle">
+            <button id="vis-private" class="active" onclick="HOST.setVisibility('private')">🔒 Privée</button>
+            <button id="vis-friends" onclick="HOST.setVisibility('friends')">👥 Amis</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spotify -->
+      <div class="card">
+        <div class="card-title">Musique</div>
+
+        <!-- Spotify card — 3 états gérés par JS -->
+        <div id="spotify-card" class="spotify-card" onclick="HOST.onSpotifyCardClick()">
+          <div class="spotify-logo">
+            <svg viewBox="0 0 24 24" fill="white">
+              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.01 17.277a.748.748 0 01-1.029.245c-2.82-1.724-6.369-2.115-10.549-1.159a.748.748 0 01-.334-1.459c4.571-1.045 8.492-.596 11.666 1.344a.75.75 0 01.246 1.029zm1.337-2.97a.937.937 0 01-1.288.308c-3.226-1.983-8.143-2.558-11.962-1.4a.938.938 0 01-.574-1.789c4.358-1.3 9.773-.671 13.516 1.593a.936.936 0 01.308 1.288zm.115-3.091c-3.868-2.298-10.248-2.51-13.941-1.389a1.124 1.124 0 01-.649-2.152c4.241-1.282 11.286-1.034 15.736 1.607a1.125 1.125 0 01-1.146 1.934z"/>
+            </svg>
+          </div>
+          <div class="spotify-info">
+            <div class="sp-label" id="sp-label">Connecter Spotify</div>
+            <div class="sp-value" id="sp-value">Lancer la musique depuis ce téléphone</div>
+          </div>
+          <span id="sp-arrow">→</span>
+        </div>
+
+        <!-- Apple Music — Safari iOS uniquement (masqué par défaut) -->
+        <a id="apple-music-card" class="apple-music-card"
+           href="https://music.apple.com" target="_blank">
+          <span class="apple-music-logo">🎵</span>
+          <div>
+            <div style="font-size:13px;color:var(--muted)">Apple Music</div>
+            <div style="font-size:14px;font-weight:600">Ouvrir l'app</div>
+          </div>
+        </a>
+
+      </div>
+
+      <!-- Bouton principal -->
+      <button class="btn-primary btn-icon" id="btn-launch" onclick="HOST.launchParty()" disabled>
+        🎉 Lancer la soirée
+      </button>
+
+      <!-- Just Play -->
+      <button class="btn-secondary btn-icon" id="btn-just-play" onclick="HOST.justPlay()">
+        ⚡ Just Play — Lance la musique en 1 tap
+      </button>
+
+      <div class="footer-hint">
+        Tes invités rejoignent par QR code ou lien, sans rien installer.
+      </div>
+    </div>
+
+  </div><!-- /screen-create -->
+
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN 2 — Appareils Spotify (aucun actif)
+  ══════════════════════════════════════════════════════ -->
+  <div id="screen-device" class="screen">
+    <div class="host-header">
+      <div class="logo">AhOuai</div>
+      <button style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer" onclick="HOST.showScreen('screen-create')">←</button>
+    </div>
+    <div class="hero">
+      <h1>📱 Ouvre <span class="gradient">Spotify</span></h1>
+      <p class="subtitle">Lance un titre 1 seconde sur Spotify, puis reviens ici.</p>
+    </div>
+    <div class="card">
+      <a href="spotify://" class="btn-primary btn-icon" style="display:flex;text-decoration:none;color:#fff;margin-bottom:12px;">
+        🎵 Ouvrir Spotify
+      </a>
+      <button class="btn-secondary" onclick="HOST.retryDevices()">
+        ✓ J'ai ouvert Spotify
+      </button>
+    </div>
+    <div class="card">
+      <div class="card-title">Appareils disponibles</div>
+      <div class="device-list" id="device-list">
+        <div style="color:var(--muted);font-size:14px;text-align:center;padding:12px">
+          <span class="spinner"></span> Recherche…
+        </div>
+      </div>
+    </div>
+  </div><!-- /screen-device -->
+
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN 3 — En soirée (Now Playing)
+  ══════════════════════════════════════════════════════ -->
+  <div id="screen-playing" class="screen np-screen">
+
+    <div class="host-header">
+      <div class="logo">AhOuai</div>
+      <div class="guests-count">👥 <span id="guest-count">0</span> invités</div>
+    </div>
+
+    <!-- Pochette -->
+    <div class="np-cover" id="np-cover">
+      <img id="np-art" src="" alt="Pochette">
+    </div>
+
+    <!-- Titre / Artiste -->
+    <div class="np-title" id="np-title">—</div>
+    <div class="np-artist" id="np-artist">—</div>
+
+    <!-- Barre de progression -->
+    <div class="np-progress-bar">
+      <div class="np-progress-fill" id="np-progress" style="width:0%"></div>
+    </div>
+    <div class="np-times">
+      <span id="np-elapsed">0:00</span>
+      <span id="np-status">⏸</span>
+      <span id="np-duration">0:00</span>
+    </div>
+
+    <!-- Contrôles -->
+    <div class="np-controls">
+      <button class="ctrl-btn" onclick="HOST.prev()" title="Précédent">⏮</button>
+      <button class="ctrl-btn play-pause" id="btn-play-pause" onclick="HOST.togglePlay()">▶</button>
+      <button class="ctrl-btn" onclick="HOST.next()" title="Suivant">⏭</button>
+    </div>
+
+    <!-- Code soirée + QR -->
+    <div class="party-bar">
+      <div class="party-bar-row">
+        <div>
+          <div class="party-code-label">Code soirée</div>
+          <div class="party-code-value" id="np-party-code">——</div>
+        </div>
+        <button class="share-btn" onclick="HOST.share()">🔗 Partager</button>
+      </div>
+      <div style="margin-top:12px">
+        <div id="qr-container" class="qr-container"></div>
+      </div>
+    </div>
+
+    <!-- Log debug (masqué par défaut, activer via ?debug=1) -->
+    <div id="log-panel" class="log-panel" style="display:none"></div>
+
+  </div><!-- /screen-playing -->
+
+</div><!-- /app -->
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script type="module" src="/host/host.js"></script>
+
+</body>
+</html>
