@@ -48,7 +48,8 @@ const STATE = {
   isPlaying:     false,
   queueTimer:    null,
   transTimer:    null,
-  debugMode:     new URLSearchParams(window.location.search).has('debug')
+  debugMode:     new URLSearchParams(window.location.search).has('debug'),
+  sessionHandled: false  // guard double-appel onAuthStateChange/poll
 };
 
 // ─── Expose HOST globalement (appelé par onclick dans HTML) ───────────────────
@@ -78,7 +79,7 @@ window.HOST = {
     document.getElementById('apple-music-card').style.display = 'flex';
   }
 
-  // Mode debug
+  // Mode debug — visible dès le boot, y compris sur l'écran de connexion
   if (STATE.debugMode) {
     document.getElementById('log-panel').style.display = 'block';
   }
@@ -135,17 +136,84 @@ window.HOST = {
 async function _initSupabase() {
   try {
     const res  = await fetch('/api/config/supabase');
+    if (!res.ok) { _log('Supabase config 503 — SSO désactivé', 'warn'); return; }
     const cfg  = await res.json();
-    if (!cfg.enabled) return;
+    if (!cfg.enabled || !cfg.url || !cfg.anonKey) { _log('Supabase config incomplète', 'warn'); return; }
+
+    // ★ Cross-subdomain SSO (pattern app.js L671-712) :
+    // Sur .ahouai.com : cookie domain=.ahouai.com partagé avec ahouai-web.
+    // En local (127.0.0.1) : cookieDomain=null → localStorage standard.
+    const isAhouaiDomain = /\.ahouai\.com$/.test(location.hostname);
+    const cookieDomain   = isAhouaiDomain ? '.ahouai.com' : null;
+    const secureFlag     = location.protocol === 'https:' ? '; Secure' : '';
+    const storageKey     = `sb-${new URL(cfg.url).hostname.split('.')[0]}-auth-token`;
+
+    const crossDomainStorage = {
+      getItem: (key) => {
+        try {
+          const match = document.cookie.match(new RegExp('(?:^|; )' + key.replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&') + '=([^;]*)'));
+          if (match) return decodeURIComponent(match[1]);
+          return localStorage.getItem(key);
+        } catch { return null; }
+      },
+      setItem: (key, value) => {
+        try {
+          const enc = encodeURIComponent(value);
+          const dom = cookieDomain ? `; domain=${cookieDomain}` : '';
+          document.cookie = `${key}=${enc}${dom}; path=/; max-age=${365*24*3600}; SameSite=Lax${secureFlag}`;
+          localStorage.setItem(key, value);
+        } catch (e) { _log('storage setItem fail: ' + e, 'warn'); }
+      },
+      removeItem: (key) => {
+        try {
+          const dom = cookieDomain ? `; domain=${cookieDomain}` : '';
+          document.cookie = `${key}=; max-age=0${dom}; path=/`;
+          localStorage.removeItem(key);
+        } catch {}
+      }
+    };
+
     _supabase = window.supabase.createClient(cfg.url, cfg.anonKey, {
       auth: {
-        storageKey: `sb-${new URL(cfg.url).hostname.split('.')[0]}-auth-token`,
-        detectSessionInUrl: true
+        storageKey,
+        detectSessionInUrl: true,
+        persistSession:     true,
+        autoRefreshToken:   true,
+        storage:            crossDomainStorage
       }
     });
-    _supabase.auth.onAuthStateChange((event, session) => {
-      if (session) _onSupabaseSession(session);
+    _log(`Supabase init OK (cookie domain=${cookieDomain || 'localhost'})`);
+
+    // ★ Poll actif 200ms (pattern app.js L719-736) :
+    // Le SDK Supabase peut mettre 500-2000ms à parser le hash #access_token
+    // après le retour OAuth. Sans poll, getSession() retourne null au 1er check.
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (session && !STATE.sessionHandled) {
+          clearInterval(poll);
+          STATE.sessionHandled = true;
+          _log(`Session Supabase détectée (poll tentative ${attempts})`, 'ok');
+          await _onSupabaseSession(session);
+        } else if (attempts >= 30) {
+          clearInterval(poll); // arrêt après 6s
+          _log('Pas de session après 6s — non connecté', 'info');
+        }
+      } catch (e) { _log('getSession poll fail: ' + e, 'warn'); }
+    }, 200);
+
+    // onAuthStateChange : couverture des événements post-redirect
+    _supabase.auth.onAuthStateChange(async (event, session) => {
+      _log(`Auth event: ${event}`);
+      if (event === 'SIGNED_IN' && session && !STATE.sessionHandled) {
+        clearInterval(poll);
+        STATE.sessionHandled = true;
+        await _onSupabaseSession(session);
+      }
     });
+
   } catch (e) {
     _log(`Supabase init erreur : ${e.message}`, 'error');
   }
@@ -174,7 +242,7 @@ async function _onSupabaseSession(session) {
       emoji:        user.profile?.emoji || '🎧',
       supabaseToken: jwt
     };
-    _log(`SSO OK : ${STATE.user.firstName} (${STATE.user.email})`);
+    _log(`SSO OK : ${STATE.user.firstName} (${STATE.user.email})`, 'ok');
     _renderUser();
     _enableCreateForm();
     _connectSocket();
@@ -208,13 +276,26 @@ function _enableCreateForm() {
 }
 
 async function signIn() {
-  if (!_supabase) { window.location.href = 'https://ahouai.com'; return; }
+  if (!_supabase) {
+    _log('Supabase non initialisé — redirection ahouai.com', 'warn');
+    window.location.href = 'https://ahouai.com';
+    return;
+  }
   try {
-    await _supabase.auth.signInWithOAuth({
+    // redirectTo = origin + '/host/' (jamais window.location.href :
+    // contiendrait les params OAuth du retour et casserait le callback).
+    // Pattern app.js L763 : origin + pathname, sans params.
+    const redirectTo = `${window.location.origin}/host/`;
+    _log(`signIn Google → redirectTo: ${redirectTo}`);
+    const { error } = await _supabase.auth.signInWithOAuth({
       provider: 'google',
-      options:  { redirectTo: window.location.href }
+      options:  { redirectTo }
     });
-  } catch (e) { _log(`SignIn erreur : ${e.message}`, 'error'); }
+    if (error) { _log(`SignIn erreur : ${error.message}`, 'error'); }
+  } catch (e) {
+    _log(`SignIn exception : ${e.message}`, 'error');
+    _showToast('Erreur de connexion, réessaie', 'error');
+  }
 }
 
 async function signOut() {
