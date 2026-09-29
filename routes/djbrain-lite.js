@@ -110,9 +110,15 @@ async function _resolveIsrc(isrc, mongoId) {
     // Cache RAM
     _isrcCache.set(isrc, { trackId, expiresAt: Date.now() + ISRC_CACHE_TTL });
 
-    // ★ Écriture en retour BDD — jamais écrasement d'un trackId existant
+    // ★ fix(write-back) — $in:[null,'',undefined] ne matche PAS un champ absent (MongoDB piège).
+    // $or couvre les 3 cas : champ absent ($exists:false), valeur null, valeur chaîne vide.
+    // Jamais d'écrasement d'un trackId existant (la condition filtre uniquement les "vides").
     Track.findOneAndUpdate(
-      { _id: mongoId, 'providers.spotify.trackId': { $in: [null, '', undefined] } },
+      { _id: mongoId, $or: [
+        { 'providers.spotify.trackId': { $exists: false } },
+        { 'providers.spotify.trackId': null },
+        { 'providers.spotify.trackId': '' }
+      ]},
       { $set: { 'providers.spotify.trackId': trackId } },
       { upsert: false }
     ).then(doc => {
