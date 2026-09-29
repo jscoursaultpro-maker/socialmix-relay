@@ -329,6 +329,32 @@ input[type="text"]:focus, input[type="date"]:focus, select:focus {
 }
 .btn-secondary:hover { border-color: rgba(255,255,255,0.25); }
 
+/* ── Bouton Google (brand guidelines) ───────────────────────────────────────── */
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: #fff;
+  color: #1f1f1f;
+  font-family: 'Outfit', -apple-system, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  letter-spacing: 0.01em;
+}
+.btn-google:hover {
+  background: #f8f8f8;
+  border-color: rgba(255,255,255,0.3);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.btn-google:active { transform: scale(0.98); }
+
 .btn-icon {
   display: flex;
   align-items: center;
