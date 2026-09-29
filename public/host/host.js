@@ -149,24 +149,56 @@ async function _initSupabase() {
     const secureFlag     = location.protocol === 'https:' ? '; Secure' : '';
     const storageKey     = `sb-${new URL(cfg.url).hostname.split('.')[0]}-auth-token`;
 
-    // ★ fix(host-web): @supabase/ssr (ahouai-web) fragmente la session en cookies
-    // sb-*-auth-token.0, .1, etc. (valeur JSON tronquée à ~3800 chars par chunk).
-    // Le SDK standalone (relay) ne sait pas assembler ces chunks → session non lue.
-    // Cette fonction lit et assemble les chunks si la clé directe est absente.
+    // ★ fix(host-web): @supabase/ssr 0.12.4 écrit les cookies en base64url :
+    //   cookie value = 'base64-' + base64url(chunk_content)   (cookies.js L3 : BASE64_PREFIX)
+    //   createBrowserClient : cookieEncoding = 'base64url' par défaut (createBrowserClient.js L20)
+    //   Un cookie vaut ex. 'base64-eyJhY2Nlc...' (10 premiers chars : 'base64-eyJ')
+    // _readCookieChunked :
+    //   1. Lit les chunks .0, .1 … (noms : storageKey + '.' + i)
+    //   2. Décode chaque chunk : retire 'base64-', base64url décode
+    //   3. Joint les chaînes partielles → JSON complet de la session
+    // Réf. : node_modules/@supabase/ssr/dist/module/cookies.js L3, chunker.js L1-50
+
+    // Base64url décodeur vanilla (pas de Buffer/atob direct pour url-safe)
+    function _base64urlDecode(str) {
+      // Normalise base64url → base64 standard puis décode
+      const b64 = str.replace(/-/g, '+').replace(/_/g, '/')
+                     + '=='.slice(0, (4 - str.length % 4) % 4);
+      try {
+        return decodeURIComponent(
+          atob(b64).split('').map(c =>
+            '%' + c.charCodeAt(0).toString(16).padStart(2, '0')
+          ).join('')
+        );
+      } catch { return null; }
+    }
+
     function _readCookieChunked(key) {
-      // Lecture directe (cas relay→relay ou déjà non-fragmenté)
+      // Lecture directe (cas non-fragmenté)
       const escaped = key.replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&');
       const direct  = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
-      if (direct) return decodeURIComponent(direct[1]);
+      if (direct) {
+        const raw = decodeURIComponent(direct[1]);
+        return raw.startsWith('base64-') ? _base64urlDecode(raw.slice(7)) : raw;
+      }
       // Lecture chunked : .0, .1, .2 … jusqu'à chunk absent
+      // Chaque chunk = base64url fragment du JSON complet (3180 chars max)
       let assembled = '';
       for (let i = 0; i < 10; i++) {
         const esc = (key + '.' + i).replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&');
         const m   = document.cookie.match(new RegExp('(?:^|; )' + esc + '=([^;]*)'));
         if (!m) break;
-        assembled += decodeURIComponent(m[1]);
+        const raw = decodeURIComponent(m[1]);
+        // Décoder le chunk base64url (retire le préfixe 'base64-')
+        const decoded = raw.startsWith('base64-') ? _base64urlDecode(raw.slice(7)) : raw;
+        if (!decoded) break; // chunk invalide = on arrête
+        assembled += decoded;
       }
-      return assembled || null;
+      // Vérifier que l'assemblé est un JSON valide (détection de chunks incomplets)
+      if (assembled) {
+        try { JSON.parse(assembled); return assembled; } catch {}
+      }
+      return null;
     }
 
     const crossDomainStorage = {
@@ -307,18 +339,76 @@ function _enableCreateForm() {
   }
 }
 
-// ★ Redirect prod → ahouai.com/login?redirect=<URL courante encodée>
-// Mode dev (127.0.0.1 / localhost) : bouton Google local conservé.
-// Liste blanche : join.ahouai.com déjà autorisé dans auth/callback/route.ts.
+// ★ Guard anti-boucle login : si la page arrive après un retour de ahouai.com/login
+// (sessionStorage.host_login_attempted=1) et qu'aucune session n'est là après 6s,
+// afficher un écran d'erreur avec bouton de secours au lieu de rediriger à nouveau.
+//
+// Flux normal :  /host/ (pas de session) → pose flag → redirect login
+//                login → retour /host/ (flag présent) → session trouvée → OK
+// Flux échec  :  retour /host/ (flag présent) → session absente → écran d'erreur
 function _redirectToLoginIfNeeded() {
   if (STATE.sessionHandled || STATE.user) return;
   const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
   if (isLocal) { _log('Mode dev — bouton Google local disponible', 'info'); return; }
+
+  const alreadyTried = sessionStorage.getItem('host_login_attempted') === '1';
+  if (alreadyTried) {
+    // Écran d'erreur : évite la boucle infinie de redirections
+    sessionStorage.removeItem('host_login_attempted');
+    _log('⚠️ Session non récupérée après login — affichage écran d\'erreur', 'warn');
+    _showLoginFallback();
+    return;
+  }
+
+  sessionStorage.setItem('host_login_attempted', '1');
   const next     = encodeURIComponent(window.location.origin + '/host/');
   const loginUrl = `https://ahouai.com/login?redirect=${next}`;
   _log(`Pas de session → redirect login : ${loginUrl}`);
   window.location.replace(loginUrl);
 }
+
+// Affiche un écran de fallback quand la session n'a pas pu être récupérée post-login.
+// Bouton Google de secours + lien ahouai.com.
+function _showLoginFallback() {
+  const gate = document.getElementById('auth-gate');
+  if (!gate) return;
+  gate.style.display = 'block';
+  gate.innerHTML = `
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.6;">
+      On n'a pas pu récupérer ta session après connexion.
+      Essaie de te connecter directement depuis cette page.
+    </p>
+    <button class="btn-google" id="btn-google-fallback"
+      onclick="HOST.signIn()" aria-label="Se connecter avec Google">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Continuer avec Google
+    </button>
+    <p style="margin-top:16px;font-size:12px;color:var(--muted);">
+      Ou connecte-toi sur
+      <a href="https://ahouai.com/login" style="color:var(--cyan);text-decoration:none;">ahouai.com</a>
+      puis reviens ici.
+    </p>
+  `;
+  // En prod, le bouton Google du fallback fait un OAuth direct (pas de loop ahouai.com)
+  // signIn() détecte isLocal=false mais dans ce cas, on veut l'OAuth direct.
+  // On surcharge HOST.signIn temporairement pour ce fallback :
+  HOST.signIn = async function() {
+    if (!_supabase) return;
+    const redirectTo = `${window.location.origin}/host/`;
+    _log(`signIn Google (fallback prod) → redirectTo: ${redirectTo}`);
+    const { error } = await _supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options:  { redirectTo }
+    });
+    if (error) { _log(`SignIn erreur : ${error.message}`, 'error'); }
+  };
+}
+
 
 // Bouton Google natif (mode dev uniquement)
 async function signIn() {
@@ -369,7 +459,7 @@ function onFirstNameInput(event) {
   _firstNameSaveTimer = setTimeout(async () => {
     if (!STATE.user?.supabaseToken) return;
     try {
-      await fetch('/api/me/profile', {
+      await fetch('/api/user/me/profile', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -510,14 +600,14 @@ function _onSpotifyState(state) {
 // ─── Party creation ───────────────────────────────────────────────────────────
 
 async function launchParty() {
-  if (!STATE.user) { _showToast('Connecte-toi d'abord', 'error'); return; }
+  if (!STATE.user) { _showToast("Connecte-toi d'abord", 'error'); return; }
   const name = document.getElementById('party-name').value.trim() ||
                `Chez ${STATE.user.firstName}, ce soir`;
   await _createAndStartParty(name, false);
 }
 
 async function justPlay() {
-  if (!STATE.user) { _showToast('Connecte-toi d'abord', 'error'); return; }
+  if (!STATE.user) { _showToast("Connecte-toi d'abord", 'error'); return; }
   const name = `Chez ${STATE.user.firstName}, ce soir`;
   await _createAndStartParty(name, true);
 }
