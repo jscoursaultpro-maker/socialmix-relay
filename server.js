@@ -6722,6 +6722,10 @@ io.on('connection', (socket) => {
     // ★ Fetch founders data from RAM cache (participant lookup)
     const participantCache = party.participants.find(p => p.userId === guestId || p.id === socket.id) || {};
 
+    // ★ feat(#44): snapshot suggestedByUser au write time (pattern Task #29 boostedByUsers)
+    const suggestedByUserId = socket.user?._id ? socket.user._id.toString() : guestId;
+    const suggestedByUser = await enrichUserInfo(suggestedByUserId);
+
     // 3. Enregistrer la suggestion
     const suggestion = {
       ...data,
@@ -6736,6 +6740,7 @@ io.on('connection', (socket) => {
       // socket.user est posé par verifyGuestAuth/guest:join authentifié (Supabase JWT)
       // null pour guests anonymes (socketId éphémère uniquement)
       authorUserId: socket.user?._id ? socket.user._id.toString() : null,
+      suggestedByUser,         // ★ feat(#44): { userId, firstName, photoURL, emoji }
       foundersRank: participantCache.foundersRank || null,
       foundersIntentSubmitted: participantCache.foundersIntentSubmitted || false,
       foundersIntentPosition: participantCache.foundersIntentPosition || null
@@ -6754,6 +6759,7 @@ io.on('connection', (socket) => {
           guestName: suggestion.guestName, guestId: suggestion.guestId, status: 'pending',
           sentAt: suggestion.sentAt, boostCount: 0,
           authorUserId: suggestion.authorUserId || null, // ★ feat(#43)
+          suggestedByUser: suggestion.suggestedByUser || null, // ★ feat(#44)
           // ★ Task #114 — clés de matching Track catalogue pour RatingFlush
           isrc: suggestion.isrc || null,
           deezerID: suggestion.deezerID || suggestion.deezerId || null,
@@ -6879,6 +6885,10 @@ io.on('connection', (socket) => {
       console.log(`[${party.code}] host:suggest: "${title}" déjà joué — suggestion enregistrée quand même`);
     }
 
+    // ★ feat(#44): snapshot suggestedByUser pour l'hôte
+    const hostUserId = party.hostUserId ? party.hostUserId.toString() : null;
+    const suggestedByUser = hostUserId ? await enrichUserInfo(hostUserId) : { userId: null, firstName: hostDisplayName, photoURL: null, emoji: '🎧' };
+
     // 3. Enregistrer la suggestion avec marqueur isHost
     const suggestion = {
       ...data,
@@ -6891,7 +6901,9 @@ io.on('connection', (socket) => {
       queuedAt: null, playingAt: null, playedAt: null, dismissedAt: null,
       socketId:  socket.id,
       boostCount: 0,          // ★ boost: compteur
-      boostedBy: []           // ★ boost: [guestId] anti-double/auto
+      boostedBy: [],          // ★ boost: [guestId] anti-double/auto
+      authorUserId: hostUserId, // ★ feat(#44): ajouté pour cohérence
+      suggestedByUser          // ★ feat(#44): { userId, firstName, photoURL, emoji }
     };
     party.suggestions = cappedPush(party.suggestions, suggestion, 200);
     party.isDirty = true;
