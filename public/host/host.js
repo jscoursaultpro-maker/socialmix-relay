@@ -89,6 +89,24 @@ window.HOST = {
   const dateInput = document.getElementById('party-date');
   dateInput.value = new Date().toISOString().slice(0, 10);
 
+  // ★ A.1 — Diagnostic cookies (debug uniquement — NOMS seuls, JAMAIS les valeurs)
+  if (STATE.debugMode) {
+    try {
+      const allNames = document.cookie
+        ? document.cookie.split(';').map(c => c.split('=')[0].trim()).filter(Boolean)
+        : [];
+      const sbNames = allNames.filter(n => n.startsWith('sb-'));
+      _log(
+        `Cookies visibles (${allNames.length} total) : ` +
+        (sbNames.length
+          ? sbNames.join(', ')
+          : '(aucun cookie sb-*) — domain=.ahouai.com non partagé ou ITP Safari')
+      );
+    } catch (e) {
+      _log(`Diagnostic cookies err : ${e.message}`, 'warn');
+    }
+  }
+
   // Init Supabase
   await _initSupabase();
 
@@ -184,19 +202,35 @@ async function _initSupabase() {
       // Lecture chunked : .0, .1, .2 … jusqu'à chunk absent
       // Chaque chunk = base64url fragment du JSON complet (3180 chars max)
       let assembled = '';
+      let chunkCount = 0;
+      let hasB64 = false;
       for (let i = 0; i < 10; i++) {
         const esc = (key + '.' + i).replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&');
         const m   = document.cookie.match(new RegExp('(?:^|; )' + esc + '=([^;]*)'));
         if (!m) break;
         const raw = decodeURIComponent(m[1]);
+        if (raw.startsWith('base64-')) hasB64 = true;
         // Décoder le chunk base64url (retire le préfixe 'base64-')
         const decoded = raw.startsWith('base64-') ? _base64urlDecode(raw.slice(7)) : raw;
         if (!decoded) break; // chunk invalide = on arrête
         assembled += decoded;
+        chunkCount++;
+      }
+      // ★ A.2 — Diagnostic chunk (debug — longueur/préfixe/JSON seulement, jamais la valeur)
+      if (STATE.debugMode && chunkCount === 0) {
+        _log(`_readCookieChunked(…${key.slice(-16)}) : 0 chunk — cookie absent ou domain non partagé`);
       }
       // Vérifier que l'assemblé est un JSON valide (détection de chunks incomplets)
       if (assembled) {
-        try { JSON.parse(assembled); return assembled; } catch {}
+        let jsonOk = false;
+        try { JSON.parse(assembled); jsonOk = true; } catch {}
+        if (STATE.debugMode) {
+          _log(
+            `_readCookieChunked(…${key.slice(-16)}) : ${chunkCount} chunk(s), ` +
+            `${assembled.length} chars, base64-: ${hasB64}, JSON: ${jsonOk ? 'OK' : 'KO — chunks incomplets'}`
+          );
+        }
+        if (jsonOk) return assembled;
       }
       return null;
     }
