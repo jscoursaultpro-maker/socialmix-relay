@@ -15,8 +15,8 @@ Prouver que la Web API Spotify (POST /me/player/queue, PUT /me/player/play) peut
 ## URIs à déclarer dans le Dashboard Spotify
 
 ```
-http://127.0.0.1:3000/spike/spotify.html        ← dev local
-https://api.ahouai.com/spike/spotify.html        ← prod/test téléphone
+http://127.0.0.1:3069/spike/spotify.html        ← dev local (port 3069)
+https://<tunnel>.trycloudflare.com/spike/spotify.html  ← test téléphone via tunnel
 ```
 
 Ajouter dans **Settings → Redirect URIs** du dashboard Spotify.
@@ -28,29 +28,38 @@ Ajouter dans **Settings → Redirect URIs** du dashboard Spotify.
 ```bash
 cd relay-server
 npm start
-# Ouvrir : http://127.0.0.1:3000/spike/spotify.html
+# Ouvrir : http://127.0.0.1:3069/spike/spotify.html
 ```
 
 ## Test téléphone (Chrome Android)
 
-1. Pousser la branche `spike/spotify-web` → Render auto-deploy
-2. Ouvrir `https://api.ahouai.com/spike/spotify.html` dans Chrome Android
-3. Assurer que l'app Spotify est ouverte en arrière-plan (lancer un titre 1s puis pause)
-4. Se connecter avec le Client ID et son compte Spotify Premium
-5. Sélectionner le device téléphone dans la liste
-6. Tester Play A, Queue B, Next, Pause/Resume
+```bash
+# Option A : cloudflared (gratuit, pas de compte)
+npx cloudflared tunnel --url http://127.0.0.1:3069
 
-## Protocole de test (9 étapes)
+# Option B : ngrok
+ngrok http 3069
+```
 
-1. Connexion PKCE OK sur Chrome Android, product=premium affiché
-2. Device téléphone visible
-3. Play A démarre sur le téléphone, Chrome reste devant
-4. Queue B pendant A → fin de A, B démarre seul
-5. Next pendant B → transition immédiate ; file vide → AutoPlay détecté ?
-6. Écran verrouillé 2 min → musique continue ; au déverrouillage état resync
-7. Chrome en arrière-plan 2 min → rappelé → état resync
-8. Chrome desktop, device = téléphone → Play A joue sur le téléphone
-9. Bonus desktop : "Jouer dans ce navigateur" → Chrome joue A via Web Playback SDK
+1. Copier l'URL HTTPS du tunnel
+2. Ajouter cette URL comme redirect URI dans le dashboard Spotify
+3. Ouvrir `https://<tunnel>/spike/spotify.html` dans Chrome Android
+4. Assurer que l'app Spotify est ouverte en arrière-plan (lancer un titre 1s puis pause)
+5. Se connecter avec le Client ID et son compte Spotify Premium
+
+## Boutons de test
+
+### Rangée 1 — Basiques
+- **Play A** : PUT /me/player/play { uris:[A] } — lecture simple, pas de contexte
+- **Queue B** : POST /me/player/queue?uri=B — ajoute B à la file
+- **Next** : POST /me/player/next — passe au titre suivant
+- **Pause/Resume** : alterne pause et lecture
+- **Voir la file** : GET /me/player/queue — affiche les 5 premiers titres en file
+
+### Rangée 2 — Diagnostics avancés
+- **Play A+B (uris)** : PUT /me/player/play { uris:[A, B] } — crée un contexte implicite avec les deux titres, B devrait enchaîner automatiquement
+- **Reprendre + insérer C** : lit l'état courant (item.uri, progress_ms), puis PUT /me/player/play { uris:[current, C], position_ms: progress } — le titre courant reprend à la même position, C apparaît en file
+- **Séquence iOS** : reproduit exactement le flow de SpotifyService.swift (voir Partie 1 audit)
 
 ## Architecture
 
@@ -59,8 +68,13 @@ spike/spotify.html       ← page unique, 0 dépendances
 ├── PKCE auth            ← Authorization Code + PKCE, 100% navigateur
 ├── Devices              ← GET /me/player/devices
 ├── Playback             ← PUT /me/player/play, POST /me/player/queue, POST /me/player/next
+├── Play A+B (uris)      ← PUT /me/player/play { uris:[A, B] }
+├── Reprendre + insérer  ← re-play with position_ms + new queue
+├── Séquence iOS         ← reproduit SpotifyService.swift flow exact
 ├── Probing              ← GET /me/player (smart timing, pas de polling fixe)
+├── Queue inspection     ← GET /me/player/queue (après chaque queue + bouton manuel)
 ├── AutoPlay detection   ← Set<URI> des tracks mises en queue vs item.uri courant
+├── Track Relinking      ← item.linked_from.uri vérifié contre notre Set
 ├── Wake Lock            ← navigator.wakeLock.request('screen')
 ├── Web Playback SDK     ← bonus desktop uniquement (masqué sur mobile)
 └── Journal API          ← horodaté, copiable, compteur d'appels

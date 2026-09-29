@@ -84,12 +84,19 @@
   <input type="text" id="track-a" value="spotify:track:4cOdK2wGLETKBW3PvgPWqT">
   <label>Track B (URI)</label>
   <input type="text" id="track-b" value="spotify:track:0VjIjW4GlUZAMYd2vXMi4i">
+  <label>Track C (URI)</label>
+  <input type="text" id="track-c" value="spotify:track:1BxfuPKGuaTgP7aM0Bbdlp">
   <div class="btn-row">
     <button onclick="playTrack('a')">▶ Play A</button>
     <button onclick="queueTrack('b')">📋 Queue B</button>
     <button onclick="nextTrack()">⏭ Next</button>
     <button class="secondary" onclick="pauseResume()">⏸ Pause / ▶ Resume</button>
     <button class="secondary" onclick="inspectQueue()">📋 Voir la file</button>
+  </div>
+  <div class="btn-row" style="margin-top:6px;">
+    <button style="background:#e67e22;" onclick="playMultiUris()">▶ Play A+B (uris)</button>
+    <button style="background:#9b59b6;" onclick="resumeInsertC()">🔄 Reprendre + insérer C</button>
+    <button style="background:#2980b9;" onclick="sequenceIOS()">📱 Séquence iOS</button>
   </div>
 
   <!-- Now Playing -->
@@ -141,20 +148,19 @@
   <div class="card" style="font-size:12px;">
     <p><strong>URIs à déclarer dans le dashboard Spotify :</strong></p>
     <ul style="margin:6px 0;padding-left:16px;">
-      <li><code>http://127.0.0.1:3000/spike/spotify.html</code> (dev local)</li>
-      <li><code>https://api.ahouai.com/spike/spotify.html</code> (test téléphone prod)</li>
-      <li>Toute URL HTTPS de preview (Render, Vercel...)</li>
+      <li><code>http://127.0.0.1:3069/spike/spotify.html</code> (dev local, port 3069)</li>
+      <li>URL HTTPS du tunnel (ngrok/cloudflared) pour test téléphone</li>
     </ul>
     <p><strong>Lancement local :</strong></p>
     <ol style="margin:6px 0;padding-left:16px;">
-      <li><code>cd relay-server && npm start</code></li>
-      <li>Ouvrir <code>http://127.0.0.1:3000/spike/spotify.html</code></li>
+      <li><code>cd relay-server && npm start</code> (port 3069)</li>
+      <li>Ouvrir <code>http://127.0.0.1:3069/spike/spotify.html</code></li>
     </ol>
     <p><strong>Test téléphone :</strong></p>
     <ol style="margin:6px 0;padding-left:16px;">
-      <li>Déployer sur Render (push branche)</li>
-      <li>Ouvrir <code>https://api.ahouai.com/spike/spotify.html</code> dans Chrome Android</li>
-      <li>Assurer que l'app Spotify est ouverte en arrière-plan avec un titre en pause</li>
+      <li><code>npx cloudflared tunnel --url http://127.0.0.1:3069</code> ou <code>ngrok http 3069</code></li>
+      <li>Copier l'URL HTTPS du tunnel → ajouter comme redirect URI dans dashboard Spotify</li>
+      <li>Ouvrir <code>https://&lt;tunnel&gt;/spike/spotify.html</code> dans Chrome Android</li>
     </ol>
   </div>
 </details>
@@ -538,6 +544,140 @@ async function pauseResume() {
     log('▶ RESUME', 'ok');
   }
   scheduleProbe(1500);
+}
+
+// ─── Play A+B (uris array — creates implicit context) ───
+async function playMultiUris() {
+  const deviceId = getDeviceId(); if (!deviceId) return;
+  const uriA = $('track-a').value.trim();
+  const uriB = $('track-b').value.trim();
+  if (!uriA || !uriB) { log('❌ URI A ou B vide', 'error'); return; }
+
+  STATE.queuedUris.add(uriA);
+  STATE.queuedUris.add(uriB);
+  STATE.hasInteracted = true;
+
+  log(`▶ PLAY A+B (uris array) → [${uriA}, ${uriB}]`, 'info');
+  const result = await spotifyApi('PUT', `/me/player/play?device_id=${deviceId}`, { uris: [uriA, uriB] });
+  if (result !== null) {
+    log('▶ PLAY A+B → 204 OK', 'ok');
+    requestWakeLock();
+    // Sonde + vérification file
+    setTimeout(async () => {
+      await probePlayback();
+      await inspectQueue();
+    }, 1500);
+  }
+}
+
+// ─── Reprendre + insérer C ───
+async function resumeInsertC() {
+  const deviceId = getDeviceId(); if (!deviceId) return;
+  const uriC = $('track-c').value.trim();
+  if (!uriC) { log('❌ URI C vide', 'error'); return; }
+
+  // 1. Lire l'état courant
+  const state = await spotifyApi('GET', '/me/player');
+  if (!state || !state.item) { log('❌ Pas de lecture active', 'error'); return; }
+
+  const currentUri = state.item.uri;
+  const currentProgress = state.progress_ms || 0;
+  const currentName = state.item.name;
+
+  log(`🔄 REPRENDRE+INSÉRER : en cours="${currentName}" (${currentUri}) à ${ms2time(currentProgress)}`, 'info');
+
+  STATE.queuedUris.add(currentUri);
+  STATE.queuedUris.add(uriC);
+  STATE.hasInteracted = true;
+
+  // 2. PUT /play avec [current, C] et position_ms
+  const t0 = performance.now();
+  const result = await spotifyApi('PUT', `/me/player/play?device_id=${deviceId}`, {
+    uris: [currentUri, uriC],
+    offset: { position: 0 },
+    position_ms: currentProgress
+  });
+  const latency = Math.round(performance.now() - t0);
+
+  if (result !== null) {
+    // 3. Sonde pour vérifier l'écart de position
+    setTimeout(async () => {
+      const after = await spotifyApi('GET', '/me/player');
+      if (after && after.item) {
+        const drift = (after.progress_ms || 0) - currentProgress;
+        log(`🔄 REPRENDRE OK : position avant=${ms2time(currentProgress)} après=${ms2time(after.progress_ms||0)} drift=${drift}ms latence=${latency}ms`, drift > 2000 ? 'warn' : 'ok');
+      }
+      await inspectQueue();
+    }, 1500);
+  }
+}
+
+// ─── Séquence iOS (reproduit le flow exact de SpotifyService.swift) ───
+// iOS flow :
+//   1. ensureActiveDevice → GET /me/player/devices, PUT /me/player {device_ids} si pas actif
+//   2. sendPlayCommand → PUT /me/player/play {uris:[A]} (PAS de context, PAS de device_id query)
+//   3. startCountdown → Timer 1s, à T-45s queueNextTrackOnSpotify()
+//   4. queueNextTrackOnSpotify → POST /me/player/queue?uri=B (PAS de device_id query)
+//   5. À T-5s (earlyTransitionThreshold) : si nextTrackQueued → laisser Spotify crossfade
+//   DIFFÉRENCE CLÉ vs spike : iOS ne passe PAS device_id dans /play ni /queue,
+//   et le queue arrive à T-45s (pas immédiatement après play).
+async function sequenceIOS() {
+  const uriA = $('track-a').value.trim();
+  const uriB = $('track-b').value.trim();
+  if (!uriA || !uriB) { log('❌ URI A ou B vide', 'error'); return; }
+
+  STATE.queuedUris.add(uriA);
+  STATE.queuedUris.add(uriB);
+  STATE.hasInteracted = true;
+
+  log('📱 SÉQUENCE iOS — Step 1: ensureActiveDevice', 'info');
+
+  // Step 1: GET /me/player/devices + transfer si nécessaire
+  const devData = await spotifyApi('GET', '/me/player/devices');
+  if (!devData) { log('❌ Impossible de lire les devices', 'error'); return; }
+  const devices = devData.devices || [];
+  const active = devices.find(d => d.is_active);
+
+  if (!active && devices.length > 0) {
+    const firstId = devices[0].id;
+    log(`📱 iOS Step 1b: transfer to ${devices[0].name} (play:false)`, 'info');
+    await spotifyApi('PUT', '/me/player', { device_ids: [firstId], play: false });
+    await new Promise(r => setTimeout(r, 1000)); // iOS attend 1s après transfer
+  } else if (active) {
+    log(`📱 iOS Step 1: device actif = ${active.name}`, 'ok');
+  } else {
+    log('❌ Aucun device disponible', 'error'); return;
+  }
+
+  // Step 2: PUT /me/player/play {uris:[A]} — PAS de device_id en query (comme iOS)
+  log(`📱 iOS Step 2: PUT /me/player/play {uris:["${uriA}"]} (NO device_id query)`, 'info');
+  const playResult = await spotifyApi('PUT', '/me/player/play', { uris: [uriA] });
+  if (playResult === null) { log('❌ Play A échoué', 'error'); return; }
+  log('📱 iOS Step 2: Play A ✅', 'ok');
+
+  // Sonde immédiate
+  await new Promise(r => setTimeout(r, 1500));
+  await probePlayback();
+
+  // Step 3: Simuler T-45s — on attend 10s pour le spike (pas 3min)
+  const SIMULATED_WAIT = 10; // 10s au lieu de T-45s pour tester rapidement
+  log(`📱 iOS Step 3: attente ${SIMULATED_WAIT}s (simule T-45s)...`, 'info');
+  await new Promise(r => setTimeout(r, SIMULATED_WAIT * 1000));
+
+  // Step 4: POST /me/player/queue?uri=B — PAS de device_id (comme iOS)
+  log(`📱 iOS Step 4: POST /me/player/queue?uri=${uriB} (NO device_id query)`, 'info');
+  const queueResult = await spotifyApi('POST', `/me/player/queue?uri=${encodeURIComponent(uriB)}`);
+  if (queueResult !== null) {
+    log('📱 iOS Step 4: Queue B ✅ — nextTrackQueued=true', 'ok');
+  } else {
+    log('📱 iOS Step 4: Queue B ❌ — nextTrackQueued=false', 'error');
+  }
+
+  // Vérifier la file
+  await inspectQueue();
+  await probePlayback();
+
+  log('📱 SÉQUENCE iOS terminée — laisser A jouer, B devrait enchaîner automatiquement', 'ok');
 }
 
 // ─── Probing Strategy ───────────────────────────────────
