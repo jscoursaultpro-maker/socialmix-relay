@@ -675,32 +675,11 @@ async function initSupabaseSSO() {
     const isAhouaiDomain = typeof location !== 'undefined' && /\.ahouai\.com$/.test(location.hostname);
     const cookieDomain = isAhouaiDomain ? '.ahouai.com' : null;
     const secureFlag = typeof location !== 'undefined' && location.protocol === 'https:' ? '; Secure' : '';
-    const crossDomainStorage = {
-      getItem: (key) => {
-        try {
-          const match = document.cookie.match(new RegExp('(?:^|; )' + key.replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&') + '=([^;]*)'));
-          if (match) return decodeURIComponent(match[1]);
-          // Fallback lecture localStorage (compat migration)
-          return localStorage.getItem(key);
-        } catch { return null; }
-      },
-      setItem: (key, value) => {
-        try {
-          const encoded = encodeURIComponent(value);
-          const domainAttr = cookieDomain ? `; domain=${cookieDomain}` : '';
-          document.cookie = `${key}=${encoded}${domainAttr}; path=/; max-age=${365 * 24 * 3600}; SameSite=Lax${secureFlag}`;
-          // Aussi localStorage pour compat sessions existantes
-          localStorage.setItem(key, value);
-        } catch (e) { console.warn('[SSO] storage setItem fail', e); }
-      },
-      removeItem: (key) => {
-        try {
-          const domainAttr = cookieDomain ? `; domain=${cookieDomain}` : '';
-          document.cookie = `${key}=; max-age=0${domainAttr}; path=/`;
-          localStorage.removeItem(key);
-        } catch {}
-      }
-    };
+    const crossDomainStorage = window.SupabaseCookie.makeStorage({
+      cookieDomain: cookieDomain,
+      secureFlag:   secureFlag,
+      debugFn:      null  // app.js n'a pas de log panel structuré
+    });
     _supabaseClient = window.supabase.createClient(cfg.url, cfg.anonKey, {
       auth: {
         detectSessionInUrl: true,

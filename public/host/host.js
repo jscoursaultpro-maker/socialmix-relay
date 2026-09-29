@@ -167,98 +167,23 @@ async function _initSupabase() {
     const secureFlag     = location.protocol === 'https:' ? '; Secure' : '';
     const storageKey     = `sb-${new URL(cfg.url).hostname.split('.')[0]}-auth-token`;
 
-    // ★ fix(host-web): @supabase/ssr 0.12.4 écrit les cookies en base64url :
-    //   cookie value = 'base64-' + base64url(chunk_content)   (cookies.js L3 : BASE64_PREFIX)
-    //   createBrowserClient : cookieEncoding = 'base64url' par défaut (createBrowserClient.js L20)
-    //   Un cookie vaut ex. 'base64-eyJhY2Nlc...' (10 premiers chars : 'base64-eyJ')
-    // _readCookieChunked :
-    //   1. Lit les chunks .0, .1 … (noms : storageKey + '.' + i)
-    //   2. Décode chaque chunk : retire 'base64-', base64url décode
-    //   3. Joint les chaînes partielles → JSON complet de la session
-    // Réf. : node_modules/@supabase/ssr/dist/module/cookies.js L3, chunker.js L1-50
-
-    // Base64url décodeur vanilla (pas de Buffer/atob direct pour url-safe)
-    function _base64urlDecode(str) {
-      // Normalise base64url → base64 standard puis décode
-      const b64 = str.replace(/-/g, '+').replace(/_/g, '/')
-                     + '=='.slice(0, (4 - str.length % 4) % 4);
-      try {
-        return decodeURIComponent(
-          atob(b64).split('').map(c =>
-            '%' + c.charCodeAt(0).toString(16).padStart(2, '0')
-          ).join('')
-        );
-      } catch { return null; }
-    }
-
-    function _readCookieChunked(key) {
-      // Lecture directe (cas non-fragmenté)
-      const escaped = key.replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&');
-      const direct  = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
-      if (direct) {
-        const raw = decodeURIComponent(direct[1]);
-        return raw.startsWith('base64-') ? _base64urlDecode(raw.slice(7)) : raw;
-      }
-      // Lecture chunked : .0, .1, .2 … jusqu'à chunk absent
-      // Chaque chunk = base64url fragment du JSON complet (3180 chars max)
-      let assembled = '';
-      let chunkCount = 0;
-      let hasB64 = false;
-      for (let i = 0; i < 10; i++) {
-        const esc = (key + '.' + i).replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&');
-        const m   = document.cookie.match(new RegExp('(?:^|; )' + esc + '=([^;]*)'));
-        if (!m) break;
-        const raw = decodeURIComponent(m[1]);
-        if (raw.startsWith('base64-')) hasB64 = true;
-        // Décoder le chunk base64url (retire le préfixe 'base64-')
-        const decoded = raw.startsWith('base64-') ? _base64urlDecode(raw.slice(7)) : raw;
-        if (!decoded) break; // chunk invalide = on arrête
-        assembled += decoded;
-        chunkCount++;
-      }
-      // ★ A.2 — Diagnostic chunk (debug — longueur/préfixe/JSON seulement, jamais la valeur)
-      if (STATE.debugMode && chunkCount === 0) {
-        _log(`_readCookieChunked(…${key.slice(-16)}) : 0 chunk — cookie absent ou domain non partagé`);
-      }
-      // Vérifier que l'assemblé est un JSON valide (détection de chunks incomplets)
-      if (assembled) {
-        let jsonOk = false;
-        try { JSON.parse(assembled); jsonOk = true; } catch {}
-        if (STATE.debugMode) {
-          _log(
-            `_readCookieChunked(…${key.slice(-16)}) : ${chunkCount} chunk(s), ` +
-            `${assembled.length} chars, base64-: ${hasB64}, JSON: ${jsonOk ? 'OK' : 'KO — chunks incomplets'}`
-          );
-        }
-        if (jsonOk) return assembled;
-      }
-      return null;
-    }
-
-    const crossDomainStorage = {
-      getItem: (key) => {
-        try {
-          const fromCookie = _readCookieChunked(key);
-          if (fromCookie) return fromCookie;
-          return localStorage.getItem(key);
-        } catch { return null; }
-      },
-      setItem: (key, value) => {
-        try {
-          const enc = encodeURIComponent(value);
-          const dom = cookieDomain ? `; domain=${cookieDomain}` : '';
-          document.cookie = `${key}=${enc}${dom}; path=/; max-age=${365*24*3600}; SameSite=Lax${secureFlag}`;
-          localStorage.setItem(key, value);
-        } catch (e) { _log('storage setItem fail: ' + e, 'warn'); }
-      },
-      removeItem: (key) => {
-        try {
-          const dom = cookieDomain ? `; domain=${cookieDomain}` : '';
-          document.cookie = `${key}=; max-age=0${dom}; path=/`;
-          localStorage.removeItem(key);
-        } catch {}
-      }
-    };
+    // ★ fix(host-web) v2 : lecture chunked correcte via shared/supabase-cookie.js
+    // Algorithme @supabase/ssr (cookies.js + chunker.js) :
+    //   1. Joindre les valeurs BRUTES des cookies .0, .1, … (PAS de décodage dans la boucle)
+    //   2. Si l’assemblé commence par 'base64-' → base64url decode → JSON string
+    //   3. Valider JSON.parse → retourner la string JSON au SDK
+    // Bug précédent : décodage individuel chunk par chunk → .0 = base64 tronqué → null → break
+    // ⚠️ debugFn ONCE : le poll fait 30 appels getSession en 6s ;
+    //   sans garde, 30 lignes identiques spamment le log.
+    let _cookieDebugLogged = false;
+    const _onceDebugFn = STATE.debugMode ? (msg) => {
+      if (!_cookieDebugLogged) { _cookieDebugLogged = true; _log(msg); }
+    } : null;
+    const crossDomainStorage = window.SupabaseCookie.makeStorage({
+      cookieDomain: cookieDomain,
+      secureFlag:   secureFlag,
+      debugFn:      _onceDebugFn
+    });
 
     _supabase = window.supabase.createClient(cfg.url, cfg.anonKey, {
       auth: {
