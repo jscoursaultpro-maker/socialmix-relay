@@ -5943,7 +5943,7 @@ body.kb-open .bottom-nav {
 .soiree-monte-boosters-label { margin-right: 8px; }
 .soiree-monte-boosters { display: flex; align-items: center; flex-wrap: wrap; }
 .ag-boost-avatar {
-  width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 14px; font-weight: 800; color: #fff; line-height: 1;
   background: rgba(255,255,255,0.14); border: 1.5px solid #141024;
@@ -5981,4 +5981,4 @@ body.kb-open .bottom-nav {
 
 /* #44 — avatar du suggéreur inline dans "Titres à booster" (plus petit) */
 .agir-boost-by { display: inline-flex; align-items: center; vertical-align: middle; margin-left: 2px; }
-.agir-boost-by .ag-boost-avatar { width: 32px; height: 32px; font-size: 14px; }
+.agir-boost-by .ag-boost-avatar { width: 36px; height: 36px; font-size: 15px; }
