@@ -5981,4 +5981,4 @@ body.kb-open .bottom-nav {
 
 /* #44 — avatar du suggéreur inline dans "Titres à booster" (plus petit) */
 .agir-boost-by { display: inline-flex; align-items: center; vertical-align: middle; margin-left: 2px; }
-.agir-boost-by .ag-boost-avatar { width: 16px; height: 16px; font-size: 9px; }
+.agir-boost-by .ag-boost-avatar { width: 24px; height: 24px; font-size: 12px; }
