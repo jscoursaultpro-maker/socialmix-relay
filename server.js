@@ -85,6 +85,7 @@ import meLegacyRouter from './routes/me-legacy.js';
 import meBadgesRouter from './routes/me-badges.js';
 import meSuggestionsHistoryRouter from './routes/me-suggestions-history.js';
 import meTracksFavoritesRouter from './routes/me-tracks-favorites.js';
+import djbrainLiteRouter from './routes/djbrain-lite.js'; // ★ feat(host-web): sélection provisoire pour cockpit hôte
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 import { resolvePhotoAccess, filterPhotosForUser } from './utils/photoVisibility.js'; // ★ Sprint X2
 
@@ -724,6 +725,19 @@ app.get('/api/config/supabase', (req, res) => {
   }
   res.set('Cache-Control', 'public, max-age=300'); // 5 min cache
   res.json({ url, anonKey, enabled: true });
+});
+
+// ─── Spotify config — GET /api/config/spotify ───────────────────────────────
+// ★ feat(host-web) — Expose le Spotify Client ID au cockpit hôte web.
+// Safe : Client ID PKCE est public par design (pas de secret côté client).
+// Pattern identique à /api/config/supabase.
+app.get('/api/config/spotify', (req, res) => {
+  const clientId = process.env.SPOTIFY_CLIENT_ID || null;
+  if (!clientId) {
+    return res.status(503).json({ error: 'Spotify not configured', clientId: null });
+  }
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({ clientId, enabled: true });
 });
 
 // ─── Supabase Auth — GET /api/me ────────────────────────────────────
@@ -1391,6 +1405,7 @@ app.use('/api/me/stats', meStatsRouter);
 app.use('/api/me/badges', meBadgesRouter);
 app.use('/api/me', meSuggestionsHistoryRouter);     // GET /api/me/suggestions/past
 app.use('/api/me', meTracksFavoritesRouter);         // GET /api/me/tracks/favorites
+app.use('/api/djbrain-lite', djbrainLiteRouter);       // ★ feat(host-web): sélection provisoire cockpit hôte web
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {
