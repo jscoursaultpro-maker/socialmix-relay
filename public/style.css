@@ -5982,3 +5982,8 @@ body.kb-open .bottom-nav {
 /* #44 — avatar du suggéreur inline dans "Titres à booster" (plus petit) */
 .agir-boost-by { display: inline-flex; align-items: center; vertical-align: middle; margin-left: 2px; }
 .agir-boost-by .ag-boost-avatar { width: 36px; height: 36px; font-size: 15px; }
+
+/* #39 — boutons Telecharger / Supprimer dans la lightbox photo */
+.lb-action-btn { padding: 12px 22px; border-radius: 14px; font-size: 13px; font-weight: 800; cursor: pointer; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color: #fff; -webkit-tap-highlight-color: transparent; }
+.lb-action-btn.lb-dl { border-color: rgba(0,224,195,0.5); background: rgba(0,224,195,0.14); color: #00e0c3; }
+.lb-action-btn.lb-del { border-color: rgba(255,80,120,0.5); background: rgba(255,80,120,0.12); color: #ff5078; }

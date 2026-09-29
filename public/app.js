@@ -2969,6 +2969,11 @@ function connectToRelay() {
   // ★ Fix Z3: real-time cross-guest suggestion sync
   // Server broadcasts suggestion:added to guest room when any guest adds a suggestion.
   // Without this, Sam only sees Pierre's suggestions after the next party:state resync.
+  // ★ #39 — refresh temps reel quand une photo est supprimee (zone deleguee JS)
+  socket.on('photo:deleted', (data) => {
+    if (data && data.photoId) _removePhotoFromUI(data.photoId, null);
+  });
+
   socket.on('suggestion:added', (sugg) => {
     if (!sugg || !sugg.title || !sugg.id) return;
     const myId   = state.guestId || '';
@@ -5742,6 +5747,85 @@ function renderCostumeEntries() {
   renderCostumePodium(entries);
 }
 
+// ★ #39 — Photos : permissions (id/canDelete/downloadOpen), telechargement, suppression, temps reel.
+async function loadPhotoMeta() {
+  try {
+    if (!state.partyCode) return;
+    const res = await fetch(`/api/party/${encodeURIComponent(state.partyCode)}/photos`);
+    if (!res.ok) return;
+    const json = await res.json();
+    const map = {};
+    (json.photos || []).forEach(pp => { if (pp && pp.url) map[pp.url] = { id: pp.id, uploaderUserId: pp.uploaderUserId || null, canDelete: !!pp.canDelete }; });
+    state.photoMeta = map;
+    state.photoDownloadOpen = !!json.downloadOpen;
+  } catch (e) { console.warn('[#39] loadPhotoMeta failed', e); }
+}
+
+async function downloadPhoto(url) {
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    const blob = await res.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl; a.download = `ahouai-${Date.now()}.jpg`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
+  } catch (e) {
+    try { window.open(url, '_blank'); } catch(_) {}
+  }
+}
+
+function _removePhotoFromUI(photoId, url) {
+  if (!url && state.photoMeta) {
+    for (const k in state.photoMeta) { if (state.photoMeta[k] && String(state.photoMeta[k].id) === String(photoId)) { url = k; break; } }
+  }
+  if (url) {
+    if (Array.isArray(state.allPhotos)) state.allPhotos = state.allPhotos.filter(pp => (pp && pp.url ? pp.url : pp) !== url);
+    if (Array.isArray(state.myPhotos)) state.myPhotos = state.myPhotos.filter(u => u !== url);
+    if (state.photoMeta) delete state.photoMeta[url];
+    const lb = document.querySelector('.photo-lightbox');
+    if (lb && lb.querySelector('img') && lb.querySelector('img').getAttribute('src') === url) lb.remove();
+  }
+  try { if (typeof renderV2ShareActivity === 'function') renderV2ShareActivity(); } catch(_) {}
+  try { if (typeof renderSouvenirs === 'function') renderSouvenirs(); } catch(_) {}
+}
+
+async function deletePhoto(photoId, url) {
+  if (!photoId) return;
+  if (typeof confirm === 'function' && !confirm('Supprimer cette photo ? (définitif)')) return;
+  try {
+    const res = await fetch(`/api/party/${encodeURIComponent(state.partyCode)}/photo/${encodeURIComponent(photoId)}`, { method: 'DELETE' });
+    const json = await res.json().catch(() => ({}));
+    if (json && json.ok) {
+      _removePhotoFromUI(photoId, url);
+      if (typeof showToast === 'function') showToast('🗑️ Photo supprimée', 2000);
+    } else if (typeof showToast === 'function') {
+      showToast('⚠️ Suppression impossible', 2500);
+    }
+  } catch (e) {
+    if (typeof showToast === 'function') showToast('⚠️ Erreur de suppression', 2500);
+  }
+}
+
+function _renderLightboxActions(overlay, src) {
+  const box = overlay && overlay.querySelector('.lb-actions');
+  if (!box) return;
+  const meta = (state.photoMeta || {})[src] || null;
+  const myId = state.userId || state.guestId || state.socketId || '';
+  const isMine = (meta && meta.uploaderUserId && String(meta.uploaderUserId) === String(myId))
+              || (Array.isArray(state.myPhotos) && state.myPhotos.includes(src));
+  const canDownload = isMine || !!state.photoDownloadOpen;
+  const canDelete = !!(meta && meta.canDelete);
+  let html = '';
+  if (canDownload) html += `<button type="button" class="lb-action-btn lb-dl">⬇️ Télécharger</button>`;
+  if (canDelete) html += `<button type="button" class="lb-action-btn lb-del">🗑️ Supprimer</button>`;
+  box.innerHTML = html;
+  const dl = box.querySelector('.lb-dl');
+  if (dl) dl.addEventListener('click', (e) => { e.stopPropagation(); downloadPhoto(src); });
+  const del = box.querySelector('.lb-del');
+  if (del) del.addEventListener('click', (e) => { e.stopPropagation(); deletePhoto(meta && meta.id, src); });
+}
+
 function showPhotoLightbox(src, name, entryGuestId) {
   // Remove existing lightbox
   const existing = document.querySelector('.photo-lightbox');
@@ -5767,6 +5851,7 @@ function showPhotoLightbox(src, name, entryGuestId) {
       <button class="lb-close-btn" style="width:36px;height:36px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:50%;color:white;font-size:18px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-appearance:none;touch-action:manipulation;">✕</button>
     </div>
     <img src="${src}" style="max-width:100%;max-height:70vh;border-radius:12px;object-fit:contain;">
+    <div class="lb-actions" style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;justify-content:center;"></div>
     ${voteHTML ? `<div style="margin-top:16px;">${voteHTML}</div>` : ''}
     <div style="margin-top:16px;padding-bottom:20px;">
       <button class="lb-close-btn" style="padding:12px 36px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:14px;color:white;font-size:13px;font-weight:800;cursor:pointer;-webkit-appearance:none;touch-action:manipulation;">✕ FERMER</button>
@@ -5775,6 +5860,8 @@ function showPhotoLightbox(src, name, entryGuestId) {
   
   // Close button
   overlay.querySelector('.lb-close-btn').addEventListener('click', () => overlay.remove());
+  try { _renderLightboxActions(overlay, src); } catch(_) {}
+  try { loadPhotoMeta().then(() => _renderLightboxActions(overlay, src)); } catch(_) {}
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
   
   // Vote button
