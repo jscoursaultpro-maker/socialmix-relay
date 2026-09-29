@@ -4277,6 +4277,25 @@ async function boostSuggestion(suggId, title) {
 // CP2 — ÇA MONTE !  Bloc suggestion momentum
 // ═══════════════════════════════════════════════════════════════════
 
+// Avatars des boosteurs : photo de profil > emoji > initiale, avec "+N" au-dela de 4.
+function _boosterAvatars(users, total) {
+  const list = Array.isArray(users) ? users.filter(Boolean) : [];
+  if (list.length === 0) return '';
+  const esc = (x) => (typeof escapeHtml === 'function') ? escapeHtml(x) : String(x || '');
+  const escA = (x) => (typeof escapeAttr === 'function') ? escapeAttr(x) : String(x || '').replace(/"/g, '&quot;');
+  const MAX = 4;
+  const shown = list.slice(0, MAX);
+  const chips = shown.map(u => {
+    const name = (u && u.firstName) || 'Invite';
+    if (u && u.photoURL) return `<span class="ag-boost-avatar" title="${escA(name)}"><img src="${escA(u.photoURL)}" alt="${escA(name)}" loading="lazy"></span>`;
+    if (u && u.emoji) return `<span class="ag-boost-avatar ag-boost-avatar--emoji" title="${escA(name)}">${esc(u.emoji)}</span>`;
+    return `<span class="ag-boost-avatar ag-boost-avatar--initial" title="${escA(name)}">${esc(String(name).charAt(0).toUpperCase() || '?')}</span>`;
+  }).join('');
+  const extra = Math.max(0, (Number(total) || list.length) - shown.length);
+  const more = extra > 0 ? `<span class="ag-boost-avatar ag-boost-avatar--more">+${extra}</span>` : '';
+  return `<span class="ag-boost-avatars">${chips}${more}</span>`;
+}
+
 /**
  * resolveBoosterNames(boostedByIds)
  * Maps userId strings from boostedBy[] to display names via state.participants.
@@ -4339,22 +4358,23 @@ function renderCaMonte() {
   const statusIcon = isConfirmedNext ? '🎯' : '🔥';
   const cardClass = isConfirmedNext ? 'soiree-monte-card soiree-monte-next' : 'soiree-monte-card';
 
-  // Boosteurs : priorite aux noms envoyes par le serveur (#29 boostedByUsers),
-  // fallback sur l'ancienne resolution via participants presents.
-  const boostUsers = Array.isArray(top.boostedByUsers) ? top.boostedByUsers : [];
-  let boosterNames = boostUsers.map(u => u && u.firstName).filter(Boolean);
-  if (boosterNames.length === 0) boosterNames = resolveBoosterNames(top.boostedBy || []);
-  // Total reel de boosteurs (source de verite) pour un "+N" juste (inclut anonymes filtres)
-  const totalBoosters = Math.max(top.boostCount || 0, (top.boostedBy || []).length, boosterNames.length);
+  // Boosteurs : avatars (photo > emoji > initiale) + "+N". Fallback texte si pas d'users enrichis.
+  const boostUsers = Array.isArray(top.boostedByUsers) ? top.boostedByUsers.filter(Boolean) : [];
+  const totalBoosters = Math.max(top.boostCount || 0, (top.boostedBy || []).length, boostUsers.length);
   let boostersHtml = '';
-  if (boosterNames.length > 0) {
-    const shown = boosterNames.slice(0, 3);
-    const rest = Math.max(0, totalBoosters - shown.length);
-    let namesStr = shown.map(n => escapeHtml(n)).join(', ');
-    if (rest > 0) namesStr += ` +${rest}`;
-    boostersHtml = `<div class="soiree-monte-boosters">Boosté par <strong>${namesStr}</strong></div>`;
-  } else if (totalBoosters > 0) {
-    boostersHtml = `<div class="soiree-monte-boosters">Boosté par <strong>${totalBoosters} personne${totalBoosters > 1 ? 's' : ''}</strong></div>`;
+  if (boostUsers.length > 0) {
+    boostersHtml = `<div class="soiree-monte-boosters"><span class="soiree-monte-boosters-label">Boosté par</span>${_boosterAvatars(boostUsers, totalBoosters)}</div>`;
+  } else {
+    const boosterNames = resolveBoosterNames(top.boostedBy || []);
+    if (boosterNames.length > 0) {
+      const shown = boosterNames.slice(0, 3);
+      const rest = Math.max(0, totalBoosters - shown.length);
+      let namesStr = shown.map(n => escapeHtml(n)).join(', ');
+      if (rest > 0) namesStr += ` +${rest}`;
+      boostersHtml = `<div class="soiree-monte-boosters">Boosté par <strong>${namesStr}</strong></div>`;
+    } else if (totalBoosters > 0) {
+      boostersHtml = `<div class="soiree-monte-boosters">Boosté par <strong>${totalBoosters} personne${totalBoosters > 1 ? 's' : ''}</strong></div>`;
+    }
   }
 
   // Cover image
@@ -7891,10 +7911,10 @@ function renderAgirBoostList() {
     const open = _myBoostOpen;
     const mineItems = mine.map(s => {
       const boostCount = s.boostCount || 0;
-      const emojis = (Array.isArray(s.boostedByUsers) ? s.boostedByUsers : [])
-        .map(u => u && u.emoji).filter(Boolean).slice(0, 5).join(' ');
-      const badge = emojis
-        ? `<span class="agir-boost-mine-badge">${escape(emojis)}</span>`
+      const bUsers = Array.isArray(s.boostedByUsers) ? s.boostedByUsers.filter(Boolean) : [];
+      const bTotal = Math.max(boostCount, (s.boostedBy || []).length, bUsers.length);
+      const badge = bUsers.length > 0
+        ? _boosterAvatars(bUsers, bTotal)
         : (boostCount > 0 ? `<span class="agir-boost-mine-badge">🔥 ${boostCount}</span>` : '');
       return `
       <div class="agir-boost-item is-mine-item" data-sugg-id="${escapeAttrLocal(s.id || '')}">
