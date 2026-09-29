@@ -49,6 +49,10 @@ router.post('/:code/suggest', async (req, res) => {
     }
 
 
+    // ★ feat(#44): snapshot suggestedByUser au write time (pattern Task #29 boostedByUsers)
+    const suggestedByUser = await enrichUserInfo(userId.toString());
+    console.log('[suggest] ★ suggestedByUser enriched:', suggestedByUser.firstName);
+
     const suggestion = {
       id: randomUUID(),
       title,
@@ -61,6 +65,7 @@ router.post('/:code/suggest', async (req, res) => {
       guestId:      userId.toString(),
       suggestedBy:  userId.toString(),    // ★ feat(#43): String pour query OID_RE côté lecture
       authorUserId: userId.toString(),    // ★ feat(#43): champ stable cross-session (MongoDB _id)
+      suggestedByUser,                     // ★ feat(#44): { userId, firstName, photoURL, emoji }
       status: 'pending',
       sentAt: new Date().toISOString(),
       boostCount: 0,
@@ -89,6 +94,7 @@ router.post('/:code/suggest', async (req, res) => {
               guestId:      suggestion.guestId,
               suggestedBy:  suggestion.suggestedBy,   // ★ feat(#43): maintenant persisté
               authorUserId: suggestion.authorUserId,  // ★ feat(#43): champ stable cross-session
+              suggestedByUser: suggestion.suggestedByUser || null, // ★ feat(#44): snapshot { firstName, photoURL, emoji }
               status:       suggestion.status,
               sentAt:       suggestion.sentAt,
               boostCount:   0,
