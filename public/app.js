@@ -4345,15 +4345,50 @@ function _boosterAvatars(users, total) {
   const escA = (x) => (typeof escapeAttr === 'function') ? escapeAttr(x) : String(x || '').replace(/"/g, '&quot;');
   const MAX = 4;
   const shown = list.slice(0, MAX);
+  const nameOf = (u) => (u && u.firstName) || 'Invite';
   const chips = shown.map(u => {
-    const name = (u && u.firstName) || 'Invite';
-    if (u && u.photoURL) return `<span class="ag-boost-avatar" title="${escA(name)}"><img src="${escA(u.photoURL)}" alt="${escA(name)}" loading="lazy"></span>`;
-    if (u && u.emoji) return `<span class="ag-boost-avatar ag-boost-avatar--emoji" title="${escA(name)}">${esc(u.emoji)}</span>`;
-    return `<span class="ag-boost-avatar ag-boost-avatar--initial" title="${escA(name)}">${esc(String(name).charAt(0).toUpperCase() || '?')}</span>`;
+    const name = nameOf(u);
+    const tap = `title="${escA(name)}" data-boost-name="${escA(name)}" onclick="_showBoostName(this,event)"`;
+    if (u && u.photoURL) return `<span class="ag-boost-avatar" ${tap}><img src="${escA(u.photoURL)}" alt="${escA(name)}" loading="lazy"></span>`;
+    if (u && u.emoji) return `<span class="ag-boost-avatar ag-boost-avatar--emoji" ${tap}>${esc(u.emoji)}</span>`;
+    return `<span class="ag-boost-avatar ag-boost-avatar--initial" ${tap}>${esc(String(name).charAt(0).toUpperCase() || '?')}</span>`;
   }).join('');
   const extra = Math.max(0, (Number(total) || list.length) - shown.length);
-  const more = extra > 0 ? `<span class="ag-boost-avatar ag-boost-avatar--more">+${extra}</span>` : '';
+  let more = '';
+  if (extra > 0) {
+    const extraNames = list.slice(MAX).map(nameOf);
+    more = extraNames.length
+      ? `<span class="ag-boost-avatar ag-boost-avatar--more" title="${escA(extraNames.join(', '))}" data-boost-name="${escA(extraNames.join(', '))}" onclick="_showBoostName(this,event)">+${extra}</span>`
+      : `<span class="ag-boost-avatar ag-boost-avatar--more">+${extra}</span>`;
+  }
   return `<span class="ag-boost-avatars">${chips}${more}</span>`;
+}
+
+/**
+ * _showBoostName(el, ev) — affiche le nom (ou la liste de noms pour +N) d'un
+ * avatar boosteur/suggereur dans une petite bulle, au tap (mobile) comme au
+ * clic (PC). Le title reste pour le survol PC.
+ */
+function _showBoostName(el, ev) {
+  try { if (ev && ev.stopPropagation) ev.stopPropagation(); } catch (_) {}
+  try {
+    const name = el && el.getAttribute('data-boost-name');
+    if (!name) return;
+    let tip = document.getElementById('ag-boost-tip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'ag-boost-tip';
+      tip.className = 'ag-boost-tip';
+      document.body.appendChild(tip);
+    }
+    tip.textContent = name;
+    const r = el.getBoundingClientRect();
+    tip.style.left = Math.round(r.left + r.width / 2) + 'px';
+    tip.style.top = Math.round(r.top) + 'px';
+    tip.classList.add('show');
+    clearTimeout(_showBoostName._t);
+    _showBoostName._t = setTimeout(function () { if (tip) tip.classList.remove('show'); }, 2000);
+  } catch (_) {}
 }
 
 /**
