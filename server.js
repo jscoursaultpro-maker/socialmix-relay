@@ -906,19 +906,32 @@ app.use('/api/me', meLegacyRouter);
 app.get('/api/status', (req, res) => {
   const codes = [...parties.keys()];
   const total = codes.reduce((s, c) => s + parties.get(c).participants.length, 0);
-  res.json({ status: 'Social Mix Relay Server 🎧', activeParties: codes.length, codes, totalParticipants: total });
+  // Sécurité P1 (30/09) : codes retirés de la réponse publique (énumération soirées).
+  // Avec x-admin-token → réponse complète pour monitoring interne.
+  const adminToken = process.env.ADMIN_TOKEN;
+  const isAdmin = adminToken && req.headers['x-admin-token'] === adminToken;
+  res.json({
+    ok: true,
+    activeParties: codes.length,
+    totalParticipants: total,
+    uptime: Math.floor(process.uptime()) + 's',
+    ...(isAdmin ? { codes } : {})
+  });
 });
 app.get('/status', (req, res) => {
   const codes = [...parties.keys()];
   const mongoState = ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown';
+  // Sécurité P1 (30/09) : codes retirés de la réponse publique (énumération soirées).
+  const adminToken = process.env.ADMIN_TOKEN;
+  const isAdmin = adminToken && req.headers['x-admin-token'] === adminToken;
   res.json({
-    status: 'Social Mix Relay Server 🎧',
+    ok: true,
     version: 'v15-parity',
     activeParties: codes.length,
-    codes,
     uptime: Math.floor(process.uptime()) + 's',
     mongo: mongoState,
-    mongoURI: process.env.MONGO_URI ? '✅ configured' : '❌ not set'
+    mongoURI: process.env.MONGO_URI ? '✅ configured' : '❌ not set',
+    ...(isAdmin ? { codes } : {})
   });
 });
 
@@ -4500,24 +4513,30 @@ function buildLightState(party, isHost = false) {
     code: party.code,
     participants: lightParticipants,
     // B2+B3 — boostedByUsers enrichi + plafonné à 8 dans le payload émis.
-    // enrichUserInfo n'est pas disponible ici (async + BDD) — on utilise le cache
-    // RAM des participants (synchrone, déjà en mémoire). Si boostedByUsers absent
-    // (anciennes suggestions pré-feat#29), on le reconstruit depuis boostedBy[].
-    // Le plafond 8 s'applique sur le payload ; le stockage BDD reste complet.
-    // Cache : la Map des participants (lightParticipants + hostProfile) sert de
-    // lookup synchrone. Invalidation : à chaque buildLightState, le cache est
-    // reconstruit depuis les participants RAM (pas de stale — live par définition).
+    // profileCache reconstruit depuis participants RAM à chaque buildLightState
+    // (synchrone, toujours live — pas de stale possible).
+    // Option (a) demande Jean-Sé 30/09 : on résout en priorité depuis le cache RAM
+    // si l'userId est présent parmi les participants, et on n'utilise le stocké
+    // que pour les boosteurs absents (partis de la soirée).
+    // Cas spécial : boostedBy[] peut contenir 'host:CODE' (iOS legacy) → résoudre
+    // en hostUserId avant lookup cache.
     suggestions: (() => {
-      // Construire un cache userId→profil depuis les participants RAM
+      // Construire profileCache : userId (string 24-hex) → { userId, firstName, photoURL, emoji }
+      // + stocker l'hostUserId sous 'host' et 'host:CODE' pour mapper les IDs legacy iOS.
       const profileCache = new Map();
-      if (party.hostProfile && party.hostUserId) {
-        profileCache.set(String(party.hostUserId), {
-          userId:    String(party.hostUserId),
-          firstName: party.hostProfile.firstName || party.hostProfile.name || 'Hôte',
-          photoURL:  party.hostProfile.photo || null,
-          emoji:     party.hostProfile.emoji || '🎧'
-        });
+      const hostProfile = {
+        userId:    party.hostUserId ? String(party.hostUserId) : null,
+        firstName: party.hostProfile?.firstName || party.hostProfile?.name || 'Hôte',
+        photoURL:  party.hostProfile?.photo || null,
+        emoji:     party.hostProfile?.emoji || '🎧'
+      };
+      if (party.hostUserId) {
+        profileCache.set(String(party.hostUserId), hostProfile);
       }
+      // Alias iOS legacy : 'host', 'host:CODE' → profil hôte
+      profileCache.set('host', hostProfile);
+      if (party.code) profileCache.set(`host:${party.code}`, hostProfile);
+
       for (const p of (party.participants || [])) {
         if (p.userId) {
           profileCache.set(String(p.userId), {
@@ -4530,23 +4549,35 @@ function buildLightState(party, isHost = false) {
       }
 
       return (party.suggestions || []).map(s => {
-        // Reconstruire boostedByUsers si absent (pré-feat#29) depuis boostedBy[]
-        let byUsers = Array.isArray(s.boostedByUsers) && s.boostedByUsers.length > 0
-          ? s.boostedByUsers
-          : (s.boostedBy || []).map(uid => {
-              const cached = profileCache.get(String(uid));
-              return cached || { userId: String(uid), firstName: 'Invité', photoURL: null, emoji: '🎉' };
-            });
+        // Collecter tous les IDs boosteurs (source de vérité = boostedBy[])
+        const boostedByIds = s.boostedBy || [];
+        // storedByMap : userId → profil stocké (pré-feat#29 ou boosteur parti)
+        const storedByMap = new Map();
+        for (const b of (s.boostedByUsers || [])) {
+          if (b?.userId) storedByMap.set(String(b.userId), b);
+        }
+
+        // Option (a) : priorité cache RAM ; fallback BDD stockée ; fallback minimal
+        const byUsers = boostedByIds.map(uid => {
+          const key = String(uid);
+          // Lookup cache RAM (live)
+          if (profileCache.has(key)) return profileCache.get(key);
+          // Lookup par userId nettoyé si préfixe host:
+          const bareKey = key.replace(/^host:/, '');
+          if (profileCache.has(bareKey)) return profileCache.get(bareKey);
+          // Fallback : profil stocké en BDD (boosteur parti de la soirée)
+          if (storedByMap.has(key)) return storedByMap.get(key);
+          return { userId: key, firstName: 'Invité', photoURL: null, emoji: '🎉' };
+        });
 
         const boostedByCount = byUsers.length;
-
-        // B3 — Plafonner à 8 dans le payload
-        if (byUsers.length > 8) byUsers = byUsers.slice(0, 8);
+        // B3 — Plafonner à 8 dans le payload (BDD inchangée)
+        const byUsersCapped = byUsers.length > 8 ? byUsers.slice(0, 8) : byUsers;
 
         return {
           ...s,
-          boostedByUsers: byUsers,
-          boostedByCount            // total pour "+N" côté front
+          boostedByUsers: byUsersCapped,
+          boostedByCount            // total pour "+N" côté front (Daphné : affiche 4 avatars + "+N")
         };
       });
     })(),
