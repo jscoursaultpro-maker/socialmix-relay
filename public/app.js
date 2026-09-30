@@ -3752,10 +3752,7 @@ function updatePhaseNarrative(phase) {
       <span class="phase-narrative-dot" style="flex-shrink:0;"></span>
       <span class="phase-narrative-label" style="font-weight:900; color:#00e0c4; white-space:nowrap;">SOIRÉE EN COURS</span>
       <span style="color:rgba(255,255,255,0.3);">|</span>
-      <span class="phase-narrative-text" style="color:rgba(255,255,255,0.7); flex-grow:1;">${msg.text}</span>
-      <span class="phase-dj-brain" style="display:flex; align-items:center; gap:4px; color:#00e0c4; font-weight:800; flex-shrink:0;">
-        <span style="font-size:12px;">〰</span> DJ BRAIN
-      </span>
+      <span class="phase-narrative-text" style="color:rgba(255,255,255,0.7); flex-grow:1; font-size:13px; margin:0;">${msg.text}</span>
     </div>
   `;
 }

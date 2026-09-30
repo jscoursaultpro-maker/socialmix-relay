@@ -2664,8 +2664,8 @@ body.founder-program-open { overflow: hidden; }
 
 /* ── Phase Narrative Headline ─────────────────────────────────────── */
 .soiree-phase-headline {
-  padding: 12px 16px;
-  margin-bottom: 12px;
+  padding: 9px 14px;
+  margin-bottom: 8px;
   border-radius: 14px;
   border-left: 3px solid var(--phase-color, #00d2ff);
   background: var(--phase-bg, rgba(0,210,255,0.06));
