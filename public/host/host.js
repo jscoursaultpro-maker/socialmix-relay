@@ -67,7 +67,13 @@ const STATE = {
   queueTimer:    null,
   transTimer:    null,
   debugMode:     new URLSearchParams(window.location.search).has('debug') || sessionStorage.getItem('host_debug') === '1',
-  sessionHandled: false  // guard double-appel onAuthStateChange/poll
+  sessionHandled: false,  // guard double-appel onAuthStateChange/poll
+  // ── Fluidité lot 30/09 ──────────────────────────────────────────
+  initialized:   false,  // 1. init complète (profil + socket) exécutée une seule fois
+  busy:          false,  // 1. verrou boutons 1,5s (next/prev/togglePlay)
+  pendingCmd:    null,   // 3. dernière commande en attente pendant bascule d'app
+  suspended:     false,  // 3. Safari a suspendu l'onglet (visibilitychange hidden)
+  phantomChecks: 0,      // 2. compteur sondes post-play pour détection fantôme
 };
 
 // ─── Expose HOST globalement (appelé par onclick dans HTML) ───────────────────
@@ -241,12 +247,29 @@ async function _initSupabase() {
     }, 200);
 
     // onAuthStateChange : couverture des événements post-redirect
+    // SIGNED_IN est émis à chaque visibilitychange → visible (_recoverAndRefresh).
+    // Guard : si même userId déjà initialisé → mise à jour JWT socket seulement.
     _supabase.auth.onAuthStateChange(async (event, session) => {
       _log(`Auth event: ${event}`);
-      if (event === 'SIGNED_IN' && session && !STATE.sessionHandled) {
-        clearInterval(poll);
-        STATE.sessionHandled = true;
-        await _onSupabaseSession(session);
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+        const incomingId = session.user?.id;
+        // Cas 1 : même utilisateur déjà init → mise à jour token uniquement
+        if (STATE.initialized && STATE.user && STATE.user.id === incomingId) {
+          STATE.user.supabaseToken = session.access_token;
+          if (_socket?.connected) {
+            // Mise à jour auth.token sans disconnect (socket.io ne supporte pas
+            // le hot-swap, mais on le stocke pour la prochaine reconnexion auto)
+            _socket.auth = { token: session.access_token };
+          }
+          _log(`Auth event: ${event} — même session (${incomingId?.slice(-8)}) → JWT mis à jour, init skipped`, 'info');
+          return;
+        }
+        // Cas 2 : première init ou changement d'utilisateur
+        if (!STATE.sessionHandled) {
+          clearInterval(poll);
+          STATE.sessionHandled = true;
+          await _onSupabaseSession(session);
+        }
       }
     });
 
@@ -285,6 +308,9 @@ async function _onSupabaseSession(session) {
     _renderUser();
     _enableCreateForm();
     _connectSocket();
+    STATE.initialized = true;  // 1. guard idempotence
+    // 4. Reprise de soirée : si sessionStorage contient une soirée < 6h → proposer
+    _tryResumeParty();
   } catch (e) {
     _log(`SSO erreur : ${e.message}`, 'error');
   }
@@ -413,6 +439,7 @@ async function signIn() {
 async function signOut() {
   if (_supabase) await _supabase.auth.signOut();
   STATE.user = null;
+  sessionStorage.removeItem('host_party_session'); // 4. effacer reprise à la déconnexion
   const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
   if (!isLocal) {
     // En prod : retour sur ahouai.com/login (cookie sera renvoyé)
@@ -469,15 +496,40 @@ function _connectSocket() {
     // ★ Réutilise socketAuth.js : token → socket.user = User Mongoose
     // V0 clients sans token → socket.user = null (backward compat)
   });
+  // 1. Log socket.id UNIQUEMENT dans le callback 'connect' (id défini ici)
   _socket.on('connect', () => {
     _log(`Socket connecté : ${_socket.id}`, 'ok');
-    _updateLaunchBtn(); // A2: recalculer après connexion socket
+    _updateLaunchBtn();
   });
   _socket.on('disconnect', () => _log('Socket déconnecté', 'warn'));
   _socket.on('party:state', _onPartyState);
   _socket.on('participants:update', _onParticipants);
   _socket.on('party:error', d => _showToast(d.message || 'Erreur soirée', 'error'));
 }
+
+// ─── Visibilité (bascule app, 3. Load failed, 2. retryDevices auto) ──────────
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    STATE.suspended = true;
+    return;
+  }
+  // visible
+  STATE.suspended = false;
+  // 3. Rejouer la commande en attente (si une action a eu lieu pendant la bascule)
+  if (STATE.pendingCmd) {
+    const cmd = STATE.pendingCmd;
+    STATE.pendingCmd = null;
+    _log(`↩ Reprise commande en attente : ${cmd.name}`, 'info');
+    // Attendre une sonde avant de rejouer
+    setTimeout(() => { cmd.fn(); }, 1500);
+  }
+  // 2. Si screen-device visible → retryDevices automatique
+  const screenDevice = document.getElementById('screen-device');
+  if (screenDevice?.style.display !== 'none' && screenDevice?.classList.contains('active')) {
+    _log('visibilitychange → visible : retryDevices auto', 'info');
+    retryDevices();
+  }
+});
 
 function _onPartyState(state) {
   _log(`party:state reçu code=${state.code} phase=${state.currentPhase}`);
@@ -609,6 +661,82 @@ function _onSpotifyState(state) {
   }
 }
 
+// ─── Reprise de soirée (4.) ──────────────────────────────────────────────────
+// Si sessionStorage contient {partyCode, hostSecret, startedAt} < 6h → ré-émettre.
+// Stocké par _createAndStartParty, supprimé par signOut.
+
+function _tryResumeParty() {
+  try {
+    const raw = sessionStorage.getItem('host_party_session');
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (!saved.partyCode || !saved.hostSecret || !saved.startedAt) return;
+    const ageH = (Date.now() - saved.startedAt) / 3600000;
+    if (ageH >= 6) {
+      sessionStorage.removeItem('host_party_session');
+      _log('Reprise : soirée > 6h — ignorée', 'info');
+      return;
+    }
+    // Proposer la reprise via un toast non-bloquant
+    _log(`Reprise détectée : soirée ${saved.partyCode} (il y a ${Math.round(ageH * 60)} min)`, 'info');
+    _showToast(`Soirée ${saved.partyCode} en cours — reprise…`, 'info');
+    // Ré-émettre host:startParty avec le même code+secret → le serveur reprend
+    if (!_socket?.connected) _connectSocket();
+    _socket.once('connect', () => _resumePartySocket(saved));
+    if (_socket?.connected) _resumePartySocket(saved);
+  } catch (_) {}
+}
+
+function _resumePartySocket(saved) {
+  STATE.party = { code: saved.partyCode, hostSecret: saved.hostSecret };
+  _socket.emit('host:startParty', {
+    code:       saved.partyCode,
+    hostSecret: saved.hostSecret,
+    profile: {
+      name:  STATE.user?.firstName || 'Hôte',
+      email: STATE.user?.email || '',
+      emoji: STATE.user?.emoji || '🎧',
+      photo: STATE.user?.photoURL || null, phone: '', instagram: ''
+    },
+    streamingProvider: 'spotify',
+    deviceId: null
+  });
+  _log(`host:startParty (reprise) émis pour ${saved.partyCode}`, 'ok');
+  // Le serveur répond avec party:state → _onPartyState → on ré-affiche screen-playing si titres
+  _socket.once('party:state', (state) => {
+    if (state.currentTrack) {
+      document.getElementById('np-party-code').textContent = saved.partyCode;
+      _renderQR(saved.partyCode);
+      showScreen('screen-playing');
+      _log(`✅ Reprise soirée ${saved.partyCode} — titre en cours : ${state.currentTrack.title}`, 'ok');
+    }
+  });
+}
+
+// ─── Détection appareil fantôme (2.) ─────────────────────────────────────────
+// 2 sondes à +1,5s et +3,5s. Si is_playing=true ET progress_ms identique (< 200ms de diff)
+// → playhead figé → appareil fantôme → screen-device.
+// Note : progress_ms avance même pendant le silence (Spotify playhead = temps, pas audio).
+
+async function _checkPhantomDevice(track) {
+  const probe = async () => {
+    const data = await _spotify?._api('GET', '/me/player');
+    return data;
+  };
+  const p1 = await new Promise(r => setTimeout(async () => r(await probe()), 1500));
+  const p2 = await new Promise(r => setTimeout(async () => r(await probe()), 2000)); // +3,5s total
+  if (!p1 || !p2) return; // réseau indisponible — on laisse la sonde normale gérer
+  const prog1 = p1.progress_ms || 0;
+  const prog2 = p2.progress_ms || 0;
+  if (p1.is_playing && p2.is_playing && Math.abs(prog2 - prog1) < 200) {
+    _log(`⚠️ Appareil fantôme détecté : progress_ms figé (${prog1}ms / ${prog2}ms) — screen-device`, 'warn');
+    _showToast('Ouvre Spotify et lance un titre', 'warn');
+    showScreen('screen-device');
+    return;
+  }
+  _log(`✅ Lecture confirmée : progress ${prog1}ms → ${prog2}ms`, 'ok');
+}
+
 // ─── Party creation ───────────────────────────────────────────────────────────
 
 async function launchParty() {
@@ -632,6 +760,11 @@ async function _createAndStartParty(partyName, fast) {
   const code       = _generateCode();
   const hostSecret = _randomString(32);
   STATE.party      = { code, hostSecret };
+
+  // 4. Sauvegarder pour reprise après rechargement (< 6h)
+  sessionStorage.setItem('host_party_session', JSON.stringify({
+    partyCode: code, hostSecret, startedAt: Date.now()
+  }));
 
   _log(`Création soirée ${code}…`);
 
@@ -706,6 +839,11 @@ async function _loadAndPlayFirst(code) {
     const first = STATE.tracks[0];
     const ok = await _spotify.play([first.spotifyUri]);
     if (!ok) return;
+
+    // 2. Détection appareil fantôme : 2 sondes à +1,5s et +3,5s
+    // Si les deux retournent is_playing=true ET progress_ms < 500 → playhead figé → fantôme
+    STATE.phantomChecks = 0;
+    await _checkPhantomDevice(first);
 
     // 8. Émettre host:trackUpdate (comme iOS L5167 server.js)
     _emitTrackUpdate(first);
@@ -812,21 +950,52 @@ function _emitTrackUpdate(track) {
 
 // ─── Playback controls ────────────────────────────────────────────────────────
 
+// ── Verrou boutons 1,5s (guard ×2/×3 appuis rapides + bascule d'app) ────────
+function _withBusy(name, fn) {
+  return async function() {
+    // 3. Si Safari a suspendu l'onglet : mettre en attente, pas d'appel réseau
+    if (STATE.suspended) {
+      STATE.pendingCmd = { name, fn };
+      _log(`⏳ ${name} en attente (onglet suspendu)`, 'info');
+      return;
+    }
+    if (STATE.busy) { _log(`⚡ ${name} ignoré (busy)`, 'info'); return; }
+    STATE.busy = true;
+    setTimeout(() => { STATE.busy = false; }, 1500);
+    _log(`${name}`, 'ok');
+    try { await fn(); }
+    catch (e) {
+      // 3. "Load failed" (TypeError fetch) = Safari a suspendu l'onglet pendant l'appel
+      if (e instanceof TypeError && /load failed|network|fetch/i.test(e.message)) {
+        _log(`↩ ${name} — réseau suspendu (bascule app) — en attente visibilitychange`, 'info');
+        STATE.pendingCmd = { name, fn };
+      } else {
+        _log(`${name} erreur : ${e.message}`, 'error');
+      }
+    }
+    finally { STATE.busy = false; }
+  };
+}
+
 async function next() {
-  await _spotify?.next();
-  // La sonde détectera la transition (nextExpectedUri)
+  await _withBusy('⏭ NEXT', async () => {
+    await _spotify?.next();
+  })();
 }
 
 async function prev() {
-  // Spotify n'a pas de "previous" dans la Web API sans contexte — on re-joue le courant
-  const curr = STATE.tracks[STATE.currentIdx];
-  if (curr) await _spotify?.play([curr.spotifyUri]);
+  await _withBusy('⏮ PREV', async () => {
+    const curr = STATE.tracks[STATE.currentIdx];
+    if (curr) await _spotify?.play([curr.spotifyUri]);
+  })();
 }
 
 async function togglePlay() {
-  if (!_spotify) return;
-  if (STATE.isPlaying) { await _spotify.pause(); }
-  else                 { await _spotify.resume(); }
+  await _withBusy(STATE.isPlaying ? '⏸ PAUSE' : '▶ RESUME', async () => {
+    if (!_spotify) return;
+    if (STATE.isPlaying) { await _spotify.pause(); }
+    else                 { await _spotify.resume(); }
+  })();
 }
 
 // ─── Party info ───────────────────────────────────────────────────────────────

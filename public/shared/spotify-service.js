@@ -178,10 +178,18 @@ export default class SpotifyService {
    * @param {string} deviceId
    */
   async transferToDevice(deviceId) {
-    await this._api('PUT', '/me/player', { device_ids: [deviceId], play: false });
+    const res = await this._api('PUT', '/me/player', { device_ids: [deviceId], play: false });
+    if (res === null) {
+      // 403 = appareil indisponible (fantôme) ou 404 = device inconnu
+      // _api a déjà appelé onNoDevice() pour 404 ; pour 403, on le fait ici
+      this._log('TRANSFERT échoué (403/404) — appareil fantôme → screen-device', 'warn');
+      this.onNoDevice();
+      return false;
+    }
     this.activeDeviceId = deviceId;
     this._log(`TRANSFERT → device ${deviceId}`);
     await new Promise(r => setTimeout(r, 1000)); // iOS attend 1s
+    return true;
   }
 
   /**
@@ -197,7 +205,9 @@ export default class SpotifyService {
       return active.id;
     }
     if (devices.length > 0) {
-      await this.transferToDevice(devices[0].id);
+      // 2. Tenter le transfert — si 403 (fantôme), retourner null
+      const ok = await this.transferToDevice(devices[0].id);
+      if (!ok) return null;
       return devices[0].id;
     }
     this._log('Aucun device Spotify disponible', 'warn');
@@ -303,8 +313,14 @@ export default class SpotifyService {
     this._probeTimers = [];
   }
 
+  _probeCounter = 0; // compteur global d'armements (unicité)
   _scheduleProbe(delayMs) {
-    const t = setTimeout(() => this._probe(), delayMs);
+    this._probeCounter++;
+    const n = this._probeCounter;
+    const t = setTimeout(() => {
+      this._log(`🔍 sonde armée #${n} (+${delayMs}ms)`, 'info');
+      this._probe();
+    }, delayMs);
     this._probeTimers.push(t);
   }
 
@@ -432,8 +448,16 @@ export default class SpotifyService {
     try {
       res = await fetch(url, opts);
     } catch (netErr) {
-      this._log(`Erreur réseau : ${netErr.message}`, 'error');
-      return null;
+      // 3. "Load failed" / "TypeError: Load failed" = Safari suspend l'onglet.
+      // Ne pas logger comme erreur (bruit) — l'appelant gère via pendingCmd.
+      const isAppSuspend = netErr instanceof TypeError &&
+        /load failed|network|fetch/i.test(netErr.message);
+      if (isAppSuspend) {
+        this._log(`Réseau suspendu (bascule app) : ${netErr.message}`, 'info');
+      } else {
+        this._log(`Erreur réseau : ${netErr.message}`, 'error');
+      }
+      throw netErr; // 3. relancer pour que _withBusy() mette en pendingCmd
     }
 
     // 204 = succès sans body
