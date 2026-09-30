@@ -58,12 +58,15 @@ const STATE = {
 window.HOST = {
   signIn, signOut, setVisibility, onCoverChange, onSpotifyCardClick,
   launchParty, justPlay, next, prev, togglePlay, share, retryDevices,
-  onFirstNameInput
+  onFirstNameInput, initWebPlayer, showScreen
 };
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 
 (async () => {
+  // 1.2: Charger le ring buffer sessionStorage AVANT tout _log
+  // (sinon 'Boot host.js' écrase l'historique précédent)
+  _logLoadFromSession();
   _log('Boot host.js');
 
   // Charger config Spotify depuis le serveur (Client ID public PKCE)
@@ -81,10 +84,10 @@ window.HOST = {
     document.getElementById('apple-music-card').style.display = 'flex';
   }
 
-  // A4: Mode debug — pastille LOG visible (panneau fermé par défaut)
+  // A4: Mode debug — pastille LOG + rendu du buffer dans le panel
   if (STATE.debugMode) {
-    _logInitPanel();
-    _logRestoreFromSession(); // restaurer log après PKCE redirect
+    _logInitPanel(); // crée la pastille + bouton Copier
+    _logRenderBuffer(); // affiche les lignes déjà dans _logBuf
   }
 
   // Pré-remplir date avec aujourd'hui
@@ -489,7 +492,12 @@ function _initSpotify() {
 
 async function _checkSpotifyPremium() {
   const me = await _spotify.fetchMe();
-  if (!me) return;
+  if (!me) {
+    // fetchMe() a échoué (réseau ou 401) — spotify.isPremium reste false — bouton disabled
+    _log('fetchMe() null — Spotify inaccessible', 'warn');
+    _updateLaunchBtn(); // A2: logguer la raison 'Spotify inaccessible'
+    return;
+  }
   const card    = document.getElementById('spotify-card');
   const label   = document.getElementById('sp-label');
   const value   = document.getElementById('sp-value');
@@ -515,13 +523,18 @@ async function _checkSpotifyPremium() {
 
 // ─── A2: Recalcul du bouton Lancer (centralisé) ──────────────────────────────
 // Appelé après : PKCE callback, socket.connect, _checkSpotifyPremium.
-// Raison loguée en debug pour faciliter le diagnostic.
+// 3 raisons possibles de grisage :
+//   1. 'Spotify non Premium'       — _spotify.isPremium = false après fetchMe()
+//   2. 'Spotify inaccessible'      — fetchMe() null (réseau / 401)
+//   3. 'non connecté SSO'          — STATE.user = null (session Supabase absente)
+// Raison(s) loguée(s) en debug pour diagnostic.
 function _updateLaunchBtn() {
   const btn = document.getElementById('btn-launch');
   if (!btn) return;
   const reasons = [];
-  if (!_spotify?.isPremium)    reasons.push('Spotify non Premium');
-  if (!STATE.user)             reasons.push('non connecté SSO');
+  if (!_spotify)                 reasons.push('Spotify inaccessible');
+  else if (!_spotify.isPremium)  reasons.push('Spotify non Premium');
+  if (!STATE.user)               reasons.push('non connecté SSO');
   const disabled = reasons.length > 0;
   btn.disabled = disabled;
   if (STATE.debugMode) {
@@ -911,11 +924,117 @@ async function retryDevices() {
   });
 }
 
+// ─── 2.2: Web Playback SDK (desktop uniquement) ──────────────────────────────
+// Repris de spike/spotify-web:public/spike/spotify.html (fonction initWebPlayer).
+// Affiché uniquement si !isMobile. Chargement SDK au clic (lazy).
+// Sur initialization_error ou authentication_error → masquer carte, log, retour liste.
+// Throttling arrière-plan : le SDK utilise WebAudio — non throttlé. playback_error → log seul.
+
+const _IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+function _showWebPlayerCard() {
+  const card = document.getElementById('web-player-card');
+  if (card && !_IS_MOBILE) card.style.display = 'block';
+}
+
+function _hideWebPlayerCard() {
+  const card = document.getElementById('web-player-card');
+  if (card) card.style.display = 'none';
+}
+
+async function initWebPlayer() {
+  if (_IS_MOBILE) {
+    _log('Web SDK: mobile non supporté', 'warn');
+    return;
+  }
+
+  const token = sessionStorage.getItem('sp_access_token');
+  if (!token) {
+    _showToast('Connecte Spotify d\'abord (Spotify Premium requis)', 'warn');
+    return;
+  }
+
+  const statusEl = document.getElementById('web-player-status');
+  const btn      = document.getElementById('btn-web-player');
+  if (statusEl) statusEl.textContent = 'Chargement du SDK…';
+  if (btn) btn.disabled = true;
+  _log('Web SDK → chargement SDK Spotify…', 'info');
+
+  // Charger le SDK au clic uniquement (lazy)
+  if (!window.Spotify) {
+    const script = document.createElement('script');
+    script.src = 'https://sdk.scdn.co/spotify-player.js';
+    document.body.appendChild(script);
+  }
+
+  window.onSpotifyWebPlaybackSDKReady = () => {
+    _log('Web SDK chargé ✅', 'ok');
+    const player = new Spotify.Player({
+      name: 'AhOuai Web',
+      getOAuthToken: cb => {
+        // Utiliser le token PKCE existant (déjà rafraîchi par SpotifyService)
+        cb(sessionStorage.getItem('sp_access_token') || '');
+      },
+      volume: 0.8,
+    });
+
+    // ✅ Ready
+    player.addListener('ready', ({ device_id }) => {
+      _log(`Web SDK prêt — device_id=${device_id} ("AhOuai Web")`, 'ok');
+      if (statusEl) statusEl.textContent = '✅ Prêt — sélectionne "AhOuai Web" dans la liste.';
+      if (btn) btn.disabled = false;
+      // Rafraîchir la liste d'appareils pour afficher "AhOuai Web"
+      retryDevices();
+    });
+
+    // ⚠ Not ready
+    player.addListener('not_ready', ({ device_id }) => {
+      _log(`Web SDK not ready: ${device_id}`, 'warn');
+      if (statusEl) statusEl.textContent = '⚠️ Player non prêt';
+    });
+
+    // ❌ Init error — EME non supporté (Firefox, Safari < 12.3)
+    player.addListener('initialization_error', ({ message }) => {
+      _log(`Web SDK initialization_error: ${message} — carte masquée`, 'warn');
+      _hideWebPlayerCard();
+      if (statusEl) statusEl.textContent = '';
+      if (btn) btn.disabled = false;
+      _showToast('Ce navigateur ne supporte pas le SDK Spotify (EME requis)', 'warn');
+    });
+
+    // ❌ Auth error — token expiré ou non Premium
+    player.addListener('authentication_error', ({ message }) => {
+      _log(`Web SDK authentication_error: ${message} — carte masquée`, 'warn');
+      _hideWebPlayerCard();
+      _showToast('⚠ Spotify : erreur d\'authentification (Premium requis)', 'warn');
+    });
+
+    // ⚠ Playback error — onglet arrière-plan ou réseau (ne pas masquer la carte)
+    player.addListener('playback_error', ({ message }) => {
+      _log(`Web SDK playback_error: ${message}`, 'warn');
+    });
+
+    player.addListener('player_state_changed', (state) => {
+      if (state && STATE.debugMode) {
+        const track = state.track_window?.current_track?.name || '?';
+        _log(`Web SDK state: ${state.paused ? '⏸' : '▶'} ${track}`, 'info');
+      }
+    });
+
+    player.connect().then(ok => {
+      if (ok) _log('Web SDK connecté ✅', 'ok');
+      else { _log('Web SDK connect failed', 'error'); if (btn) btn.disabled = false; }
+    });
+  };
+}
+
 // ─── Screen navigation ────────────────────────────────────────────────────────
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id)?.classList.add('active');
+  // 2.2: afficher la carte Web Player si desktop et screen-device
+  if (id === 'screen-device') _showWebPlayerCard();
 }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
@@ -1009,21 +1128,27 @@ function _logCopyFallback(text) {
   _showToast('Log copié ✓', 'success');
 }
 
-function _logRestoreFromSession() {
+// 1.2: Chargement sessionStorage → _logBuf uniquement (pas de DOM, safe avant _log)
+function _logLoadFromSession() {
   try {
     const stored = sessionStorage.getItem(LOG_RING_KEY);
     if (!stored) return;
     const lines = JSON.parse(stored);
-    _logBuf = lines;
-    const panel = document.getElementById('log-panel');
-    lines.forEach(line => {
-      const entry = document.createElement('div');
-      entry.className = 'log-entry info';
-      entry.textContent = line;
-      panel.appendChild(entry);
-    });
-    panel.scrollTop = panel.scrollHeight;
+    if (Array.isArray(lines)) _logBuf = lines;
   } catch {}
+}
+
+// 1.2: Rendu du buffer dans le panel (appelé après _logInitPanel)
+function _logRenderBuffer() {
+  const panel = document.getElementById('log-panel');
+  if (!panel || !_logBuf.length) return;
+  _logBuf.forEach(line => {
+    const entry = document.createElement('div');
+    entry.className = 'log-entry info';
+    entry.textContent = line;
+    panel.appendChild(entry);
+  });
+  panel.scrollTop = panel.scrollHeight;
 }
 
 function _logPersistToSession() {

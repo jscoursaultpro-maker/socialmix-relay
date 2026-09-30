@@ -160,11 +160,12 @@
       },
       setItem(key, value) {
         try {
-          // Écriture en cookie unique (pas de chunking côté relay :
-          // la session relay est écrite par le SDK standalone @supabase/supabase-js
-          // qui n'est pas @supabase/ssr → pas de fragmentation).
-          const enc = encodeURIComponent(value);
-          document.cookie = `${key}=${enc}${domAttr}; path=/; max-age=${MAX_AGE}; SameSite=Lax${secureFlag}`;
+          // 0.4: Écriture localStorage UNIQUEMENT (pas de cookie ici).
+          // Raison : le cookie est écrit par ahouai-web (Next.js / @supabase/ssr, chunked).
+          // Un encodeURIComponent(JSON brut) peut dépasser 4096 octets sur Safari
+          // quand Supabase inclut le provider_token Google (~4549 octets mesurés).
+          // Safari rejette silencieusement → session perdue. localStorage = même origine,
+          // pas de limite de taille, et déjà lu dans getItem() comme fallback.
           localStorage.setItem(key, value);
         } catch (e) {
           if (debugFn) debugFn(`supabase-cookie setItem err: ${e.message}`);

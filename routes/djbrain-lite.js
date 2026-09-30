@@ -156,6 +156,118 @@ async function _resolveBatch(tracks) {
   return resolved;
 }
 
+// ─── Cache texte (échec ISRC) ────────────────────────────────────────────────
+// Cache clé : "title::artist" normalisé → { trackId | null, expiresAt }
+// Jamais stocké pour les faux positifs (karaoke, tribute) — null mis en cache.
+const _textCache = new Map();
+
+// Normalisation alphanumérique stricte (même règle que normalizeTitle iOS)
+function _normalizeForMatch(str) {
+  return (str || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // accents
+    .replace(/[^a-z0-9]/g, '');                          // non alphanumérique
+}
+
+// Blacklist faux positifs : karaoke, tribute, cover, backing track, made famous
+const _FP_BLACKLIST = /karaoke|tribute|made famous|backing track|instrumental version/i;
+
+/**
+ * Résout un seul titre via recherche texte Spotify après échec ISRC.
+ * GET /v1/search?q=track:"<title>" artist:"<artist>"&type=track&market=FR&limit=3
+ * Normalisation stricte alphanumérique : titre ET artiste doivent matcher.
+ * Blacklist faux positifs (karaoke, tribute, made famous, backing track).
+ * Write-back BDD identique à _resolveIsrc (jamais écrasement existant).
+ * @param {string} title
+ * @param {string} artist
+ * @param {string} mongoId
+ * @returns {string|null} trackId Spotify ou null
+ */
+async function _resolveText(title, artist, mongoId) {
+  const cacheKey = `${_normalizeForMatch(title)}::${_normalizeForMatch(artist)}`;
+  const cached   = _textCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) return cached.trackId;
+
+  const token = await _getClientCredentialsToken();
+  if (!token) return null;
+
+  const q   = `track:"${title}" artist:"${artist}"`;
+  const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&market=FR&limit=3`;
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (res.status === 429) {
+      console.warn(`[djbrain-lite] 429 text search — Retry-After: ${res.headers.get('Retry-After') || '?'}s`);
+      return null;
+    }
+    if (!res.ok) { console.warn(`[djbrain-lite] text search HTTP ${res.status} for "${title}"`); return null; }
+
+    const data  = await res.json();
+    const items = data?.tracks?.items || [];
+    const normTitle  = _normalizeForMatch(title);
+    const normArtist = _normalizeForMatch(artist);
+
+    // Retenir le 1er résultat dont titre ET artiste normalisés matchent, sans faux positif
+    const match = items.find(item => {
+      if (_FP_BLACKLIST.test(item.name)) return false;   // blacklist
+      const tOK = _normalizeForMatch(item.name).includes(normTitle) ||
+                  normTitle.includes(_normalizeForMatch(item.name));
+      const aOK = item.artists.some(a =>
+        _normalizeForMatch(a.name).includes(normArtist) ||
+        normArtist.includes(_normalizeForMatch(a.name))
+      );
+      return tOK && aOK;
+    });
+
+    if (!match) {
+      console.log(`[djbrain-lite] text search: no match for "${title}" — "${artist}"`);
+      _textCache.set(cacheKey, { trackId: null, expiresAt: Date.now() + ISRC_CACHE_TTL });
+      return null;
+    }
+
+    const trackId = match.id;
+    console.log(`[djbrain-lite] ✅ text "${title}" → spotify:track:${trackId} (${match.name} — ${match.artists[0]?.name})`);
+    _textCache.set(cacheKey, { trackId, expiresAt: Date.now() + ISRC_CACHE_TTL });
+
+    // Write-back BDD (jamais écrasement existant)
+    Track.findOneAndUpdate(
+      { _id: mongoId, $or: [
+        { 'providers.spotify.trackId': { $exists: false } },
+        { 'providers.spotify.trackId': null },
+        { 'providers.spotify.trackId': '' }
+      ]},
+      { $set: { 'providers.spotify.trackId': trackId } },
+      { upsert: false }
+    ).then(doc => {
+      if (doc) console.log(`[djbrain-lite] 📝 text write-back ${mongoId} → ${trackId}`);
+    }).catch(e => console.error('[djbrain-lite] text write-back err:', e.message));
+
+    return trackId;
+  } catch (e) {
+    console.error(`[djbrain-lite] text search erreur pour "${title}":`, e.message);
+    return null;
+  }
+}
+
+/**
+ * Résolution texte batch — max 5 résolutions (mutualisées avec ISRC).
+ * N'est appelé que si withSpotify.length < count après ISRC.
+ * @param {Array} tracks — tracks sans trackId après ISRC (avec title+artist)
+ * @param {number} budget — appels restants (budget global ISRC+text = 5)
+ * @returns {Map<string, string>} mongoId → trackId
+ */
+async function _resolveTextBatch(tracks, budget) {
+  const candidates = tracks.slice(0, budget);
+  const resolved   = new Map();
+  for (const t of candidates) {
+    if (!t.title || !t.artist) continue;
+    const trackId = await _resolveText(t.title, t.artist, t._id);
+    if (trackId) resolved.set(t._id.toString(), trackId);
+  }
+  if (candidates.length > 0) {
+    console.log(`[djbrain-lite] Text batch: ${resolved.size}/${candidates.length} résolus`);
+  }
+  return resolved;
+}
+
 // ─── Route principale ─────────────────────────────────────────────────────────
 
 router.get('/next', async (req, res) => {
@@ -199,18 +311,38 @@ router.get('/next', async (req, res) => {
     const withoutSpotify = eligible.filter(t => !t.providers?.spotify?.trackId && t.isrc);
 
     // ── Résolution ISRC si besoin (couverture < 50 %) ─────────────────────────
+    const MAX_RESOLUTION_BUDGET = 5; // budget global ISRC + texte par appel /next
     let resolvedMap = new Map();
     const needsMore = withSpotify.length < count;
     if (needsMore && withoutSpotify.length > 0) {
-      resolvedMap = await _resolveBatch(withoutSpotify);
+      resolvedMap = await _resolveBatch(withoutSpotify); // max 5 ISRC
+    }
+
+    // ── 2.1: Recherche texte de secours (après échec ISRC) ────────────────────
+    // Si encore < count après ISRC, tenter la recherche texte sur les tracks
+    // sans trackId même après résolution ISRC.
+    let resolvedTextMap = new Map();
+    const stillMissing = withoutSpotify.filter(t =>
+      !resolvedMap.has(t._id.toString()) && t.title && t.artist
+    );
+    const textBudget = Math.max(0, MAX_RESOLUTION_BUDGET - resolvedMap.size);
+    if (needsMore && stillMissing.length > 0 && textBudget > 0) {
+      resolvedTextMap = await _resolveTextBatch(stillMissing, textBudget);
     }
 
     // ── Construire le pool final ──────────────────────────────────────────────
     // 1. Tracks déjà avec spotifyId
     // 2. Tracks résolus par ISRC ce tour
-    const resolved = withoutSpotify
+    // 3. Tracks résolus par texte ce tour
+    const resolvedByIsrc = withoutSpotify
       .filter(t => resolvedMap.has(t._id.toString()))
-      .map(t => ({ ...t, providers: { ...t.providers, spotify: { trackId: resolvedMap.get(t._id.toString()) } } }));
+      .map(t => ({ ...t, providers: { ...t.providers, spotify: { trackId: resolvedMap.get(t._id.toString()) } }, _resolvedBy: 'isrc' }));
+
+    const resolvedByText = stillMissing
+      .filter(t => resolvedTextMap.has(t._id.toString()))
+      .map(t => ({ ...t, providers: { ...t.providers, spotify: { trackId: resolvedTextMap.get(t._id.toString()) } }, _resolvedBy: 'text' }));
+
+    const resolved = [...resolvedByIsrc, ...resolvedByText];
 
     const pool = [...withSpotify, ...resolved];
 
@@ -224,7 +356,8 @@ router.get('/next', async (req, res) => {
       durationMs:  t.durationMs || 0,
       coverArtURL: t.coverArtURL || null,
       qualityLevel: t.qualityLevel,
-      _resolvedThisCall: resolvedMap.has(t._id.toString()),
+      _resolvedThisCall: resolvedMap.has(t._id.toString()) || resolvedTextMap.has(t._id.toString()),
+      _resolvedBy:  t._resolvedBy || (t.providers?.spotify?.trackId ? 'bdd' : 'unknown'),
       _source: 'djbrain-lite'
     }));
 
@@ -236,8 +369,8 @@ router.get('/next', async (req, res) => {
     // A1.4 debug : trackId AhOuai → spotifyUri (jamais de token/secret)
     if (process.env.NODE_ENV !== 'production' || partyCode) {
       result.forEach(t => {
-        const src = t._resolvedThisCall ? 'ISRC-résolu' : 'BDD';
-        console.log(`[djbrain-lite]   trackId ${t.trackId.slice(-8)} (${src}) → ${t.spotifyUri} | ${t.title}`);
+        const src = t._resolvedBy === 'isrc' ? 'ISRC-résolu' : t._resolvedBy === 'text' ? 'text-résolu' : 'BDD';
+        console.log(`[djbrain-lite]   trackId ...${t.trackId.slice(-8)} (${src}) → ${t.spotifyUri} | ${t.title}`);
       });
     }
 
@@ -249,7 +382,9 @@ router.get('/next', async (req, res) => {
       _meta: {
         poolWithSpotify: withSpotify.length,
         poolWithoutSpotify: withoutSpotify.length,
-        resolvedThisCall: resolvedMap.size
+        resolvedByIsrc:   resolvedMap.size,
+        resolvedByText:   resolvedTextMap.size,
+        unresolved:       stillMissing.length - resolvedTextMap.size
       },
       _note: 'PROVISOIRE — contrat stable : [{trackId, title, artist, spotifyUri, durationMs}]',
       generatedAt: new Date().toISOString()

@@ -196,6 +196,17 @@
         </div>
       </div>
     </div>
+    <!-- 2.2: Carte "Jouer dans ce navigateur" — desktop uniquement, masquée sur mobile -->
+    <div id="web-player-card" class="card" style="display:none;">
+      <div class="card-title">🖥 Ce navigateur</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">
+        Joue directement depuis ce navigateur (Chrome/Edge — Spotify Premium requis).
+      </p>
+      <button id="btn-web-player" class="btn-secondary" onclick="HOST.initWebPlayer()">
+        Jouer dans ce navigateur
+      </button>
+      <p id="web-player-status" style="font-size:12px;color:var(--muted);margin-top:6px;"></p>
+    </div>
   </div><!-- /screen-device -->
 
 
