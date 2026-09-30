@@ -25,7 +25,15 @@ router.get('/', async (req, res) => {
 
     const cacheKey = `${partyCode}::${_normalizeForMatch(title)}::${_normalizeForMatch(artist)}`;
     const cached = linksCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiresAt) return res.json(cached.data);
+    if (cached && Date.now() < cached.expiresAt) {
+       const isAllSearch = cached.data.resolvedBy?.spotify === 'search' && cached.data.resolvedBy?.deezer === 'search' && cached.data.resolvedBy?.apple === 'search';
+       if (isAllSearch) {
+         res.setHeader('Cache-Control', 'no-store');
+       } else {
+         res.setHeader('Cache-Control', 'public, s-maxage=3600, max-age=3600');
+       }
+       return res.json(cached.data);
+    }
 
     // 1. Retrieve party history
     const parties = req.app.get('parties');
@@ -36,14 +44,21 @@ router.get('/', async (req, res) => {
     
     let mongoId = null;
     let isrcFromHistory = null;
+    let deezerIdFromHistory = null;
+    let spotifyIdFromHistory = null;
+    let appleIdFromHistory = null;
     
     if (party && party.trackHistory) {
       const normTitle = _normalizeForMatch(title);
       const normArtist = _normalizeForMatch(artist);
       for (const t of party.trackHistory) {
          if (_normalizeForMatch(t.title).includes(normTitle) && _normalizeForMatch(t.artist).includes(normArtist)) {
-           mongoId = t.trackId || t._id;
-           isrcFromHistory = t.isrc; // in case mongoId isn't reliable
+           mongoId = t.trackId;
+           isrcFromHistory = t.isrc;
+           deezerIdFromHistory = t.deezerId;
+           spotifyIdFromHistory = t.spotifyId;
+           appleIdFromHistory = t.appleMusicId;
+           console.log(`[track-links] Found in history: mongoId=${mongoId}, deezerId=${deezerIdFromHistory}`);
            break;
          }
       }
@@ -52,8 +67,22 @@ router.get('/', async (req, res) => {
     let dbTrack = null;
     if (mongoId) {
        dbTrack = await Track.findById(mongoId).lean();
+    } else if (deezerIdFromHistory) {
+       dbTrack = await Track.findOne({ 'providers.deezer.trackId': deezerIdFromHistory }).lean();
+    } else if (spotifyIdFromHistory) {
+       dbTrack = await Track.findOne({ 'providers.spotify.trackId': spotifyIdFromHistory }).lean();
     } else if (isrcFromHistory) {
        dbTrack = await Track.findOne({ isrc: isrcFromHistory }).lean();
+    }
+    
+    // Fallback: chercher en BDD directement
+    if (!dbTrack) {
+       const cleanTitle = title.replace(/\s*\(.*\)\s*/, '').trim();
+       dbTrack = await Track.findOne({
+          title: { $regex: new RegExp('^' + cleanTitle, 'i') },
+          artist: { $regex: new RegExp('^' + artist, 'i') }
+       }).lean();
+       console.log(`[track-links] Fallback search DB for "${cleanTitle}" - found: ${!!dbTrack}`);
     }
 
     // 2. Prepare result
@@ -97,7 +126,31 @@ router.get('/', async (req, res) => {
       }
     }
 
-    linksCache.set(cacheKey, { data: result, expiresAt: Date.now() + CACHE_TTL });
+    // Use history IDs if DB didn't have them
+    if (result.resolvedBy.deezer === 'search' && deezerIdFromHistory) {
+       result.deezer = `https://www.deezer.com/track/${deezerIdFromHistory}`;
+       result.resolvedBy.deezer = 'history';
+    }
+    if (result.resolvedBy.spotify === 'search' && spotifyIdFromHistory) {
+       result.spotify = `https://open.spotify.com/track/${spotifyIdFromHistory}`;
+       result.resolvedBy.spotify = 'history';
+    }
+    if (result.resolvedBy.apple === 'search' && appleIdFromHistory) {
+       result.apple = `https://music.apple.com/fr/song/${appleIdFromHistory}`;
+       result.resolvedBy.apple = 'history';
+    }
+
+    const isAllSearch = result.resolvedBy.spotify === 'search' && result.resolvedBy.deezer === 'search' && result.resolvedBy.apple === 'search';
+    const ttl = isAllSearch ? 5 * 60 * 1000 : CACHE_TTL;
+    
+    linksCache.set(cacheKey, { data: result, expiresAt: Date.now() + ttl });
+    
+    if (isAllSearch) {
+       res.setHeader('Cache-Control', 'no-store');
+    } else {
+       res.setHeader('Cache-Control', 'public, s-maxage=3600, max-age=3600');
+    }
+    
     res.json(result);
 
   } catch (err) {
