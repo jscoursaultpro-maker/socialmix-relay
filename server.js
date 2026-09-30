@@ -28,6 +28,7 @@ import { uploadPhoto } from './services/cloudinaryService.js';
 import { cappedPush, cappedUnshift } from './utils/cappedPush.js';
 import adminUsersRouter from './routes/admin/users.js';
 import adminGuestsRouter from './routes/admin/guests.js';
+import trackLinksRouter from './routes/track-links.js';
 import adminBatchRouter from './routes/admin/batch.js';
 import adminFoundersRouter from './routes/admin/founders.js';
 import * as Sentry from '@sentry/node'; // ★ feat(sentry): Express error handler
@@ -1225,6 +1226,7 @@ app.use('/auth', authCallbackRouter);
 
 // ★ Chantier 2: Public Track catalogue seed (no auth — public data)
 app.use('/api/tracks/seed', compression(), tracksSeedRouter);
+app.use('/api/track/links', trackLinksRouter);
 
 // ★ feat(#30): Recherche par artiste + tri AhOuai + pagination (verifyGuestAuth)
 // IMPORTANT: monter AVANT les routes inline /api/tracks/:id/... (L~1019)

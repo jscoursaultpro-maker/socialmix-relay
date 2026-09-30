@@ -76,7 +76,7 @@ const ISRC_CACHE_TTL = 60 * 60 * 1000; // 1h
  * @param {string} mongoId — ObjectId pour le upsert BDD
  * @returns {string|null} trackId Spotify ou null
  */
-async function _resolveIsrc(isrc, mongoId) {
+export async function _resolveIsrc(isrc, mongoId) {
   // Cache hit
   const cached = _isrcCache.get(isrc);
   if (cached && Date.now() < cached.expiresAt) return cached.trackId;
@@ -162,7 +162,7 @@ async function _resolveBatch(tracks) {
 const _textCache = new Map();
 
 // Normalisation alphanumérique stricte (même règle que normalizeTitle iOS)
-function _normalizeForMatch(str) {
+export function _normalizeForMatch(str) {
   return (str || '').toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // accents
     .replace(/[^a-z0-9]/g, '');                          // non alphanumérique
@@ -182,7 +182,7 @@ const _FP_BLACKLIST = /karaoke|tribute|made famous|backing track|instrumental ve
  * @param {string} mongoId
  * @returns {string|null} trackId Spotify ou null
  */
-async function _resolveText(title, artist, mongoId) {
+export async function _resolveText(title, artist, mongoId) {
   const cacheKey = `${_normalizeForMatch(title)}::${_normalizeForMatch(artist)}`;
   const cached   = _textCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) return cached.trackId;
