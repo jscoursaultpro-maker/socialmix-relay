@@ -317,7 +317,9 @@ export default class SpotifyService {
     this._probeTimers = [];
   }
 
-  _probeCounter = 0; // compteur global d'armements (unicité)
+  _probeCounter    = 0; // compteur global d'armements (unicité)
+  _nullProbeStreak = 0; // tentatives consécutives sans data.item (réseau suspendu ou inactif)
+
   _scheduleProbe(delayMs) {
     this._probeCounter++;
     const n = this._probeCounter;
@@ -332,11 +334,21 @@ export default class SpotifyService {
     const data = await this._api('GET', '/me/player');
 
     if (!data || !data.item) {
+      this._nullProbeStreak++;
       if (data === null) {
-        this._log('ℹ️ Pas de lecture active', 'warn');
+        this._log(`ℹ️ Réseau indisponible (streak ${this._nullProbeStreak})`, 'info');
+      } else {
+        this._log(`ℹ️ Pas d'item Spotify (streak ${this._nullProbeStreak})`, 'info');
         this.onNoDevice();
       }
       this.onStateChange(null);
+
+      // ── Réarmement de secours ─────────────────────────────────────────────
+      // Sans ce réarmement, une seule bascule d'app (null) tue la chaîne pour
+      // toute la soirée. Stratégie : 5 s × 6 tentatives, puis 30 s au-delà.
+      const fallbackDelay = this._nullProbeStreak <= 6 ? 5000 : 30000;
+      this._clearProbes();
+      this._scheduleProbe(fallbackDelay);
       return;
     }
 
@@ -344,6 +356,7 @@ export default class SpotifyService {
     const progress  = data.progress_ms || 0;
     const duration  = item.duration_ms || 1;
 
+    this._nullProbeStreak = 0; // réseau et Spotify OK → reset backoff
     this.isPlaying  = data.is_playing;
     this.currentItem = item;
 
