@@ -20,6 +20,23 @@
 
 import SpotifyService from '/shared/spotify-service.js';
 
+// ─── RÈGLE TDZ (Module ES) ────────────────────────────────────────────────────
+// Toute variable let/const utilisée au boot (ligne ~66) doit être déclarée ICI,
+// AVANT la ligne du boot. node --check ne détecte pas la TDZ ; seul un run le fait.
+// Variables à déclarer en tête : celles référencées par _log, _logLoadFromSession,
+// et toute fonction appelée directement dans le IIFE async de boot.
+
+// ─── A4 : Variables log (déplacées ici depuis ~L1073 pour éviter la TDZ) ──────
+// _log est appelée à L70 (boot). Ces const/let doivent précéder le boot.
+const LOG_RING_MAX  = 400;
+const LOG_RING_KEY  = 'host_log';
+let   _logBuf       = [];  // ring buffer en mémoire (400 lignes max)
+let   _logPanelOpen = false;
+
+// ─── 2.2 : _IS_MOBILE (déclaré ici par précaution — showScreen peut être ──────
+// appelé depuis le boot dans certains chemins de retour PKCE)
+const _IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 // Client ID Spotify : chargé depuis /api/config/spotify (exposé par le serveur, comme Supabase)
@@ -929,8 +946,7 @@ async function retryDevices() {
 // Affiché uniquement si !isMobile. Chargement SDK au clic (lazy).
 // Sur initialization_error ou authentication_error → masquer carte, log, retour liste.
 // Throttling arrière-plan : le SDK utilise WebAudio — non throttlé. playback_error → log seul.
-
-const _IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// Note : _IS_MOBILE déclaré en tête de fichier.
 
 function _showWebPlayerCard() {
   const card = document.getElementById('web-player-card');
@@ -1069,11 +1085,8 @@ function _showToast(msg, type = 'info') {
 }
 
 // ─── A4: Log panel — pastille + ring buffer (400 lignes, sessionStorage) ────────
-
-const LOG_RING_MAX  = 400;
-const LOG_RING_KEY  = 'host_log';
-let   _logBuf       = [];  // ring buffer en mémoire
-let   _logPanelOpen = false;
+// Note : LOG_RING_MAX, LOG_RING_KEY, _logBuf, _logPanelOpen déclarés en tête
+// de fichier (éviter TDZ Module ES — boot appelle _log avant ce point).
 
 function _logInitPanel() {
   // Créer la pastille LOG si absente
