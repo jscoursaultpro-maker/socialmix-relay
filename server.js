@@ -1340,17 +1340,26 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   sugg.boostedBy.push(guestId);
 
   // ★ feat(#29) — Enrichir boostedByUsers[] au write-time (legacy iOS boost handler)
-  // isHostBoost : firstName="Hôte", emoji du hostProfile, pas de photoURL
+  // B1 fix: isHostBoost utilise la vraie photoURL de l'hôte (hostProfile.photo),
+  // jamais null hardcodé. Fallback : enrichUserInfo(hostUserId) si photo absente du profil.
   if (!sugg.boostedByUsers) sugg.boostedByUsers = [];
   if (!sugg.boostedByUsers.find(b => b.userId === String(guestId))) {
     let boosterInfo;
     if (isHostBoost) {
       boosterInfo = {
         userId:    String(guestId),
-        firstName: party.hostProfile?.firstName || 'Hôte',
-        photoURL:  null,
+        firstName: party.hostProfile?.firstName || party.hostProfile?.name || 'Hôte',
+        photoURL:  party.hostProfile?.photo || null,
         emoji:     party.hostProfile?.emoji || '🎧'
       };
+      // Si pas de photo dans hostProfile, tenter enrichUserInfo (BDD Mongo)
+      if (!boosterInfo.photoURL && party.hostUserId) {
+        try {
+          const hostEnriched = await enrichUserInfo(String(party.hostUserId));
+          if (hostEnriched.photoURL) boosterInfo.photoURL = hostEnriched.photoURL;
+          if (hostEnriched.emoji && boosterInfo.emoji === '🎧') boosterInfo.emoji = hostEnriched.emoji;
+        } catch (_) { /* non-fatal */ }
+      }
     } else {
       boosterInfo = await enrichUserInfo(guestId);
       // Complète firstName si enrichUserInfo retourne fallback et qu'on a guestName
@@ -2928,16 +2937,25 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   sugg.boostedBy.push(guestId);
 
   // ★ feat(#29) — Enrichir boostedByUsers[] au write-time (guest:boost Socket.IO handler)
+  // B1 fix: isHostBoost utilise la vraie photoURL de l'hôte (hostProfile.photo).
   if (!sugg.boostedByUsers) sugg.boostedByUsers = [];
   if (!sugg.boostedByUsers.find(b => b.userId === String(guestId))) {
     let boosterInfo;
     if (isHostBoost) {
       boosterInfo = {
         userId:    String(guestId),
-        firstName: party.hostProfile?.firstName || 'Hôte',
-        photoURL:  null,
+        firstName: party.hostProfile?.firstName || party.hostProfile?.name || 'Hôte',
+        photoURL:  party.hostProfile?.photo || null,
         emoji:     party.hostProfile?.emoji || '🎧'
       };
+      // Si pas de photo dans hostProfile, tenter enrichUserInfo (BDD Mongo)
+      if (!boosterInfo.photoURL && party.hostUserId) {
+        try {
+          const hostEnriched = await enrichUserInfo(String(party.hostUserId));
+          if (hostEnriched.photoURL) boosterInfo.photoURL = hostEnriched.photoURL;
+          if (hostEnriched.emoji && boosterInfo.emoji === '🎧') boosterInfo.emoji = hostEnriched.emoji;
+        } catch (_) { /* non-fatal */ }
+      }
     } else {
       boosterInfo = await enrichUserInfo(guestId);
       if (boosterInfo.firstName === 'Un invité' && guestName) {

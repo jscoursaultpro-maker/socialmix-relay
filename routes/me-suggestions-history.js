@@ -1,8 +1,16 @@
 /**
  * routes/me-suggestions-history.js
- * GET /api/me/suggestions/past?limit=20&excludeCode=XYZ
- * Returns user's past suggestions across ALL ended parties.
+ * GET /api/me/suggestions/past?limit=6&offset=0&excludeCode=XYZ
+ * Returns user's past suggestions across ALL ended parties, paginated.
  * Auth: verifyGuestAuth (supports legacy JWT + Supabase).
+ *
+ * Réponse : { items: [...], total: <number>, hasMore: <bool> }
+ * Compatibilité : les appelants avec ?limit=20 sans offset reçoivent le même contenu
+ * qu'avant (les 20 premiers) + les champs total/hasMore en plus.
+ * Tri : plus récent en premier (suggestions.sentAt DESC).
+ *
+ * Fix dédupication : le $limit est retiré du pipeline Mongo et appliqué APRÈS
+ * la dédupication JS (sinon on limite avant de déduper = résultats incorrects).
  */
 import { Router } from 'express';
 import { verifyGuestAuth } from '../middleware/authGuest.js';
@@ -19,10 +27,15 @@ router.get('/suggestions/past', verifyGuestAuth, async (req, res) => {
     const userEmail = (user.email || '').toLowerCase().trim();
 
     if (!userId && !userName && !userEmail) {
-      return res.json({ suggestions: [] });
+      return res.json({ items: [], total: 0, hasMore: false });
     }
 
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
+    // A1 — Validation limit / offset (valeurs invalides → défaut, jamais 400)
+    const rawLimit  = parseInt(req.query.limit);
+    const rawOffset = parseInt(req.query.offset);
+    const limit  = isNaN(rawLimit)  ? 6  : Math.min(Math.max(rawLimit, 1), 50);
+    const offset = isNaN(rawOffset) ? 0  : Math.max(rawOffset, 0);
+
     const excludeCode = req.query.excludeCode || null;
 
     // Build match for ended parties where this user has suggestions
@@ -46,15 +59,14 @@ router.get('/suggestions/past', verifyGuestAuth, async (req, res) => {
       suggestionMatch.push({ 'suggestions.guestName': { $regex: userName, $options: 'i' } });
     }
 
+    // Pipeline sans $limit — la dédupication JS doit voir TOUS les résultats
+    // pour correctement déduper avant d'appliquer offset+limit.
     const pipeline = [
       { $match: matchCondition },
       { $unwind: '$suggestions' },
       // Match suggestions belonging to this user
-      { $match: {
-        $or: suggestionMatch
-      }},
+      { $match: { $or: suggestionMatch } },
       { $sort: { 'suggestions.sentAt': -1 } },
-      { $limit: limit },
       { $project: {
         code: 1,
         hostProfile: 1,
@@ -77,14 +89,14 @@ router.get('/suggestions/past', verifyGuestAuth, async (req, res) => {
 
     // Deduplicate by title+artist (same song suggested in multiple parties)
     const seen = new Set();
-    const suggestions = [];
+    const allItems = [];
     for (const r of results) {
       const s = r.suggestions;
       const key = `${(s.title || '').toLowerCase().trim()}|${(s.artist || '').toLowerCase().trim()}`;
       if (seen.has(key)) continue;
       seen.add(key);
 
-      suggestions.push({
+      allItems.push({
         id: (s._id || s.id || '').toString(),
         title: s.title || '',
         artist: s.artist || '',
@@ -98,8 +110,13 @@ router.get('/suggestions/past', verifyGuestAuth, async (req, res) => {
       });
     }
 
-    console.log(`[me/suggestions/past] user=${userName} → ${results.length} raw, ${suggestions.length} deduped`);
-    return res.json({ suggestions });
+    // A1 — total, hasMore, pagination
+    const total   = allItems.length;
+    const items   = allItems.slice(offset, offset + limit);
+    const hasMore = offset + items.length < total;
+
+    console.log(`[me/suggestions/past] user=${userName} limit=${limit} offset=${offset} → ${items.length}/${total} (hasMore=${hasMore})`);
+    return res.json({ items, total, hasMore });
   } catch (err) {
     console.error('[me/suggestions/past] ❌ Error:', err.message);
     return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });

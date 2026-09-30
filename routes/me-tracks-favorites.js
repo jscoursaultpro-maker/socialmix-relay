@@ -1,8 +1,16 @@
 /**
  * routes/me-tracks-favorites.js
- * GET /api/me/tracks/favorites?limit=20&excludeCode=XYZ
- * Returns tracks fire-voted (🔥) by the user across ALL ended parties.
+ * GET /api/me/tracks/favorites?limit=6&offset=0&excludeCode=XYZ
+ * Returns tracks fire-voted (🔥) by the user across ALL ended parties, paginated.
  * Auth: verifyGuestAuth (supports legacy JWT + Supabase).
+ *
+ * Réponse : { items: [...], total: <number>, hasMore: <bool> }
+ * Compatibilité : appelants avec ?limit=20 sans offset reçoivent le même contenu
+ * qu'avant (les 20 premiers) + total/hasMore en plus.
+ * Tri : score Feu décroissant, puis récence (count DESC, lastVotedAt DESC).
+ *
+ * Fix dédupication : $limit retiré du pipeline Mongo — il était appliqué
+ * AVANT la dédupication JS (comportement incorrect côté pagination).
  *
  * Lighter version of user-fire-votes.js, using verifyGuestAuth.
  *
@@ -38,7 +46,11 @@ router.get('/tracks/favorites', verifyGuestAuth, async (req, res) => {
       return res.json({ tracks: [] });
     }
 
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
+    // A1 — Validation limit / offset (valeurs invalides → défaut, jamais 400)
+    const rawLimit  = parseInt(req.query.limit);
+    const rawOffset = parseInt(req.query.offset);
+    const limit  = isNaN(rawLimit)  ? 6  : Math.min(Math.max(rawLimit, 1), 50);
+    const offset = isNaN(rawOffset) ? 0  : Math.max(rawOffset, 0);
     const excludeCode = req.query.excludeCode || null;
 
     // Match ended parties where user participated
@@ -197,8 +209,8 @@ router.get('/tracks/favorites', verifyGuestAuth, async (req, res) => {
           title: { $nin: ["Titre en cours", "Artiste inconnu", null] },
           artist: { $ne: "Artiste inconnu" }
       }},
-      { $sort: { count: -1, lastVotedAt: -1 } },
-      { $limit: limit }
+      { $sort: { count: -1, lastVotedAt: -1 } }
+      // Pas de $limit ici — la dédupication JS doit voir tous les résultats
     ];
 
     const aggResult = await Party.aggregate(aggPipeline);
@@ -229,24 +241,26 @@ router.get('/tracks/favorites', verifyGuestAuth, async (req, res) => {
       }
     }
 
-    let tracks = Array.from(dedupMap.values());
-    tracks.sort((a, b) => {
+    let allTracks = Array.from(dedupMap.values());
+    allTracks.sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
       return new Date(b.lastVotedAt) - new Date(a.lastVotedAt);
     });
-    tracks = tracks.slice(0, limit);
 
-    console.log(`[me/tracks/favorites] user=${userName} → ${aggResult.length} agg, ${tracks.length} deduped (took ${Date.now() - startAgg}ms)`);
-    return res.json({
-      tracks: tracks.map(t => ({
-        id: t.id,
-        title: t.title,
-        artist: t.artist,
-        deezerID: t.deezerID,
-        artworkUrl: t.coverURL || null,
-        count: t.count
-      }))
-    });
+    // A1 — Pagination après dédupication
+    const total   = allTracks.length;
+    const items   = allTracks.slice(offset, offset + limit).map(t => ({
+      id: t.id,
+      title: t.title,
+      artist: t.artist,
+      deezerID: t.deezerID,
+      artworkUrl: t.coverURL || null,
+      count: t.count
+    }));
+    const hasMore = offset + items.length < total;
+
+    console.log(`[me/tracks/favorites] user=${userName} limit=${limit} offset=${offset} → ${items.length}/${total} (hasMore=${hasMore}, took ${Date.now() - startAgg}ms)`);
+    return res.json({ items, total, hasMore });
   } catch (err) {
     console.error('[me/tracks/favorites] ❌ Error:', err.message);
     return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
