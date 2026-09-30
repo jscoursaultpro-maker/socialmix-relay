@@ -4499,7 +4499,57 @@ function buildLightState(party, isHost = false) {
   const light = {
     code: party.code,
     participants: lightParticipants,
-    suggestions: party.suggestions || [],
+    // B2+B3 — boostedByUsers enrichi + plafonné à 8 dans le payload émis.
+    // enrichUserInfo n'est pas disponible ici (async + BDD) — on utilise le cache
+    // RAM des participants (synchrone, déjà en mémoire). Si boostedByUsers absent
+    // (anciennes suggestions pré-feat#29), on le reconstruit depuis boostedBy[].
+    // Le plafond 8 s'applique sur le payload ; le stockage BDD reste complet.
+    // Cache : la Map des participants (lightParticipants + hostProfile) sert de
+    // lookup synchrone. Invalidation : à chaque buildLightState, le cache est
+    // reconstruit depuis les participants RAM (pas de stale — live par définition).
+    suggestions: (() => {
+      // Construire un cache userId→profil depuis les participants RAM
+      const profileCache = new Map();
+      if (party.hostProfile && party.hostUserId) {
+        profileCache.set(String(party.hostUserId), {
+          userId:    String(party.hostUserId),
+          firstName: party.hostProfile.firstName || party.hostProfile.name || 'Hôte',
+          photoURL:  party.hostProfile.photo || null,
+          emoji:     party.hostProfile.emoji || '🎧'
+        });
+      }
+      for (const p of (party.participants || [])) {
+        if (p.userId) {
+          profileCache.set(String(p.userId), {
+            userId:    String(p.userId),
+            firstName: (p.name || '').split(' ')[0] || 'Invité',
+            photoURL:  p.photo || null,
+            emoji:     p.emoji || '🎉'
+          });
+        }
+      }
+
+      return (party.suggestions || []).map(s => {
+        // Reconstruire boostedByUsers si absent (pré-feat#29) depuis boostedBy[]
+        let byUsers = Array.isArray(s.boostedByUsers) && s.boostedByUsers.length > 0
+          ? s.boostedByUsers
+          : (s.boostedBy || []).map(uid => {
+              const cached = profileCache.get(String(uid));
+              return cached || { userId: String(uid), firstName: 'Invité', photoURL: null, emoji: '🎉' };
+            });
+
+        const boostedByCount = byUsers.length;
+
+        // B3 — Plafonner à 8 dans le payload
+        if (byUsers.length > 8) byUsers = byUsers.slice(0, 8);
+
+        return {
+          ...s,
+          boostedByUsers: byUsers,
+          boostedByCount            // total pour "+N" côté front
+        };
+      });
+    })(),
     trackHistory: recentHistory,
     currentTrack: stripSecret(party.currentTrack || null),
     genreVotes: party.genreVotes || {},
