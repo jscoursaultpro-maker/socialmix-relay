@@ -274,15 +274,19 @@ export default class SpotifyService {
   }
 
   async pause() {
-    await this._api('PUT', '/me/player/pause');
-    this._log('⏸ PAUSE', 'ok');
-    this.isPlaying = false;
+    const res = await this._api('PUT', '/me/player/pause');
+    if (res !== null) {
+      this._log('⏸ PAUSE', 'ok');
+      this.isPlaying = false;
+    }
   }
 
   async resume() {
-    await this._api('PUT', '/me/player/play');
-    this._log('▶ RESUME', 'ok');
-    this._scheduleProbe(1500);
+    const res = await this._api('PUT', '/me/player/play');
+    if (res !== null) {
+      this._log('▶ RESUME', 'ok');
+      this._scheduleProbe(1500);
+    }
   }
 
   // ─── Track validation ─────────────────────────────────────────────────────
@@ -448,16 +452,18 @@ export default class SpotifyService {
     try {
       res = await fetch(url, opts);
     } catch (netErr) {
-      // 3. "Load failed" / "TypeError: Load failed" = Safari suspend l'onglet.
-      // Ne pas logger comme erreur (bruit) — l'appelant gère via pendingCmd.
+      // 3. "Load failed" = Safari suspend l'onglet (bascule app).
+      // NE PAS relancer — tous les appelants attendent null en cas d'échec.
+      // Poster lastNetworkError pour que _withBusy le lise et pose pendingCmd.
       const isAppSuspend = netErr instanceof TypeError &&
         /load failed|network|fetch/i.test(netErr.message);
+      this.lastNetworkError = { at: Date.now(), suspended: isAppSuspend };
       if (isAppSuspend) {
         this._log(`Réseau suspendu (bascule app) : ${netErr.message}`, 'info');
       } else {
         this._log(`Erreur réseau : ${netErr.message}`, 'error');
       }
-      throw netErr; // 3. relancer pour que _withBusy() mette en pendingCmd
+      return null;
     }
 
     // 204 = succès sans body

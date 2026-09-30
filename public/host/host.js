@@ -840,18 +840,17 @@ async function _loadAndPlayFirst(code) {
     const ok = await _spotify.play([first.spotifyUri]);
     if (!ok) return;
 
-    // 2. Détection appareil fantôme : 2 sondes à +1,5s et +3,5s
-    // Si les deux retournent is_playing=true ET progress_ms < 500 → playhead figé → fantôme
-    STATE.phantomChecks = 0;
-    await _checkPhantomDevice(first);
-
     // 8. Émettre host:trackUpdate (comme iOS L5167 server.js)
     _emitTrackUpdate(first);
 
-    // 9. Afficher NowPlaying
+    // 9. Afficher NowPlaying IMMÉDIATEMENT (screen-playing sans attente)
     document.getElementById('np-party-code').textContent = code;
     _renderQR(code);
     showScreen('screen-playing');
+
+    // 2. Détection appareil fantôme en ARRIÈRE-PLAN (non bloquant)
+    // Si fantôme confirmé → showScreen('screen-device') + toast depuis la callback
+    _checkPhantomDevice(first); // sans await
 
   } catch (e) {
     _showToast(`Erreur chargement titres : ${e.message}`, 'error');
@@ -961,19 +960,24 @@ function _withBusy(name, fn) {
     }
     if (STATE.busy) { _log(`⚡ ${name} ignoré (busy)`, 'info'); return; }
     STATE.busy = true;
+    // 3. Reset du verrou UNIQUEMENT après 1,5s (pas de finally) :
+    // un double appui humain < 1,5s est ignoré même si fn() a déjà fini.
     setTimeout(() => { STATE.busy = false; }, 1500);
     _log(`${name}`, 'ok');
-    try { await fn(); }
-    catch (e) {
-      // 3. "Load failed" (TypeError fetch) = Safari a suspendu l'onglet pendant l'appel
-      if (e instanceof TypeError && /load failed|network|fetch/i.test(e.message)) {
+    try {
+      await fn();
+      // 3. Après fn() : vérifier lastNetworkError (posé par _api sans rethrow)
+      if (_spotify?.lastNetworkError?.suspended &&
+          Date.now() - _spotify.lastNetworkError.at < 2000) {
         _log(`↩ ${name} — réseau suspendu (bascule app) — en attente visibilitychange`, 'info');
         STATE.pendingCmd = { name, fn };
-      } else {
-        _log(`${name} erreur : ${e.message}`, 'error');
+        _spotify.lastNetworkError = null;
       }
+    } catch (e) {
+      // Erreur non-réseau (ne devrait pas arriver — _api return null sans throw)
+      _log(`${name} erreur inattendue : ${e.message}`, 'error');
     }
-    finally { STATE.busy = false; }
+    // Pas de finally busy = false : le seul reset est le setTimeout 1,5s ci-dessus
   };
 }
 
