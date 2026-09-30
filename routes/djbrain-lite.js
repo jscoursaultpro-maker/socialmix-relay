@@ -233,6 +233,13 @@ router.get('/next', async (req, res) => {
       `${result.length} tracks (withSpotify:${withSpotify.length} ` +
       `resolved:${resolved.length} total pool:${pool.length})`
     );
+    // A1.4 debug : trackId AhOuai → spotifyUri (jamais de token/secret)
+    if (process.env.NODE_ENV !== 'production' || partyCode) {
+      result.forEach(t => {
+        const src = t._resolvedThisCall ? 'ISRC-résolu' : 'BDD';
+        console.log(`[djbrain-lite]   trackId ${t.trackId.slice(-8)} (${src}) → ${t.spotifyUri} | ${t.title}`);
+      });
+    }
 
     res.json({
       tracks:    result,

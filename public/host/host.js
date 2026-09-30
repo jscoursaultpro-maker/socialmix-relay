@@ -42,6 +42,7 @@ const STATE = {
   tracks:        [],     // [{trackId, title, artist, spotifyUri, durationMs, coverArtURL}]
   currentIdx:    0,
   nextQueued:    false,
+  queuedForTrackId: null,   // A1 guard — URI du prochain mis en file (UN seul par morceau en cours)
   visibility:    'private',
   coverPhotoUrl: null,
   guestCount:    0,
@@ -80,9 +81,10 @@ window.HOST = {
     document.getElementById('apple-music-card').style.display = 'flex';
   }
 
-  // Mode debug — visible dès le boot, y compris sur l'écran de connexion
+  // A4: Mode debug — pastille LOG visible (panneau fermé par défaut)
   if (STATE.debugMode) {
-    document.getElementById('log-panel').style.display = 'block';
+    _logInitPanel();
+    _logRestoreFromSession(); // restaurer log après PKCE redirect
   }
 
   // Pré-remplir date avec aujourd'hui
@@ -447,7 +449,10 @@ function _connectSocket() {
     // ★ Réutilise socketAuth.js : token → socket.user = User Mongoose
     // V0 clients sans token → socket.user = null (backward compat)
   });
-  _socket.on('connect', () => _log(`Socket connecté : ${_socket.id}`, 'ok'));
+  _socket.on('connect', () => {
+    _log(`Socket connecté : ${_socket.id}`, 'ok');
+    _updateLaunchBtn(); // A2: recalculer après connexion socket
+  });
   _socket.on('disconnect', () => _log('Socket déconnecté', 'warn'));
   _socket.on('party:state', _onPartyState);
   _socket.on('participants:update', _onParticipants);
@@ -489,7 +494,6 @@ async function _checkSpotifyPremium() {
   const label   = document.getElementById('sp-label');
   const value   = document.getElementById('sp-value');
   const arrow   = document.getElementById('sp-arrow');
-  const btnLaunch = document.getElementById('btn-launch');
 
   if (me.isPremium) {
     card.classList.add('connected');
@@ -497,7 +501,6 @@ async function _checkSpotifyPremium() {
     value.textContent = 'Premium ✓';
     value.className   = 'sp-value premium';
     arrow.textContent = '✓';
-    btnLaunch.disabled = !STATE.party; // activé une fois la soirée créée
     _log(`Spotify Premium OK : ${me.firstName}`, 'ok');
   } else {
     card.classList.add('blocked');
@@ -505,8 +508,26 @@ async function _checkSpotifyPremium() {
     value.textContent = 'Le pilotage nécessite Premium';
     value.className   = 'sp-value free';
     arrow.textContent = '⚠';
-    btnLaunch.disabled = true;
     _showToast('⚠ Spotify Free — Premium requis pour piloter la lecture', 'warn');
+  }
+  _updateLaunchBtn(); // A2: recalculer après PKCE ou init
+}
+
+// ─── A2: Recalcul du bouton Lancer (centralisé) ──────────────────────────────
+// Appelé après : PKCE callback, socket.connect, _checkSpotifyPremium.
+// Raison loguée en debug pour faciliter le diagnostic.
+function _updateLaunchBtn() {
+  const btn = document.getElementById('btn-launch');
+  if (!btn) return;
+  const reasons = [];
+  if (!_spotify?.isPremium)    reasons.push('Spotify non Premium');
+  if (!STATE.user)             reasons.push('non connecté SSO');
+  const disabled = reasons.length > 0;
+  btn.disabled = disabled;
+  if (STATE.debugMode) {
+    _log(disabled
+      ? `Lancer désactivé : ${reasons.join(', ')}`
+      : 'Lancer activé ✓');
   }
 }
 
@@ -639,8 +660,10 @@ async function _loadAndPlayFirst(code) {
   try {
     const res = await fetch(`/api/djbrain-lite/next?partyCode=${code}&count=5&phase=arrival`);
     const data = await res.json();
-    STATE.tracks    = data.tracks || [];
-    STATE.currentIdx = 0;
+    STATE.tracks         = data.tracks || [];
+    STATE.currentIdx      = 0;
+    STATE.nextQueued      = false;  // A1: reset au rechargement
+    STATE.queuedForTrackId = null;  // A1: reset au rechargement
 
     if (!STATE.tracks.length) {
       _showToast('Aucun titre trouvé — vérifie la BDD', 'error');
@@ -691,11 +714,21 @@ async function _queueNextTrack() {
     return;
   }
 
+  // ★ A1 guard : ne mettre en file QUE si ce morceau n'est pas déjà queué
+  const currentTrackId = STATE.tracks[STATE.currentIdx]?.trackId || null;
+  if (STATE.queuedForTrackId === currentTrackId && currentTrackId !== null) {
+    _log(`Queue T-45s : déjà queué pour ce morceau (${nextTrack.title}) — skip`, 'info');
+    STATE.nextQueued = true; // état cohérent (queué lors d'un cycle précédent)
+    return;
+  }
+
   _log(`Queue T-45s : ${nextTrack.title}`);
   const ok = await _spotify.queue(nextTrack.spotifyUri);
   if (ok) {
     STATE.nextQueued = true;
-    _log(`📋 Queued : ${nextTrack.title}`, 'ok');
+    STATE.queuedForTrackId = currentTrackId; // mémoriser pour guard
+    if (STATE.debugMode) _log(`📋 Queued : ${nextTrack.title} (trackId: ...${currentTrackId?.slice(-8)})`, 'ok');
+    else _log(`📋 Queued : ${nextTrack.title}`, 'ok');
   }
 }
 
@@ -705,7 +738,8 @@ function _handleQueuedTransition() {
   if (!next) return;
 
   STATE.currentIdx++;
-  STATE.nextQueued  = false;
+  STATE.nextQueued      = false;
+  STATE.queuedForTrackId = null; // A1: reset après transition → prêt pour le prochain queue
 
   _log(`✅ Transition → ${next.title}`, 'ok');
   _emitTrackUpdate(next);
@@ -819,10 +853,35 @@ function onCoverChange(event) {
 async function retryDevices() {
   const list = document.getElementById('device-list');
   list.innerHTML = '<div style="color:var(--muted);text-align:center"><span class="spinner"></span> Recherche…</div>';
-  await _spotify?.fetchDevices();
-  const devices = _spotify?.devices || [];
+
+  // A3: Poll automatique — 5 appels max sur 25s (rate limit prudent)
+  // Arrêt dès qu'un appareil apparaît. Relance possible avec le bouton.
+  let devices = [];
+  const MAX_POLLS = 5;
+  const POLL_MS   = 5000; // 5s entre chaque
+  for (let i = 0; i < MAX_POLLS; i++) {
+    await _spotify?.fetchDevices();
+    devices = _spotify?.devices || [];
+    if (devices.length > 0) break;
+    if (i < MAX_POLLS - 1) {
+      list.innerHTML = `<div style="color:var(--muted);text-align:center"><span class="spinner"></span> Recherche… (${i + 1}/${MAX_POLLS})</div>`;
+      await new Promise(r => setTimeout(r, POLL_MS));
+    }
+  }
+
   if (!devices.length) {
     list.innerHTML = '<div style="color:var(--muted);font-size:14px;text-align:center;padding:12px">Aucun appareil trouvé. Ouvre Spotify et lance un titre.</div>';
+    return;
+  }
+  // Sélection automatique si un seul appareil
+  if (devices.length === 1 && !devices[0].is_active) {
+    await _spotify.transferToDevice(devices[0].id);
+    _showToast(`Appareil auto-sélectionné : ${devices[0].name}`, 'success');
+    if (STATE.tracks.length === 0 || !STATE.party) {
+      await _loadAndPlayFirst(STATE.party?.code);
+    } else {
+      showScreen('screen-playing');
+    }
     return;
   }
   list.innerHTML = '';
@@ -840,7 +899,13 @@ async function retryDevices() {
     el.onclick = async () => {
       await _spotify.transferToDevice(d.id);
       _showToast(`Device sélectionné : ${d.name}`, 'success');
-      await _loadAndPlayFirst(STATE.party?.code);
+      // A1 guard : ne relancer _loadAndPlayFirst que si pas déjà en cours
+      if (STATE.tracks.length === 0 || !STATE.party) {
+        await _loadAndPlayFirst(STATE.party?.code);
+      } else {
+        // Soirée déjà en cours : continuer avec les titres en STATE (pas de re-queue)
+        showScreen('screen-playing');
+      }
     };
     list.appendChild(el);
   });
@@ -884,18 +949,108 @@ function _showToast(msg, type = 'info') {
   el._timer = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
+// ─── A4: Log panel — pastille + ring buffer (400 lignes, sessionStorage) ────────
+
+const LOG_RING_MAX  = 400;
+const LOG_RING_KEY  = 'host_log';
+let   _logBuf       = [];  // ring buffer en mémoire
+let   _logPanelOpen = false;
+
+function _logInitPanel() {
+  // Créer la pastille LOG si absente
+  if (document.getElementById('log-badge')) return;
+  const badge = document.createElement('button');
+  badge.id        = 'log-badge';
+  badge.textContent = 'LOG';
+  badge.title     = 'Ouvrir/fermer le log debug';
+  badge.onclick   = _logTogglePanel;
+  badge.style.cssText = [
+    'position:fixed', 'bottom:12px', 'right:12px', 'z-index:600',
+    'background:rgba(0,0,0,0.75)', 'color:#1ed760', 'border:1px solid #1ed760',
+    'border-radius:8px', 'padding:4px 10px', 'font:700 11px/1 monospace',
+    'cursor:pointer', 'backdrop-filter:blur(4px)'
+  ].join(';');
+  document.body.appendChild(badge);
+
+  // Bouton Copier dans le panel
+  const panel = document.getElementById('log-panel');
+  const copyBtn = document.createElement('button');
+  copyBtn.id = 'log-copy-btn';
+  copyBtn.textContent = '📋 Copier';
+  copyBtn.style.cssText = 'position:sticky;top:0;float:right;font:700 10px monospace;background:rgba(0,0,0,0.6);color:#aaa;border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:2px 6px;cursor:pointer;z-index:1;';
+  copyBtn.onclick = _logCopy;
+  panel.prepend(copyBtn);
+}
+
+function _logTogglePanel() {
+  const panel = document.getElementById('log-panel');
+  if (!panel) return;
+  _logPanelOpen = !_logPanelOpen;
+  panel.style.display = _logPanelOpen ? 'block' : 'none';
+  if (_logPanelOpen) panel.scrollTop = panel.scrollHeight;
+}
+
+function _logCopy() {
+  const text = _logBuf.join('\n');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => _showToast('Log copié ✓', 'success')).catch(() => _logCopyFallback(text));
+  } else {
+    _logCopyFallback(text);
+  }
+}
+function _logCopyFallback(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0;';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  _showToast('Log copié ✓', 'success');
+}
+
+function _logRestoreFromSession() {
+  try {
+    const stored = sessionStorage.getItem(LOG_RING_KEY);
+    if (!stored) return;
+    const lines = JSON.parse(stored);
+    _logBuf = lines;
+    const panel = document.getElementById('log-panel');
+    lines.forEach(line => {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry info';
+      entry.textContent = line;
+      panel.appendChild(entry);
+    });
+    panel.scrollTop = panel.scrollHeight;
+  } catch {}
+}
+
+function _logPersistToSession() {
+  try {
+    sessionStorage.setItem(LOG_RING_KEY, JSON.stringify(_logBuf));
+  } catch {}
+}
+
 function _log(msg, level = 'info') {
   const time = new Date().toISOString().slice(11, 23);
   const full = `[${time}] ${msg}`;
   if (level === 'error') console.error('[HOST]', msg);
   else console.log('[HOST]', msg);
 
+  // Ring buffer : max LOG_RING_MAX lignes
+  _logBuf.push(full);
+  if (_logBuf.length > LOG_RING_MAX) _logBuf.shift();
+  _logPersistToSession();
+
   if (STATE.debugMode) {
     const panel = document.getElementById('log-panel');
-    const entry = document.createElement('div');
-    entry.className = `log-entry ${level}`;
-    entry.textContent = full;
-    panel.appendChild(entry);
-    panel.scrollTop = panel.scrollHeight;
+    if (panel) {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${level}`;
+      entry.textContent = full;
+      panel.appendChild(entry);
+      if (_logPanelOpen) panel.scrollTop = panel.scrollHeight;
+    }
   }
 }
