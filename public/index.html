@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20261001-scrollcue">
+    <link rel="stylesheet" href="style.css?v=20261001-univers">
 </head>
 <body>
 
@@ -369,6 +369,11 @@
                         <span id="profile-friends-cta-badge" class="profile-menu-badge hidden" aria-label="Demandes d'amis en attente">0</span>
                     </span>
                     <span class="profile-menu-copy"><b>Mes amis</b><small id="profile-friends-cta-count">Retrouve ton crew AhOuai</small></span>
+                    <span class="profile-menu-arrow">›</span>
+                </button>
+                <button type="button" class="profile-menu-row" onclick="if(typeof openMyUniversScreen==='function') openMyUniversScreen();">
+                    <span class="profile-menu-icon is-violet">✦</span>
+                    <span class="profile-menu-copy"><b>Mes univers</b><small>Tout ce qui te relie à ton crew</small></span>
                     <span class="profile-menu-arrow">›</span>
                 </button>
                 <button id="profile-public-btn" class="profile-menu-row">
@@ -1272,6 +1277,6 @@
     <!-- ★ SSO web (task #33) — Supabase JS SDK pour Apple/Google OAuth -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <script src="/shared/supabase-cookie.js"></script>
-    <script src="app.js?v=20261001-scrollcue"></script>
+    <script src="app.js?v=20261001-univers"></script>
 </body>
 </html>
