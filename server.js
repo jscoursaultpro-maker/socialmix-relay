@@ -2192,6 +2192,13 @@ app.get('/api/monitor/tracks', adminAuth, async (req, res) => {
     if (filter === 'no_energy') query.$or = [{ energy: null }, { energy: 0 }];
     if (filter === 'incomplete') query.$or = [{ bpm: null }, { bpm: 0 }, { energy: null }, { energy: 0 }];
 
+    // ★ Curation auto filters — tracks classifiées par le pipeline de curation automatique
+    // (claude_batch_auto_v3_<date>). Permet la relecture rapide par confidence.
+    if (filter === 'curation_auto_recent') query.classifiedBy = { $regex: '^claude_batch_auto_v3_' };
+    if (filter === 'curation_auto_high')   { query.classifiedBy = { $regex: '^claude_batch_auto_v3_' }; query.confidence = 'high'; }
+    if (filter === 'curation_auto_medium') { query.classifiedBy = { $regex: '^claude_batch_auto_v3_' }; query.confidence = 'medium'; }
+    if (filter === 'curation_auto_low')    { query.classifiedBy = { $regex: '^claude_batch_auto_v3_' }; query.confidence = 'low'; }
+
     // ★ Ghost Tracks filters (E2B)
     const HIGH_ENERGY_PHASES = ['takeoff', 'groove', 'party'];
     if (filter === 'incoherent_arrival_high') {
