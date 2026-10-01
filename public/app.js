@@ -4414,9 +4414,35 @@ function resolveBoosterNames(ids) {
  *  - "C'EST LA PROCHAINE !" → ONLY if status === 'next' OR matches state.nextTrack
  *  - Never invent a confirmation based on boost count alone
  */
+function _updateOnairScrollCue() {
+  try {
+    const cue = document.getElementById('onair-scroll-cue');
+    const cm = document.getElementById('ca-monte');
+    if (!cue || !cm) return;
+    const hasContent = cm.children.length > 0 && cm.offsetParent !== null;
+    if (!hasContent) { cue.classList.remove('show'); return; }
+    const r = cm.getBoundingClientRect();
+    const belowFold = r.top > (window.innerHeight - 90);
+    cue.classList.toggle('show', belowFold);
+  } catch (_) {}
+}
+function _initOnairScrollCue() {
+  if (_initOnairScrollCue._done) return;
+  const sc = document.getElementById('cockpit-screen');
+  const cue = document.getElementById('onair-scroll-cue');
+  if (!sc || !cue) return;
+  sc.addEventListener('scroll', _updateOnairScrollCue, { passive: true });
+  window.addEventListener('resize', _updateOnairScrollCue);
+  cue.addEventListener('click', () => {
+    const cm = document.getElementById('ca-monte');
+    if (cm) cm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  _initOnairScrollCue._done = true;
+}
 function renderCaMonte() {
   const container = $('ca-monte');
   if (!container) return;
+  setTimeout(() => { try { _initOnairScrollCue(); _updateOnairScrollCue(); } catch (_) {} }, 60);
 
   // Filter eligible suggestions: only active ones with boosts
   const candidates = (state.suggestions || []).filter(s =>

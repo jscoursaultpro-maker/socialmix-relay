@@ -6019,3 +6019,10 @@ body.kb-open .bottom-nav {
 .soiree-services-strip .svc-chip img{height:15px;width:auto;display:block;}
 .soiree-services-strip .svc-chip--icon{padding:0 6px;}
 .soiree-services-strip .svc-chip--icon img{height:18px;}
+
+
+/* G5 (01/10/26) — indice de scroll ON AIR quand "Ca monte" est sous la ligne de flottaison */
+.onair-scroll-cue{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom));z-index:60;display:none;align-items:center;gap:6px;padding:7px 14px;border-radius:100px;background:rgba(255,107,53,.18);border:1px solid rgba(255,107,53,.42);color:#ff8a4c;font:800 11px var(--font-display,sans-serif);letter-spacing:.04em;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 6px 20px rgba(0,0,0,.35);}
+.onair-scroll-cue.show{display:inline-flex;animation:onair-cue-bounce 1.4s ease-in-out infinite;}
+.onair-scroll-cue span{font-size:14px;line-height:1;}
+@keyframes onair-cue-bounce{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(4px);}}
