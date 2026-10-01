@@ -1,5 +1,5 @@
 ================ CATALOGUE AHOUAI — COMPTAGE ================
-Date (UTC)              : 2026-10-01T13:48:07.582Z
+Date (UTC)              : 2026-10-01T13:50:21.267Z
 Total tracks            : 3130
   qualityLevel=complete  : 1530
   qualityLevel=vide      : 1199
@@ -10,6 +10,6 @@ isVerified=true (platine, intouchable) : 331
 Sans phase              : 1198
 Créées dernières 24 h   : 5
 --------------------------------------------------------------
-CANDIDATES curation auto (vide/partielle, non vérifiées, non bloquées) : 1171
-  dont avec deezer trackId : 492
+CANDIDATES curation auto (vide/partielle, non vérifiées, non bloquées) : 1224
+  dont avec deezer trackId : 493
 ==============================================================
