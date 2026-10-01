@@ -189,7 +189,18 @@ if (isMain) {
       // BPM : Deezer (vérifié) > Claude estimé ; un bpm_confidence=deezer_api existant n'est jamais écrasé
       const dzBpm = inboxById.get(id)?.deezer_verification?.match?.bpm;
       let bpmNote;
-      if (track.bpm > 0 && track.bpm_confidence === 'deezer_api') { bpmNote = `bpm BDD conservé (${track.bpm}, deezer_api)`; }
+      // Détection d'un override half-time / double-time explicite dans les notes.
+      // Si Claude a corrigé un BPM Deezer (half-time ou double-time), son override prime :
+      // Deezer peut se tromper d'un facteur 2 sur reggae, zouk, a cappella, DnB…
+      const notesTxt = String(c.notes || '').toLowerCase();
+      const hasBpmCorrection = /correction\s*bpm|half-?time|double-?time/.test(notesTxt);
+      if (hasBpmCorrection && c.confidence === 'high') {
+        track.bpm = c.bpm;
+        track.bpmSource = 'claude_half_time_correction';
+        track.bpm_confidence = 'manual';
+        bpmNote = `bpm override Claude ${c.bpm} (correction half/double-time, override Deezer)`;
+      }
+      else if (track.bpm > 0 && track.bpm_confidence === 'deezer_api') { bpmNote = `bpm BDD conservé (${track.bpm}, deezer_api)`; }
       else if (dzBpm && dzBpm >= 60 && dzBpm <= 220) { track.bpm = Math.round(dzBpm); track.bpmSource = 'deezer_api_v3_curation'; track.bpm_confidence = 'deezer_api'; bpmNote = `bpm Deezer ${track.bpm}`; }
       else { track.bpm = c.bpm; track.bpmSource = 'claude_auto_v3'; track.bpm_confidence = 'estimated'; bpmNote = `bpm estimé ${c.bpm}`; }
 

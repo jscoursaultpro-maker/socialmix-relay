@@ -1,0 +1,32 @@
+# One-shot : lance un script spécifique de curation (hotfix BPM, migrations ciblées…).
+# Utilise pour les corrections ponctuelles qui ne passent pas par outbox.
+name: curation-hotfix
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: 'Nom du script dans scripts/curation/ (ex. hotfix_bpm_2026-10-01.mjs)'
+        required: true
+      dry_run:
+        description: 'Dry-run (log seulement)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Run hotfix
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+        run: node scripts/curation/${{ inputs.script }}
