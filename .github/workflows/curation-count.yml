@@ -1,0 +1,21 @@
+# Comptage read-only du catalogue — sert à vérifier que le secret MONGODB_URI et l'accès Atlas fonctionnent.
+name: curation-count
+
+on:
+  workflow_dispatch:
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Count tracks
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: node scripts/curation/count.mjs

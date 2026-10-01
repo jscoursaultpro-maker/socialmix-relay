@@ -1,0 +1,63 @@
+# Import des classifications Claude (outbox) en BDD, avec gate de confiance.
+# Défaut : seules les classifications confidence=high sont appliquées ; medium/low → review/*.md.
+name: curation-import
+
+on:
+  schedule:
+    - cron: '0 5 * * *'    # 07:00 Paris (été) — après le run Claude de nuit
+    - cron: '0 15 * * *'   # 17:00 Paris (été) — après le run Claude de midi
+  workflow_dispatch:
+    inputs:
+      apply_min_confidence:
+        description: 'none = rapport seul | high (défaut) | medium | low = tout appliquer'
+        type: choice
+        options: [none, high, medium, low]
+        default: high
+      file:
+        description: 'Limiter à un fichier (ex. 2026-10-02-a). Vide = tous les outbox non importés'
+        default: ''
+      dry_run:
+        description: 'Simuler sans écrire en BDD'
+        type: boolean
+        default: false
+
+concurrency:
+  group: curation-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: curation-data
+          path: curation-data
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Import outbox
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          APPLY_MIN_CONFIDENCE: ${{ github.event_name == 'schedule' && (vars.CURATION_MIN_CONFIDENCE || 'high') || inputs.apply_min_confidence }}
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '0' }}
+        run: |
+          FILE_ARG=""
+          if [ -n "${{ inputs.file }}" ]; then FILE_ARG="--file ${{ inputs.file }}"; fi
+          node scripts/curation/import_outbox.mjs --data-dir ./curation-data $FILE_ARG
+      - name: Commit & push curation-data
+        working-directory: curation-data
+        run: |
+          git config user.name "ahouai-curation-bot"
+          git config user.email "curation-bot@users.noreply.github.com"
+          git add review state.json
+          if git diff --cached --quiet; then echo "Rien à committer"; exit 0; fi
+          git commit -m "curation: import $(date -u +%F) (seuil ${APPLY_MIN_CONFIDENCE:-high})"
+          for i in 1 2 3; do git push && break || (git pull --rebase && sleep 5); done

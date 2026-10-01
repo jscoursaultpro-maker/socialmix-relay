@@ -1,0 +1,81 @@
+# Export quotidien des tracks à qualifier (inbox) + vérification d'identité Deezer.
+# Lecture seule en BDD. Écrit uniquement sur la branche curation-data.
+name: curation-export
+
+on:
+  schedule:
+    - cron: '0 1 * * *'    # 03:00 Paris (été) / 02:00 (hiver) — run "a"
+    - cron: '0 11 * * *'   # 13:00 Paris (été) / 12:00 (hiver) — run "b"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Nombre de tracks à exporter'
+        default: '150'
+        required: true
+      mode:
+        description: 'stock = vider le backlog | flux = tracks créées depuis 36 h'
+        type: choice
+        options: [stock, flux]
+        default: stock
+      run:
+        description: 'Suffixe du fichier (a, b, c…)'
+        default: 'a'
+      dry_run:
+        description: 'Ne rien écrire (test)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: curation-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: curation-data
+          path: curation-data
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Resolve parameters
+        id: p
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            HOUR=$(date -u +%H)
+            if [ "$HOUR" -lt 6 ]; then echo "run=a" >> $GITHUB_OUTPUT; else echo "run=b" >> $GITHUB_OUTPUT; fi
+            echo "limit=${CURATION_DEFAULT_LIMIT:-150}" >> $GITHUB_OUTPUT
+            echo "mode=stock" >> $GITHUB_OUTPUT
+            echo "dry=0" >> $GITHUB_OUTPUT
+          else
+            echo "run=${{ inputs.run }}" >> $GITHUB_OUTPUT
+            echo "limit=${{ inputs.limit }}" >> $GITHUB_OUTPUT
+            echo "mode=${{ inputs.mode }}" >> $GITHUB_OUTPUT
+            if [ "${{ inputs.dry_run }}" = "true" ]; then echo "dry=1" >> $GITHUB_OUTPUT; else echo "dry=0" >> $GITHUB_OUTPUT; fi
+          fi
+        env:
+          CURATION_DEFAULT_LIMIT: ${{ vars.CURATION_DEFAULT_LIMIT }}
+      - name: Export inbox
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          DRY_RUN: ${{ steps.p.outputs.dry }}
+        run: node scripts/curation/export_inbox.mjs --limit "${{ steps.p.outputs.limit }}" --mode "${{ steps.p.outputs.mode }}" --run "${{ steps.p.outputs.run }}" --data-dir ./curation-data
+      - name: Commit & push curation-data
+        if: steps.p.outputs.dry == '0'
+        working-directory: curation-data
+        run: |
+          git config user.name "ahouai-curation-bot"
+          git config user.email "curation-bot@users.noreply.github.com"
+          git add inbox sidelined state.json
+          if git diff --cached --quiet; then echo "Rien à committer"; exit 0; fi
+          git commit -m "curation: export inbox $(date -u +%F) run ${{ steps.p.outputs.run }} (${{ steps.p.outputs.mode }}, limit ${{ steps.p.outputs.limit }})"
+          for i in 1 2 3; do git push && break || (git pull --rebase && sleep 5); done
