@@ -1,0 +1,636 @@
+{
+  "_meta": {
+    "file": "2026-10-01-a",
+    "created_at": "2026-10-01T14:34:24.835Z",
+    "mode": "stock",
+    "total": 83,
+    "sidelined": 17,
+    "doctrine": "scripts/curation/DOCTRINE_PREMIUM_V2.md",
+    "instructions": "scripts/curation/CLAUDE_CURATION_PROMPT.md",
+    "output_expected": "outbox/2026-10-01-a.json"
+  },
+  "tracks": [
+    {
+      "_id": "6abe5a5066f916ca34ea8c0f",
+      "title": "My Girl",
+      "artist": "Otis Redding",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 884429,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-10-01T13:04:16.240Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 884429,
+          "title": "Trio",
+          "artist": "Kenny Burrell",
+          "album": "A Night At The Vanguard",
+          "duration": 259,
+          "isrc": "USMC15946543",
+          "release_date": "2008-03-18",
+          "bpm": 123.4,
+          "rank": 7858,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/884429"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6abe59a666f916ca34ea717c",
+      "title": "I've Been Loving You Too Long (To Stop Now)",
+      "artist": "Otis Redding",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 948938,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-10-01T13:01:26.228Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 948938,
+          "title": "Leezie Lindsay",
+          "artist": "Eddi Reader",
+          "album": "Peacetime",
+          "duration": 290,
+          "isrc": "GBCVZ0601779",
+          "release_date": "2006-01-30",
+          "bpm": 122.3,
+          "rank": 9,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/948938"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6abe583b66f916ca34ea70b2",
+      "title": "Ain't No Mountain High Enough",
+      "artist": "Marvin Gaye & Tammi Terrell",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 435821,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-10-01T12:55:23.225Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6abb9146563dadf27fc8dd29",
+      "title": "Ode Ireti",
+      "artist": "&friends, El-Jay & Oluwadamvic",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 1903254077,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-29T10:21:58.022Z",
+      "current": {
+        "genre": "Afro",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 1903254077,
+          "title": "Ode Ireti (Nitefreak Remix)",
+          "artist": "&friends",
+          "album": "Ode Ireti (Nitefreak Remix)",
+          "duration": 240,
+          "isrc": "GBKQU2280066",
+          "release_date": "2022-10-07",
+          "bpm": null,
+          "rank": 15840,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/1903254077"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0.5,
+          "artistSim": 0.33,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6abb8418563dadf27fc8cf9f",
+      "title": "Vivo per lei (feat. Hélène Ségara) [Live]",
+      "artist": "Bruno Pelletier",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 984019,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-29T09:25:44.967Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 984019,
+          "title": "Bis ans Ende der Welt",
+          "artist": "Oli.P",
+          "album": "Mein Tag",
+          "duration": 234,
+          "isrc": "DEC739800732",
+          "release_date": "1998-11-06",
+          "bpm": 84.9,
+          "rank": 44072,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/984019"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6abb8337563dadf27fc8ceb8",
+      "title": "La solitudine",
+      "artist": "Laura Pausini",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 449930,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-29T09:21:59.992Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6abb7d04563dadf27fc8bf48",
+      "title": "Art de rue",
+      "artist": "Fonky Family",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 20749,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-29T08:55:32.945Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6abb7c31563dadf27fc8bde4",
+      "title": "Bad Boys de Marseille (Feat. Shurik'n) [Part 2]",
+      "artist": "Akhenaton & Fonky Family",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 131221,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-29T08:52:01.961Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6abb7535563dadf27fc8af27",
+      "title": "La dernière danse (Ne rentre pas chez toi ce soir) - Radio Edit",
+      "artist": "Slaï",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": null,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-29T08:22:13.628Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 87,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6abb7494563dadf27fc8ae57",
+      "title": "Shimmy Shimmy Ya - 2020 Remaster",
+      "artist": "Ol' Dirty Bastard",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": null,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-29T08:19:32.391Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6abb719e563dadf27fc8aa8a",
+      "title": "Mais je t'aime",
+      "artist": "Grand Corps Malade",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": null,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-29T08:06:54.398Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6abb70e8563dadf27fc8a9b2",
+      "title": "Houdini",
+      "artist": "Dua Lipa",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": null,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-29T08:03:52.903Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6abab1e39c7c780f083de566",
+      "title": "Lágrimas negras - Remastered",
+      "artist": "Olga Guillot",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": null,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-28T18:28:51.372Z",
+      "current": {
+        "genre": "Latin",
+        "phase": null,
+        "bpm": 65,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6aba41999c7c780f083d5c77",
+      "title": "God Is Love de Marvin Gaye sur toutes les principales apps",
+      "artist": "musique avec ce lien 🎧",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 419028,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-28T10:29:45.869Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6aba2f029c7c780f083d4bee",
+      "title": "Me and Mrs. Jones (Single Version)",
+      "artist": "Billy Paul",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 914692,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-28T09:10:26.005Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 914692,
+          "title": "3's & 7's",
+          "artist": "Queens Of The Stone Age",
+          "album": "3's & 7's (International Version)",
+          "duration": 215,
+          "isrc": "USUM70732853",
+          "release_date": "2008-06-13",
+          "bpm": 131.2,
+          "rank": 2330,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/914692"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6aba2bf69c7c780f083d4886",
+      "title": "Mais je t'aime",
+      "artist": "Grand Corps Malade & Camille Lellouche",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 476650,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-28T08:57:26.985Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6ab982be9c7c780f083c81c2",
+      "title": "Le cœur grenadine",
+      "artist": "Ramó",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 28541,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-27T20:55:26.151Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    }
+  ]
+}
