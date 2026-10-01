@@ -5885,7 +5885,7 @@ function showPhotoLightbox(src, name, entryGuestId) {
   `;
   
   // Close button
-  overlay.querySelector('.lb-close-btn').addEventListener('click', () => overlay.remove());
+  overlay.querySelectorAll('.lb-close-btn').forEach(btn => btn.addEventListener('click', () => overlay.remove()));
   try { _renderLightboxActions(overlay, src); } catch(_) {}
   try { loadPhotoMeta().then(() => _renderLightboxActions(overlay, src)); } catch(_) {}
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
