@@ -1,0 +1,43 @@
+# Comptage read-only du catalogue — vérifie que le secret MONGODB_URI et l'accès Atlas fonctionnent.
+# Le résultat est aussi committé dans curation-data/logs/ (lisible sans ouvrir les logs GitHub).
+name: curation-count
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/curation-auto]
+    paths: ['scripts/curation/**', '.github/workflows/curation-count.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: curation-data
+          path: curation-data
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Count tracks
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          COUNT_OUT: curation-data/logs/count-latest.txt
+        run: node scripts/curation/count.mjs
+      - name: Commit result
+        if: always()
+        working-directory: curation-data
+        run: |
+          git config user.name "ahouai-curation-bot"
+          git config user.email "curation-bot@users.noreply.github.com"
+          git add logs
+          if git diff --cached --quiet; then echo "Rien à committer"; exit 0; fi
+          git commit -m "curation: comptage $(date -u +%FT%H:%MZ)"
+          for i in 1 2 3; do git push && break || (git pull --rebase && sleep 5); done
