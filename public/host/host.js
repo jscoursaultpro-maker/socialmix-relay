@@ -92,7 +92,7 @@ const STATE = {
 // ─── Expose HOST globalement (appelé par onclick dans HTML) ───────────────────
 
 window.HOST = {
-  signIn, signOut, setVisibility, onCoverChange, onEngineCardClick,
+  signIn, signInEmail, signOut, setVisibility, onCoverChange, onEngineCardClick,
   launchParty, justPlay, next, prev, togglePlay, share, retryDevices,
   onFirstNameInput, initWebPlayer, showScreen,
   chooseProvider, changeProvider   // ★ Lot 1 : écran choix du lecteur
@@ -160,6 +160,9 @@ window.HOST = {
     // sera traité par _afterSSO() dès que la session Supabase arrive (poll / onAuthStateChange).
     if (_hasSpotifyCallbackInUrl()) _log('Détection callback Spotify PKCE — en attente de la session');
     showScreen('screen-create');
+    // Portillon visible dès le boot : câbler "Créer un compte" avec le retour sur /host/
+    // (le poll peut mettre jusqu'à 6s ; l'utilisateur peut cliquer avant son expiration).
+    _showAuthGate();
   }
 })();
 
@@ -344,94 +347,96 @@ function _enableCreateForm() {
   }
 }
 
-// ★ Guard anti-boucle login : si la page arrive après un retour de ahouai.com/login
-// (sessionStorage.host_login_attempted=1) et qu'aucune session n'est là après 6s,
-// afficher un écran d'erreur avec bouton de secours au lieu de rediriger à nouveau.
-//
-// Flux normal :  /host/ (pas de session) → pose flag → redirect login
-//                login → retour /host/ (flag présent) → session trouvée → OK
-// Flux échec  :  retour /host/ (flag présent) → session absente → écran d'erreur
+// Pas de session après le poll : on NE redirige plus vers ahouai.com/login.
+// Le portillon inline propose désormais toutes les options (Apple, Google,
+// email/mot de passe, création de compte) — parité ahouai.com/login (photo 1).
+// On s'assure juste qu'il est visible et que le lien "Créer un compte" revient ici.
 function _redirectToLoginIfNeeded() {
   if (STATE.sessionHandled || STATE.user) return;
-  const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
-  if (isLocal) { _log('Mode dev — bouton Google local disponible', 'info'); return; }
-
-  const alreadyTried = sessionStorage.getItem('host_login_attempted') === '1';
-  if (alreadyTried) {
-    // Écran d'erreur : évite la boucle infinie de redirections
-    sessionStorage.removeItem('host_login_attempted');
-    _log('⚠️ Session non récupérée après login — affichage écran d\'erreur', 'warn');
-    _showLoginFallback();
-    return;
-  }
-
-  sessionStorage.setItem('host_login_attempted', '1');
-  const next     = encodeURIComponent(window.location.origin + '/host/');
-  const loginUrl = `https://ahouai.com/login?redirect=${next}`;
-  _log(`Pas de session → redirect login : ${loginUrl}`);
-  window.location.replace(loginUrl);
+  _showAuthGate();
 }
 
-// Affiche un écran de fallback quand la session n'a pas pu être récupérée post-login.
-// Bouton Google de secours + lien ahouai.com.
-function _showLoginFallback() {
+// Affiche le portillon d'authentification (toutes les options) et câble le lien
+// "Créer un compte" pour revenir sur /host/ après inscription sur ahouai.com.
+function _showAuthGate() {
   const gate = document.getElementById('auth-gate');
-  if (!gate) return;
-  gate.style.display = 'block';
-  gate.innerHTML = `
-    <p style="color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.6;">
-      On n'a pas pu récupérer ta session après connexion.
-      Essaie de te connecter directement depuis cette page.
-    </p>
-    <button class="btn-google" id="btn-google-fallback"
-      onclick="HOST.signIn()" aria-label="Se connecter avec Google">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-      </svg>
-      Continuer avec Google
-    </button>
-    <p style="margin-top:16px;font-size:12px;color:var(--muted);">
-      Ou connecte-toi sur
-      <a href="https://ahouai.com/login" style="color:var(--cyan);text-decoration:none;">ahouai.com</a>
-      puis reviens ici.
-    </p>
-  `;
-  // En prod, le bouton Google du fallback fait un OAuth direct (pas de loop ahouai.com)
-  // signIn() détecte isLocal=false mais dans ce cas, on veut l'OAuth direct.
-  // On surcharge HOST.signIn temporairement pour ce fallback :
-  HOST.signIn = async function() {
-    if (!_supabase) return;
-    const redirectTo = `${window.location.origin}/host/`;
-    _log(`signIn Google (fallback prod) → redirectTo: ${redirectTo}`);
-    const { error } = await _supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options:  { redirectTo }
-    });
-    if (error) { _log(`SignIn erreur : ${error.message}`, 'error'); }
-  };
+  if (gate) gate.style.display = 'block';
+  const createForm = document.getElementById('create-form');
+  if (createForm) createForm.style.display = 'none';
+  const createLink = document.getElementById('auth-create');
+  if (createLink) {
+    const next = encodeURIComponent(window.location.origin + '/host/');
+    createLink.href = `https://ahouai.com/login?redirect=${next}`;
+  }
+  _log('Pas de session — portillon toutes options affiché', 'info');
 }
 
-
-// Bouton Google natif (mode dev uniquement)
-async function signIn() {
-  const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
-  if (!isLocal) { _redirectToLoginIfNeeded(); return; }
+// ── Connexion OAuth (Google / Apple) — direct Supabase, dev ET prod ──────────
+// Le même client Supabase (projet partagé, cookie domaine .ahouai.com) gère les
+// deux providers. redirectTo = cette page /host/ : au retour, le poll de session
+// récupère le JWT. NB : chaque provider doit avoir join.ahouai.com/host/ dans la
+// liste des Redirect URLs autorisées du projet Supabase (Google : déjà OK).
+async function signIn(provider = 'google') {
+  const p = (provider === 'apple') ? 'apple' : 'google';
   if (!_supabase) { _log('Supabase non initialisé', 'warn'); return; }
+  _authClearError();
   try {
     const redirectTo = `${window.location.origin}/host/`;
-    _log(`signIn Google (dev) → redirectTo: ${redirectTo}`);
+    _log(`signIn ${p} → redirectTo: ${redirectTo}`);
     const { error } = await _supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider: p,
       options:  { redirectTo }
     });
-    if (error) { _log(`SignIn erreur : ${error.message}`, 'error'); }
+    if (error) {
+      _log(`SignIn ${p} erreur : ${error.message}`, 'error');
+      _authShowError(`Connexion ${p === 'apple' ? 'Apple' : 'Google'} indisponible pour l'instant.`);
+    }
   } catch (e) {
-    _log(`SignIn exception : ${e.message}`, 'error');
+    _log(`SignIn ${p} exception : ${e.message}`, 'error');
     _showToast('Erreur de connexion, réessaie', 'error');
   }
+}
+
+// ── Connexion email + mot de passe — direct Supabase (aucun redirect requis) ──
+async function signInEmail(event) {
+  if (event) event.preventDefault();
+  if (!_supabase) { _authShowError('Service de connexion indisponible, réessaie.'); return false; }
+  const emailEl = document.getElementById('auth-email');
+  const pwEl    = document.getElementById('auth-password');
+  const btn     = document.getElementById('btn-email-signin');
+  const email   = (emailEl?.value || '').trim();
+  const password =  pwEl?.value || '';
+  if (!email || !password) { _authShowError('Entre ton email et ton mot de passe.'); return false; }
+  _authClearError();
+  if (btn) { btn.disabled = true; btn.textContent = 'Connexion…'; }
+  try {
+    const { error } = await _supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      _log(`signInEmail erreur : ${error.message}`, 'warn');
+      _authShowError('Email ou mot de passe incorrect.');
+      return false;
+    }
+    _log('signInEmail OK — session en cours de récupération', 'ok');
+    // La session déclenche onAuthStateChange/poll → _onSupabaseSession (affiche le formulaire).
+  } catch (e) {
+    _log(`signInEmail exception : ${e.message}`, 'error');
+    _authShowError('Erreur de connexion, réessaie.');
+    return false;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Se connecter'; }
+  }
+  return false;   // empêche le submit natif
+}
+
+function _authShowError(msg) {
+  const el = document.getElementById('auth-error');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function _authClearError() {
+  const el = document.getElementById('auth-error');
+  if (el) { el.textContent = ''; el.style.display = 'none'; }
 }
 
 async function signOut() {

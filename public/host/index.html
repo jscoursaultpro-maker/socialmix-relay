@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/host/host.css?v=lot1-0110">
+  <link rel="stylesheet" href="/host/host.css?v=auth-0110b">
 
   <!-- Supabase SDK (chargé dynamiquement via /api/config/supabase) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -42,14 +42,22 @@
       <p class="subtitle">Crée ta soirée en moins de 30 secondes.</p>
     </div>
 
-    <!-- Auth gate (affiché si non connecté) -->
+    <!-- Auth gate (affiché si non connecté) — toutes les options (parité ahouai.com/login) -->
     <div id="auth-gate" class="card" style="text-align:center">
       <p style="color:var(--muted);font-size:14px;margin-bottom:20px;line-height:1.6;">
-        Connecte-toi pour créer une soirée et piloter la musique depuis ce téléphone.
+        Connecte-toi pour créer ta soirée et piloter la musique depuis ce téléphone.
       </p>
 
-      <!-- Bouton Google (même mécanisme que le guest web) -->
-      <button class="btn-google" id="btn-google-signin" onclick="HOST.signIn()" aria-label="Se connecter avec Google">
+      <!-- Continuer avec Apple -->
+      <button class="btn-apple" id="btn-apple-signin" onclick="HOST.signIn('apple')" aria-label="Continuer avec Apple">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="18" height="18" aria-hidden="true">
+          <path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
+        </svg>
+        Continuer avec Apple
+      </button>
+
+      <!-- Continuer avec Google -->
+      <button class="btn-google" id="btn-google-signin" onclick="HOST.signIn('google')" aria-label="Continuer avec Google">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
           <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -60,10 +68,26 @@
         Continuer avec Google
       </button>
 
-      <p style="margin-top:16px;font-size:12px;color:var(--muted);">
+      <div class="auth-sep"><span>ou</span></div>
+
+      <!-- Email + mot de passe -->
+      <form id="auth-email-form" onsubmit="return HOST.signInEmail(event)" style="text-align:left">
+        <div class="form-group">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" autocomplete="email" required placeholder="ton@email.com">
+        </div>
+        <div class="form-group">
+          <label for="auth-password">Mot de passe</label>
+          <input type="password" id="auth-password" autocomplete="current-password" required placeholder="••••••••">
+        </div>
+        <div id="auth-error" class="auth-error" style="display:none" role="alert"></div>
+        <button type="submit" class="btn-primary" id="btn-email-signin">Se connecter</button>
+      </form>
+
+      <p style="margin-top:18px;font-size:13px;color:var(--muted);">
         Pas encore de compte ?
-        <a href="https://ahouai.com" target="_blank" rel="noopener"
-           style="color:var(--cyan);text-decoration:none;">ahouai.com</a>
+        <a id="auth-create" href="https://ahouai.com/login"
+           style="color:var(--cyan);text-decoration:none;font-weight:600;">Créer un compte</a>
       </p>
     </div>
 
@@ -286,8 +310,8 @@
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
-<script src="/shared/supabase-cookie.js?v=lot1-0110"></script>
-<script type="module" src="/host/host.js?v=lot1-0110"></script>
+<script src="/shared/supabase-cookie.js?v=auth-0110b"></script>
+<script type="module" src="/host/host.js?v=auth-0110b"></script>
 
 </body>
 </html>

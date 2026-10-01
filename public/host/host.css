@@ -160,7 +160,7 @@ body::before {
   letter-spacing: 0.06em;
 }
 
-input[type="text"], input[type="date"], select {
+input[type="text"], input[type="date"], input[type="email"], input[type="password"], select {
   width: 100%;
   background: rgba(255,255,255,0.06);
   border: 1px solid var(--card-border);
@@ -174,7 +174,7 @@ input[type="text"], input[type="date"], select {
   -webkit-appearance: none;
   appearance: none;
 }
-input[type="text"]:focus, input[type="date"]:focus, select:focus {
+input[type="text"]:focus, input[type="date"]:focus, input[type="email"]:focus, input[type="password"]:focus, select:focus {
   border-color: var(--cyan);
   box-shadow: 0 0 0 3px rgba(0,212,200,0.12);
 }
@@ -354,6 +354,60 @@ input[type="text"]:focus, input[type="date"]:focus, select:focus {
   box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 .btn-google:active { transform: scale(0.98); }
+
+/* ── Bouton Apple (Sign in with Apple guidelines) ──────────────────────────── */
+.btn-apple {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: #000;
+  color: #fff;
+  font-family: 'Outfit', -apple-system, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  letter-spacing: 0.01em;
+  margin-bottom: 10px;
+}
+.btn-apple:hover { background: #111; border-color: rgba(255,255,255,0.3); box-shadow: 0 4px 20px rgba(0,0,0,0.35); }
+.btn-apple:active { transform: scale(0.98); }
+.btn-apple svg { position: relative; top: -1px; }
+
+/* ── Séparateur "ou" ───────────────────────────────────────────────────────── */
+.auth-sep {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.auth-sep::before, .auth-sep::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--card-border);
+}
+
+/* ── Message d'erreur auth ─────────────────────────────────────────────────── */
+.auth-error {
+  background: rgba(255,80,80,0.1);
+  border: 1px solid rgba(255,80,80,0.3);
+  color: #ff9a9a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  text-align: left;
+}
 
 .btn-icon {
   display: flex;
