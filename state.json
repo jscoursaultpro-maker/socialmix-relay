@@ -421,10 +421,10 @@
   "files": {
     "2026-10-01-a": {
       "status": "partial",
-      "applied": 18,
+      "applied": 0,
       "deferred": 65,
       "invalid": 0,
-      "at": "2026-10-01T17:05:08.654Z"
+      "at": "2026-10-01T20:03:48.102Z"
     }
   }
 }
