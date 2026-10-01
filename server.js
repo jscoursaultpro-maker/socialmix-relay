@@ -89,6 +89,7 @@ import meTracksFavoritesRouter from './routes/me-tracks-favorites.js';
 import djbrainLiteRouter from './routes/djbrain-lite.js'; // ★ feat(host-web): sélection provisoire pour cockpit hôte
 import appleDevTokenRouter from './routes/apple-dev-token.js'; // ★ Lot 0 (01/10): jeton MusicKit pour host web
 import resolveRouter from './routes/resolve.js'; // ★ Lot 1 (01/10): GET /api/resolve?provider=&trackId=
+import djbrainRouter from './routes/djbrain.js'; // ★ Lot A (01/10): DJ Brain Cloud GET /api/djbrain/next
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 import { resolvePhotoAccess, filterPhotosForUser } from './utils/photoVisibility.js'; // ★ Sprint X2
 
@@ -1434,6 +1435,7 @@ app.use('/api/me', meTracksFavoritesRouter);         // GET /api/me/tracks/favor
 app.use('/api/djbrain-lite', djbrainLiteRouter);       // ★ feat(host-web): sélection provisoire cockpit hôte web
 app.use('/api/apple', appleDevTokenRouter);              // ★ Lot 0 (01/10): GET /api/apple/dev-token
 app.use('/api/resolve', resolveRouter);                 // ★ Lot 1 (01/10): résolution titre → id lecteur
+app.use('/api/djbrain', djbrainRouter);                 // ★ Lot A (01/10): DJ Brain Cloud (remplace djbrain-lite)
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {

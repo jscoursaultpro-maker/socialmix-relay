@@ -970,11 +970,31 @@ async function _createAndStartParty(partyName, fast) {
   await _loadAndPlayFirst(code);
 }
 
-async function _loadAndPlayFirst(code) {
-  _log('Appel djbrain-lite…');
+// ★ Lot A : DJ Brain Cloud — charge les prochains titres (phase + énergie dérivées côté serveur
+// depuis l'état de soirée), provider-aware, avec repli automatique sur djbrain-lite si indisponible.
+async function _fetchNext(code, count = 5) {
+  const token = STATE.user?.supabaseToken;
+  const prov  = STATE.provider ? `&provider=${STATE.provider}` : '';
   try {
-    const res = await fetch(`/api/djbrain-lite/next?partyCode=${code}&count=5&phase=arrival`);
-    const data = await res.json();
+    const res = await fetch(`/api/djbrain/next?partyCode=${code}&count=${count}${prov}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.tracks?.length) { _log(`djbrain-cloud: ${data.tracks.length} titres (phase ${data.phase})`, 'ok'); return data; }
+      _log('djbrain-cloud: 0 titre — repli djbrain-lite', 'warn');
+    } else {
+      _log(`djbrain-cloud HTTP ${res.status} — repli djbrain-lite`, 'warn');
+    }
+  } catch (e) { _log(`djbrain-cloud erreur (${e.message}) — repli djbrain-lite`, 'warn'); }
+  const res2 = await fetch(`/api/djbrain-lite/next?partyCode=${code}&count=${count}&phase=arrival`);
+  return res2.json();
+}
+
+async function _loadAndPlayFirst(code) {
+  _log('Appel DJ Brain…');
+  try {
+    const data = await _fetchNext(code, 5);
     STATE.tracks         = data.tracks || [];
     STATE.currentIdx      = 0;
     STATE.nextQueued      = false;  // A1: reset au rechargement
@@ -1020,11 +1040,10 @@ async function _queueNextTrack() {
   const next = STATE.tracks[STATE.currentIdx + 1];
   if (!next) {
     // Plus de titres en réserve → recharger
-    _log('Queue vide — rechargement djbrain-lite…', 'warn');
+    _log('Queue vide — rechargement DJ Brain…', 'warn');
     try {
       const code = STATE.party?.code;
-      const res  = await fetch(`/api/djbrain-lite/next?partyCode=${code}&count=5&phase=arrival`);
-      const data = await res.json();
+      const data = await _fetchNext(code, 5);
       const fresh = (data.tracks || []).filter(t =>
         !STATE.tracks.some(e => e.trackId === t.trackId)
       );
@@ -1073,13 +1092,12 @@ function _handleQueuedTransition() {
   // Charger plus si réserve < 2
   const remaining = STATE.tracks.length - STATE.currentIdx;
   if (remaining < 2) {
-    _log('Réserve < 2 — rechargement djbrain-lite');
-    fetch(`/api/djbrain-lite/next?partyCode=${STATE.party?.code}&count=5&phase=arrival`)
-      .then(r => r.json())
+    _log('Réserve < 2 — rechargement DJ Brain');
+    _fetchNext(STATE.party?.code, 5)
       .then(d => {
         const fresh = (d.tracks || []).filter(t => !STATE.tracks.some(e => e.trackId === t.trackId));
         STATE.tracks = [...STATE.tracks, ...fresh];
-        _log(`djbrain-lite: +${fresh.length} titres chargés`);
+        _log(`DJ Brain: +${fresh.length} titres chargés`);
       })
       .catch(() => {});
   }
@@ -1095,8 +1113,7 @@ async function _prequeueSelfAdvancing(skipsLeft = 5) {
   if (!next) {
     // Recharger la réserve
     try {
-      const res  = await fetch(`/api/djbrain-lite/next?partyCode=${STATE.party?.code}&count=5&phase=arrival`);
-      const data = await res.json();
+      const data = await _fetchNext(STATE.party?.code, 5);
       const fresh = (data.tracks || []).filter(t => !STATE.tracks.some(e => e.trackId === t.trackId));
       STATE.tracks = [...STATE.tracks, ...fresh];
     } catch (_) {}
