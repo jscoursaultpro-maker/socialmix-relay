@@ -17,7 +17,8 @@ import mongoose from 'mongoose';
 import { connectMongo, todayStamp, verifyWithDeezer, readJson, writeJson } from './lib.mjs';
 
 export const CANDIDATE_QUERY = {
-  qualityLevel: { $in: ['vide', 'partielle'] },
+  // vide / partielle, ou qualityLevel jamais calculé (doc créé sans passer par le hook pre-save)
+  $or: [{ qualityLevel: { $in: ['vide', 'partielle'] } }, { qualityLevel: null }],
   isVerified: { $ne: true },
   isBlocked: { $ne: true },
   suggestable: { $ne: false },
