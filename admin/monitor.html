@@ -83,6 +83,13 @@
         <label><input type="radio" name="f-type" id="f-curation-notreviewed" value="curation_review_notreviewed" onchange="applyFilter()"> ❓ Non-reviewed</label>
       </div>
 
+      <div class="filter-group" style="border-top: 1px solid rgba(45,212,191,.3); padding-top: 10px; margin-top: 4px;">
+        <div style="font-size: 10px; font-weight: 700; color: #2dd4bf; letter-spacing: 1px; margin-bottom: 6px;">🤖 CURATION AUTO</div>
+        <label><input type="radio" name="f-type" id="f-curation-auto-recent" value="curation_auto_recent" onchange="applyFilter()"> 🤖 Récentes (à relire)</label>
+        <label><input type="radio" name="f-type" id="f-curation-auto-high" value="curation_auto_high" onchange="applyFilter()"> ✅ High confidence</label>
+        <label><input type="radio" name="f-type" id="f-curation-auto-medium" value="curation_auto_medium" onchange="applyFilter()"> 🟡 Medium confidence</label>
+        <label><input type="radio" name="f-type" id="f-curation-auto-low" value="curation_auto_low" onchange="applyFilter()"> 🔴 Low confidence</label>
+      </div>
 
       <div class="filter-group">
         <label>Phase spécifique :</label>
