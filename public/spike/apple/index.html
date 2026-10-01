@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>AhOuai — Spike Apple Music (MusicKit JS)</title>
+<style>
+  :root { --bg:#0a0a0f; --card:#13131c; --tq:#2ee6d6; --txt:#e8e8f0; --mut:#8a8aa0; --bad:#ff5c7a; --ok:#4ade80; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:16px/1.45 -apple-system,Outfit,system-ui,sans-serif; padding:16px; padding-bottom:48vh; }
+  h1 { font-size:18px; margin:0 0 4px; } .sub { color:var(--mut); font-size:13px; margin-bottom:14px; }
+  .card { background:var(--card); border-radius:14px; padding:14px; margin-bottom:12px; }
+  button { background:var(--tq); color:#031; border:0; border-radius:10px; padding:12px 16px; font-weight:700; font-size:16px; width:100%; margin-top:8px; }
+  button.sec { background:#23233a; color:var(--txt); }
+  button:disabled { opacity:.4; }
+  input { width:100%; padding:11px; border-radius:10px; border:1px solid #2a2a3a; background:#0f0f18; color:var(--txt); font-size:16px; }
+  .row { display:flex; gap:8px; align-items:center; } .row > * { flex:1; }
+  .res { padding:8px 0; border-bottom:1px solid #22223a; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .res small { color:var(--mut); display:block; }
+  .res button { width:auto; margin:0; padding:8px 12px; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:14px; } .kv b { color:var(--mut); font-weight:500; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+  #log { position:fixed; left:0; right:0; bottom:0; height:44vh; background:#06060a; border-top:1px solid #22223a; display:flex; flex-direction:column; }
+  #log .bar { display:flex; gap:8px; padding:8px 12px; align-items:center; border-bottom:1px solid #22223a; }
+  #log .bar b { flex:1; font-size:13px; } #log .bar button { width:auto; margin:0; padding:6px 10px; font-size:13px; }
+  #logbuf { flex:1; overflow:auto; margin:0; padding:8px 12px; font:12px/1.4 ui-monospace,Menlo,monospace; white-space:pre-wrap; word-break:break-word; }
+  .l-err { color:var(--bad); } .l-ok { color:var(--ok); } .l-ev { color:#9ab4ff; }
+</style>
+</head>
+<body>
+<h1>Spike Apple Music — MusicKit JS v3</h1>
+<div class="sub">Lot 0 · prouver titres complets + enchaînement sans geste + écran verrouillé</div>
+
+<div class="card">
+  <div class="kv">
+    <b>MusicKit</b><span id="st-mk">chargement…</span>
+    <b>Navigateur</b><span id="st-ua"></span>
+    <b>Jeton dev</b><span id="st-token">—</span>
+    <b>Autorisé</b><span id="st-auth">non</span>
+  </div>
+  <button id="btn-connect" disabled>Se connecter à Apple Music</button>
+  <div id="scn-actions"></div>
+</div>
+
+<div class="card">
+  <div class="row"><input id="q" placeholder="Rechercher un titre (ex. Daft Punk Get Lucky)"><button id="btn-search" class="sec" style="width:auto;margin:0">OK</button></div>
+  <div id="results"></div>
+</div>
+
+<div class="card">
+  <div class="kv">
+    <b>Titre</b><span id="np-title">—</span>
+    <b>Position</b><span id="np-pos">—</span>
+    <b>État</b><span id="np-state">—</span>
+    <b>Full/preview</b><span id="np-full">—</span>
+    <b>Scénario</b><span id="np-scn">—</span>
+  </div>
+  <div class="row">
+    <button id="btn-pause" class="sec">Pause</button>
+    <button id="btn-resume" class="sec">Reprendre</button>
+    <button id="btn-skip" class="sec">Suivant</button>
+  </div>
+  <div id="gesture-zone"></div>
+  <div class="sub" style="margin-top:10px">
+    Scénario auto : à 45 s du titre 1 → <b>mode A</b> <code>playNext</code> + <code>skipToNextItem()</code> (file MusicKit).
+    À 45 s du titre 2 → <b>mode B</b> <code>setQueue</code> + <code>play()</code> sans geste.
+    Dès le début du titre 3 → <b>mode C</b> <code>playNext(titre 4)</code> puis fin naturelle du titre 3 (écran verrouillé conseillé).
+  </div>
+</div>
+
+<div id="log">
+  <div class="bar"><b>Journal</b><button id="btn-copy" class="sec">Copier</button><button id="btn-clear" class="sec">Vider</button></div>
+  <pre id="logbuf"></pre>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const LOG_KEY = 'spike_apple_log';
+  const SCN_THRESHOLD_S = 45;          // > 30 s : au-delà d'un extrait, sinon le test est ininterprétable
+  let logLines = [];
+  try { logLines = JSON.parse(sessionStorage.getItem(LOG_KEY) || '[]'); } catch {}
+  function log(msg, cls) {
+    const line = `${new Date().toISOString().slice(11,23)} ${msg}`;
+    logLines.push(line); if (logLines.length > 600) logLines.shift();
+    try { sessionStorage.setItem(LOG_KEY, JSON.stringify(logLines)); } catch {}
+    const el = document.createElement('div'); el.textContent = line; if (cls) el.className = cls;
+    $('logbuf').appendChild(el); $('logbuf').scrollTop = $('logbuf').scrollHeight;
+    console.log('[spike]', line);
+  }
+  for (const l of logLines) { const el = document.createElement('div'); el.textContent = l; $('logbuf').appendChild(el); }
+  if (logLines.length) log('— reprise de session (journal restauré) —');
+  $('btn-copy').onclick = async () => {
+    const txt = ['AhOuai spike Apple Music', navigator.userAgent, ...logLines].join('\n');
+    try { await navigator.clipboard.writeText(txt); log('journal copié'); }
+    catch {
+      const ta = document.createElement('textarea'); ta.value = txt; ta.readOnly = true; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, txt.length);
+      const ok = document.execCommand('copy'); ta.remove(); log(ok ? 'journal copié (fallback)' : '❌ copie impossible — sélectionne le journal à la main', ok ? '' : 'l-err');
+    }
+  };
+  $('btn-clear').onclick = () => { logLines = []; sessionStorage.removeItem(LOG_KEY); $('logbuf').textContent = ''; };
+  $('st-ua').textContent = navigator.userAgent.replace(/Mozilla\/5\.0 /, '').slice(0, 90);
+  window.addEventListener('error', (e) => log(`❌ JS error: ${e.message} @${e.filename?.split('/').pop()}:${e.lineno}`, 'l-err'));
+  window.addEventListener('unhandledrejection', (e) => log(`❌ promise: ${e.reason?.message || e.reason}`, 'l-err'));
+  document.addEventListener('visibilitychange', () => log(`👁 visibility → ${document.visibilityState}`, 'l-ev'));
+
+  let music = null;
+  let chain = [];                 // [id1, id2, id3, id4] résolus au connect
+  let lastPosLog = -1;
+  // ── état du scénario ──
+  let scenario = 'idle';          // idle | t1 | t1-skip | t2 | t2-setqueue | t3 | done
+  let modeAArmed = false, modeBArmed = false, modeCArmed = false;
+  let lastItemId = null;
+  let seenEarlyPos = false;       // une position < 5 s a été vue depuis le dernier changement de titre
+  let curDuration = 0;            // music.currentPlaybackDuration (vraie durée lue, pas la durée catalogue)
+
+  const PlaybackStates = () => (window.MusicKit && MusicKit.PlaybackStates) || {};
+  const stateName = (s) => { const P = PlaybackStates(); for (const k in P) if (P[k] === s) return k; return String(s); };
+  const fmt = (s) => isFinite(s) ? `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}` : '–';
+  const itemIds = (it) => [it?.id, it?.playParams?.id, it?.playParams?.catalogId, it?.attributes?.playParams?.id, it?.attributes?.playParams?.catalogId].filter(Boolean).map(String);
+  const isItem = (it, id) => itemIds(it).includes(String(id));
+  const errStr = (e) => e ? (e.errorCode || e.name || '') + ' ' + (e.message || e.description || String(e)) : 'inconnue';
+
+  async function fetchDevToken() {
+    const r = await fetch('/api/apple/dev-token', { cache: 'no-store' });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(`dev-token HTTP ${r.status} ${j.error || ''}`); }
+    const j = await r.json();
+    $('st-token').innerHTML = `<span class="ok">ok</span> · exp ${j.expiresAt.slice(11,16)}Z`;
+    return j.token;
+  }
+
+  async function init() {
+    try {
+      const token = await fetchDevToken();
+      await MusicKit.configure({ developerToken: token, app: { name: 'AhOuai', build: 'spike-2' } });
+      music = MusicKit.getInstance();
+      $('st-mk').innerHTML = `<span class="ok">v${MusicKit.version || '3'}</span>`;
+      log(`✅ MusicKit configuré v${MusicKit.version || '?'} · storefront ${music.storefrontId || '?'} · HTTPS=${location.protocol === 'https:'}`, 'l-ok');
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') log('⚠️ page non HTTPS : DRM → extraits 30 s probables', 'l-err');
+      $('btn-connect').disabled = false;
+      if (music.isAuthorized) { $('st-auth').innerHTML = '<span class="ok">oui (session)</span>'; log('🔑 déjà autorisé (user token en cache)'); }
+      wireEvents();
+    } catch (e) {
+      $('st-mk').innerHTML = `<span class="bad">échec</span>`;
+      log(`❌ init: ${errStr(e)}`, 'l-err');
+    }
+  }
+
+  function wireEvents() {
+    music.addEventListener('playbackStateDidChange', (e) => {
+      const name = stateName(e.state);
+      $('np-state').textContent = name;
+      log(`▶ state → ${name}`, 'l-ev');
+      if (name === 'completed' || name === 'ended') log('🏁 fin de titre signalée par MusicKit', 'l-ev');
+    });
+    music.addEventListener('playbackDurationDidChange', (e) => {
+      curDuration = e.duration ?? music.currentPlaybackDuration ?? 0;
+      $('np-full').innerHTML = curDuration > 31 ? `<span class="ok">FULL (${Math.round(curDuration)}s lus)</span>` : `<span class="bad">PREVIEW ? (${Math.round(curDuration)}s lus)</span>`;
+      log(`⏳ durée réelle lue → ${Math.round(curDuration)}s ${curDuration > 31 ? '(FULL)' : '(≤30 s : extrait ?)'}`, curDuration > 31 ? 'l-ok' : 'l-err');
+    });
+    music.addEventListener('nowPlayingItemDidChange', (e) => {
+      const it = e.item || music.nowPlayingItem;
+      if (!it) { log('🎵 nowPlayingItem → (vide)', 'l-ev'); return; }
+      const catDur = it.attributes?.durationInMillis || 0;
+      $('np-title').textContent = `${it.attributes?.name || it.title || '?'} — ${it.attributes?.artistName || it.artistName || '?'}`;
+      $('np-full').textContent = 'en attente de la durée lue…';
+      log(`🎵 nowPlayingItem → "${it.attributes?.name || it.title}" — ${it.attributes?.artistName || ''} · catalogue ${Math.round(catDur/1000)}s · ids ${itemIds(it).join('/')}`, 'l-ev');
+      updateMediaSession(it);
+      onTrackStarted(it);
+    });
+    music.addEventListener('playbackTimeDidChange', (e) => {
+      const pos = e.currentPlaybackTime, dur = e.currentPlaybackDuration;
+      if (dur && dur !== curDuration) { curDuration = dur; }
+      $('np-pos').textContent = `${fmt(pos)} / ${fmt(dur)}`;
+      if (pos < 5) seenEarlyPos = true;
+      if (Math.floor(pos) !== lastPosLog && Math.floor(pos) % 10 === 0) { lastPosLog = Math.floor(pos); log(`⏱ ${fmt(pos)} / ${fmt(dur)} (visible=${document.visibilityState})`); }
+      checkScenario(pos);
+    });
+    music.addEventListener('queueItemsDidChange', () => log(`📋 file MusicKit : ${music.queue?.length ?? '?'} éléments`, 'l-ev'));
+    music.addEventListener('mediaPlaybackError', (e) => log(`❌ mediaPlaybackError ${errStr(e)}`, 'l-err'));
+    music.addEventListener('authorizationStatusDidChange', (e) => log(`🔑 authorizationStatus → ${e.authorizationStatus}`, 'l-ev'));
+  }
+
+  function updateMediaSession(it) {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      const art = it.attributes?.artwork?.url?.replace('{w}','300').replace('{h}','300');
+      navigator.mediaSession.metadata = new MediaMetadata({ title: it.attributes?.name || '', artist: it.attributes?.artistName || '', album: 'AhOuai', artwork: art ? [{ src: art, sizes: '300x300' }] : [] });
+      navigator.mediaSession.setActionHandler('play', () => music.play());
+      navigator.mediaSession.setActionHandler('pause', () => music.pause());
+      navigator.mediaSession.setActionHandler('nexttrack', () => music.skipToNextItem());
+    } catch (e) { log(`mediaSession: ${errStr(e)}`); }
+  }
+
+  $('btn-connect').onclick = async () => {
+    try {
+      log('🔑 authorize()…');
+      const ut = await music.authorize();
+      $('st-auth').innerHTML = '<span class="ok">oui</span>';
+      log(`✅ autorisé (user token ${ut ? ut.length + ' car.' : 'vide'})`, 'l-ok');
+      await resolveChain();
+    } catch (e) { log(`❌ authorize: ${errStr(e)}`, 'l-err'); }
+  };
+
+  async function search(term, limit = 5) {
+    const r = await music.api.music('/v1/catalog/{{storefrontId}}/search', { term, types: 'songs', limit });
+    return r?.data?.results?.songs?.data || [];
+  }
+  async function resolveChain() {
+    const terms = ['Kevin Lyttle Turn Me On', 'Philippe Katerine Partir un jour', 'Daft Punk Get Lucky', 'Dua Lipa Levitating'];
+    chain = [];
+    for (const t of terms) {
+      try { const s = (await search(t, 1))[0]; if (s) { chain.push(s.id); log(`🔗 chaîne: "${s.attributes.name}" — ${s.attributes.artistName} (${Math.round(s.attributes.durationInMillis/1000)}s) id ${s.id}`); } }
+      catch (e) { log(`❌ search "${t}": ${errStr(e)}`, 'l-err'); }
+    }
+    log(`🔗 chaîne prête : ${chain.length}/4 titres — "Lancer le scénario" ou "Jouer" sur un résultat`);
+    const b = document.createElement('button'); b.textContent = 'Lancer le scénario (4 titres)'; b.onclick = () => startScenario();
+    $('scn-actions').replaceChildren(b);
+  }
+
+  $('btn-search').onclick = async () => {
+    const term = $('q').value.trim(); if (!term) return;
+    try {
+      const songs = await search(term, 6);
+      $('results').replaceChildren();
+      for (const s of songs) {
+        const d = document.createElement('div'); d.className = 'res';
+        const info = document.createElement('div'); const t = document.createElement('div'); t.textContent = s.attributes.name;
+        const sm = document.createElement('small'); sm.textContent = `${s.attributes.artistName} · ${Math.round(s.attributes.durationInMillis/1000)}s · ${s.attributes.isrc || ''}`;
+        info.append(t, sm);
+        const b = document.createElement('button'); b.textContent = 'Jouer'; b.onclick = () => playId(s.id, 'manuel', true);
+        d.append(info, b); $('results').appendChild(d);
+      }
+      log(`🔎 "${term}" → ${songs.length} résultats`);
+    } catch (e) { log(`❌ search: ${errStr(e)}`, 'l-err'); }
+  };
+
+  function offerGesture(id, why) {
+    const b = document.createElement('button'); b.textContent = 'Toucher pour jouer';
+    b.onclick = () => { $('gesture-zone').replaceChildren(); playId(id, why + ' (geste)', true); };
+    $('gesture-zone').replaceChildren(b);
+    log('🖐 play() refusé → bouton "Toucher pour jouer" affiché', 'l-err');
+  }
+  async function playId(id, why, fromGesture) {
+    try {
+      log(`▶ setQueue({song:${id}, startPlaying:${!!fromGesture}}) [${why}] visible=${document.visibilityState}`);
+      await music.setQueue({ song: id, startPlaying: !!fromGesture });
+      if (!fromGesture || music.playbackState !== PlaybackStates().playing) await music.play();
+      log(`✅ play() résolu [${why}]`, 'l-ok');
+    } catch (e) {
+      log(`❌ play [${why}]: ${errStr(e)}`, 'l-err');
+      if (/NotAllowed|gesture|interact/i.test(errStr(e))) offerGesture(id, why);
+    }
+  }
+
+  // ── Scénario automatique ───────────────────────────────────────────
+  function startScenario() {
+    if (chain.length < 4) { log('❌ chaîne incomplète', 'l-err'); return; }
+    scenario = 't1'; modeAArmed = modeBArmed = modeCArmed = false; lastItemId = null; seenEarlyPos = false;
+    $('np-scn').textContent = 'titre 1 (geste)';
+    log(`🚀 SCÉNARIO : titre 1 via geste utilisateur (seuil ${SCN_THRESHOLD_S}s)`, 'l-ok');
+    playId(chain[0], 'scénario t1', true);
+  }
+  async function onTrackStarted(it) {
+    const key = itemIds(it)[0];
+    if (key === lastItemId) return; lastItemId = key; seenEarlyPos = false; lastPosLog = -1;
+    if (scenario === 't1-skip' && isItem(it, chain[1])) { scenario = 't2'; $('np-scn').textContent = 'titre 2 (mode A OK)'; log('✅ MODE A OK : titre 2 démarré après playNext + skipToNextItem, sans geste', 'l-ok'); return; }
+    if (scenario === 't2-setqueue' && isItem(it, chain[2])) {
+      scenario = 't3'; $('np-scn').textContent = 'titre 3 (mode B OK) → mode C';
+      log('✅ MODE B OK : titre 3 démarré après setQueue + play() sans geste', 'l-ok');
+      if (!modeCArmed) { modeCArmed = true; try { await music.playNext({ song: chain[3] }); log(`🅲 playNext(titre 4) posé — file : ${music.queue?.length ?? '?'} ; laisser le titre 3 finir (écran verrouillé conseillé)`); } catch (e) { log(`❌ mode C playNext: ${errStr(e)}`, 'l-err'); } }
+      return;
+    }
+    if (scenario === 't3' && isItem(it, chain[3])) { scenario = 'done'; $('np-scn').textContent = 'titre 4 (mode C OK) — terminé'; log('✅ MODE C OK : titre 4 démarré par fin naturelle du titre 3 — SCÉNARIO TERMINÉ', 'l-ok'); return; }
+    if (scenario !== 'idle' && scenario !== 'done') log(`ℹ️ changement de titre hors attente (scénario=${scenario}, ids ${itemIds(it).join('/')})`);
+  }
+  async function checkScenario(pos) {
+    if (!seenEarlyPos) return;                       // garde : ne jamais tirer sur une position tardive héritée du titre précédent
+    const np = music.nowPlayingItem;
+    if (scenario === 't1' && pos >= SCN_THRESHOLD_S && !modeAArmed && isItem(np, chain[0])) {
+      modeAArmed = true; scenario = 't1-skip';
+      try {
+        log(`🅰 T+${SCN_THRESHOLD_S}s : playNext({song: titre 2}) puis skipToNextItem() immédiat …`);
+        await music.playNext({ song: chain[1] });
+        log(`🅰 playNext OK — file : ${music.queue?.length ?? '?'}`);
+        await music.skipToNextItem();
+        log('🅰 skipToNextItem() résolu');
+      } catch (e) { log(`❌ mode A: ${errStr(e)}`, 'l-err'); }
+    }
+    if (scenario === 't2' && pos >= SCN_THRESHOLD_S && !modeBArmed && isItem(np, chain[1])) {
+      modeBArmed = true; scenario = 't2-setqueue';
+      log(`🅱 T+${SCN_THRESHOLD_S}s titre 2 : setQueue({song: titre 3}) + play() SANS geste …`);
+      await playId(chain[2], 'scénario mode B', false);
+    }
+  }
+
+  $('btn-pause').onclick = () => music?.pause();
+  $('btn-resume').onclick = () => music?.play();
+  $('btn-skip').onclick = () => music?.skipToNextItem();
+
+  if (window.MusicKit) init(); else document.addEventListener('musickitloaded', init);
+  setTimeout(() => { if (!window.MusicKit) { $('st-mk').innerHTML = '<span class="bad">non chargé (CDN bloqué ?)</span>'; log('❌ MusicKit JS non chargé après 8 s', 'l-err'); } }, 8000);
+})();
+</script>
+<script src="https://js-cdn.music.apple.com/musickit/v3/musickit.js" async></script>
+</body>
+</html>
