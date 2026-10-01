@@ -143,7 +143,11 @@ const userSchema = new Schema({
   // === SETTINGS ===
   settings: {
     antiRepetition: { type: Boolean, default: true },
-    allowPublicMode: { type: Boolean, default: false } // ★ Sprint X3: Opt-in for public party visibility
+    allowPublicMode: { type: Boolean, default: false }, // ★ Sprint X3: Opt-in for public party visibility
+    // ★ Lot 1 host web (01/10/2026) — lecteur choisi après le SSO (écran choix provider)
+    preferredProvider: { type: String, enum: ['spotify', 'apple', 'youtube', null], default: null },
+    // ★ Lot 1 — Spotify Development Mode (5 comptes max) : posé à la main en base pour les testeurs
+    spotifyTester: { type: Boolean, default: false }
   },
   
   // === DEVICES (capture iOS IDFV pour futures sessions) ===

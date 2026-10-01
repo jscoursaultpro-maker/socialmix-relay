@@ -106,7 +106,8 @@ const TrackSchema = new mongoose.Schema({
   providers: {
     deezer:     { trackId: Number, albumId: Number },
     spotify:    { trackId: String },
-    appleMusic: { trackId: String }
+    appleMusic: { trackId: String },
+    youtube:    { videoId: String }   // ★ Lot 1 host web (01/10/2026) — résolu par Lot 3 (Data API, pré-résolution)
   },
 
   // Plateformes sur lesquelles ce track a été résolu avec succès via ISRC.
@@ -202,6 +203,7 @@ TrackSchema.index({ suggestCount: -1 });
 // ─── Provider ID indexes (ISRC resolution backfill + DJBrain provider filter) ───
 TrackSchema.index({ 'providers.appleMusic.trackId': 1 }, { sparse: true });
 TrackSchema.index({ 'providers.spotify.trackId':    1 }, { sparse: true });
+TrackSchema.index({ 'providers.youtube.videoId':    1 }, { sparse: true }); // ★ Lot 1 host web
 TrackSchema.index({ availableOn: 1 });
 TrackSchema.index({ providerIdsResolvedAt: 1 }, { sparse: true }); // backfill idempotence query
 TrackSchema.index({ suggestable: 1, phase: 1 });

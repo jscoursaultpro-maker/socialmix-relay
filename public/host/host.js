@@ -2,9 +2,14 @@
  * public/host/host.js
  * ★ feat(host-web) — Cockpit hôte web Phase 1
  *
- * Flux : SSO Supabase → créer soirée (host:startParty) → Spotify PKCE →
- *        device → djbrain-lite → play T1 → queue T2 à T-45s → sonde →
- *        host:trackUpdate → guests voient le titre → Suivant → Just Play
+ * Flux : SSO Supabase → choix du lecteur (screen-provider, mémorisé) → créer soirée
+ *        (host:startParty) → connexion lecteur (Spotify PKCE / …) → device (Spotify) →
+ *        djbrain-lite → play T1 → queueNext T2 à T-45s → sonde → host:trackUpdate →
+ *        guests voient le titre → Suivant → Just Play
+ *
+ * ★ Lot 1 (01/10/2026) : le cockpit ne parle qu'à STATE.engine (contrat PlayerEngine,
+ *   shared/player-engine.js). Les écrans propres à Spotify (appareils, Web SDK, fantôme)
+ *   passent par engine.raw, toujours gardés par engine.id === 'spotify'.
  *
  * Authentification socket : socket.handshake.auth.token = JWT Supabase
  * (socketAuth.js L22 — pattern guest web réutilisé).
@@ -18,7 +23,7 @@
  *   - sera remplacé par DJ Brain serveur
  */
 
-import SpotifyService from '/shared/spotify-service.js';
+import { createEngine, PROVIDERS } from '/shared/player-engine.js';
 
 // ─── RÈGLE TDZ (Module ES) ────────────────────────────────────────────────────
 // Toute variable let/const utilisée au boot (ligne ~66) doit être déclarée ICI,
@@ -51,10 +56,17 @@ const EARLY_TRANSITION_S      = 5;  // T-5s → handleTransition si nextQueued
 
 let _supabase  = null;
 let _socket    = null;
-let _spotify   = null;
+let _sessionPoll = null;   // ★ Lot 1 : poll getSession (module-level pour pouvoir l'arrêter depuis le boot)
+let _afterSSOPromise = null;   // ★ Lot 1 : _afterSSO exécuté une seule fois (double _onSupabaseSession boot+poll)
+let _selectPromise   = null;   // ★ Lot 1 : _selectProvider verrouillé (double tap, double init)
+
+// ★ Lot 1 : disponibilité des moteurs côté cockpit (Apple = Lot 2, YouTube = Lot 3)
+const ENGINE_AVAILABLE = { spotify: true, apple: false, youtube: false };
 
 const STATE = {
-  user:          null,   // {id, email, firstName, photoURL, supabaseToken}
+  user:          null,   // {id, email, firstName, photoURL, supabaseToken, preferredProvider, spotifyTester}
+  provider:      null,   // ★ Lot 1 : 'spotify' | 'apple' | 'youtube' (lecteur de la soirée)
+  engine:        null,   // ★ Lot 1 : PlayerEngine courant (shared/player-engine.js)
   party:         null,   // {code, hostSecret}
   tracks:        [],     // [{trackId, title, artist, spotifyUri, durationMs, coverArtURL}]
   currentIdx:    0,
@@ -79,9 +91,10 @@ const STATE = {
 // ─── Expose HOST globalement (appelé par onclick dans HTML) ───────────────────
 
 window.HOST = {
-  signIn, signOut, setVisibility, onCoverChange, onSpotifyCardClick,
+  signIn, signOut, setVisibility, onCoverChange, onEngineCardClick,
   launchParty, justPlay, next, prev, togglePlay, share, retryDevices,
-  onFirstNameInput, initWebPlayer, showScreen
+  onFirstNameInput, initWebPlayer, showScreen,
+  chooseProvider, changeProvider   // ★ Lot 1 : écran choix du lecteur
 };
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
@@ -100,11 +113,6 @@ window.HOST = {
     if (!SPOTIFY_CLIENT_ID) _log('⚠ /api/config/spotify : clientId manquant', 'warn');
   } catch (e) {
     _log(`Config Spotify erreur : ${e.message}`, 'error');
-  }
-
-  // Afficher Apple Music UNIQUEMENT sur Safari iOS
-  if (_isSafariIOS()) {
-    document.getElementById('apple-music-card').style.display = 'flex';
   }
 
   // A4: Mode debug — pastille LOG + rendu du buffer dans le panel
@@ -141,42 +149,24 @@ window.HOST = {
   // Vérifier session Supabase existante
   const session = await _getSupabaseSession();
   if (session) {
+    // ★ Lot 1 (revue P1.1) : marquer la session traitée AVANT l'appel, sinon le poll 200ms
+    // rappelle _onSupabaseSession pendant que /api/me est en vol → double init / double PKCE.
+    STATE.sessionHandled = true;
+    if (_sessionPoll) clearInterval(_sessionPoll);
     await _onSupabaseSession(session);
   } else {
-    // Pas de session → vérifier si callback PKCE Spotify (code + state=host_auth)
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('code') && params.get('state') === 'host_auth') {
-      // Callback Spotify → traité après la session Supabase est chargée
-      _log('Détection callback Spotify PKCE');
-      showScreen('screen-create');
-      return;
-    }
-    // Aucune session — afficher auth gate
+    // Pas de session (encore) : le callback PKCE Spotify éventuel (code + state=host_auth)
+    // sera traité par _afterSSO() dès que la session Supabase arrive (poll / onAuthStateChange).
+    if (_hasSpotifyCallbackInUrl()) _log('Détection callback Spotify PKCE — en attente de la session');
     showScreen('screen-create');
   }
-
-  // Initialiser SpotifyService (charge tokens depuis sessionStorage)
-  _initSpotify();
-
-  // Callback PKCE Spotify (après boot) ?
-  const spParams = new URLSearchParams(window.location.search);
-  if (spParams.get('code') && spParams.get('state') === 'host_auth') {
-    try {
-      await _spotify.handleCallback();
-      _log('PKCE Spotify OK');
-      await _checkSpotifyPremium();
-    } catch (e) {
-      _log(`PKCE erreur : ${e.message}`, 'error');
-      _showToast('Connexion Spotify échouée', 'error');
-    }
-  } else {
-    // Peut-être déjà connecté Spotify (tokens en sessionStorage)
-    const alreadyAuth = await _spotify.init();
-    if (alreadyAuth) {
-      await _checkSpotifyPremium();
-    }
-  }
 })();
+
+// ★ Lot 1 : callback PKCE Spotify présent dans l'URL ?
+function _hasSpotifyCallbackInUrl() {
+  const p = new URLSearchParams(window.location.search);
+  return !!(p.get('code') && p.get('state') === 'host_auth');
+}
 
 // ─── Supabase SSO ─────────────────────────────────────────────────────────────
 
@@ -232,7 +222,8 @@ async function _initSupabase() {
       attempts++;
       try {
         const { data: { session } } = await _supabase.auth.getSession();
-        if (session && !STATE.sessionHandled) {
+        if (STATE.sessionHandled) { clearInterval(poll); return; }
+        if (session) {
           clearInterval(poll);
           STATE.sessionHandled = true;
           _log(`Session Supabase détectée (poll tentative ${attempts})`, 'ok');
@@ -245,6 +236,7 @@ async function _initSupabase() {
         }
       } catch (e) { _log('getSession poll fail: ' + e, 'warn'); }
     }, 200);
+    _sessionPoll = poll;
 
     // onAuthStateChange : couverture des événements post-redirect
     // SIGNED_IN est émis à chaque visibilitychange → visible (_recoverAndRefresh).
@@ -302,15 +294,20 @@ async function _onSupabaseSession(session) {
       firstName:     rawFirst,          // null si compte email sans prénom renseigné
       photoURL:      user.profile?.photoURL || null,
       emoji:         user.profile?.emoji || '🎧',
-      supabaseToken: jwt
+      supabaseToken: jwt,
+      // ★ Lot 1 : lecteur mémorisé + accès testeur Spotify (Development Mode, 5 comptes)
+      preferredProvider: user.settings?.preferredProvider || null,
+      spotifyTester:     user.settings?.spotifyTester === true
     };
-    _log(`SSO OK : ${STATE.user.firstName || '(prénom manquant)'} (${STATE.user.email})`, 'ok');
+    _log(`SSO OK : ${STATE.user.firstName || '(prénom manquant)'} (${STATE.user.email}) · lecteur=${STATE.user.preferredProvider || '(aucun)'}`, 'ok');
     _renderUser();
     _enableCreateForm();
     _connectSocket();
     STATE.initialized = true;  // 1. guard idempotence
     // 4. Reprise de soirée : si sessionStorage contient une soirée < 6h → proposer
     _tryResumeParty();
+    // ★ Lot 1 : choisir / restaurer le lecteur (écran provider si rien de mémorisé)
+    await _afterSSO();
   } catch (e) {
     _log(`SSO erreur : ${e.message}`, 'error');
   }
@@ -546,64 +543,182 @@ function _onParticipants(participants) {
   document.getElementById('guest-count').textContent = guests;
 }
 
-// ─── Spotify ─────────────────────────────────────────────────────────────────
+// ─── Lecteur (★ Lot 1 : contrat PlayerEngine) ───────────────────────────────
 
-function _initSpotify() {
-  _spotify = new SpotifyService({
-    clientId: SPOTIFY_CLIENT_ID,
-    onStateChange: _onSpotifyState,
-    onNoDevice:    () => showScreen('screen-device'),
-    onAutoPlay:    (d) => _log(`⚡ AUTOPLAY : ${d.name}`, 'warn'),
-    onRelink:      (d) => _log(`🔗 RELINK : ${d.requested} → ${d.played}`, 'info'),
-    onLog:         (msg, lvl) => _log(msg, lvl)
-  });
+// Après le SSO : restaurer le lecteur mémorisé, ou le forcer si callback PKCE Spotify,
+// ou ?provider= (debug), sinon afficher l'écran de choix.
+async function _afterSSO() {
+  if (_afterSSOPromise) return _afterSSOPromise;   // exécuté une seule fois (boot + poll + onAuthStateChange)
+  _afterSSOPromise = (async () => {
+    if (STATE.engine) return;
+    const urlProvider = new URLSearchParams(window.location.search).get('provider');
+    let provider = null;
+    if (_hasSpotifyCallbackInUrl())                         provider = 'spotify';
+    else if (urlProvider && PROVIDERS[urlProvider])         provider = urlProvider;
+    else if (STATE.user?.preferredProvider)                 provider = STATE.user.preferredProvider;
+
+    if (!provider) {
+      _renderProviderScreen();
+      showScreen('screen-provider');
+      return;
+    }
+    await _selectProvider(provider);
+    // Mémoriser le lecteur s'il vient du callback PKCE ou de ?provider= — uniquement s'il est livré
+    if (ENGINE_AVAILABLE[provider] && STATE.user?.preferredProvider !== provider) {
+      _persistProvider(provider);
+    }
+  })();
+  return _afterSSOPromise;
 }
 
-async function _checkSpotifyPremium() {
-  const me = await _spotify.fetchMe();
-  if (!me) {
-    // fetchMe() a échoué (réseau ou 401) — spotify.isPremium reste false — bouton disabled
-    _log('fetchMe() null — Spotify inaccessible', 'warn');
-    _updateLaunchBtn(); // A2: logguer la raison 'Spotify inaccessible'
-    return;
-  }
-  const card    = document.getElementById('spotify-card');
-  const label   = document.getElementById('sp-label');
-  const value   = document.getElementById('sp-value');
-  const arrow   = document.getElementById('sp-arrow');
+// Clic sur une carte de l'écran choix du lecteur (onclick HTML)
+async function chooseProvider(id) {
+  if (!PROVIDERS[id]) return;
+  if (!ENGINE_AVAILABLE[id]) { _showToast(`${PROVIDERS[id].label} arrive dans quelques jours`, 'info'); return; }
+  await _persistProvider(id);
+  await _selectProvider(id);
+  showScreen('screen-create');
+}
 
-  if (me.isPremium) {
+// Lien « changer de lecteur » (screen-create)
+async function changeProvider() {
+  if (STATE.party) { _showToast('Termine la soirée avant de changer de lecteur', 'warn'); return; }
+  STATE.engine?.dispose();
+  STATE.engine   = null;
+  STATE.provider = null;
+  await _persistProvider(null);
+  _renderProviderScreen();
+  showScreen('screen-provider');
+}
+
+async function _persistProvider(id) {
+  if (STATE.user) STATE.user.preferredProvider = id;
+  if (!STATE.user?.supabaseToken) return;
+  try {
+    const r = await fetch('/api/user/me/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${STATE.user.supabaseToken}` },
+      body: JSON.stringify({ preferredProvider: id })
+    });
+    _log(r.ok ? `Lecteur mémorisé : ${id || '(aucun)'}` : `Lecteur non mémorisé (HTTP ${r.status})`, r.ok ? 'ok' : 'warn');
+  } catch (e) { _log(`Lecteur non mémorisé : ${e.message}`, 'warn'); }
+}
+
+// Crée le moteur, branche les événements, tente une connexion silencieuse (sans redirection).
+async function _selectProvider(id) {
+  if (_selectPromise) return _selectPromise;        // verrou : un seul moteur créé à la fois
+  _selectPromise = _selectProviderInner(id).finally(() => { _selectPromise = null; });
+  return _selectPromise;
+}
+async function _selectProviderInner(id) {
+  if (STATE.engine && STATE.provider === id) return;
+  STATE.engine?.dispose();
+  STATE.provider = id;
+  STATE.engine   = await createEngine(id, {
+    clientId: SPOTIFY_CLIENT_ID,
+    getToken: () => STATE.user?.supabaseToken || null,
+    onLog:    (msg, lvl) => _log(msg, lvl)
+  });
+  const engine = STATE.engine;
+  engine.on('stateChanged', _onEngineState);
+  engine.on('noDevice',     () => showScreen('screen-device'));
+  engine.on('needsUserGesture', () => _showToast('Touche ▶ pour lancer la lecture', 'info'));
+  engine.on('error',        (e) => _log(`engine ${id} : ${e?.message || e}`, 'error'));
+  _log(`Lecteur sélectionné : ${PROVIDERS[id].label} (${id})`, 'ok');
+
+  if (!ENGINE_AVAILABLE[id]) { _renderEngineCard(); _updateLaunchBtn(); return; }
+
+  // Connexion silencieuse : tokens déjà présents (Spotify) ou callback PKCE dans l'URL
+  try {
+    const r = await engine.connect({ interactive: false });
+    if (r?.redirecting) return;
+    if (r?.ok) _log(`${PROVIDERS[id].label} connecté : ${r.user?.firstName || ''}`, 'ok');
+    else if (r?.reachable === false) _log(`${PROVIDERS[id].label} inaccessible (réseau / 401)`, 'warn');
+  } catch (e) {
+    _log(`Connexion ${id} erreur : ${e.message}`, 'error');
+    _showToast(`Connexion ${PROVIDERS[id].label} échouée`, 'error');
+  }
+  _renderEngineCard();
+  _updateLaunchBtn();
+}
+
+// Écran choix du lecteur : 3 cartes. Spotify visible seulement pour les testeurs
+// (Development Mode = 5 comptes), ou si des tokens Spotify existent déjà, ou en debug.
+function _renderProviderScreen() {
+  const list = document.getElementById('provider-list');
+  if (!list) return;
+  const otherAvailable = ENGINE_AVAILABLE.apple || ENGINE_AVAILABLE.youtube;
+  // Spotify (Development Mode, 5 comptes) : testeurs, tokens déjà présents, debug —
+  // ou tant qu'aucun autre moteur n'est livré (sinon l'hôte n'aurait aucune option utilisable).
+  const spotifyVisible = STATE.user?.spotifyTester || !!sessionStorage.getItem('sp_access_token') || STATE.debugMode || !otherAvailable;
+  const order = ['apple', 'youtube', 'spotify'].filter(id => id !== 'spotify' || spotifyVisible);
+  list.innerHTML = '';
+  for (const id of order) {
+    const p = PROVIDERS[id];
+    const avail = ENGINE_AVAILABLE[id];
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = `provider-card provider-${id}${avail ? '' : ' soon'}`;
+    el.onclick = () => chooseProvider(id);
+    const icon = id === 'spotify' ? '🟢' : id === 'apple' ? '🍎' : '▶️';
+    el.innerHTML = `
+      <span class="provider-icon">${icon}</span>
+      <span class="provider-text">
+        <span class="provider-label">${p.label}</span>
+        <span class="provider-hint">${avail ? p.hint : 'Arrive dans quelques jours'}</span>
+      </span>
+      <span class="provider-arrow">${avail ? '→' : '⏳'}</span>`;
+    list.appendChild(el);
+  }
+}
+
+// Carte « Musique » de l'écran création : état du lecteur choisi
+function _renderEngineCard() {
+  const card  = document.getElementById('engine-card');
+  const label = document.getElementById('sp-label');
+  const value = document.getElementById('sp-value');
+  const arrow = document.getElementById('sp-arrow');
+  const logo  = document.getElementById('engine-logo');
+  if (!card) return;
+  const engine = STATE.engine, id = STATE.provider;
+  card.classList.remove('connected', 'blocked');
+  if (logo) logo.textContent = id === 'apple' ? '🍎' : id === 'youtube' ? '▶️' : '';
+  if (!engine || !id) { label.textContent = 'Choisir un lecteur'; value.textContent = ''; arrow.textContent = '→'; return; }
+  if (engine.isReady()) {
     card.classList.add('connected');
-    label.textContent = `Connecté : ${me.firstName}`;
-    value.textContent = 'Premium ✓';
+    const first = engine.raw?.userFirstName;
+    label.textContent = `${PROVIDERS[id].label} connecté${first ? ' : ' + first : ''}`;
+    value.textContent = id === 'spotify' ? 'Premium ✓' : 'Prêt ✓';
     value.className   = 'sp-value premium';
     arrow.textContent = '✓';
-    _log(`Spotify Premium OK : ${me.firstName}`, 'ok');
-  } else {
+    return;
+  }
+  const reason = engine.notReadyReason();
+  if (id === 'spotify' && engine.raw?.accessToken && !engine.raw.isPremium) {
     card.classList.add('blocked');
     label.textContent = 'Compte Spotify Free';
     value.textContent = 'Le pilotage nécessite Premium';
     value.className   = 'sp-value free';
     arrow.textContent = '⚠';
     _showToast('⚠ Spotify Free — Premium requis pour piloter la lecture', 'warn');
+    return;
   }
-  _updateLaunchBtn(); // A2: recalculer après PKCE ou init
+  label.textContent = `Connecter ${PROVIDERS[id].label}`;
+  value.textContent = ENGINE_AVAILABLE[id] ? PROVIDERS[id].hint : reason;
+  value.className   = 'sp-value';
+  arrow.textContent = ENGINE_AVAILABLE[id] ? '→' : '⏳';
 }
 
 // ─── A2: Recalcul du bouton Lancer (centralisé) ──────────────────────────────
-// Appelé après : PKCE callback, socket.connect, _checkSpotifyPremium.
-// 3 raisons possibles de grisage :
-//   1. 'Spotify non Premium'       — _spotify.isPremium = false après fetchMe()
-//   2. 'Spotify inaccessible'      — fetchMe() null (réseau / 401)
-//   3. 'non connecté SSO'          — STATE.user = null (session Supabase absente)
-// Raison(s) loguée(s) en debug pour diagnostic.
+// Appelé après : connexion lecteur, socket.connect, choix du provider.
+// Raisons de grisage : lecteur absent / non prêt (engine.notReadyReason()), SSO absent.
 function _updateLaunchBtn() {
   const btn = document.getElementById('btn-launch');
   if (!btn) return;
   const reasons = [];
-  if (!_spotify)                 reasons.push('Spotify inaccessible');
-  else if (!_spotify.isPremium)  reasons.push('Spotify non Premium');
-  if (!STATE.user)               reasons.push('non connecté SSO');
+  if (!STATE.engine)                 reasons.push('aucun lecteur choisi');
+  else if (!STATE.engine.isReady())  reasons.push(STATE.engine.notReadyReason() || 'lecteur non prêt');
+  if (!STATE.user)                   reasons.push('non connecté SSO');
   const disabled = reasons.length > 0;
   btn.disabled = disabled;
   if (STATE.debugMode) {
@@ -613,34 +728,45 @@ function _updateLaunchBtn() {
   }
 }
 
-async function onSpotifyCardClick() {
-  const token = sessionStorage.getItem('sp_access_token');
-  if (token) return; // déjà connecté
-  // Persister le mode debug à travers le redirect PKCE (Spotify supprime ?debug=1)
+// Clic sur la carte « Musique » : connexion interactive au lecteur (peut rediriger)
+async function onEngineCardClick() {
+  if (!STATE.engine) { _renderProviderScreen(); showScreen('screen-provider'); return; }
+  if (STATE.engine.isReady()) return; // déjà connecté
+  if (!ENGINE_AVAILABLE[STATE.provider]) { _showToast(`${PROVIDERS[STATE.provider].label} arrive dans quelques jours`, 'info'); return; }
+  // Persister le mode debug à travers un éventuel redirect OAuth
   if (STATE.debugMode) sessionStorage.setItem('host_debug', '1');
-  await _spotify.startPKCE();
+  try {
+    const r = await STATE.engine.connect({ interactive: true });
+    if (r?.redirecting) return;
+  } catch (e) {
+    _log(`Connexion ${STATE.provider} erreur : ${e.message}`, 'error');
+    _showToast(`Connexion ${PROVIDERS[STATE.provider].label} échouée — réessaie`, 'error');
+  }
+  _renderEngineCard();
+  _updateLaunchBtn();
 }
 
-function _onSpotifyState(state) {
+// State générique du lecteur (contrat PlayerEngine) → UI Now Playing + doctrine T-45s
+function _onEngineState(state) {
   if (!state) return;
-  const { isPlaying, item, progress, duration } = state;
+  const { isPlaying, positionMs, durationMs, title, artist, artworkUrl, providerId } = state;
 
   STATE.isPlaying = isPlaying;
 
-  if (!item) return;
+  if (!providerId) return;
 
   // UI Now Playing
-  document.getElementById('np-title').textContent  = item.name || '—';
-  document.getElementById('np-artist').textContent = (item.artists || []).map(a => a.name).join(', ') || '—';
+  document.getElementById('np-title').textContent  = title || '—';
+  document.getElementById('np-artist').textContent = artist || '—';
   document.getElementById('np-status').textContent = isPlaying ? '▶' : '⏸';
   document.getElementById('btn-play-pause').textContent = isPlaying ? '⏸' : '▶';
 
-  const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
+  const pct = durationMs > 0 ? Math.min(100, (positionMs / durationMs) * 100) : 0;
   document.getElementById('np-progress').style.width = `${pct}%`;
-  document.getElementById('np-elapsed').textContent  = _ms2time(progress);
-  document.getElementById('np-duration').textContent = _ms2time(duration);
+  document.getElementById('np-elapsed').textContent  = _ms2time(positionMs);
+  document.getElementById('np-duration').textContent = _ms2time(durationMs);
 
-  const artUrl = item.album?.images?.[1]?.url || item.album?.images?.[0]?.url || '';
+  const artUrl = artworkUrl || '';
   const artEl  = document.getElementById('np-art');
   if (artEl.src !== artUrl) {
     artEl.src = artUrl;
@@ -648,15 +774,15 @@ function _onSpotifyState(state) {
     setTimeout(() => document.getElementById('np-cover').classList.remove('pulse'), 1000);
   }
 
-  // ── iOS queue logic (pattern SpotifyService.swift L1171) ──
-  // À T-45s : queue le prochain si pas encore fait
-  const remaining = (duration - progress) / 1000;
+  // ── Doctrine (pattern SpotifyService.swift L1171) — identique pour tous les moteurs ──
+  // À T-45s : queueNext le prochain si pas encore fait (UN seul titre en file)
+  const remaining = (durationMs - positionMs) / 1000;
   if (isPlaying && remaining <= QUEUE_BINDING_WINDOW_S && !STATE.nextQueued) {
     _queueNextTrack();
   }
   // À T-5s : transition précoce (comme iOS earlyTransitionThreshold L76)
   if (isPlaying && remaining <= EARLY_TRANSITION_S && STATE.nextQueued) {
-    _log('⏱ Transition précoce T-5s (nextQueued) — Spotify gère le crossfade', 'info');
+    _log('⏱ Transition précoce T-5s (nextQueued) — le lecteur gère l\'enchaînement', 'info');
     _handleQueuedTransition();
   }
 }
@@ -698,7 +824,7 @@ function _resumePartySocket(saved) {
       emoji: STATE.user?.emoji || '🎧',
       photo: STATE.user?.photoURL || null, phone: '', instagram: ''
     },
-    streamingProvider: 'spotify',
+    streamingProvider: STATE.provider || 'spotify',
     deviceId: null
   });
   _log(`host:startParty (reprise) émis pour ${saved.partyCode}`, 'ok');
@@ -719,8 +845,10 @@ function _resumePartySocket(saved) {
 // Note : progress_ms avance même pendant le silence (Spotify playhead = temps, pas audio).
 
 async function _checkPhantomDevice(track) {
+  const raw = STATE.engine?.id === 'spotify' ? STATE.engine.raw : null;
+  if (!raw) return;
   const probe = async () => {
-    const data = await _spotify?._api('GET', '/me/player');
+    const data = await raw._api('GET', '/me/player');
     return data;
   };
   const p1 = await new Promise(r => setTimeout(async () => r(await probe()), 1500));
@@ -788,30 +916,41 @@ async function _createAndStartParty(partyName, fast) {
       phone:     '',
       instagram: ''
     },
-    streamingProvider: 'spotify',
+    streamingProvider: STATE.provider || 'spotify',
     deviceId: null
   });
 
   _log(`host:startParty émis (${code})`, 'ok');
 
-  // 4. Vérifier Spotify
-  if (!_spotify?.accessToken) {
-    _showToast('Connexion Spotify…', 'info');
-    // Persister le mode debug à travers le redirect PKCE
+  // 4. Vérifier le lecteur (★ Lot 1 : générique)
+  const engine = STATE.engine;
+  if (!engine) { _showToast('Choisis un lecteur', 'warn'); _renderProviderScreen(); showScreen('screen-provider'); return; }
+  if (!engine.isReady()) {
+    _showToast(`Connexion ${PROVIDERS[STATE.provider].label}…`, 'info');
+    // Persister le mode debug à travers un éventuel redirect OAuth
     if (STATE.debugMode) sessionStorage.setItem('host_debug', '1');
-    await _spotify.startPKCE();
-    return; // redirect → callback va reprendre
-  }
-  if (!_spotify.isPremium) {
-    _showToast('⚠ Premium Spotify requis', 'warn');
-    return;
+    try {
+      const r = await engine.connect({ interactive: true });
+      if (r?.redirecting) return; // redirect → callback va reprendre
+    } catch (e) {
+      _log(`Connexion ${STATE.provider} erreur : ${e.message}`, 'error');
+      _showToast(`Connexion ${PROVIDERS[STATE.provider].label} échouée — réessaie`, 'error');
+    }
+    if (!engine.isReady()) {
+      _showToast(`⚠ ${engine.notReadyReason() || 'Lecteur non prêt'}`, 'warn');
+      _renderEngineCard(); _updateLaunchBtn();
+      document.getElementById('btn-just-play').disabled = false;
+      return;
+    }
   }
 
-  // 5. Device
-  const deviceId = await _spotify.ensureActiveDevice();
-  if (!deviceId) {
-    showScreen('screen-device');
-    return;
+  // 5. Device (Spotify Connect uniquement : l'app Spotify doit être ouverte quelque part)
+  if (engine.id === 'spotify') {
+    const deviceId = await engine.raw.ensureActiveDevice();
+    if (!deviceId) {
+      showScreen('screen-device');
+      return;
+    }
   }
 
   // 6. Charger titres djbrain-lite
@@ -835,9 +974,11 @@ async function _loadAndPlayFirst(code) {
 
     _log(`djbrain-lite: ${STATE.tracks.length} titres (${STATE.tracks[0]?.title})`);
 
-    // 7. Play premier titre
+    // 7. Play premier titre (★ Lot 1 : id provider via engine.resolve, lecture via engine.play)
     const first = STATE.tracks[0];
-    const ok = await _spotify.play([first.spotifyUri]);
+    const pid = await STATE.engine.resolve(first);
+    if (!pid) { _showToast(`Titre introuvable sur ${PROVIDERS[STATE.provider].label}`, 'error'); return; }
+    const ok = await STATE.engine.play(pid);
     if (!ok) return;
 
     // 8. Émettre host:trackUpdate (comme iOS L5167 server.js)
@@ -848,9 +989,9 @@ async function _loadAndPlayFirst(code) {
     _renderQR(code);
     showScreen('screen-playing');
 
-    // 2. Détection appareil fantôme en ARRIÈRE-PLAN (non bloquant)
+    // 2. Détection appareil fantôme en ARRIÈRE-PLAN (non bloquant, Spotify Connect uniquement)
     // Si fantôme confirmé → showScreen('screen-device') + toast depuis la callback
-    _checkPhantomDevice(first); // sans await
+    if (STATE.engine.id === 'spotify') _checkPhantomDevice(first); // sans await
 
   } catch (e) {
     _showToast(`Erreur chargement titres : ${e.message}`, 'error');
@@ -890,7 +1031,9 @@ async function _queueNextTrack() {
   }
 
   _log(`Queue T-45s : ${nextTrack.title}`);
-  const ok = await _spotify.queue(nextTrack.spotifyUri);
+  const pid = await STATE.engine.resolve(nextTrack);
+  if (!pid) { _log(`Queue T-45s : ${nextTrack.title} introuvable sur ${STATE.provider} — skip`, 'warn'); STATE.tracks.splice(STATE.currentIdx + 1, 1); return; }
+  const ok = await STATE.engine.queueNext(pid);
   if (ok) {
     STATE.nextQueued = true;
     STATE.queuedForTrackId = currentTrackId; // mémoriser pour guard
@@ -937,6 +1080,7 @@ function _emitTrackUpdate(track) {
     durationMs: track.durationMs || 0,
     artworkUrl: track.coverArtURL || null,
     source:     'djbrain-lite',  // PROVISOIRE
+    provider:   STATE.provider || 'spotify', // ★ Lot 1
     sentAt:     new Date().toISOString()
   };
   // ★ Sécurité : l'émission host:trackUpdate est authentifiée par socket.user (JWT)
@@ -967,11 +1111,12 @@ function _withBusy(name, fn) {
     try {
       await fn();
       // 3. Après fn() : vérifier lastNetworkError (posé par _api sans rethrow)
-      if (_spotify?.lastNetworkError?.suspended &&
-          Date.now() - _spotify.lastNetworkError.at < 2000) {
+      const raw = STATE.engine?.id === 'spotify' ? STATE.engine.raw : null;
+      if (raw?.lastNetworkError?.suspended &&
+          Date.now() - raw.lastNetworkError.at < 2000) {
         _log(`↩ ${name} — réseau suspendu (bascule app) — en attente visibilitychange`, 'info');
         STATE.pendingCmd = { name, fn };
-        _spotify.lastNetworkError = null;
+        raw.lastNetworkError = null;
       }
     } catch (e) {
       // Erreur non-réseau (ne devrait pas arriver — _api return null sans throw)
@@ -983,22 +1128,24 @@ function _withBusy(name, fn) {
 
 async function next() {
   await _withBusy('⏭ NEXT', async () => {
-    await _spotify?.next();
+    await STATE.engine?.next();
   })();
 }
 
 async function prev() {
   await _withBusy('⏮ PREV', async () => {
     const curr = STATE.tracks[STATE.currentIdx];
-    if (curr) await _spotify?.play([curr.spotifyUri]);
+    if (!curr || !STATE.engine) return;
+    const pid = await STATE.engine.resolve(curr);
+    if (pid) await STATE.engine.play(pid);
   })();
 }
 
 async function togglePlay() {
   await _withBusy(STATE.isPlaying ? '⏸ PAUSE' : '▶ RESUME', async () => {
-    if (!_spotify) return;
-    if (STATE.isPlaying) { await _spotify.pause(); }
-    else                 { await _spotify.resume(); }
+    if (!STATE.engine) return;
+    if (STATE.isPlaying) { await STATE.engine.pause(); }
+    else                 { await STATE.engine.resume(); }
   })();
 }
 
@@ -1055,6 +1202,8 @@ function onCoverChange(event) {
 
 async function retryDevices() {
   const list = document.getElementById('device-list');
+  const raw  = STATE.engine?.id === 'spotify' ? STATE.engine.raw : null;   // écran Spotify Connect uniquement
+  if (!raw) { list.innerHTML = '<div style="color:var(--muted);font-size:14px;text-align:center;padding:12px">Ce lecteur ne nécessite pas d\'appareil.</div>'; return; }
   list.innerHTML = '<div style="color:var(--muted);text-align:center"><span class="spinner"></span> Recherche…</div>';
 
   // A3: Poll automatique — 5 appels max sur 25s (rate limit prudent)
@@ -1063,8 +1212,8 @@ async function retryDevices() {
   const MAX_POLLS = 5;
   const POLL_MS   = 5000; // 5s entre chaque
   for (let i = 0; i < MAX_POLLS; i++) {
-    await _spotify?.fetchDevices();
-    devices = _spotify?.devices || [];
+    await raw.fetchDevices();
+    devices = raw.devices || [];
     if (devices.length > 0) break;
     if (i < MAX_POLLS - 1) {
       list.innerHTML = `<div style="color:var(--muted);text-align:center"><span class="spinner"></span> Recherche… (${i + 1}/${MAX_POLLS})</div>`;
@@ -1078,7 +1227,7 @@ async function retryDevices() {
   }
   // Sélection automatique si un seul appareil
   if (devices.length === 1 && !devices[0].is_active) {
-    await _spotify.transferToDevice(devices[0].id);
+    await raw.transferToDevice(devices[0].id);
     _showToast(`Appareil auto-sélectionné : ${devices[0].name}`, 'success');
     if (STATE.tracks.length === 0 || !STATE.party) {
       await _loadAndPlayFirst(STATE.party?.code);
@@ -1100,7 +1249,7 @@ async function retryDevices() {
       </div>
     `;
     el.onclick = async () => {
-      await _spotify.transferToDevice(d.id);
+      await raw.transferToDevice(d.id);
       _showToast(`Device sélectionné : ${d.name}`, 'success');
       // A1 guard : ne relancer _loadAndPlayFirst que si pas déjà en cours
       if (STATE.tracks.length === 0 || !STATE.party) {
@@ -1242,11 +1391,6 @@ function _randomString(len) {
 function _ms2time(ms) {
   const s = Math.floor((ms || 0) / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
-
-function _isSafariIOS() {
-  const ua = navigator.userAgent;
-  return /iP(hone|ad|od)/.test(ua) && /Safari/.test(ua) && !/Chrome/.test(ua);
 }
 
 function _showToast(msg, type = 'info') {

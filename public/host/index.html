@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/host/host.css?v=287c60e">
+  <link rel="stylesheet" href="/host/host.css?v=lot1-0110">
 
   <!-- Supabase SDK (chargé dynamiquement via /api/config/supabase) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -124,29 +124,21 @@
       <div class="card">
         <div class="card-title">Musique</div>
 
-        <!-- Spotify card — 3 états gérés par JS -->
-        <div id="spotify-card" class="spotify-card" onclick="HOST.onSpotifyCardClick()">
-          <div class="spotify-logo">
-            <svg viewBox="0 0 24 24" fill="white">
+        <!-- ★ Lot 1 : carte lecteur générique (Spotify / Apple Music / YouTube) — états gérés par JS -->
+        <div id="engine-card" class="spotify-card" onclick="HOST.onEngineCardClick()">
+          <div class="spotify-logo" id="engine-logo-wrap">
+            <svg viewBox="0 0 24 24" fill="white" id="engine-logo-spotify">
               <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.01 17.277a.748.748 0 01-1.029.245c-2.82-1.724-6.369-2.115-10.549-1.159a.748.748 0 01-.334-1.459c4.571-1.045 8.492-.596 11.666 1.344a.75.75 0 01.246 1.029zm1.337-2.97a.937.937 0 01-1.288.308c-3.226-1.983-8.143-2.558-11.962-1.4a.938.938 0 01-.574-1.789c4.358-1.3 9.773-.671 13.516 1.593a.936.936 0 01.308 1.288zm.115-3.091c-3.868-2.298-10.248-2.51-13.941-1.389a1.124 1.124 0 01-.649-2.152c4.241-1.282 11.286-1.034 15.736 1.607a1.125 1.125 0 01-1.146 1.934z"/>
             </svg>
+            <span id="engine-logo" class="engine-logo-emoji"></span>
           </div>
           <div class="spotify-info">
-            <div class="sp-label" id="sp-label">Connecter Spotify</div>
-            <div class="sp-value" id="sp-value">Lancer la musique depuis ce téléphone</div>
+            <div class="sp-label" id="sp-label">Choisir un lecteur</div>
+            <div class="sp-value" id="sp-value">Spotify, Apple Music ou YouTube</div>
           </div>
           <span id="sp-arrow">→</span>
         </div>
-
-        <!-- Apple Music — Safari iOS uniquement (masqué par défaut) -->
-        <a id="apple-music-card" class="apple-music-card"
-           href="https://music.apple.com" target="_blank">
-          <span class="apple-music-logo">🎵</span>
-          <div>
-            <div style="font-size:13px;color:var(--muted)">Apple Music</div>
-            <div style="font-size:14px;font-weight:600">Ouvrir l'app</div>
-          </div>
-        </a>
+        <button type="button" class="link-btn" id="change-provider" onclick="HOST.changeProvider()">Changer de lecteur</button>
 
       </div>
 
@@ -166,6 +158,23 @@
     </div>
 
   </div><!-- /screen-create -->
+
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN 1b — ★ Lot 1 : choix du lecteur (après le SSO, mémorisé)
+  ══════════════════════════════════════════════════════ -->
+  <div id="screen-provider" class="screen">
+    <div class="host-header">
+      <h1>Avec quoi joues-tu la musique ce soir ?</h1>
+      <p class="subtitle">Ton choix est mémorisé, tu pourras le changer plus tard.</p>
+    </div>
+    <div class="card">
+      <div id="provider-list" class="provider-list"></div>
+      <div class="footer-hint" style="margin-top:14px">
+        Usage privé entre amis. La musique est jouée par ton propre service, avec ton compte.
+      </div>
+    </div>
+  </div><!-- /screen-provider -->
 
 
   <!-- ══════════════════════════════════════════════════════
@@ -271,8 +280,8 @@
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
-<script src="/shared/supabase-cookie.js?v=287c60e"></script>
-<script type="module" src="/host/host.js?v=287c60e"></script>
+<script src="/shared/supabase-cookie.js?v=lot1-0110"></script>
+<script type="module" src="/host/host.js?v=lot1-0110"></script>
 
 </body>
 </html>

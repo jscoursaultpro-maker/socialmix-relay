@@ -88,6 +88,7 @@ import meSuggestionsHistoryRouter from './routes/me-suggestions-history.js';
 import meTracksFavoritesRouter from './routes/me-tracks-favorites.js';
 import djbrainLiteRouter from './routes/djbrain-lite.js'; // ★ feat(host-web): sélection provisoire pour cockpit hôte
 import appleDevTokenRouter from './routes/apple-dev-token.js'; // ★ Lot 0 (01/10): jeton MusicKit pour host web
+import resolveRouter from './routes/resolve.js'; // ★ Lot 1 (01/10): GET /api/resolve?provider=&trackId=
 import compression from 'compression'; // ★ Chantier 2: gzip for large seed payloads
 import { resolvePhotoAccess, filterPhotosForUser } from './utils/photoVisibility.js'; // ★ Sprint X2
 
@@ -1432,6 +1433,7 @@ app.use('/api/me', meSuggestionsHistoryRouter);     // GET /api/me/suggestions/p
 app.use('/api/me', meTracksFavoritesRouter);         // GET /api/me/tracks/favorites
 app.use('/api/djbrain-lite', djbrainLiteRouter);       // ★ feat(host-web): sélection provisoire cockpit hôte web
 app.use('/api/apple', appleDevTokenRouter);              // ★ Lot 0 (01/10): GET /api/apple/dev-token
+app.use('/api/resolve', resolveRouter);                 // ★ Lot 1 (01/10): résolution titre → id lecteur
 
 // POST /api/admin/auth — obtenir un token admin
 app.post('/api/admin/auth', (req, res) => {

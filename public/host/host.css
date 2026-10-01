@@ -604,3 +604,30 @@ input[type="text"]:focus, input[type="date"]:focus, select:focus {
 /* ── Responsive (paysage mobile) ─────────────────────────────────────────── */
 @media (min-height: 700px) { .np-cover { max-width: 280px; } }
 @media (min-width: 600px) { #app { padding: 0 24px 40px; } }
+
+
+/* ── ★ Lot 1 : écran choix du lecteur + carte lecteur générique ───────────── */
+.provider-list { display: flex; flex-direction: column; gap: 10px; }
+.provider-card {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  padding: 14px 16px; border-radius: 12px; cursor: pointer; font: inherit; color: inherit;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10);
+  transition: var(--transition);
+}
+.provider-card:hover { border-color: rgba(0,212,200,0.45); }
+.provider-card.soon { opacity: .55; cursor: not-allowed; }
+.provider-card.provider-spotify { background: rgba(30,215,96,0.06); border-color: rgba(30,215,96,0.18); }
+.provider-card.provider-apple   { background: rgba(252,60,60,0.06);  border-color: rgba(252,60,60,0.18); }
+.provider-card.provider-youtube { background: rgba(255,0,0,0.05);    border-color: rgba(255,0,0,0.16); }
+.provider-icon  { font-size: 26px; width: 40px; text-align: center; flex-shrink: 0; }
+.provider-text  { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.provider-label { font-size: 16px; font-weight: 700; }
+.provider-hint  { font-size: 12.5px; color: var(--muted); }
+.provider-arrow { color: var(--muted); font-size: 18px; }
+.engine-logo-emoji { font-size: 22px; line-height: 40px; }
+#engine-logo-wrap:has(.engine-logo-emoji:not(:empty)) #engine-logo-spotify { display: none; }
+#engine-logo-wrap:has(.engine-logo-emoji:not(:empty)) { background: rgba(255,255,255,0.08); }
+.link-btn {
+  background: none; border: none; color: var(--cyan); font: inherit; font-size: 13px;
+  cursor: pointer; padding: 10px 0 0; text-decoration: underline; text-underline-offset: 3px;
+}

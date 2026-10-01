@@ -67,7 +67,7 @@ const PartySchema = new mongoose.Schema({
   // ★ fix(#24) — enum étendu + index pour queries analytics cross-party
   streamingProvider: {
     type: String,
-    enum: ['apple_music', 'appleMusic', 'spotify', 'deezer', 'just_play', null],
+    enum: ['apple_music', 'appleMusic', 'spotify', 'deezer', 'just_play', 'apple', 'youtube', null], // ★ Lot 1 host web : 'apple' | 'youtube'
     default: null,
     index: true
   },

@@ -40,6 +40,17 @@ router.patch('/me/settings', requireSupabaseAuth, async (req, res) => {
       modified = true;
     }
 
+    // ★ Lot 1 host web (01/10/2026) — lecteur préféré (null = redemander à la prochaine soirée)
+    if ('preferredProvider' in (req.body || {})) {
+      const { preferredProvider } = req.body;
+      const ALLOWED = ['spotify', 'apple', 'youtube', null];
+      if (!ALLOWED.includes(preferredProvider)) {
+        return res.status(400).json({ error: 'INVALID_PROVIDER', allowed: ALLOWED.filter(Boolean) });
+      }
+      user.settings.preferredProvider = preferredProvider;
+      modified = true;
+    }
+
     // Add future settings here
 
     if (modified) {
