@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20261001-renames">
+    <link rel="stylesheet" href="style.css?v=20261001-logos">
 </head>
 <body>
 
@@ -834,17 +834,21 @@
                   <span>Mes Bangers</span>
                 </button>
                 <button type="button" id="v2-suggest-paste" onclick="pasteV2SuggestionLink()" aria-label="Coller un lien Deezer, Spotify ou Apple Music">
-                  <span class="v2-music-services" aria-hidden="true">
-                    <i class="is-deezer">D</i><i class="is-spotify">S</i><i class="is-apple">●</i>
-                  </span>
+                  <span class="v2-suggest-action-icon" aria-hidden="true">🔗</span>
                   <span>Coller le lien</span>
                 </button>
+              </div>
+              <div class="soiree-services-strip" aria-label="Compatible avec Spotify, Deezer et Apple Music">
+                <span class="soiree-services-note">Colle un lien depuis</span>
+                <span class="svc-chip svc-chip--icon"><img src="assets/logo-spotify.svg" alt="Spotify"></span>
+                <span class="svc-chip"><img src="assets/logo-deezer.png" alt="Deezer"></span>
+                <span class="svc-chip svc-chip--icon"><img src="assets/logo-apple-music.svg" alt="Apple Music"></span>
               </div>
               <div id="suggest-source-badge" class="soiree-source-badge" style="display:none;"></div>
               <div id="suggest-results" class="soiree-suggest-results"></div>
               <div id="v2-bangers-library" class="v2-bangers-library" hidden></div>
               <div id="suggest-hint" class="soiree-suggest-hint">
-                💡 Tape un titre, colle un lien Deezer/Spotify/Apple Music, ou laisse AhOuai te proposer des titres
+                💡 Tape un titre, colle un lien, ou laisse AhOuai te proposer des titres
               </div>
             </div>
           </div>
@@ -1267,6 +1271,6 @@
     <!-- ★ SSO web (task #33) — Supabase JS SDK pour Apple/Google OAuth -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <script src="/shared/supabase-cookie.js"></script>
-    <script src="app.js?v=20261001-renames"></script>
+    <script src="app.js?v=20261001-logos"></script>
 </body>
 </html>
