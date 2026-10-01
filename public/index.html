@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20261001-fermer">
+    <link rel="stylesheet" href="style.css?v=20261001-renames">
 </head>
 <body>
 
@@ -557,7 +557,7 @@
     <div id="my-friends-screen" class="screen">
         <div class="profile-container cercle-page">
             <button id="my-friends-back" class="back-btn" onclick="if(typeof showScreen==='function') showScreen(state.previousScreen==='profile'?'profile':'cockpit')">‹ RETOUR</button>
-            <header class="cercle-heading"><span>✦ LE MOMENT CONTINUE</span><h2>MON CERCLE</h2><p>Les personnes croisées deviennent une histoire.</p></header>
+            <header class="cercle-heading"><span>✦ LE MOMENT CONTINUE</span><h2>MES AMIS</h2><p>Les personnes croisées deviennent une histoire.</p></header>
             <section class="cercle-pulse" aria-label="Résumé du cercle">
                 <div><strong id="mf-pulse-friends">0</strong><span>dans ton Crew</span></div>
                 <i></i>
@@ -565,7 +565,7 @@
                 <i></i>
                 <div><strong id="mf-pulse-new">0</strong><span>nouveaux visages</span></div>
             </section>
-            <nav class="cercle-tabs" aria-label="Mon cercle">
+            <nav class="cercle-tabs" aria-label="Mes amis">
                 <button class="is-active" data-cercle-tab="pending">À RÉPONDRE <b id="mf-pending-count">0</b></button>
                 <button data-cercle-tab="friends">MON CREW <b id="mf-friends-count">0</b></button>
                 <button data-cercle-tab="recent">RENCONTRÉS <b id="mf-recent-count">0</b></button>
@@ -827,7 +827,7 @@
               <div class="v2-suggest-actions" role="group" aria-label="Sources de suggestions musicales">
                 <button type="button" id="v2-suggest-explore" class="is-active" onclick="showV2Explorer()">
                   <span class="v2-suggest-action-icon" aria-hidden="true">🤖</span>
-                  <span>DJ Brain te propose</span>
+                  <span>AhOuai te propose</span>
                 </button>
                 <button type="button" id="v2-suggest-bangers" onclick="showV2Bangers()">
                   <span class="v2-suggest-action-icon" aria-hidden="true">🔥</span>
@@ -844,7 +844,7 @@
               <div id="suggest-results" class="soiree-suggest-results"></div>
               <div id="v2-bangers-library" class="v2-bangers-library" hidden></div>
               <div id="suggest-hint" class="soiree-suggest-hint">
-                💡 Tape un titre, colle un lien Deezer/Spotify/Apple Music, ou laisse DJ Brain te proposer des titres
+                💡 Tape un titre, colle un lien Deezer/Spotify/Apple Music, ou laisse AhOuai te proposer des titres
               </div>
             </div>
           </div>
@@ -1267,6 +1267,6 @@
     <!-- ★ SSO web (task #33) — Supabase JS SDK pour Apple/Google OAuth -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <script src="/shared/supabase-cookie.js"></script>
-    <script src="app.js?v=20261001-fermer"></script>
+    <script src="app.js?v=20261001-renames"></script>
 </body>
 </html>
