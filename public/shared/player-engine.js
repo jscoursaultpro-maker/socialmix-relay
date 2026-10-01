@@ -36,7 +36,7 @@ export const PROVIDERS = {
   apple:   { label: 'Apple Music', hint: 'Abonnement Apple Music requis · titres complets',
              capabilities: { fullTracks: true,  lockScreen: true,  needsVisiblePlayer: false, needsSubscription: 'apple' } },
   youtube: { label: 'YouTube',     hint: 'Gratuit · l\'écran doit rester allumé',
-             capabilities: { fullTracks: true,  lockScreen: false, needsVisiblePlayer: true,  needsSubscription: null } },
+             capabilities: { fullTracks: true,  lockScreen: false, needsVisiblePlayer: true,  needsSubscription: null, selfAdvancing: true } },
 };
 
 /** Base minimale : gestion des événements + resolve() commun via /api/resolve. */

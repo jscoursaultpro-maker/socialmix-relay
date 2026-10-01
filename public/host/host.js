@@ -61,7 +61,7 @@ let _afterSSOPromise = null;   // ★ Lot 1 : _afterSSO exécuté une seule fois
 let _selectPromise   = null;   // ★ Lot 1 : _selectProvider verrouillé (double tap, double init)
 
 // ★ Lot 1 : disponibilité des moteurs côté cockpit (Apple = Lot 2, YouTube = Lot 3)
-const ENGINE_AVAILABLE = { spotify: true, apple: false, youtube: false };
+const ENGINE_AVAILABLE = { spotify: true, apple: false, youtube: true }; // ★ Lot 3 : YouTube livré
 
 const STATE = {
   user:          null,   // {id, email, firstName, photoURL, supabaseToken, preferredProvider, spotifyTester}
@@ -72,6 +72,7 @@ const STATE = {
   currentIdx:    0,
   nextQueued:    false,
   queuedForTrackId: null,   // A1 guard — URI du prochain mis en file (UN seul par morceau en cours)
+  queuedPid:     null,      // ★ Lot 3 : id lecteur du prochain (moteurs self-advancing = YouTube)
   visibility:    'private',
   coverPhotoUrl: null,
   guestCount:    0,
@@ -624,6 +625,8 @@ async function _selectProviderInner(id) {
   engine.on('noDevice',     () => showScreen('screen-device'));
   engine.on('needsUserGesture', () => _showToast('Touche ▶ pour lancer la lecture', 'info'));
   engine.on('error',        (e) => _log(`engine ${id} : ${e?.message || e}`, 'error'));
+  engine.on('needsVisibleScreen', () => { const b = document.getElementById('yt-wake-banner'); if (b) b.style.display = 'block'; });
+  engine.on('trackChanged', _onEngineTrackChanged);
   _log(`Lecteur sélectionné : ${PROVIDERS[id].label} (${id})`, 'ok');
 
   if (!ENGINE_AVAILABLE[id]) { _renderEngineCard(); _updateLaunchBtn(); return; }
@@ -774,7 +777,12 @@ function _onEngineState(state) {
     setTimeout(() => document.getElementById('np-cover').classList.remove('pulse'), 1000);
   }
 
-  // ── Doctrine (pattern SpotifyService.swift L1171) — identique pour tous les moteurs ──
+  // ★ Lot 3 : moteurs self-advancing (YouTube) — l'audio bascule à la fin réelle, l'avance
+  // de l'index se fait sur l'événement trackChanged du moteur, pas sur un timer T-5s (sinon
+  // on écrase le prochain déjà mis en file et on saute un titre).
+  if (STATE.engine?.capabilities?.selfAdvancing) return;
+
+  // ── Doctrine (pattern SpotifyService.swift L1171) — moteurs à file native (Spotify) ──
   // À T-45s : queueNext le prochain si pas encore fait (UN seul titre en file)
   const remaining = (durationMs - positionMs) / 1000;
   if (isPlaying && remaining <= QUEUE_BINDING_WINDOW_S && !STATE.nextQueued) {
@@ -989,6 +997,9 @@ async function _loadAndPlayFirst(code) {
     _renderQR(code);
     showScreen('screen-playing');
 
+    // ★ Lot 3 : moteur self-advancing → pré-charger le prochain titre (file interne du moteur)
+    if (STATE.engine.capabilities?.selfAdvancing) await _prequeueSelfAdvancing();
+
     // 2. Détection appareil fantôme en ARRIÈRE-PLAN (non bloquant, Spotify Connect uniquement)
     // Si fantôme confirmé → showScreen('screen-device') + toast depuis la callback
     if (STATE.engine.id === 'spotify') _checkPhantomDevice(first); // sans await
@@ -1067,6 +1078,43 @@ function _handleQueuedTransition() {
       })
       .catch(() => {});
   }
+}
+
+// ─── Moteurs self-advancing (★ Lot 3 : YouTube) ─────────────────────────────
+// Le moteur enchaîne l'audio à la fin réelle du titre et émet 'trackChanged' avec l'id
+// du prochain (celui qu'on lui a pré-chargé via queueNext). On avance alors l'index + guests,
+// puis on lui pré-charge le titre suivant.
+
+async function _prequeueSelfAdvancing(skipsLeft = 5) {
+  const next = STATE.tracks[STATE.currentIdx + 1];
+  if (!next) {
+    // Recharger la réserve
+    try {
+      const res  = await fetch(`/api/djbrain-lite/next?partyCode=${STATE.party?.code}&count=5&phase=arrival`);
+      const data = await res.json();
+      const fresh = (data.tracks || []).filter(t => !STATE.tracks.some(e => e.trackId === t.trackId));
+      STATE.tracks = [...STATE.tracks, ...fresh];
+    } catch (_) {}
+  }
+  const nextTrack = STATE.tracks[STATE.currentIdx + 1];
+  if (!nextTrack) { STATE.queuedPid = null; _log('Pas de prochain titre (self-advancing)', 'warn'); return; }
+  if (skipsLeft <= 0) { _log('Pré-chargement : trop de titres introuvables d\'affilée — arrêt (quota)', 'warn'); STATE.queuedPid = null; return; }
+  const pid = await STATE.engine.resolve(nextTrack);
+  if (!pid) { _log(`Prochain introuvable sur ${STATE.provider} — skip : ${nextTrack.title}`, 'warn'); STATE.tracks.splice(STATE.currentIdx + 1, 1); return _prequeueSelfAdvancing(skipsLeft - 1); }
+  await STATE.engine.queueNext(pid);
+  STATE.queuedPid = pid;
+  _log(`▶ Pré-chargé (self-advancing) : ${nextTrack.title}`, 'ok');
+}
+
+async function _onEngineTrackChanged(state) {
+  if (!STATE.engine?.capabilities?.selfAdvancing) return;      // Spotify : géré par timer
+  const pid = state?.providerId;
+  if (!pid || pid !== STATE.queuedPid) return;                  // play() initial → ignoré (≠ prochain)
+  STATE.currentIdx++;
+  STATE.queuedPid = null;
+  const now = STATE.tracks[STATE.currentIdx];
+  if (now) { _log(`✅ Transition (self-advancing) → ${now.title}`, 'ok'); _emitTrackUpdate(now); }
+  await _prequeueSelfAdvancing();
 }
 
 // ─── host:trackUpdate (comme iOS L5167 server.js) ────────────────────────────
@@ -1373,6 +1421,19 @@ function showScreen(id) {
   document.getElementById(id)?.classList.add('active');
   // 2.2: afficher la carte Web Player si desktop et screen-device
   if (id === 'screen-device') _showWebPlayerCard();
+  if (id === 'screen-playing') _applyProviderUI();
+  // ★ Lot 3 (revue #3) : le lecteur YouTube ne doit jamais être caché PENDANT la lecture.
+  // Si on quitte screen-playing alors que YouTube joue, on met en pause (donc plus d'audio caché).
+  else if (STATE.provider === 'youtube' && STATE.isPlaying) { STATE.engine?.pause(); }
+}
+
+// ★ Lot 3 : sur screen-playing, le lecteur YouTube (visible) remplace la pochette
+function _applyProviderUI() {
+  const ytMount = document.getElementById('yt-player-mount');
+  const cover   = document.getElementById('np-cover');
+  const isYT = STATE.provider === 'youtube';
+  if (ytMount) ytMount.style.display = isYT ? 'block' : 'none';
+  if (cover)   cover.style.display   = isYT ? 'none'  : '';
 }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────

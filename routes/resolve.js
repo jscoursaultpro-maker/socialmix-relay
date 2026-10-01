@@ -22,6 +22,7 @@ import Track from '../models/Track.js';
 import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
 import { findOrCreateFromSupabase } from '../services/userService.js';
 import { _resolveIsrc, _resolveText } from './djbrain-lite.js';
+import { _resolveYouTube } from './youtube-resolve.js';  // ★ Lot 3
 
 const router = Router();
 
@@ -32,10 +33,10 @@ const CACHE_FAIL_MS =  5 * 60 * 1000;
 const _cache = new Map();   // `${provider}::${trackId}` → { value, expiresAt }
 
 const rateLimitMap = new Map();       // par utilisateur (req.currentUser._id) — 20/min
-let   _externalBudget = 0;            // appels externes (Spotify…) toutes requêtes confondues — 30/min
+const _externalBudget = { spotify: 0, youtube: 0 }; // budget d'appels externes PAR provider (cloisonné)
 const RATE_PER_USER   = 20;
 const EXTERNAL_PER_MIN = 30;
-setInterval(() => { rateLimitMap.clear(); _externalBudget = 0; }, 60_000).unref?.();
+setInterval(() => { rateLimitMap.clear(); _externalBudget.spotify = 0; _externalBudget.youtube = 0; }, 60_000).unref?.();
 
 async function requireSupabaseAuth(req, res, next) {
   try {
@@ -60,8 +61,11 @@ function _getField(track, provider) {
  *  Budget global : au-delà de EXTERNAL_PER_MIN appels externes/min, on répond 'unresolved'
  *  (sans cache long) plutôt que d'exposer le compte Spotify (précédent de bannissement). */
 async function _resolveExternal(provider, track) {
-  if (_externalBudget >= EXTERNAL_PER_MIN) { console.warn('[resolve] budget externe épuisé cette minute'); return null; }
-  _externalBudget++;
+  if ((_externalBudget[provider] || 0) >= EXTERNAL_PER_MIN) {
+    console.warn(`[resolve] budget externe ${provider} épuisé cette minute`);
+    return { budgetExhausted: true };   // ≠ "introuvable" : ne pas cacher longtemps
+  }
+  _externalBudget[provider] = (_externalBudget[provider] || 0) + 1;
   if (provider === 'spotify') {
     if (track.isrc) {
       const id = await _resolveIsrc(track.isrc, track._id.toString());
@@ -71,7 +75,12 @@ async function _resolveExternal(provider, track) {
     if (id) return { providerId: id, resolvedBy: 'text' };
     return null;
   }
-  // apple / youtube : Lots 2 et 3
+  if (provider === 'youtube') {
+    const id = await _resolveYouTube(track.title, track.artist, track.isrc, track._id.toString());
+    if (id) return { providerId: id, resolvedBy: 'search' };
+    return null;
+  }
+  // apple : Lot 2
   return null;
 }
 
@@ -105,6 +114,10 @@ export async function resolveTrack(provider, trackId) {
     value = { providerId: String(existing), resolvedBy: 'db' };
   } else {
     const ext = await _resolveExternal(provider, track);
+    if (ext?.budgetExhausted) {
+      // Échec dû au budget (pas au catalogue) : répondre unresolved SANS cacher (retry possible)
+      return { providerId: null, resolvedBy: 'budget' };
+    }
     if (ext) {
       value = ext;
       // Spotify : _resolveIsrc/_resolveText (djbrain-lite) font déjà le write-back.
