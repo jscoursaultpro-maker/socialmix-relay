@@ -31,6 +31,11 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           COUNT_OUT: curation-data/logs/count-latest.txt
         run: node scripts/curation/count.mjs
+      - name: Explore party suggestions
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          COUNT_OUT: curation-data/logs/suggestions-latest.txt
+        run: node scripts/curation/explore_party_suggestions.mjs || true
       - name: Commit result
         if: always()
         working-directory: curation-data
