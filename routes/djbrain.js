@@ -166,6 +166,18 @@ router.get('/next', requireSupabaseAuth, async (req, res) => {
       { $project: TRACK_PROJECTION },
     ]);
 
+    // ★ Injecter les titres suggérés par les guests dans le pool pour que le DJ Brain
+    //   puisse les SÉLECTIONNER au bon moment (scoring phase/énergie + boost suggestion).
+    //   Sans ça, une suggestion non échantillonnée dans le pool ne remonte jamais.
+    try {
+      const have = new Set(pool.map((t) => String(t._id)));
+      const suggIds = Object.keys(suggestions).filter((id) => /^[a-f0-9]{24}$/i.test(id) && !have.has(id));
+      if (suggIds.length) {
+        const extra = await Track.find({ _id: { $in: suggIds } }, TRACK_PROJECTION).lean();
+        for (const t of extra) pool.push(t);
+      }
+    } catch (e) { /* best-effort : injection suggestions non bloquante */ }
+
     // Si doctrine premier titre active : on complète la file avec la sélection normale,
     // en excluant l'ouverture choisie (évite le doublon en tête de « À suivre »).
     const selectCount = firstTrackFormatted ? Math.max(0, n - 1) : n;

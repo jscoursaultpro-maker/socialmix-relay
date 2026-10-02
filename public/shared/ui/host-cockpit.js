@@ -80,11 +80,6 @@
     var w = document.createElement('div');
     w.id = WRAP_ID;
     w.innerHTML =
-      '<div class="hc-card hc-auto">' +
-        '<span class="inf">∞</span>' +
-        '<div class="lab"><b>Enchaînement auto</b><span>Passe automatiquement au titre suivant</span></div>' +
-        '<div class="hc-sw" id="hc-auto-sw"></div>' +
-      '</div>' +
       '<div class="hc-card hc-dram">' +
         '<div class="hd"><span class="t">SOIRÉE EN COURS</span><span class="auto">● AUTO</span></div>' +
         '<div class="hc-frise" id="hc-frise"></div>' +
@@ -92,6 +87,13 @@
         '<div class="hc-phase-sub" id="hc-phase-sub">—</div>' +
         '<div class="hc-stats"><span class="fr" id="hc-fr">Fraîcheur —</span><span><b id="hc-people">0</b> personnes</span></div>' +
       '</div>' +
+      // Sélecteur descendu, juste au-dessus de la file qu'il pilote.
+      '<div class="hc-card hc-auto">' +
+        '<span class="inf">∞</span>' +
+        '<div class="lab"><b>Enchaînement auto</b><span>ON : les suggestions entrent seules dans la file · OFF : tu les ajoutes à la main</span></div>' +
+        '<div class="hc-sw" id="hc-auto-sw"></div>' +
+      '</div>' +
+      // Carte suggestions — visible uniquement quand l'enchaînement auto est OFF.
       '<div class="hc-card" id="hc-sugg-card" style="display:none">' +
         '<div class="hc-next-h">💡 Suggestions des invités <span class="n" id="hc-sugg-n">0</span></div>' +
         '<div class="hc-q" id="hc-sugg-list"></div>' +
@@ -100,11 +102,23 @@
         '<div class="hc-next-h">🎚️ À suivre <span class="n" id="hc-q-n">0</span></div>' +
         '<div class="hc-q" id="hc-q"></div>' +
       '</div>';
-    // AUTO toggle
+    // AUTO toggle — bascule aussi le mode suggestions (auto-file vs carte manuelle)
     w.querySelector('#hc-auto-sw').addEventListener('click', function () {
       var e = eng(); if (!e) return;
       var on = e.setAutoAdvance(!e.getAutoAdvance());
       this.classList.toggle('on', on);
+      sync();
+    });
+    // Délégation clics carte Suggestions (mode auto OFF) : Ajouter / Refuser
+    w.querySelector('#hc-sugg-list').addEventListener('click', function (ev) {
+      var b = ev.target.closest ? ev.target.closest('button[data-act]') : null;
+      if (!b) return;
+      var e = eng(); if (!e) return;
+      var sugg = { trackId: b.getAttribute('data-id') || null, title: b.getAttribute('data-title'), artist: b.getAttribute('data-artist') || '', guestName: b.getAttribute('data-guest') };
+      var act = b.getAttribute('data-act');
+      if (act === 'add') { if (e.addSuggestionToQueue) e.addSuggestionToQueue(sugg, 'end'); }
+      else if (act === 'reject') { if (e.dismissSuggestion) e.dismissSuggestion({ title: sugg.title, guestName: sugg.guestName, trackId: sugg.trackId }); }
+      setTimeout(function () { renderSuggCard(); renderQueue(); }, 150);
     });
     // Délégation clics À suivre
     w.querySelector('#hc-q').addEventListener('click', function (ev) {
@@ -119,23 +133,13 @@
       else if (act === 'del') { if (isSug) e.dismissSuggestion({ title: title, guestName: guest, trackId: id }); else e.removeFromQueue(id); }
       setTimeout(renderQueue, 150);
     });
-    // Délégation clics Suggestions invités (Ajouter à la file / Refuser)
-    w.querySelector('#hc-sugg-list').addEventListener('click', function (ev) {
-      var b = ev.target.closest ? ev.target.closest('button[data-act]') : null;
-      if (!b) return;
-      var e = eng(); if (!e) return;
-      var sugg = { trackId: b.getAttribute('data-id') || null, title: b.getAttribute('data-title'), artist: b.getAttribute('data-artist') || '', guestName: b.getAttribute('data-guest') };
-      var act = b.getAttribute('data-act');
-      if (act === 'add') { if (e.addSuggestionToQueue) e.addSuggestionToQueue(sugg); }
-      else if (act === 'reject') { if (e.dismissSuggestion) e.dismissSuggestion({ title: sugg.title, guestName: sugg.guestName, trackId: sugg.trackId }); }
-      setTimeout(function () { renderSuggestions(); renderQueue(); }, 150);
-    });
     return w;
   }
 
-  // Suggestions invités en attente (pas encore dans la file) → carte Ajouter / Refuser.
-  function renderSuggestions() {
-    var box = document.getElementById('hc-sugg-list'); if (!box) return;
+  // Mode auto OFF : les suggestions en attente s'affichent dans la carte, l'hôte les ajoute à la main.
+  function renderSuggCard() {
+    var card = document.getElementById('hc-sugg-card'); var box = document.getElementById('hc-sugg-list');
+    if (!card || !box) return;
     var e = eng();
     var inQ = {};
     var up = (e && e.getUpcoming) ? e.getUpcoming() : [];
@@ -147,7 +151,7 @@
       if (s.isHost) return false;
       return !inQ[normT(s.title || s.query)];
     });
-    var card = document.getElementById('hc-sugg-card'); if (card) card.style.display = list.length ? '' : 'none';
+    card.style.display = list.length ? '' : 'none';
     var nEl = document.getElementById('hc-sugg-n'); if (nEl) nEl.textContent = list.length;
     box.innerHTML = list.slice(0, 10).map(function (s) {
       var who = esc(s.guestName || (s.suggestedByUser && s.suggestedByUser.firstName) || 'Invité');
@@ -250,9 +254,18 @@
     if (!on) return;
     var e = eng();
     var sw = document.getElementById('hc-auto-sw');
-    if (sw && e && e.getAutoAdvance) sw.classList.toggle('on', e.getAutoAdvance());
+    var auto = (e && e.getAutoAdvance) ? e.getAutoAdvance() : true;
+    if (sw) sw.classList.toggle('on', auto);
+    if (auto) {
+      // Auto ON → c'est le DJ Brain qui décide QUAND passer les suggestions (scoring
+      // phase/énergie, côté serveur). On ne force rien dans la file : elles remontent
+      // via /api/djbrain/next au bon moment. Carte masquée.
+      var card = document.getElementById('hc-sugg-card'); if (card) card.style.display = 'none';
+    } else {
+      // Auto OFF → l'hôte ajoute les suggestions à la main via la carte.
+      renderSuggCard();
+    }
     renderQueue();
-    renderSuggestions();
     pollState();
   }
 
