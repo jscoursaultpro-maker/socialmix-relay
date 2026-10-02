@@ -188,7 +188,12 @@
     try {
       var st = appState();
       if (st) { st.partyCode = code; if ('code' in st) st.code = code; }
-      if (typeof showScreen === 'function') { try { showScreen('cockpit'); } catch (e) {} }
+      // Réutilise le setup complet du cockpit invité (câble la nav du bas AGIR/ON AIR/MOI/
+      // AFTERGLOW + votes + suggest + historique). enterCockpit ne connecte PAS de socket et
+      // n'émet PAS de guest:join → sûr en host. Sinon seul l'onglet ON AIR était actif.
+      var ec = (typeof enterCockpit === 'function') ? enterCockpit : (window.enterCockpit || null);
+      if (ec) { try { ec(); } catch (e) { if (typeof showScreen === 'function') showScreen('cockpit'); } }
+      else if (typeof showScreen === 'function') { showScreen('cockpit'); }
       if (typeof showTab === 'function') { try { showTab('on-air'); } catch (e) {} }
       if (window.AhOuaiHostMode && typeof window.AhOuaiHostMode.sync === 'function') window.AhOuaiHostMode.sync();
     } catch (e) { log('focusSpaOnParty: ' + e.message, 'warn'); }
