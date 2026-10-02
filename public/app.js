@@ -6776,6 +6776,15 @@ async function init() {
   setupWaitingRoomScreen();
   setupDeniedScreen();
 
+  // ★ ?new=1 → forcer l'écran de choix (efface la session reprise) pour (re)créer une soirée.
+  if (urlParamsObj.get('new') === '1' && !params.code) {
+    try { clearResumeSession(); } catch (e) {}
+    state.partyCode = null;
+    console.log('[init] ?new=1 → écran de choix (session reprise effacée)');
+    showScreen('choice');
+    return;
+  }
+
   // Auto-rejoin if session + profile exist
   const resumeSession = loadResumeSession();
   const activeCode = state.partyCode || (resumeSession ? resumeSession.partyCode : null);

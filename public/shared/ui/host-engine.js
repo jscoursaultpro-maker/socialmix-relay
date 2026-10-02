@@ -29,7 +29,13 @@
   var stallTries = 0;            // tentatives de récupération pour le titre courant
   var skipping = false;          // garde anti-réentrance pendant un saut de titre injouable
 
-  var _dbg = null, _dbgOn = /[?&]hostdebug=1\b/.test(location.search);
+  var _dbg = null;
+  var _dbgOn = (function () {
+    try {
+      if (/[?&]hostdebug=1\b/.test(location.search)) { sessionStorage.setItem('ahouai_hostdebug', '1'); return true; }
+      return sessionStorage.getItem('ahouai_hostdebug') === '1';
+    } catch (e) { return /[?&]hostdebug=1\b/.test(location.search); }
+  })();
   function _dbgPanel() {
     if (_dbg || !_dbgOn || !document.body) return _dbg;
     var d = document.createElement('div');
