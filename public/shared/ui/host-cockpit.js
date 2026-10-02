@@ -136,25 +136,6 @@
     return w;
   }
 
-  // Les suggestions invités en attente entrent DIRECTEMENT dans « À suivre » (en fin de file),
-  // où l'hôte les réordonne / supprime / joue maintenant avec les contrôles existants.
-  function syncSuggestionsIntoQueue() {
-    var e = eng(); if (!e || !e.addSuggestionToQueue) return;
-    var inQ = {};
-    var up = (e.getUpcoming) ? e.getUpcoming() : [];
-    up.forEach(function (t) { inQ[normT(t.title)] = true; });
-    var now = (e.getNowPlaying) ? e.getNowPlaying() : null;
-    if (now) inQ[normT(now.title)] = true;
-    ((lastState && lastState.suggestions) || []).forEach(function (s) {
-      if (!s || ['dismissed', 'played', 'unavailable'].indexOf(s.status) >= 0) return;
-      if (s.isHost) return;
-      var key = normT(s.title || s.query);
-      if (!key || inQ[key]) return;
-      e.addSuggestionToQueue({ trackId: s.trackId || null, title: s.title || s.query, artist: s.artist || '', isrc: s.isrc || null, guestName: s.guestName || (s.suggestedByUser && s.suggestedByUser.firstName) || 'Invité' }, 'end');
-      inQ[key] = true;
-    });
-  }
-
   // Mode auto OFF : les suggestions en attente s'affichent dans la carte, l'hôte les ajoute à la main.
   function renderSuggCard() {
     var card = document.getElementById('hc-sugg-card'); var box = document.getElementById('hc-sugg-list');
@@ -276,8 +257,9 @@
     var auto = (e && e.getAutoAdvance) ? e.getAutoAdvance() : true;
     if (sw) sw.classList.toggle('on', auto);
     if (auto) {
-      // Auto ON → les suggestions entrent seules dans « À suivre » ; carte masquée.
-      syncSuggestionsIntoQueue();
+      // Auto ON → c'est le DJ Brain qui décide QUAND passer les suggestions (scoring
+      // phase/énergie, côté serveur). On ne force rien dans la file : elles remontent
+      // via /api/djbrain/next au bon moment. Carte masquée.
       var card = document.getElementById('hc-sugg-card'); if (card) card.style.display = 'none';
     } else {
       // Auto OFF → l'hôte ajoute les suggestions à la main via la carte.
