@@ -102,7 +102,7 @@ export function selectNextTracks(opts) {
   };
 }
 
-function formatTrack(t, score, breakdown) {
+export function formatTrack(t, score, breakdown) {
   return {
     trackId: String(t._id),
     title: t.title,
