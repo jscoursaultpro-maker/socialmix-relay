@@ -47,6 +47,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --omit=dev --ignore-scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install librosa (BPM signal)
+        run: |
+          # audioread backend : ffmpeg suffit (déjà présent sur ubuntu-latest)
+          python3 -m pip install --upgrade pip
+          python3 -m pip install librosa==0.10.2 numpy==1.26.4 soundfile==0.12.1
       - name: Resolve parameters
         id: p
         run: |
@@ -69,6 +78,15 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           DRY_RUN: ${{ steps.p.outputs.dry }}
         run: node scripts/curation/export_inbox.mjs --limit "${{ steps.p.outputs.limit }}" --mode "${{ steps.p.outputs.mode }}" --run "${{ steps.p.outputs.run }}" --data-dir ./curation-data
+      - name: Analyse BPM par signal (librosa sur preview Deezer)
+        if: steps.p.outputs.dry == '0'
+        run: |
+          INBOX="curation-data/inbox/$(date -u +%F)-${{ steps.p.outputs.run }}.json"
+          if [ -f "$INBOX" ]; then
+            python3 scripts/curation/analyze_bpm_signal.py --inbox "$INBOX"
+          else
+            echo "ℹ️  Pas d'inbox écrit (export vide) → skip analyse signal."
+          fi
       - name: Commit & push curation-data
         if: steps.p.outputs.dry == '0'
         working-directory: curation-data
@@ -77,5 +95,5 @@ jobs:
           git config user.email "curation-bot@users.noreply.github.com"
           git add inbox sidelined state.json
           if git diff --cached --quiet; then echo "Rien à committer"; exit 0; fi
-          git commit -m "curation: export inbox $(date -u +%F) run ${{ steps.p.outputs.run }} (${{ steps.p.outputs.mode }}, limit ${{ steps.p.outputs.limit }})"
+          git commit -m "curation: export inbox $(date -u +%F) run ${{ steps.p.outputs.run }} (${{ steps.p.outputs.mode }}, limit ${{ steps.p.outputs.limit }}, +bpm signal)"
           for i in 1 2 3; do git push && break || (git pull --rebase && sleep 5); done

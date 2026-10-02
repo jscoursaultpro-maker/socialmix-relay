@@ -120,7 +120,8 @@ export function pickDeezerFields(dz) {
     bpm: dz.bpm || null,
     rank: dz.rank || null,
     explicit_lyrics: dz.explicit_lyrics ?? null,
-    link: dz.link || null
+    link: dz.link || null,
+    preview: dz.preview || null   // mp3 30 s pour analyse signal (librosa)
   };
 }
 
