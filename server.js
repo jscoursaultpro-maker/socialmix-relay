@@ -1649,7 +1649,10 @@ app.patch('/api/admin/tracks/:id', adminAuth, async (req, res) => {
 // GET /api/admin/stats — dashboard stats
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   try {
-    const [total, qualified, noEnergy, noBpm, byGenre, topFeu, recentParties, novelties] = await Promise.all([
+    // Couverture YouTube : dénominateur = titres "jouables" (ce que vise le job de pré-résolution)
+    const ytPlayableFilter = { title: { $exists: true, $ne: '' }, artist: { $exists: true, $ne: '' }, suggestable: { $ne: false }, isBlocked: { $ne: true } };
+    const ytResolvedFilter = { ...ytPlayableFilter, 'providers.youtube.videoId': { $exists: true, $nin: [null, ''] } };
+    const [total, qualified, noEnergy, noBpm, byGenre, topFeu, recentParties, novelties, ytPlayable, ytResolved] = await Promise.all([
       Track.countDocuments(),
       Track.countDocuments({ adminQualified: true }),
       Track.countDocuments({ energy: 0 }),
@@ -1678,10 +1681,13 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50)
       .select('title artist genre bpm phase energy performance source suggestCount qualityLevel classifiedBy curation isVerified deezerRank isrc providers availableOn')
-      .lean()
+      .lean(),
+      Track.countDocuments(ytPlayableFilter),
+      Track.countDocuments(ytResolvedFilter)
     ]);
 
-    res.json({ total, qualified, noEnergy, noBpm, byGenre, topFeu, recentParties, novelties });
+    res.json({ total, qualified, noEnergy, noBpm, byGenre, topFeu, recentParties, novelties,
+      youtube: { resolved: ytResolved, playable: ytPlayable } });
   } catch (err) {
     console.error('[Admin] ❌ stats error:', err.message);
     res.status(500).json({ error: err.message });
