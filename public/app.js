@@ -6854,14 +6854,46 @@ async function startHostWeb(opts) {
       const s = (typeof socket !== 'undefined' && socket) ? socket : (window.socket || null);
       if (s && s.connected && window.AhOuaiHostEngine) {
         clearInterval(iv);
-        try { window.AhOuaiHostEngine.launchHost({ provider: provider }); }
-        catch(e) { console.warn('[host] launchHost:', e); }
+        try {
+          Promise.resolve(window.AhOuaiHostEngine.launchHost({ provider: provider }))
+            .then((r) => { _hostSelfJoin((r && r.code) || null); })
+            .catch(e => console.warn('[host] launchHost:', e));
+        } catch(e) { console.warn('[host] launchHost:', e); }
       } else if (tries > 60) {
         clearInterval(iv);
         try { showToast('Connexion au serveur impossible, réessaie', 3000); } catch(e) {}
       }
     }, 200);
   } catch(e) { console.warn('[host] startHostWeb:', e); }
+}
+
+// ★ Host = guest : l'hôte rejoint sa PROPRE soirée comme invité pour activer l'onglet AGIR
+//   (suggestions, Mes Bangers, votes). Sans ça le socket pilote la musique (room host:CODE) mais
+//   n'est pas enregistré participant → guest:suggest refusé, bangers vides. On réutilise le chemin
+//   testé _emitRequestJoin (AUTO_APPROVE → rebind du participant hôte existant, pas de doublon).
+function _hostSelfJoin(code) {
+  try {
+    code = (code || state.partyCode || '').toString().toUpperCase();
+    if (!code) { console.warn('[host] self-join: pas de code'); return; }
+    state.partyCode = code;
+    const em = (state.guestEmail || '').trim();
+    const fn = (state.guestName || '').trim();
+    const ln = (state.guestLastName || '').trim();
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
+    if (!emailOk || !fn) {
+      console.warn('[host] self-join impossible — identité hôte incomplète (email/prénom)', { emailOk, fn: !!fn });
+      return;
+    }
+    if (window._ahouaiHostSelfJoined === code) return;   // une seule fois par soirée
+    window._ahouaiHostSelfJoined = code;
+    if (typeof _emitRequestJoin === 'function' && socket && socket.connected) {
+      console.log('[host] self-join invité de sa propre soirée', code, fn);
+      _emitRequestJoin(fn, ln, em);
+    } else {
+      console.warn('[host] self-join: _emitRequestJoin indispo ou socket non connecté');
+      window._ahouaiHostSelfJoined = null;   // autoriser une nouvelle tentative
+    }
+  } catch(e) { console.warn('[host] self-join:', e); }
 }
 
 // Porte host : si session → lance en page ; sinon login ahouai.com avec retour sur /?hostlaunch=1.
