@@ -209,4 +209,21 @@
     _debug: function () { return { party: party, idx: idx, tracks: tracks.length, isPlaying: isPlaying, engine: engine ? engine.id : null }; }
   };
   if (!booted) { booted = true; log('prêt (brique 2 — chemin YouTube)'); }
+
+  // ── Déclencheur de test « On Air host » : ?hostlaunch=1 → lance une soirée host au chargement.
+  //    Actif UNIQUEMENT avec le paramètre → invité normal jamais impacté. Permet de valider
+  //    l'écran On Air host + la lecture réelle (token via session Supabase même-origine) avant
+  //    de rebrancher la vraie création de soirée dessus.
+  (function autoLaunchHost() {
+    if (!/[?&]hostlaunch=1\b/.test(location.search)) return;
+    var tries = 0;
+    var iv = setInterval(function () {
+      tries++;
+      var s = sock();
+      if (s && s.connected) {
+        clearInterval(iv);
+        setTimeout(function () { try { launchHost({ provider: 'youtube' }); } catch (e) { log('autoLaunch: ' + e.message, 'warn'); } }, 700);
+      } else if (tries > 50) { clearInterval(iv); }
+    }, 300);
+  })();
 })();
