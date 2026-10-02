@@ -27,6 +27,8 @@
   // ── Détection « je suis l'hôte de cette soirée » ──────────────────────────
   function isHostMode() {
     if (DEV_FORCE) return true;
+    // Source de vérité du flux de lancement : si CE client a lancé la soirée, il EST l'host.
+    try { if (window.AhOuaiHostEngine && window.AhOuaiHostEngine.isActive && window.AhOuaiHostEngine.isActive()) return true; } catch (e) {}
     try {
       var s = (typeof state !== 'undefined' && state) ? state : null;
       if (!s || !s.userId || !Array.isArray(s.participants)) return false;

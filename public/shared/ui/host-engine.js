@@ -98,6 +98,7 @@
     var s = sock();
     if (!s || !party || !t) return;
     s.emit('host:trackUpdate', {
+      hostSecret: party.hostSecret,   // ★ requis par validateHostSecret (wrapper host:*)
       title: t.title, artist: t.artist,
       spotifyId: (t.spotifyUri ? String(t.spotifyUri).split(':').pop() : null),
       durationMs: t.durationMs || 0,
@@ -128,6 +129,17 @@
     await prequeueNext();
   }
 
+  // Oriente la SPA vers la soirée de l'host (code + écran On Air) pour que la barre host apparaisse.
+  function focusSpaOnParty(code) {
+    try {
+      var st = appState();
+      if (st) { st.partyCode = code; if ('code' in st) st.code = code; }
+      if (typeof showScreen === 'function') { try { showScreen('cockpit'); } catch (e) {} }
+      if (typeof showTab === 'function') { try { showTab('on-air'); } catch (e) {} }
+      if (window.AhOuaiHostMode && typeof window.AhOuaiHostMode.sync === 'function') window.AhOuaiHostMode.sync();
+    } catch (e) { log('focusSpaOnParty: ' + e.message, 'warn'); }
+  }
+
   // ── Lancement d'une soirée en host depuis la SPA ───────────────────────────
   async function launchHost(opts) {
     opts = opts || {};
@@ -146,6 +158,9 @@
     };
     s.emit('host:startParty', { code: code, hostSecret: hostSecret, profile: profile, streamingProvider: party.provider, deviceId: null });
     log('host:startParty émis (' + code + ', ' + party.provider + ')');
+
+    // Bascule la vue de la SPA sur la soirée de l'host → la barre host s'affiche sur On Air.
+    focusSpaOnParty(code);
 
     await ensureEngine(party.provider);
     if (!engine.isReady()) { var r = await engine.connect({ interactive: true }); if (r && r.redirecting) return { ok: false, redirecting: true }; }
