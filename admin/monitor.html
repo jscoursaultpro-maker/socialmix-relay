@@ -135,6 +135,17 @@
         </select>
       </div>
 
+      <div class="filter-group">
+        <label>Curation :</label>
+        <select id="f-curation" onchange="applyFilter()">
+          <option value="all">Toutes</option>
+          <option value="in">★ IN (Validés)</option>
+          <option value="backlog">★ BACKLOG (En réserve)</option>
+          <option value="filler">FILLER</option>
+          <option value="out">OUT (Rejetés)</option>
+        </select>
+      </div>
+
       <h3>TRI</h3>
       <div class="filter-group">
         <select id="f-sort" onchange="applyFilter()">

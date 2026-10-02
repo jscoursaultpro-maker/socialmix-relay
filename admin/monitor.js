@@ -225,6 +225,7 @@ async function loadTracks(phaseSuggestion = null) {
     const sort = document.getElementById('f-sort').value;
     const limit = document.getElementById('f-limit').value;
     const source = document.getElementById('f-source').value;
+    const curation = document.getElementById('f-curation') ? document.getElementById('f-curation').value : 'all';
 
     const params = new URLSearchParams();
     const filterType = document.querySelector('input[name="f-type"]:checked')?.value || 'all';
@@ -238,6 +239,7 @@ async function loadTracks(phaseSuggestion = null) {
       if (filterType === 'curation_review_rejected') bangerParams.set('ia_verdict', 'explicitly_rejected');
       if (filterType === 'curation_review_notreviewed') bangerParams.set('ia_verdict', 'not_reviewed');
       if (phaseVal !== 'all') bangerParams.set('phase', phaseVal);
+      if (curation !== 'all') bangerParams.set('curation', curation);
       endpoint = `/api/admin/tracks/bangers-review?${bangerParams.toString()}`;
     } else {
       params.set('filter', filterType);
@@ -246,6 +248,7 @@ async function loadTracks(phaseSuggestion = null) {
       params.set('limit', limit);
       params.set('source', source);
       if (phaseVal !== 'all') params.set('phase', phaseVal);
+      if (curation !== 'all') params.set('curation', curation);
       if (document.getElementById('f-no-phase')?.checked) params.set('phase', 'unclassified');
       if (phaseSuggestion) params.set('phaseSuggestion', phaseSuggestion);
       endpoint = `/api/monitor/tracks?${params.toString()}`;

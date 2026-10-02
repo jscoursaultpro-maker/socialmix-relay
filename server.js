@@ -1577,9 +1577,15 @@ app.get('/api/admin/tracks/bangers-review', adminAuth, async (req, res) => {
   try {
     const filterVerdict = req.query.ia_verdict;
     const filterPhase = req.query.phase;
+    const filterCuration = req.query.curation;
     const { iaBangers, iaNonBangers } = await getIAVerdictMap();
     
-    let query = { curation: 'in' };
+    let query = {};
+    if (filterCuration && filterCuration !== 'all') {
+      query.curation = filterCuration;
+    } else if (!filterCuration) {
+      query.curation = 'in'; // old default
+    }
     if (filterPhase && filterPhase !== 'all') {
       if (filterPhase === 'unclassified') query.phase = null;
       else query.phase = filterPhase;
@@ -2152,6 +2158,7 @@ app.get('/api/monitor/tracks', adminAuth, async (req, res) => {
     const phase = req.query.phase || '';
     const sort = req.query.sort || 'default';
     const source = req.query.source || 'all';
+    const curation = req.query.curation || 'all';
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(parseInt(req.query.limit) || 50, 200);
 
@@ -2259,6 +2266,10 @@ app.get('/api/monitor/tracks', adminAuth, async (req, res) => {
 
     if (source && source !== 'all') {
       query.source = source;
+    }
+
+    if (curation && curation !== 'all') {
+      query.curation = curation;
     }
 
     if (search) {
