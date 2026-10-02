@@ -103,7 +103,7 @@ export async function createEngine(id, opts = {}) {
       if (mod?.default) return new mod.default(opts);
     }
     if (id === 'youtube') {
-      const mod = await import('/shared/youtube-engine.js').catch(() => null);
+      const mod = await import('/shared/youtube-engine.js?v=yt-02').catch(() => null);
       if (mod?.default) return new mod.default(opts);
     }
   } catch (e) {

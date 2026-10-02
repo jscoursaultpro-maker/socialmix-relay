@@ -26,6 +26,8 @@
   var queuedPid = null;
   var booted = false;
   var autoAdvance = true;        // ENCHAÎNEMENT AUTO (toggle host)
+  var stallTries = 0;            // tentatives de récupération pour le titre courant
+  var skipping = false;          // garde anti-réentrance pendant un saut de titre injouable
 
   function log(m, lvl) { try { console.log('[host-engine]' + (lvl ? ' ' + lvl : ''), m); } catch (e) {} }
   function sock() { try { return (typeof socket !== 'undefined' && socket) ? socket : (window.socket || null); } catch (e) { return window.socket || null; } }
@@ -66,7 +68,7 @@
     if (engine) return engine;
     ensureYtMount();
     await refreshToken();                          // charge le token AVANT la création (resolve l'utilise)
-    var mod = await import('/shared/player-engine.js');
+    var mod = await import('/shared/player-engine.js?v=pe-02');
     engine = await mod.createEngine(provider || 'youtube', {
       getToken: function () { return _token; },    // token synchrone pour /api/resolve (requis, 401 sinon)
       onLog: function (m, l) { log(m, l); }
@@ -76,6 +78,20 @@
     engine.on('trackEnded', function () { onEngineAdvanced(); });
     engine.on('needsUserGesture', function () { toast('Touche « Play » pour démarrer'); });
     engine.on('needsVisibleScreen', function () { toast('Garde l\'écran allumé pour YouTube'); });
+    // Titre injouable (retiré / embed interdit / erreur) → sauter, que l'auto soit on ou off.
+    engine.on('trackUnavailable', function () { advanceToPlayable(idx + 1, 'indisponible'); });
+    // Lecture figée (watchdog) → relancer le titre une fois, puis sauter s'il reste bloqué.
+    engine.on('stalled', function () {
+      if (stallTries < 1) {
+        stallTries++;
+        log('stall → relance du titre courant', 'warn');
+        var cur = tracks[idx];
+        if (cur) engine.resolve(cur).then(function (pid) { if (pid) engine.play(pid); });
+      } else {
+        log('stall persistant → saut au titre suivant', 'warn');
+        advanceToPlayable(idx + 1, 'stall');
+      }
+    });
     await engine.connect({ interactive: true });
     return engine;
   }
@@ -132,8 +148,39 @@
   async function onEngineAdvanced() {
     if (!autoAdvance) return;    // auto coupé → on ne saute pas tout seul
     // Le moteur a enchaîné sur le titre mémorisé → avancer l'index + ré-émettre.
-    if (idx + 1 < tracks.length) { idx++; var now = tracks[idx]; if (now) emitTrackUpdate(now); }
+    if (idx + 1 < tracks.length) { idx++; stallTries = 0; var now = tracks[idx]; if (now) emitTrackUpdate(now); }
     await prequeueNext();
+  }
+
+  // ── Avance jusqu'au premier titre réellement jouable (robustesse soirée live) ──
+  // Saute les titres injouables (resolve null, retirés, embed interdit), recharge la file
+  // via le DJ Brain si épuisée, et se protège des boucles (max 8 essais).
+  async function advanceToPlayable(startIdx, reason) {
+    if (skipping) return;        // un saut est déjà en cours
+    skipping = true;
+    try {
+      var i = startIdx, attempts = 0;
+      while (attempts < 8) {
+        if (i >= tracks.length) {
+          var d = await fetchNext(party.code, 5);
+          var fresh = (d.tracks || []).filter(function (t) { return !tracks.some(function (e) { return e.trackId === t.trackId; }); });
+          if (!fresh.length) { toast('Plus de titres jouables'); return; }
+          tracks = tracks.concat(fresh);
+        }
+        var cand = tracks[i];
+        if (cand) {
+          var pid = await engine.resolve(cand);
+          if (pid) {
+            var ok = await engine.play(pid);
+            if (ok) { idx = i; queuedPid = null; stallTries = 0; emitTrackUpdate(cand); await prequeueNext(); log('saut (' + (reason || '') + ') → ' + cand.title); return; }
+          }
+          log('titre injouable, on saute : ' + (cand.title || '?'), 'warn');
+        }
+        attempts++; i++;
+      }
+      toast('Impossible de trouver un titre jouable');
+    } catch (e) { log('advanceToPlayable: ' + e.message, 'warn'); }
+    finally { skipping = false; }
   }
 
   // Oriente la SPA vers la soirée de l'host (code + écran On Air) pour que la barre host apparaisse.
@@ -178,15 +225,17 @@
 
   async function loadAndPlayFirst(code) {
     var d = await fetchNext(code, 5);
-    tracks = d.tracks || []; idx = 0; queuedPid = null;
+    tracks = d.tracks || []; idx = 0; queuedPid = null; stallTries = 0;
     if (!tracks.length) { toast('Aucun titre trouvé'); return; }
     var first = tracks[0];
     var pid = await engine.resolve(first);
-    if (!pid) { toast('Titre introuvable sur YouTube'); return; }
-    var ok = await engine.play(pid);
-    if (!ok) return;
-    emitTrackUpdate(first);
-    await prequeueNext();
+    if (pid) {
+      var ok = await engine.play(pid);
+      if (ok) { emitTrackUpdate(first); await prequeueNext(); return; }
+    }
+    // Premier titre injouable sur YouTube → chercher le premier titre jouable de la file.
+    log('premier titre injouable → recherche du prochain jouable', 'warn');
+    await advanceToPlayable(1, 'first');
   }
 
   // ── Transport (câblé sur la barre host-mode.js) ─────────────────────────────
@@ -200,8 +249,9 @@
   async function pause() { if (engine) { await engine.pause(); isPlaying = false; } }
   async function next() {
     if (!engine) return;
+    stallTries = 0;
     if (queuedPid) { await engine.next(); }      // charge le prochain mémorisé + onEngineAdvanced via trackEnded
-    else { idx++; var nx = tracks[idx]; if (nx) { var pid = await engine.resolve(nx); if (pid) { await engine.play(pid); emitTrackUpdate(nx); await prequeueNext(); } } }
+    else { await advanceToPlayable(idx + 1, 'next'); }  // saute les injouables jusqu'au prochain titre lisible
   }
   async function repeat() {
     if (!engine) return; var cur = tracks[idx]; if (!cur) return;
