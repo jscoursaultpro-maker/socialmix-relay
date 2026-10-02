@@ -18,12 +18,44 @@ import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
 import { findOrCreateFromSupabase } from '../services/userService.js';
 import { STAGES, isPhaseCompatible } from '../services/djbrain/phases.js';
 import { computeStage } from '../services/djbrain/progression.js';
-import { selectNextTracks } from '../services/djbrain/select.js';
+import { selectNextTracks, formatTrack } from '../services/djbrain/select.js';
+import { buildCrossPartyFreshness } from '../services/djbrain/crossPartyFreshness.js';
 
 const router = Router();
 
 const PROVIDERS = ['spotify', 'apple', 'youtube'];
 const POOL_LIMIT = 500;
+// Champs projetés sur chaque candidat (incl. data moat performance pour le bonus perf Lot B).
+const TRACK_PROJECTION = {
+  title: 1, artist: 1, durationMs: 1, coverArtURL: 1, phase: 1, phaseAlternate: 1,
+  energy: 1, bpm: 1, deezerRank: 1, isBanger: 1, qualityLevel: 1, genre: 1, genreBDD: 1,
+  danceability: 1, providers: 1, appleMusicID: 1, isrc: 1,
+  // ★ Lot B — bonus performance (applyPerformanceBonus) :
+  performance: 1, adminQualified: 1, suggestCount: 1,
+};
+
+/**
+ * ★ Lot B — First Track Doctrine (Task #61). Premier titre de soirée (aucun titre joué) :
+ * pool = arrival + isEmotional + BPM∈]0,85] + suggestable + non-bloqué + deezer dispo,
+ * trié deezerRank DESC, pick aléatoire dans le top 20 (port 1:1 de /api/tracks/firstTrackCandidates
+ * + selectFirstTrackForArrival côté iOS). Renvoie un doc Track lean formatable, ou null.
+ */
+async function pickFirstTrack() {
+  const candidates = await Track.find({
+    phase: 'arrival',
+    isEmotional: true,
+    bpm: { $gt: 0, $lte: 85 },
+    suggestable: { $ne: false },
+    isBlocked: { $ne: true },
+    'providers.deezer.trackId': { $gt: 0 },
+  })
+    .sort({ deezerRank: -1 })
+    .limit(20)
+    .select(TRACK_PROJECTION)
+    .lean();
+  if (!candidates.length) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
 
 async function requireSupabaseAuth(req, res, next) {
   try {
@@ -95,6 +127,25 @@ router.get('/next', requireSupabaseAuth, async (req, res) => {
     const currentBPM = lastHist?.bpm || party?.currentBPM || 0;
     const suggestions = buildSuggestionsMap(party);
 
+    // ── First Track Doctrine (Lot B / Task #61) ───────────────────────────────
+    // Aucun titre encore joué → ouverture dédiée (arrival+emotional+BPM≤85, deezerRank DESC).
+    // Le reste de la file est complété par la sélection normale, le titre d'ouverture exclu.
+    const isFirstTrack = trackHistory.length === 0;
+    let firstTrackFormatted = null;
+    if (isFirstTrack) {
+      try {
+        const ft = await pickFirstTrack();
+        if (ft) firstTrackFormatted = formatTrack(ft, 1e9, { firstTrackDoctrine: true });
+      } catch (e) { console.warn('[djbrain] First Track Doctrine KO:', e.message); }
+    }
+
+    // ── Fresh Rotation cross-party N=8 (Lot B) — map keyée par Track._id ───────
+    // Isolation par hôte : l'appelant authentifié EST l'hôte de sa soirée.
+    let freshness = {};
+    try {
+      freshness = await buildCrossPartyFreshness(req.currentUser?._id);
+    } catch (e) { console.warn('[djbrain] cross-party freshness KO:', e.message); }
+
     // ── Pool de candidats cohérent avec la phase ──────────────────────────────
     const allowedPhases = STAGES.filter((p) => isPhaseCompatible(p, stage));
     const filter = {
@@ -112,36 +163,42 @@ router.get('/next', requireSupabaseAuth, async (req, res) => {
     const pool = await Track.aggregate([
       { $match: filter },
       { $sample: { size: POOL_LIMIT } },
-      { $project: {
-        title: 1, artist: 1, durationMs: 1, coverArtURL: 1, phase: 1, phaseAlternate: 1,
-        energy: 1, bpm: 1, deezerRank: 1, isBanger: 1, qualityLevel: 1, genre: 1, genreBDD: 1,
-        danceability: 1, providers: 1, appleMusicID: 1, isrc: 1,
-      } },
+      { $project: TRACK_PROJECTION },
     ]);
 
-    const result = selectNextTracks({
+    // Si doctrine premier titre active : on complète la file avec la sélection normale,
+    // en excluant l'ouverture choisie (évite le doublon en tête de « À suivre »).
+    const selectCount = firstTrackFormatted ? Math.max(0, n - 1) : n;
+    const result = selectCount > 0 ? selectNextTracks({
       tracks: pool,
       stage,
       energyLevel,
       genreVotes,
       trackHistory,
       currentBPM,
-      freshness: {},        // ★ Lot B : Fresh Rotation cross-party (clé _id)
+      freshness,            // ★ Lot B : Fresh Rotation cross-party (clé _id)
       suggestions,
       provider,
-      count: n,
-    });
+      count: selectCount + (firstTrackFormatted ? 1 : 0),
+    }) : { tracks: [], debug: { pool: pool.length, scored: 0 } };
+
+    let tracks = result.tracks;
+    if (firstTrackFormatted) {
+      const ftId = String(firstTrackFormatted.trackId);
+      tracks = [firstTrackFormatted, ...tracks.filter((t) => String(t.trackId) !== ftId)].slice(0, n);
+    }
 
     res.setHeader('Cache-Control', 'no-store');
     return res.json({
-      tracks: result.tracks,
+      tracks,
       phase: stage,
       energyLevel,
       elapsedMins,
-      count: result.tracks.length,
+      count: tracks.length,
       partyCode: partyCode || null,
       provider,
-      _debug: result.debug,
+      firstTrackDoctrine: !!firstTrackFormatted,
+      _debug: { ...result.debug, freshnessTracks: Object.keys(freshness).length },
       _source: 'djbrain-cloud',
       generatedAt: new Date().toISOString(),
     });

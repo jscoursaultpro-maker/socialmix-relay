@@ -91,6 +91,79 @@ function genreAllowedInStage(trackGenre, stage) {
 
 const LOUNGE_JAZZ = new Set(['lounge', 'jazz']);
 
+// ── Bonus performance (le data moat) — port 1:1 de DJBrain.applyPerformanceBonus ──────
+/** Heure de soirée en Europe/Paris (les soirées sont FR ; iOS lit l'heure locale device). */
+function partyHour(ms) {
+  try {
+    const h = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false })
+      .format(new Date(ms));
+    return parseInt(h, 10) % 24;
+  } catch (_) { return new Date(ms).getHours(); }
+}
+/** Lecture tolérante d'une valeur de Map Mongo (lean → objet simple), clé exacte puis insensible casse. */
+function mapVal(m, key) {
+  if (!m || !key) return null;
+  if (m[key] != null) return m[key];
+  const lk = String(key).toLowerCase();
+  for (const k of Object.keys(m)) { if (k.toLowerCase() === lk) return m[k]; }
+  return null;
+}
+
+/**
+ * Bonus performance appliqué APRÈS le composite (port 1:1 de DJBrain.swift applyPerformanceBonus).
+ * Lit les données comportementales du Track (performance.*, adminQualified, suggestCount, bpm).
+ * La curation ne touche jamais à ces champs (doctrine) — ils s'apprennent dans le temps.
+ * @param {object} track  doc Track lean
+ * @param {object} ctx    { dominantGenre, currentBPM, nowMs }
+ * @returns {number} bonus additif (peut être négatif via le saut BPM)
+ */
+export function performanceBonus(track, ctx) {
+  const perf = track && track.performance;
+  if (!perf) return 0;
+  const currentGenre = ctx.dominantGenre || '';
+  const currentBPM = ctx.currentBPM || 0;
+  const trackBPM = track.bpm || 0;
+  const feuRatio = perf.feuRatio || 0;
+  const totalPlays = perf.totalPlays || 0;
+  let bonus = 0;
+
+  // 1 — feuRatio (crowd-proven)
+  if (feuRatio > 0.75 && totalPlays >= 3) bonus += 25.0;
+  else if (feuRatio > 0.55 && totalPlays >= 2) bonus += 10.0;
+
+  // 2 — totalPlays (fiabilité)
+  if (totalPlays >= 10) bonus += 15.0;
+  else if (totalPlays >= 5) bonus += 8.0;
+
+  // 3 — contexte genre (fonctionne dans CE type de soirée)
+  const gc = mapVal(perf.genreContexts, currentGenre);
+  if (gc && (gc.plays || 0) >= 2 && (gc.feuRatio || 0) > 0.6) bonus += 20.0;
+
+  // 4 — admin qualifié (validation humaine)
+  if (track.adminQualified) bonus += 10.0;
+
+  // 5 — suggestCount (la foule le demande cross-soirées)
+  const sc = track.suggestCount || 0;
+  if (sc >= 5) bonus += 15.0;
+  else if (sc >= 2) bonus += 7.0;
+
+  // 6 — cohérence BPM (fluidité de la piste)
+  if (trackBPM > 0 && currentBPM > 0) {
+    const d = Math.abs(trackBPM - currentBPM);
+    if (d <= 8) bonus += 12.0;
+    else if (d <= 15) bonus += 6.0;
+    else if (d > 25) bonus -= 15.0;
+  }
+
+  // 7 — heure de soirée (contexte temporel)
+  const hour = partyHour(ctx.nowMs || Date.now());
+  const bucket = hour < 21 ? '18-21' : hour < 23 ? '21-23' : ((hour >= 23 || hour < 1) ? '23-01' : '01-03');
+  const hb = mapVal(perf.hourBuckets, bucket);
+  if (hb && (hb.plays || 0) >= 2 && (hb.feuRatio || 0) > 0.65) bonus += 8.0;
+
+  return bonus;
+}
+
 /**
  * Score complet d'un titre. Pur et déterministe (sauf variété : jitter fourni par l'appelant).
  * @param {object} track  document Track (lean) : _id,title,artist,genre,phase,phaseAlternate,energy,bpm,deezerRank,isBanger,danceability,providers
@@ -221,12 +294,15 @@ export function scoreTrack(track, ctx) {
   // ── Provider-aware (NOUVEAU, préférence douce — jamais d'exclusion) ──────────
   const providerBonus = isResolvableOnProvider(track, provider) ? 15.0 : 0.0;
 
+  // ── Bonus performance (data moat) — appliqué APRÈS le composite, comme iOS ────
+  const perfBonus = performanceBonus(track, { dominantGenre, currentBPM, nowMs });
+
   const score = composite
     + phaseEnergyBonus + phasePopBonus + bangerPhaseBonus
     + unknownPenalty + artistCooldownPenalty + consecutiveArtistMalus + consecutiveGenreMalus
     + arrivalEnergyPenalty + sameSongPenalty
     + suggestionDirectBoost + freshnessScore + crossPartyPenalty + bpmJumpPenalty
-    + providerBonus;
+    + providerBonus + perfBonus;
 
   return {
     score,
@@ -235,7 +311,7 @@ export function scoreTrack(track, ctx) {
       phaseEnergyBonus, phasePopBonus, bangerPhaseBonus, freshnessScore, crossPartyPenalty,
       artistCooldownPenalty, consecutiveArtistMalus, consecutiveGenreMalus,
       arrivalEnergyPenalty, sameSongPenalty, suggestionDirectBoost, bpmJumpPenalty,
-      providerBonus, unknownPenalty,
+      providerBonus, perfBonus, unknownPenalty,
     },
   };
 }
