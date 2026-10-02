@@ -20,6 +20,9 @@ on:
       run:
         description: 'Suffixe du fichier (a, b, c…)'
         default: 'a'
+      sources:
+        description: 'Filtre source : "suggestions" (raccourci = host+guest+suggestion) ou CSV. Vide = toutes.'
+        default: ''
       dry_run:
         description: 'Ne rien écrire (test)'
         type: boolean
@@ -78,6 +81,7 @@ jobs:
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           DRY_RUN: ${{ steps.p.outputs.dry }}
+          CURATION_SOURCES: ${{ github.event_name == 'workflow_dispatch' && inputs.sources || '' }}
         run: node scripts/curation/export_inbox.mjs --limit "${{ steps.p.outputs.limit }}" --mode "${{ steps.p.outputs.mode }}" --run "${{ steps.p.outputs.run }}" --data-dir ./curation-data
       - name: Analyse BPM par signal (librosa sur preview Deezer)
         if: steps.p.outputs.dry == '0'

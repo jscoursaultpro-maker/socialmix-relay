@@ -81,6 +81,13 @@ if (isMain) {
   const DATA_DIR = path.resolve(String(arg('data-dir', process.env.CURATION_DATA_DIR || './curation-data')));
   const DRY = arg('dry-run', false) === true || process.env.DRY_RUN === '1';
   const RUN = String(arg('run', process.env.CURATION_RUN || 'a'));
+  // --sources "guest_suggestion,host_suggestion,suggestion" ou "suggestions" (raccourci = les 3)
+  const SOURCES_ARG = String(arg('sources', process.env.CURATION_SOURCES || '') || '').trim();
+  let SOURCES = null;
+  if (SOURCES_ARG) {
+    if (SOURCES_ARG === 'suggestions') SOURCES = ['guest_suggestion', 'host_suggestion', 'suggestion'];
+    else SOURCES = SOURCES_ARG.split(',').map(s => s.trim()).filter(Boolean);
+  }
   const STAMP = todayStamp();
   const fileBase = `${STAMP}-${RUN}`;
 
@@ -116,6 +123,7 @@ if (isMain) {
     'providers.deezer.trackId': { $gt: 0 }
   };
   if (MODE === 'flux') query.createdAt = { $gte: new Date(Date.now() - 36 * 3600 * 1000) };
+  if (SOURCES) query.source = { $in: SOURCES };
 
   // Priorité : popularité Deezer décroissante (convention des batches V2), puis plus récent.
   const selected = await tracks.find(query)
@@ -123,7 +131,7 @@ if (isMain) {
     .limit(LIMIT)
     .toArray();
 
-  console.log(`\n=== EXPORT INBOX ${fileBase} — mode=${MODE} limit=${LIMIT} dry=${DRY} ===`);
+  console.log(`\n=== EXPORT INBOX ${fileBase} — mode=${MODE} limit=${LIMIT} dry=${DRY}${SOURCES ? ' sources=' + SOURCES.join(',') : ''} ===`);
   console.log(`Candidats sélectionnés : ${selected.length} (pending exclus : ${pendingIds.length}, sidelined exclus : ${sidelinedIds.length})`);
 
   const inbox = [];
