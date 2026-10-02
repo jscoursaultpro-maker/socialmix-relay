@@ -44,8 +44,9 @@
       '#' + TRANSPORT_ID + ' .hm-next:active{transform:scale(.93)}',
       // Vidéo YouTube dans la zone pochette (remplace le vinyle)
       '.soiree-artwork-zone.hm-host-video #soiree-vinyl-wrap,.soiree-artwork-zone.hm-host-video #np-artwork{display:none!important}',
+      '.soiree-artwork-zone.hm-host-video{flex:0 0 200px!important;width:200px!important;max-width:200px!important}',
       '.soiree-artwork-zone.hm-host-video #yt-player-mount{display:block}',
-      '#yt-player-mount{width:200px;height:200px;max-width:100%;border-radius:18px;overflow:hidden;background:#000}',
+      '#yt-player-mount{width:200px!important;height:200px!important;max-width:200px;border-radius:18px;overflow:hidden;background:#000}',
       '#yt-player-mount #yt-player,#yt-player-mount iframe{width:100%;height:100%;border:0;display:block}'
     ].join('');
     var el = document.createElement('style'); el.id = STYLE_ID; el.textContent = css;
