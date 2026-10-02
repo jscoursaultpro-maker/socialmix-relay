@@ -155,7 +155,7 @@
     if (!s) { toast('Socket non connecté'); return { ok: false }; }
     var code = (opts.code || genCode()).toUpperCase();
     var hostSecret = randomString(32);
-    party = { code: code, hostSecret: hostSecret, provider: opts.provider || 'youtube' };
+    party = { code: code, hostSecret: hostSecret, provider: opts.provider || 'youtube', name: opts.name || null };
 
     var profile = {
       name: (st && (st.guestName || st.guestFirstName)) || 'DJ',
@@ -256,13 +256,16 @@
   //    de rebrancher la vraie création de soirée dessus.
   (function autoLaunchHost() {
     if (!/[?&]hostlaunch=1\b/.test(location.search)) return;
+    var params = new URLSearchParams(location.search);
+    var provider = params.get('provider') || 'youtube';
+    var name = params.get('name') || null;
     var tries = 0;
     var iv = setInterval(function () {
       tries++;
       var s = sock();
       if (s && s.connected) {
         clearInterval(iv);
-        setTimeout(function () { try { launchHost({ provider: 'youtube' }); } catch (e) { log('autoLaunch: ' + e.message, 'warn'); } }, 700);
+        setTimeout(function () { try { launchHost({ provider: provider, name: name }); } catch (e) { log('autoLaunch: ' + e.message, 'warn'); } }, 700);
       } else if (tries > 50) { clearInterval(iv); }
     }, 300);
   })();

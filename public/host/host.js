@@ -894,6 +894,14 @@ async function justPlay() {
 }
 
 async function _createAndStartParty(partyName, fast) {
+  // ★ 02/10 — Le host atterrit désormais sur ON AIR HOST (le guest en mode host) au lieu de
+  // l'ancien écran now-playing /host/. La SPA guest crée la soirée (hostlaunch) et pilote le moteur.
+  // Revert = supprimer ces 3 lignes (le flux /host/ d'origine reprend juste en dessous).
+  const _prov = STATE.provider || 'youtube';
+  window.location.href = '/?sb=1&hostlaunch=1&provider=' + encodeURIComponent(_prov) + '&name=' + encodeURIComponent(partyName || '');
+  return;
+
+  // ── Ancien flux /host/ (non atteint) ─────────────────────────────────────────
   document.getElementById('btn-launch').disabled    = true;
   document.getElementById('btn-just-play').disabled = true;
 
