@@ -83,6 +83,27 @@ export function getAppleDeveloperToken() {
   }
 }
 
+// ★ Token serveur SANS claim origin — pour les appels REST au catalogue Apple Music
+//   (api.music.apple.com côté serveur : pas de header Origin, un token avec origin serait rejeté).
+let _srvCache = { token: null, exp: 0 };
+export function getAppleServerToken() {
+  const now = Math.floor(Date.now() / 1000);
+  if (_srvCache.token && _srvCache.exp - now > RENEW_BEFORE_SEC) return { token: _srvCache.token, exp: _srvCache.exp };
+  const teamId = process.env.APPLE_MUSIC_TEAM_ID;
+  const keyId = process.env.APPLE_MUSIC_KEY_ID;
+  const privateKey = _loadPrivateKey();
+  if (!teamId || !keyId || !privateKey) return null;
+  const exp = now + TOKEN_TTL_SEC;
+  try {
+    const token = jwt.sign({ iss: teamId, iat: now, exp }, privateKey, { algorithm: 'ES256', header: { alg: 'ES256', kid: keyId } });
+    _srvCache = { token, exp };
+    return { token, exp };
+  } catch (err) {
+    console.error(`[AppleDevToken] ❌ signature serveur impossible : ${err.message}`);
+    return null;
+  }
+}
+
 router.get('/dev-token', (req, res) => {
   // Render : pas de trust proxy global → prendre la première IP de X-Forwarded-For (S2 revue 01/10)
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || req.socket?.remoteAddress || 'unknown';

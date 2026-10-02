@@ -23,6 +23,7 @@ import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
 import { findOrCreateFromSupabase } from '../services/userService.js';
 import { _resolveIsrc, _resolveText } from './djbrain-lite.js';
 import { _resolveYouTube } from './youtube-resolve.js';  // ★ Lot 3
+import { _resolveAppleMusic } from './apple-resolve.js';  // ★ Lot 2
 
 const router = Router();
 
@@ -33,10 +34,10 @@ const CACHE_FAIL_MS =  5 * 60 * 1000;
 const _cache = new Map();   // `${provider}::${trackId}` → { value, expiresAt }
 
 const rateLimitMap = new Map();       // par utilisateur (req.currentUser._id) — 20/min
-const _externalBudget = { spotify: 0, youtube: 0 }; // budget d'appels externes PAR provider (cloisonné)
+const _externalBudget = { spotify: 0, youtube: 0, apple: 0 }; // budget d'appels externes PAR provider (cloisonné)
 const RATE_PER_USER   = 20;
 const EXTERNAL_PER_MIN = 30;
-setInterval(() => { rateLimitMap.clear(); _externalBudget.spotify = 0; _externalBudget.youtube = 0; }, 60_000).unref?.();
+setInterval(() => { rateLimitMap.clear(); _externalBudget.spotify = 0; _externalBudget.youtube = 0; _externalBudget.apple = 0; }, 60_000).unref?.();
 
 async function requireSupabaseAuth(req, res, next) {
   try {
@@ -80,7 +81,11 @@ async function _resolveExternal(provider, track) {
     if (id) return { providerId: id, resolvedBy: 'search' };
     return null;
   }
-  // apple : Lot 2
+  if (provider === 'apple') {
+    const id = await _resolveAppleMusic(track.title, track.artist, track.isrc);
+    if (id) return { providerId: id, resolvedBy: track.isrc ? 'isrc' : 'search' };
+    return null;
+  }
   return null;
 }
 
