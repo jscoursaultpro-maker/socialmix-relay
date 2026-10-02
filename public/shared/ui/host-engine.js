@@ -44,18 +44,20 @@
   function randomString(n) { var a = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', s = ''; for (var i = 0; i < n; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
   function genCode() { var a = 'ABCDEFGHIJKLMNPQRSTUVWXYZ0123456789', s = ''; for (var i = 0; i < 6; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
 
-  // ── Point de montage du lecteur YouTube sur l'écran On Air ─────────────────
+  // ── Point de montage du lecteur YouTube DANS la zone pochette (remplace le vinyle) ──
   function ensureYtMount() {
     if (document.getElementById('yt-player-mount')) return;
-    var onair = document.getElementById('tab-soiree');
-    if (!onair) return;
+    var zone = document.querySelector('.soiree-artwork-zone');
     var m = document.createElement('div');
     m.id = 'yt-player-mount';
-    m.style.cssText = 'margin:0 0 16px;border-radius:16px;overflow:hidden;min-height:200px;background:#000;box-shadow:0 10px 30px rgba(0,0,0,.4)';
-    // Juste après la barre de contrôles host si présente, sinon en tête.
-    var bar = document.getElementById('host-cockpit-bar');
-    if (bar && bar.parentNode === onair) onair.insertBefore(m, bar.nextSibling);
-    else onair.insertBefore(m, onair.firstChild);
+    if (zone) {
+      zone.appendChild(m);
+      zone.classList.add('hm-host-video'); // CSS host-mode : masque vinyle/pochette, affiche la vidéo
+    } else {
+      var onair = document.getElementById('tab-soiree'); if (!onair) return;
+      m.style.cssText = 'margin:0 0 14px;border-radius:16px;overflow:hidden;min-height:200px;background:#000';
+      onair.insertBefore(m, onair.firstChild);
+    }
   }
 
   // ── Moteur ─────────────────────────────────────────────────────────────────
