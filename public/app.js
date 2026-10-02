@@ -3996,10 +3996,10 @@ function sendSuggestion(deezerID, title, artist, coverURL, duration) {
     } else if (ack.error === 'already_suggested') {
       showToast('🎵 ' + (ack.reason || 'Un autre invité a déjà proposé cette track'), 4000);
     } else if (ack.error) {
-      showToast('⚠️ ' + (ack.reason || 'Suggestion refusée'), 4000);
+      showToast('⚠️ ' + (ack.reason || 'Suggestion refusée') + (ack.error ? ' [' + ack.error + ']' : ''), 4000);
     }
   });
-  
+
   console.log(`[Suggest] ✅ Sent: ${title} by ${artist} (ID: ${deezerID})`);
   
   // ★ D5: Dismiss mobile keyboard immediately
@@ -7778,7 +7778,7 @@ function resuggestFromHistory(deezerID, title, artist, coverURL) {
     }
     else if (ack.error === 'already_played') showToast('🔁 ' + (ack.reason || 'Déjà jouée ce soir'), 4000);
     else if (ack.error === 'already_suggested') showToast('🎵 ' + (ack.reason || 'Déjà proposée'), 4000);
-    else showToast('⚠️ ' + (ack.reason || 'Suggestion refusée'), 4000);
+    else showToast('⚠️ ' + (ack.reason || 'Suggestion refusée') + (ack.error ? ' [' + ack.error + ']' : ''), 4000);
   });
 }
 
