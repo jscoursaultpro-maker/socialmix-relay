@@ -30,17 +30,15 @@
   function sock() { try { return (typeof socket !== 'undefined' && socket) ? socket : (window.socket || null); } catch (e) { return window.socket || null; } }
   function appState() { try { return (typeof state !== 'undefined' && state) ? state : (window.state || null); } catch (e) { return window.state || null; } }
 
-  // ── Token Supabase (pour DJ Brain cloud) — repli djbrain-lite si indisponible ──
+  // ── Token Supabase — réutilise getProfileJwt() de la SPA (vrai access_token SSO). ──
+  // Repli djbrain-lite si indisponible (ex. session sbauth de test = pas de token).
+  var _token = null;  // cache synchrone pour engine.resolve() (qui lit le token en sync)
   async function getToken() {
-    var candidates = [window.supabase, window.supabaseClient, window._supabase, window.sb];
-    for (var i = 0; i < candidates.length; i++) {
-      var c = candidates[i];
-      if (c && c.auth && typeof c.auth.getSession === 'function') {
-        try { var r = await c.auth.getSession(); var t = r && r.data && r.data.session && r.data.session.access_token; if (t) return t; } catch (e) {}
-      }
-    }
+    try { if (typeof getProfileJwt === 'function') { var t = await getProfileJwt(); if (t) return t; } } catch (e) {}
+    try { if (window.getProfileJwt) { var t2 = await window.getProfileJwt(); if (t2) return t2; } } catch (e) {}
     return null;
   }
+  async function refreshToken() { _token = await getToken(); return _token; }
 
   // ── Génération code/secret (mêmes règles que host.js) ──────────────────────
   function randomString(n) { var a = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', s = ''; for (var i = 0; i < n; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
@@ -64,9 +62,10 @@
   async function ensureEngine(provider) {
     if (engine) return engine;
     ensureYtMount();
+    await refreshToken();                          // charge le token AVANT la création (resolve l'utilise)
     var mod = await import('/shared/player-engine.js');
     engine = await mod.createEngine(provider || 'youtube', {
-      getToken: function () { return null; },     // resolve() YouTube passe par providers.youtube.videoId sinon /api/resolve public
+      getToken: function () { return _token; },    // token synchrone pour /api/resolve (requis, 401 sinon)
       onLog: function (m, l) { log(m, l); }
     });
     // Auto-advance : à chaque changement de titre réel, avancer l'index + ré-émettre.
