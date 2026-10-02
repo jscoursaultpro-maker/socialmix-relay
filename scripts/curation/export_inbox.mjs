@@ -12,6 +12,7 @@
 //
 // Jamais écrit en BDD. Lecture seule.
 
+import fs from 'fs';
 import path from 'path';
 import mongoose from 'mongoose';
 import { connectMongo, todayStamp, verifyWithDeezer, readJson, writeJson } from './lib.mjs';
@@ -25,6 +26,45 @@ export const CANDIDATE_QUERY = {
   title: { $nin: [null, ''] },
   artist: { $nin: [null, ''] }
 };
+
+/** Lit tous les IDs déjà écartés par Deezer (sidelined/*.json) → à ne jamais re-sélectionner. */
+export function readSidelinedIds(dataDir) {
+  const dir = path.join(dataDir, 'sidelined');
+  if (!fs.existsSync(dir)) return [];
+  const ids = new Set();
+  for (const f of fs.readdirSync(dir).filter(n => n.endsWith('.json'))) {
+    try {
+      const doc = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+      for (const t of (doc.tracks || [])) if (t._id) ids.add(t._id);
+    } catch { /* ignore fichier corrompu */ }
+  }
+  return [...ids];
+}
+
+/**
+ * Libère les pending orphelins : un ID réservé pour un fichier inbox qui n'existe plus
+ * ou qui est vide (cas d'un run écrasé). Évite de perdre à vie des tracks du pool.
+ */
+export function reclaimOrphanPendings(state, dataDir) {
+  let freed = 0;
+  const inboxDir = path.join(dataDir, 'inbox');
+  // Pré-charge la table des inboxes présents + leur set d'IDs
+  const inboxIds = new Map();
+  if (fs.existsSync(inboxDir)) {
+    for (const f of fs.readdirSync(inboxDir).filter(n => n.endsWith('.json'))) {
+      try {
+        const doc = JSON.parse(fs.readFileSync(path.join(inboxDir, f), 'utf8'));
+        inboxIds.set(f, new Set((doc.tracks || []).map(t => t._id)));
+      } catch { inboxIds.set(f, new Set()); }
+    }
+  }
+  for (const [id, meta] of Object.entries(state.pending || {})) {
+    const file = meta?.inbox;
+    const present = file && inboxIds.has(file) && inboxIds.get(file).has(id);
+    if (!present) { delete state.pending[id]; freed++; }
+  }
+  return freed;
+}
 
 function arg(name, def) {
   const i = process.argv.indexOf(`--${name}`);
@@ -44,13 +84,37 @@ if (isMain) {
   const STAMP = todayStamp();
   const fileBase = `${STAMP}-${RUN}`;
 
+  // Anti-écrasement : si le fichier inbox cible existe déjà et contient des tracks,
+  // on refuse de l'écraser. Jean-Sé doit changer --run (ex: run=c) pour un nouveau lot.
+  const outInbox = path.join(DATA_DIR, 'inbox', `${fileBase}.json`);
+  if (!DRY && fs.existsSync(outInbox)) {
+    const existing = readJson(outInbox, { tracks: [] });
+    if ((existing.tracks || []).length > 0) {
+      console.error(`\n❌ ${outInbox} existe déjà avec ${existing.tracks.length} tracks. Changer --run pour un nouveau lot.`);
+      process.exit(2);
+    }
+  }
+
   const state = readJson(path.join(DATA_DIR, 'state.json'), { pending: {}, imported: {} });
+
+  // Nettoyage des pending orphelins (inbox vide ou disparu après écrasement d'un run)
+  const freed = reclaimOrphanPendings(state, DATA_DIR);
+  if (freed > 0) console.log(`♻️  ${freed} pending orphelins libérés (inbox absent/vide).`);
+
   const pendingIds = Object.keys(state.pending || {}).map(id => new mongoose.Types.ObjectId(id));
+  const sidelinedStrIds = readSidelinedIds(DATA_DIR);
+  const sidelinedIds = sidelinedStrIds.map(id => new mongoose.Types.ObjectId(id));
+  const excludeIds = [...pendingIds, ...sidelinedIds];
 
   const db = await connectMongo();
   const tracks = db.collection('tracks');
 
-  const query = { ...CANDIDATE_QUERY, _id: { $nin: pendingIds } };
+  const query = {
+    ...CANDIDATE_QUERY,
+    _id: { $nin: excludeIds },
+    // Filet dur : pas de track sans ID Deezer (sinon toujours sidelined).
+    'providers.deezer.trackId': { $gt: 0 }
+  };
   if (MODE === 'flux') query.createdAt = { $gte: new Date(Date.now() - 36 * 3600 * 1000) };
 
   // Priorité : popularité Deezer décroissante (convention des batches V2), puis plus récent.
@@ -60,7 +124,7 @@ if (isMain) {
     .toArray();
 
   console.log(`\n=== EXPORT INBOX ${fileBase} — mode=${MODE} limit=${LIMIT} dry=${DRY} ===`);
-  console.log(`Candidats sélectionnés : ${selected.length} (pending exclus : ${pendingIds.length})`);
+  console.log(`Candidats sélectionnés : ${selected.length} (pending exclus : ${pendingIds.length}, sidelined exclus : ${sidelinedIds.length})`);
 
   const inbox = [];
   const sidelined = [];
