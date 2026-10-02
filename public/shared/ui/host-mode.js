@@ -98,19 +98,23 @@
     return bar;
   }
 
-  // Placeholders honnêtes — remplacés par les vrais appels moteur dans la brique suivante.
-  var playing = false;
-  function onAction(act) {
+  // Transport câblé sur le moteur (brique 2, host-engine.js) quand il est présent.
+  var playing = true;
+  async function onAction(act) {
+    var eng = window.AhOuaiHostEngine || null;
     if (act === 'playpause') {
-      playing = !playing;
+      if (eng && eng.isActive()) { playing = await eng.togglePlay(); }
+      else { playing = !playing; }
       var ic = document.getElementById('hm-pp-ic'), tx = document.getElementById('hm-pp-tx');
       if (ic) ic.textContent = playing ? '⏸️' : '▶️';
       if (tx) tx.textContent = playing ? 'Pause' : 'Play';
+      if (!eng || !eng.isActive()) toast('Lance d\'abord une soirée (moteur non actif)');
+    } else if (act === 'next') {
+      if (eng && eng.isActive()) { eng.next(); } else { toast('Moteur non actif'); }
     } else if (act === 'repeat') {
-      var r = document.getElementById('hm-repeat');
-      if (r) r.classList.toggle('hm-active');
+      var r = document.getElementById('hm-repeat'); if (r) r.classList.toggle('hm-active');
+      if (eng && eng.isActive()) eng.repeat();
     }
-    toast('🎛️ Contrôle « ' + act + ' » — à relier au moteur (brique suivante)');
   }
 
   // ── Montage + bascule de visibilité ───────────────────────────────────────
