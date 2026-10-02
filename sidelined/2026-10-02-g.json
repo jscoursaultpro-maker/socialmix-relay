@@ -1,0 +1,842 @@
+{
+  "_meta": {
+    "file": "2026-10-02-g",
+    "created_at": "2026-10-02T17:20:44.520Z",
+    "mode": "stock",
+    "total": 33,
+    "sidelined": 17,
+    "doctrine": "scripts/curation/DOCTRINE_PREMIUM_V2.md",
+    "instructions": "scripts/curation/CLAUDE_CURATION_PROMPT.md",
+    "output_expected": "outbox/2026-10-02-g.json"
+  },
+  "tracks": [
+    {
+      "_id": "6ab61dc19c7c780f0837a600",
+      "title": "Coup de soleil",
+      "artist": "Yann Muller",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 249588,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": {
+        "score": 3,
+        "suggested": 3,
+        "feu": 0
+      },
+      "createdAt": "2026-09-25T07:07:45.116Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 249588,
+          "title": "Journey (the storm)",
+          "artist": "RJ Benjamin",
+          "album": "Rj benjamin",
+          "duration": 285,
+          "isrc": "FR6V80512191",
+          "release_date": "2006-04-15",
+          "bpm": 140.1,
+          "rank": 18070,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/249588",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/f/4/9/0/f49c6783352fd432a8a5e377df16f7ac.mp3?hdnea=exp=1790962495~acl=/api/1/1/f/4/9/0/f49c6783352fd432a8a5e377df16f7ac.mp3*~data=user_id=0,application_id=42~hmac=c657e4efec4a0b4f3df73cd3634abd3d413a2c89e49ef96d0e0227c31043c2af"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6ab80a6f9c7c780f083a95aa",
+      "title": "Adore de Bob Sinclar sur toutes les principales apps",
+      "artist": "musique avec ce lien 🎧",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 186679,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-09-26T18:09:51.618Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 186679,
+          "title": "Pense à moi",
+          "artist": "G.A.G.E.",
+          "album": "Soul rebel",
+          "duration": 428,
+          "isrc": "XXF000186679",
+          "release_date": "2013-01-21",
+          "bpm": null,
+          "rank": null,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/186679",
+          "preview": null
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6ab7fd759c7c780f083a7c46",
+      "title": "Filles faciles",
+      "artist": "J.J. Goldman",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 582167,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-09-26T17:14:29.107Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 137,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 582167,
+          "title": "Filles faciles",
+          "artist": "Jean-Jacques Goldman",
+          "album": "Entre gris clair et gris foncé",
+          "duration": 223,
+          "isrc": "FRZ088700080",
+          "release_date": "1987-11-04",
+          "bpm": null,
+          "rank": 592352,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/582167",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/8/e/0/18e9edfce6f7709df73c3e770798d9fb.mp3?hdnea=exp=1790962514~acl=/api/1/1/1/8/e/0/18e9edfce6f7709df73c3e770798d9fb.mp3*~data=user_id=0,application_id=42~hmac=0d1b3ca727a1cc33c718d2033cacfb491d3519c6bf87045af2ebdec4a80c2f61"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 1,
+          "artistSim": 0.25,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6a89cd09cbdff7847497f7be",
+      "title": "OLUWA",
+      "artist": "DALEXO, Palm Monkey & Feel On Eel",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3790501782,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-22T16:23:37.265Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 3790501782,
+          "title": "OLUWA",
+          "artist": "DALEXO",
+          "album": "OLUWA",
+          "duration": 125,
+          "isrc": "US39N2620117",
+          "release_date": "2026-02-20",
+          "bpm": null,
+          "rank": 416200,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3790501782",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/b/8/8/0/b882b4a0061b368be90deb9f7072abdb.mp3?hdnea=exp=1790962516~acl=/api/1/1/b/8/8/0/b882b4a0061b368be90deb9f7072abdb.mp3*~data=user_id=0,application_id=42~hmac=51bcaa1b96e37706bc2eea60fe6e3f6dc7dc27305cb434568f79cc02bff50f52"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 1,
+          "artistSim": 0.33,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6a89cb73cbdff7847497f749",
+      "title": "The Rapture Pt. III",
+      "artist": "&ME & Black Coffee",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 643123,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-22T16:16:51.244Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6a89c8eacbdff7847497f6b0",
+      "title": "Waterfall",
+      "artist": "Michael Schulte & R3HAB",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 918418,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-22T16:06:02.243Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 918418,
+          "title": "Send In The Clowns",
+          "artist": "André Rieu",
+          "album": "Dreaming",
+          "duration": 243,
+          "isrc": "DEN120103268",
+          "release_date": "2001-10-22",
+          "bpm": 130.83,
+          "rank": 10321,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/918418",
+          "preview": null
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6a89c059cbdff7847497f46e",
+      "title": "The Door",
+      "artist": "Teddy Swims",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 832505,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-22T15:29:29.276Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 832505,
+          "title": "I. Lebhaft, doch nicht schnell",
+          "artist": "Leon Fleisher",
+          "album": "Korngold & Schmidt: Music for Strings and Piano Left Hand",
+          "duration": 685,
+          "isrc": "USSM19300230",
+          "release_date": "1996-07-23",
+          "bpm": 151.4,
+          "rank": 4,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/832505",
+          "preview": null
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6a89bc81cbdff7847497f363",
+      "title": "AMARGURA",
+      "artist": "KAROL G",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 437919,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-22T15:13:05.519Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6a89b5e8cbdff7847497eb24",
+      "title": "Constant Companion",
+      "artist": "Sam Smith",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 672664,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-22T14:44:56.317Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 672664,
+          "title": "17 and 21",
+          "artist": "George",
+          "album": "Strike Up the Band",
+          "duration": 252,
+          "isrc": "USNO19127303",
+          "release_date": "2005-05-17",
+          "bpm": 83.9,
+          "rank": 26323,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/672664",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/3/6/4/0/364eca6c599654891534c3d0b4ee482a.mp3?hdnea=exp=1790962526~acl=/api/1/1/3/6/4/0/364eca6c599654891534c3d0b4ee482a.mp3*~data=user_id=0,application_id=42~hmac=70a56d3e03aa11131e24fb521da3cbaef29d8ffa00df72fb1b5e80be6967195d"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6a88bc33cbdff78474974442",
+      "title": "Somewhere I Belong",
+      "artist": "LINKIN PARK",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 280830,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-21T20:59:32.002Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 280830,
+          "title": "Baleines et cachalots (Instrumental)",
+          "artist": "Les Dagobert",
+          "album": "Les z'animaux dans l'eau + versions instrumentales karaoké",
+          "duration": 109,
+          "isrc": "FR6V80104696",
+          "release_date": "2001-01-01",
+          "bpm": 80,
+          "rank": 21297,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/280830",
+          "preview": null
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6a88b860cbdff78474974303",
+      "title": "Cariad",
+      "artist": "The Royston Club",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 198381,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-21T20:43:13.002Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6a8853cfcbdff7847496e01f",
+      "title": "Toledo",
+      "artist": "GROSSOMODDO, Brøder & Bletter",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3847356441,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-21T13:34:07.992Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 124,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 3847356441,
+          "title": "Toledo",
+          "artist": "GROSSOMODDO",
+          "album": "Toledo",
+          "duration": 209,
+          "isrc": "CH7812662205",
+          "release_date": "2026-03-13",
+          "bpm": null,
+          "rank": 428635,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3847356441",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/a/1/e/0/a1e665add4f7d9c82f0b8b7b489cde8d.mp3?hdnea=exp=1790962533~acl=/api/1/1/a/1/e/0/a1e665add4f7d9c82f0b8b7b489cde8d.mp3*~data=user_id=0,application_id=42~hmac=ffd4bd9ac884442c0ea664dc54de6c36db8ed66319e49bb5d397e26d8919b57a"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 1,
+          "artistSim": 0.33,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6a883f4bcbdff7847496cb4e",
+      "title": "K-POP",
+      "artist": "Travis Scott, Bad Bunny & The Weeknd",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2375967015,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-21T12:06:35.905Z",
+      "current": {
+        "genre": "Hip-Hop",
+        "phase": null,
+        "bpm": 121,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 2375967015,
+          "title": "K-POP",
+          "artist": "The Weeknd",
+          "album": "K-POP",
+          "duration": 185,
+          "isrc": "USSM12305652",
+          "release_date": "2023-07-21",
+          "bpm": null,
+          "rank": 661315,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/2375967015",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/5/9/0/159ada2aee5762e1a5483b6917d6bd0f.mp3?hdnea=exp=1790962534~acl=/api/1/1/1/5/9/0/159ada2aee5762e1a5483b6917d6bd0f.mp3*~data=user_id=0,application_id=42~hmac=e8de7e1615c06501955c158e8ee4dd1deb58467720a493d24d2fc7fa83accfe5"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 1,
+          "artistSim": 0.33,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6a870b9ccbdff7847495d8ce",
+      "title": "Past Lives",
+      "artist": "sapientdream & Slushii",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2608551762,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-20T14:13:48.567Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 124,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 2608551762,
+          "title": "Past Lives (Ian Asher Remix)",
+          "artist": "sapientdream",
+          "album": "Past Lives (Ian Asher Remix)",
+          "duration": 192,
+          "isrc": "CA5KR2417878",
+          "release_date": "2024-02-26",
+          "bpm": null,
+          "rank": 478083,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2608551762",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/9/6/7/0/967cfe4aa5ea378e39391422901eaa6b.mp3?hdnea=exp=1790962535~acl=/api/1/1/9/6/7/0/967cfe4aa5ea378e39391422901eaa6b.mp3*~data=user_id=0,application_id=42~hmac=591c082a0b35bcee9dd424d2bc38f0f461fd60a0e654a7f8e8fc102f1ea32afe"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0.4,
+          "artistSim": 1,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6a85cb3fcbdff7847494f839",
+      "title": "Kalabancoro",
+      "artist": "Ginton, Richard Bona & Salif Keïta",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3412454101,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-19T15:26:55.513Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 3412454101,
+          "title": "Kalabancoro",
+          "artist": "Ginton",
+          "album": "Kalabancoro",
+          "duration": 186,
+          "isrc": "FRUM72500089",
+          "release_date": "2025-06-20",
+          "bpm": null,
+          "rank": 712738,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3412454101",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/2/8/6/0/28671cf942ded6e5e485955a72ce5af0.mp3?hdnea=exp=1790962539~acl=/api/1/1/2/8/6/0/28671cf942ded6e5e485955a72ce5af0.mp3*~data=user_id=0,application_id=42~hmac=7bfcacfda13e864512aa9552619b690cc3840877a20eb96a3e2ee64195d5897e"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 1,
+          "artistSim": 0.33,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6a847940cbdff78474942535",
+      "title": "Jam",
+      "artist": "Michael Jackson",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 823654,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-18T15:24:48.178Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 823654,
+          "title": "Haydn: Canzonettas, Book 2: No. 5, Piercing Eyes, Hob. XXVIa:35",
+          "artist": "James Griffet",
+          "album": "Haydn : English Canzonettas (- Apex)",
+          "duration": 96,
+          "isrc": "DEA808104800",
+          "release_date": "1996-04-22",
+          "bpm": 123.4,
+          "rank": 20926,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/823654",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/8/d/f/0/8df13cbcfacc48ca15779ca68dc568d3.mp3?hdnea=exp=1790962540~acl=/api/1/1/8/d/f/0/8df13cbcfacc48ca15779ca68dc568d3.mp3*~data=user_id=0,application_id=42~hmac=007ff34c43c08d73a5bcb21140bcc6b3128ce5d960dc7db8ce2465b8aa3e12f6"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6a84787dcbdff784749424dc",
+      "title": "Somedays",
+      "artist": "Sonny Fodera, Jazzy & D.O.D",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 958469,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-18T15:21:33.192Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 958469,
+          "title": "SPAIN: Marcha Real",
+          "artist": "English Chamber Orchestra",
+          "album": "World Anthems",
+          "duration": 105,
+          "isrc": "USBC19200004",
+          "release_date": "1998-06-16",
+          "bpm": null,
+          "rank": 21010,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/958469",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/0/8/0/108bab895c3f2d6cdaa5119b9ad6268f.mp3?hdnea=exp=1790962541~acl=/api/1/1/1/0/8/0/108bab895c3f2d6cdaa5119b9ad6268f.mp3*~data=user_id=0,application_id=42~hmac=e93e25dd138c611199e7594f636148090175bd1670e6431615f3c6e58e823fc3"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    }
+  ]
+}
