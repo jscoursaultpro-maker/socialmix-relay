@@ -45,7 +45,7 @@
       // Vidéo YouTube dans la zone pochette (remplace le vinyle)
       '.soiree-artwork-zone.hm-host-video #soiree-vinyl-wrap,.soiree-artwork-zone.hm-host-video #np-artwork{display:none!important}',
       '.soiree-artwork-zone.hm-host-video #yt-player-mount{display:block}',
-      '#yt-player-mount{width:100%;border-radius:18px;overflow:hidden;background:#000;aspect-ratio:1/1}',
+      '#yt-player-mount{width:200px;height:200px;max-width:100%;border-radius:18px;overflow:hidden;background:#000}',
       '#yt-player-mount #yt-player,#yt-player-mount iframe{width:100%;height:100%;border:0;display:block}'
     ].join('');
     var el = document.createElement('style'); el.id = STYLE_ID; el.textContent = css;
