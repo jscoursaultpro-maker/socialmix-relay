@@ -241,11 +241,32 @@
     if (j === idx + 1 || k === idx + 1) { queuedPid = null; prequeueNext(); }
   }
 
+  // ── Gestion des suggestions / file (contrôles host) ────────────────────────
+  function emitHost(ev, payload) { var s = sock(); if (s && party) s.emit(ev, Object.assign({ hostSecret: party.hostSecret }, payload || {})); }
+  // Retire un titre de la file locale (brain ou suggestion).
+  function removeFromQueue(trackId) {
+    var j = tracks.findIndex(function (t) { return String(t.trackId) === String(trackId); });
+    if (j > idx) { tracks.splice(j, 1); if (j === idx + 1) { queuedPid = null; prequeueNext(); } return true; }
+    return false;
+  }
+  // Supprime une suggestion (serveur : host:rejectSuggestion) + la retire de la file.
+  function dismissSuggestion(opts) {
+    opts = opts || {};
+    emitHost('host:rejectSuggestion', { trackTitle: opts.title, guestName: opts.guestName });
+    if (opts.trackId) removeFromQueue(opts.trackId);
+  }
+  // Marque une suggestion comme jouée (serveur : host:suggestionPlayed → points au suggéreur).
+  function noteSuggestionPlayed(opts) {
+    opts = opts || {};
+    emitHost('host:suggestionPlayed', { trackTitle: opts.title, guestName: opts.guestName, guestId: opts.guestId || opts.guestName });
+  }
+
   window.AhOuaiHostEngine = {
     launchHost: launchHost, play: play, pause: pause, togglePlay: togglePlay,
     next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode,
     setAutoAdvance: setAutoAdvance, getAutoAdvance: getAutoAdvance,
     getUpcoming: getUpcoming, playNow: playNow, move: move,
+    removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,
     _debug: function () { return { party: party, idx: idx, tracks: tracks.length, isPlaying: isPlaying, auto: autoAdvance, engine: engine ? engine.id : null }; }
   };
   if (!booted) { booted = true; log('prêt (brique 2 — chemin YouTube)'); }

@@ -68,6 +68,9 @@
       '#' + WRAP_ID + ' .hc-acts{display:flex;gap:6px;flex:0 0 auto}',
       '#' + WRAP_ID + ' .hc-mini{width:30px;height:30px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#cfd8ea;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}',
       '#' + WRAP_ID + ' .hc-now{border:none;background:linear-gradient(135deg,#22e3c9,#13b7a3);color:#06121d;font:800 12px Outfit,sans-serif;border-radius:10px;padding:0 12px;height:30px;cursor:pointer}',
+      '#' + WRAP_ID + ' .hc-del{width:30px;height:30px;border-radius:9px;border:1px solid rgba(255,63,180,.32);background:rgba(255,63,180,.1);color:#ff8ec9;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}',
+      '#' + WRAP_ID + ' .hc-sug{display:inline-flex;align-items:center;gap:5px;font:700 11px Outfit,sans-serif;color:#22e3c9;margin-top:3px}',
+      '#' + WRAP_ID + ' .hc-sug .av{width:16px;height:16px;border-radius:50%;background:rgba(34,227,201,.25);display:inline-flex;align-items:center;justify-content:center;font-size:10px}',
       '#' + WRAP_ID + ' .hc-empty{color:#6b7799;font:500 13px Outfit,sans-serif;text-align:center;padding:8px}'
     ].join('');
     var el = document.createElement('style'); el.id = STYLE_ID; el.textContent = c; document.head.appendChild(el);
@@ -105,10 +108,12 @@
       if (!b) return;
       var e = eng(); if (!e) return;
       var id = b.getAttribute('data-id'), act = b.getAttribute('data-act');
-      if (act === 'now') e.playNow(id);
+      var title = b.getAttribute('data-title'), guest = b.getAttribute('data-guest'), isSug = b.getAttribute('data-sug') === '1';
+      if (act === 'now') { e.playNow(id); if (isSug) e.noteSuggestionPlayed({ title: title, guestName: guest }); }
       else if (act === 'up') e.move(id, 'up');
       else if (act === 'down') e.move(id, 'down');
-      setTimeout(renderQueue, 120);
+      else if (act === 'del') { if (isSug) e.dismissSuggestion({ title: title, guestName: guest, trackId: id }); else e.removeFromQueue(id); }
+      setTimeout(renderQueue, 150);
     });
     return w;
   }
@@ -134,19 +139,39 @@
     return curIdx;
   }
 
+  function normT(s) { return String(s == null ? '' : s).toLowerCase().replace(/\(.*?\)|\[.*?\]/g, '').replace(/[^a-z0-9]/g, '').trim(); }
+  // Map titre normalisé → { name } des suggestions guests actives (pour « suggéré par »).
+  function suggMap() {
+    var m = {};
+    var list = (lastState && lastState.suggestions) || [];
+    list.forEach(function (s) {
+      if (!s || ['dismissed', 'played', 'unavailable'].indexOf(s.status) >= 0) return;
+      if (s.isHost) return; // suggestion de l'hôte lui-même → pas de badge
+      var who = s.guestName || (s.suggestedByUser && s.suggestedByUser.firstName) || 'Invité';
+      m[normT(s.title || s.query)] = { name: who };
+    });
+    return m;
+  }
+
   function renderQueue() {
     var q = document.getElementById('hc-q'); if (!q) return;
     var e = eng(); var up = (e && e.getUpcoming) ? e.getUpcoming() : [];
     var nEl = document.getElementById('hc-q-n'); if (nEl) nEl.textContent = up.length;
     if (!up.length) { q.innerHTML = '<div class="hc-empty">La file se remplit avec le DJ Brain…</div>'; return; }
-    q.innerHTML = up.slice(0, 8).map(function (t, i) {
+    var sm = suggMap();
+    q.innerHTML = up.slice(0, 10).map(function (t, i) {
+      var sug = sm[normT(t.title)];
+      var who = sug ? esc(sug.name) : '';
+      var sugLine = sug ? '<div class="hc-sug"><span class="av">👤</span> suggéré par ' + who + '</div>' : '';
+      var dataAttr = ' data-id="' + esc(t.trackId) + '" data-title="' + esc(t.title) + '" data-guest="' + who + '" data-sug="' + (sug ? '1' : '') + '"';
       return '<div class="hc-row">' +
         '<div class="hc-rank">' + (i + 1) + '</div>' +
-        '<div class="hc-ti"><div class="tt">' + esc(t.title) + '</div><div class="ar">' + esc(t.artist || '') + '</div></div>' +
+        '<div class="hc-ti"><div class="tt">' + esc(t.title) + '</div><div class="ar">' + esc(t.artist || '') + '</div>' + sugLine + '</div>' +
         '<div class="hc-acts">' +
-          '<button class="hc-mini" data-act="up" data-id="' + esc(t.trackId) + '" aria-label="Monter">↑</button>' +
-          '<button class="hc-mini" data-act="down" data-id="' + esc(t.trackId) + '" aria-label="Descendre">↓</button>' +
-          '<button class="hc-now" data-act="now" data-id="' + esc(t.trackId) + '">Maintenant</button>' +
+          '<button class="hc-mini" data-act="up"' + dataAttr + ' aria-label="Monter">↑</button>' +
+          '<button class="hc-mini" data-act="down"' + dataAttr + ' aria-label="Descendre">↓</button>' +
+          '<button class="hc-del" data-act="del"' + dataAttr + ' aria-label="Supprimer">✕</button>' +
+          '<button class="hc-now" data-act="now"' + dataAttr + '>Maintenant</button>' +
         '</div>' +
       '</div>';
     }).join('');
