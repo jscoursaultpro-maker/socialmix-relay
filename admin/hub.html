@@ -471,6 +471,20 @@
         </ul>
       </div>
 
+      <!-- ── Couverture YouTube (curation quotidienne) ── -->
+      <div class="sub-section">
+        <h3>▶️ Couverture YouTube <span style="font-size:.8rem;color:#8390ad;font-weight:400">— pré-résolution videoId (job quotidien)</span></h3>
+        <div class="stats-row" id="yt-coverage">
+          <div class="stat-box"><div class="stat-val skeleton" style="height:36px">&nbsp;</div><div class="stat-lbl">Couverture</div></div>
+          <div class="stat-box"><div class="stat-val skeleton" style="height:36px">&nbsp;</div><div class="stat-lbl">Résolus</div></div>
+          <div class="stat-box"><div class="stat-val skeleton" style="height:36px">&nbsp;</div><div class="stat-lbl">Restants</div></div>
+          <div class="stat-box"><div class="stat-val skeleton" style="height:36px">&nbsp;</div><div class="stat-lbl">Jouables</div></div>
+        </div>
+        <div style="height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:12px">
+          <div id="yt-bar" style="height:100%;width:0;background:linear-gradient(90deg,#22e3c9,#13b7a3);transition:width .5s"></div>
+        </div>
+      </div>
+
       <!-- ── Parties Récentes ── -->
       <div class="sub-section">
         <h3>🎉 Parties Récentes</h3>
@@ -609,6 +623,7 @@
         if (statsRes.ok) {
           const stats = await statsRes.json();
           renderBrainStats(stats);
+          renderYoutubeCoverage(stats.youtube);
           renderTopFeu(stats.topFeu || []);
           renderNovelties(stats.novelties || []);
         } else if (statsRes.status === 401 || statsRes.status === 403) {
@@ -658,6 +673,23 @@
           <div class="stat-lbl">Sans BPM</div>
         </div>
       `;
+    }
+
+    // ── Couverture YouTube ──
+    function renderYoutubeCoverage(y) {
+      const box = document.getElementById('yt-coverage');
+      if (!box) return;
+      if (!y) { box.innerHTML = '<div class="stat-box"><div class="stat-val">—</div><div class="stat-lbl">Indisponible</div></div>'; return; }
+      const pct = y.playable > 0 ? (y.resolved / y.playable) * 100 : 0;
+      const remaining = Math.max(0, (y.playable || 0) - (y.resolved || 0));
+      const days = Math.ceil(remaining / 60); // lot ~60/jour
+      box.innerHTML = `
+        <div class="stat-box green"><div class="stat-val">${pct.toFixed(1)}%</div><div class="stat-lbl">Couverture videoId</div></div>
+        <div class="stat-box blue"><div class="stat-val">${(y.resolved || 0).toLocaleString('fr-FR')}</div><div class="stat-lbl">Résolus</div></div>
+        <div class="stat-box orange"><div class="stat-val">${remaining.toLocaleString('fr-FR')}</div><div class="stat-lbl">Restants (~${days} j)</div></div>
+        <div class="stat-box"><div class="stat-val">${(y.playable || 0).toLocaleString('fr-FR')}</div><div class="stat-lbl">Titres jouables</div></div>
+      `;
+      const bar = document.getElementById('yt-bar'); if (bar) bar.style.width = Math.min(100, pct) + '%';
     }
 
     // ── Top Feu ──
