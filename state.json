@@ -604,21 +604,21 @@
       "applied": 0,
       "deferred": 65,
       "invalid": 0,
-      "at": "2026-10-01T20:03:48.102Z"
+      "at": "2026-10-02T10:57:27.605Z"
     },
     "2026-10-02-c": {
       "status": "partial",
-      "applied": 3,
+      "applied": 0,
       "deferred": 2,
       "invalid": 0,
-      "at": "2026-10-02T08:06:53.750Z"
+      "at": "2026-10-02T10:57:27.608Z"
     },
     "2026-10-02-d": {
       "status": "partial",
-      "applied": 9,
+      "applied": 0,
       "deferred": 7,
       "invalid": 0,
-      "at": "2026-10-02T08:46:22.526Z"
+      "at": "2026-10-02T10:57:27.609Z"
     }
   }
 }
