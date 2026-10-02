@@ -71,7 +71,7 @@
                 <img class="landing-logo-img" src="assets/brand/ahouai-logo.png" alt="AhOuai">
                 <p class="logo-sub">QU'EST-CE QU'ON FAIT CE SOIR&nbsp;?</p>
             </div>
-            <div style="display:flex; flex-direction:column; gap:14px; width:100%; max-width:420px; margin:8px auto 0;">
+            <div id="choice-main" style="display:flex; flex-direction:column; gap:14px; width:100%; max-width:420px; margin:8px auto 0;">
                 <button type="button" class="choice-card" onclick="goCreateParty()">
                     <span class="choice-ic">🎛️</span>
                     <span class="choice-txt"><strong>Je crée une soirée</strong><small>Pilote la musique — mode hôte</small></span>
@@ -84,6 +84,23 @@
                     <span class="choice-ic">▶️</span>
                     <span class="choice-txt"><strong>Je lance la musique</strong><small>Direct, sans créer de soirée</small></span>
                 </button>
+            </div>
+            <!-- Sélecteur de lecteur (après « Je crée » / « Je lance ») -->
+            <div id="provider-pick" style="display:none; flex-direction:column; gap:14px; width:100%; max-width:420px; margin:8px auto 0;">
+                <p style="text-align:center;font:600 13px Outfit,system-ui,sans-serif;color:#9aa6c2;margin:0 0 2px">Avec quel lecteur ?</p>
+                <button type="button" class="choice-card" onclick="pickProvider('youtube')">
+                    <span class="choice-ic">▶️</span>
+                    <span class="choice-txt"><strong>YouTube</strong><small>Gratuit · universel · garde l'écran allumé</small></span>
+                </button>
+                <button type="button" class="choice-card" onclick="pickProvider('spotify')">
+                    <span class="choice-ic">🟢</span>
+                    <span class="choice-txt"><strong>Spotify</strong><small>Premium requis · titres complets</small></span>
+                </button>
+                <button type="button" class="choice-card" onclick="pickProvider('apple')">
+                    <span class="choice-ic">🍎</span>
+                    <span class="choice-txt"><strong>Apple Music</strong><small>Abonnement requis · titres complets</small></span>
+                </button>
+                <a href="#" onclick="event.preventDefault(); cancelProviderPick();" style="text-align:center;color:#8390ad;font:500 13px Outfit,system-ui,sans-serif;text-decoration:none;margin-top:2px">← Retour</a>
             </div>
             <p class="landing-footer">Pas besoin de télécharger · 100% navigateur</p>
         </div>
@@ -1314,11 +1331,11 @@
     <!-- ★ SSO web (task #33) — Supabase JS SDK pour Apple/Google OAuth -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <script src="/shared/supabase-cookie.js"></script>
-    <script src="app.js?v=20261002-choice3"></script>
+    <script src="app.js?v=20261002-choice4"></script>
     <!-- ★ Mode host (brique 1) — détection + barre de contrôles musique, module autonome -->
     <script src="/shared/ui/host-mode.js?v=hostmode-05"></script>
     <!-- ★ Mode host (brique 2) — moteur musique YouTube dans le guest -->
-    <script src="/shared/ui/host-engine.js?v=hostengine-11"></script>
+    <script src="/shared/ui/host-engine.js?v=hostengine-12"></script>
     <!-- ★ On Air host — ENCHAÎNEMENT AUTO + dramaturgie + À SUIVRE -->
     <script src="/shared/ui/host-cockpit.js?v=hostcockpit-06"></script>
 </body>
