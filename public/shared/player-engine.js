@@ -99,7 +99,7 @@ export async function createEngine(id, opts = {}) {
       return new SpotifyEngine(opts);
     }
     if (id === 'apple') {
-      const mod = await import('/shared/apple-engine.js?v=ap-01').catch(() => null);
+      const mod = await import('/shared/apple-engine.js?v=ap-02').catch(() => null);
       if (mod?.default) return new mod.default(opts);
     }
     if (id === 'youtube') {

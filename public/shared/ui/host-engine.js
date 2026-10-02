@@ -79,8 +79,9 @@
     // Auto-advance : à chaque changement de titre réel, avancer l'index + ré-émettre.
     engine.on('trackChanged', function () { /* état visuel géré par la SPA via party:state */ });
     engine.on('trackEnded', function () { onEngineAdvanced(); });
-    engine.on('needsUserGesture', function () { toast('Touche « Play » pour démarrer'); });
+    engine.on('needsUserGesture', function () { isPlaying = false; toast('Touche ▶ pour lancer la lecture'); });
     engine.on('needsVisibleScreen', function () { toast('Garde l\'écran allumé pour YouTube'); });
+    engine.on('error', function (e) { var m = (typeof e === 'string') ? e : (e && e.message) || 'Erreur de lecture'; log('engine error: ' + m, 'warn'); toast(m); });
     // Titre injouable (retiré / embed interdit / erreur) → sauter, que l'auto soit on ou off.
     engine.on('trackUnavailable', function () { advanceToPlayable(idx + 1, 'indisponible'); });
     // Lecture figée (watchdog) → relancer le titre une fois, puis sauter s'il reste bloqué.
