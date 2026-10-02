@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "file": "2026-10-02-f",
+    "created_at": "2026-10-02T12:03:46.443Z",
+    "mode": "stock",
+    "total": 0,
+    "sidelined": 0,
+    "doctrine": "scripts/curation/DOCTRINE_PREMIUM_V2.md",
+    "instructions": "scripts/curation/CLAUDE_CURATION_PROMPT.md",
+    "output_expected": "outbox/2026-10-02-f.json",
+    "bpm_signal_analysis": {
+      "stats": {
+        "total": 0,
+        "analyzed": 0,
+        "skipped_no_preview": 0,
+        "failed": 0
+      },
+      "run_at": "2026-10-02T12:03:46Z",
+      "method": "librosa.feature.tempo on Deezer 30 s preview"
+    }
+  },
+  "tracks": []
+}
