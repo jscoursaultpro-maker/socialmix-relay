@@ -479,7 +479,7 @@
 
   window.AhOuaiHostEngine = {
     launchHost: launchHost, play: play, pause: pause, togglePlay: togglePlay,
-    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind,
+    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind, log: log,
     setAutoAdvance: setAutoAdvance, getAutoAdvance: getAutoAdvance,
     getUpcoming: getUpcoming, playNow: playNow, move: move,
     removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,

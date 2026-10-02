@@ -1139,6 +1139,9 @@ function _emitRequestJoin(fn, ln, em) {
     lastName: ln,
     cguAccepted: true
   }, (res) => {
+    if (window._ahouaiHostLaunching && typeof _hostLog === 'function') {
+      _hostLog('requestJoin ACK: ' + (res ? (res.ok ? ('ok/' + (res.status || '?')) : ('KO/' + (res.error || res.code || '?'))) : 'null') + ' socket=' + ((socket && socket.id) ? socket.id.slice(0,6) : 'none'), (res && res.ok) ? 'info' : 'warn');
+    }
     const btn = $('ob-submit');
     if (!res || !res.ok) {
       // Restore button
@@ -2296,12 +2299,14 @@ function connectToRelay() {
         var he = window.AhOuaiHostEngine;
         if (he && he.isActive && he.isActive()) {
           var hc = (he.getCode && he.getCode()) || state.partyCode || null;
-          console.log('[connect] mode host → rebind soirée', hc);
+          var sid0 = (socket && socket.id) ? socket.id.slice(0, 6) : 'none';
+          if (typeof _hostLog === 'function') _hostLog('(re)connect socket ' + sid0 + ' → rebind ' + hc, 'info');
           if (typeof he.rebind === 'function') he.rebind();
           window._ahouaiHostSelfJoined = null;              // autoriser le re-join invité
           if (typeof _hostSelfJoin === 'function') setTimeout(function () { _hostSelfJoin(hc); }, 300);
         } else {
-          console.log('[connect] mode host (1er) → launchHost prendra le relais');
+          var sid1 = (socket && socket.id) ? socket.id.slice(0, 6) : 'none';
+          if (typeof _hostLog === 'function') _hostLog('connect socket ' + sid1 + ' (1er) → launchHost prendra le relais');
         }
       } catch (e) { console.warn('[connect] host rebind:', e); }
       return;
@@ -4012,6 +4017,7 @@ function sendSuggestion(deezerID, title, artist, coverURL, duration) {
       showToast('🎵 ' + (ack.reason || 'Un autre invité a déjà proposé cette track'), 4000);
     } else if (ack.error) {
       showToast('⚠️ ' + (ack.reason || 'Suggestion refusée') + (ack.error ? ' [' + ack.error + ']' : ''), 4000);
+      if (typeof _hostLog === 'function') _hostLog('suggest ACK [' + ack.error + '] socket=' + ((socket && socket.id) ? socket.id.slice(0,6) : 'none') + ' partyCode=' + (state.partyCode || 'vide'), 'warn');
     }
   });
 
@@ -6886,29 +6892,34 @@ async function startHostWeb(opts) {
 //   (suggestions, Mes Bangers, votes). Sans ça le socket pilote la musique (room host:CODE) mais
 //   n'est pas enregistré participant → guest:suggest refusé, bangers vides. On réutilise le chemin
 //   testé _emitRequestJoin (AUTO_APPROVE → rebind du participant hôte existant, pas de doublon).
+function _hostLog(m, lvl) {
+  try { if (window.AhOuaiHostEngine && typeof window.AhOuaiHostEngine.log === 'function') window.AhOuaiHostEngine.log(m, lvl); } catch(e) {}
+  try { console.log('[host]', m); } catch(e) {}
+}
 function _hostSelfJoin(code) {
   try {
     code = (code || state.partyCode || '').toString().toUpperCase();
-    if (!code) { console.warn('[host] self-join: pas de code'); return; }
+    if (!code) { _hostLog('self-join: pas de code', 'warn'); return; }
     state.partyCode = code;
     const em = (state.guestEmail || '').trim();
     const fn = (state.guestName || '').trim();
     const ln = (state.guestLastName || '').trim();
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
     if (!emailOk || !fn) {
-      console.warn('[host] self-join impossible — identité hôte incomplète (email/prénom)', { emailOk, fn: !!fn });
+      _hostLog('self-join IMPOSSIBLE — identité incomplète (email=' + (emailOk ? 'ok' : 'KO') + ' prénom=' + (fn ? 'ok' : 'KO') + ')', 'warn');
       return;
     }
-    if (window._ahouaiHostSelfJoined === code) return;   // une seule fois par soirée
+    if (window._ahouaiHostSelfJoined === code) { _hostLog('self-join déjà fait (' + code + ')'); return; }
     window._ahouaiHostSelfJoined = code;
+    const sid = (socket && socket.id) ? socket.id.slice(0, 6) : 'none';
     if (typeof _emitRequestJoin === 'function' && socket && socket.connected) {
-      console.log('[host] self-join invité de sa propre soirée', code, fn);
+      _hostLog('self-join invité → requestJoin ' + code + ' (socket ' + sid + ')', 'info');
       _emitRequestJoin(fn, ln, em);
     } else {
-      console.warn('[host] self-join: _emitRequestJoin indispo ou socket non connecté');
+      _hostLog('self-join: _emitRequestJoin indispo ou socket déconnecté', 'warn');
       window._ahouaiHostSelfJoined = null;   // autoriser une nouvelle tentative
     }
-  } catch(e) { console.warn('[host] self-join:', e); }
+  } catch(e) { _hostLog('self-join err: ' + e.message, 'warn'); }
 }
 
 // Porte host : si session → lance en page ; sinon login ahouai.com avec retour sur /?hostlaunch=1.
