@@ -29,19 +29,42 @@
   var stallTries = 0;            // tentatives de récupération pour le titre courant
   var skipping = false;          // garde anti-réentrance pendant un saut de titre injouable
 
-  var _dbg = null;
+  var _dbg = null;      // corps scrollable des logs (là où log() ajoute les lignes)
+  var _dbgWrap = null;  // conteneur (barre + corps)
   var _dbgOn = (function () {
     try {
       if (/[?&]hostdebug=1\b/.test(location.search)) { sessionStorage.setItem('ahouai_hostdebug', '1'); return true; }
       return sessionStorage.getItem('ahouai_hostdebug') === '1';
     } catch (e) { return /[?&]hostdebug=1\b/.test(location.search); }
   })();
+  function _dbgCollapsed() { try { return sessionStorage.getItem('ahouai_hostdebug_collapsed') === '1'; } catch (e) { return false; } }
+  function _dbgApplyState(collapsed) {
+    if (!_dbgWrap || !_dbg) return;
+    try { sessionStorage.setItem('ahouai_hostdebug_collapsed', collapsed ? '1' : '0'); } catch (e) {}
+    _dbg.style.display = collapsed ? 'none' : 'block';
+    // Replié : petite pastille en bas à gauche, ne couvre pas la nav centrée. Déplié : panneau pleine largeur.
+    _dbgWrap.style.right = collapsed ? 'auto' : '6px';
+    _dbgWrap.style.maxWidth = collapsed ? 'none' : '';
+    var t = _dbgWrap.querySelector('[data-dbg-toggle]'); if (t) t.textContent = collapsed ? '▸ logs' : '▾ logs';
+  }
   function _dbgPanel() {
     if (_dbg || !_dbgOn || !document.body) return _dbg;
+    var w = document.createElement('div');
+    w.id = 'host-debug';
+    w.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99999;background:rgba(0,0,0,.92);border:1px solid #22e3c9;border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.5)';
+    var bar = document.createElement('div');
+    bar.style.cssText = 'display:flex;align-items:center;gap:10px;padding:5px 10px;cursor:pointer;color:#8fffd8;font:600 11px/1.2 ui-monospace,Menlo,monospace;user-select:none';
+    var tog = document.createElement('span'); tog.setAttribute('data-dbg-toggle', '1'); tog.textContent = '▾ logs';
+    var ttl = document.createElement('span'); ttl.textContent = 'debug host'; ttl.style.opacity = '.6'; ttl.style.marginRight = 'auto';
+    bar.appendChild(tog); bar.appendChild(ttl);
     var d = document.createElement('div');
-    d.id = 'host-debug';
-    d.style.cssText = 'position:fixed;left:6px;right:6px;bottom:6px;max-height:42vh;overflow:auto;z-index:99999;background:rgba(0,0,0,.9);color:#8fffd8;font:11px/1.4 ui-monospace,Menlo,monospace;padding:8px 10px;border:1px solid #22e3c9;border-radius:10px;white-space:pre-wrap';
-    document.body.appendChild(d); _dbg = d; return d;
+    d.style.cssText = 'max-height:40vh;overflow:auto;color:#8fffd8;font:11px/1.4 ui-monospace,Menlo,monospace;padding:0 10px 8px;white-space:pre-wrap';
+    w.appendChild(bar); w.appendChild(d);
+    bar.addEventListener('click', function () { _dbgApplyState(_dbg.style.display !== 'none' ? true : false); });
+    document.body.appendChild(w);
+    _dbgWrap = w; _dbg = d;
+    _dbgApplyState(_dbgCollapsed());
+    return d;
   }
   function log(m, lvl) {
     try { console.log('[host-engine]' + (lvl ? ' ' + lvl : ''), m); } catch (e) {}
