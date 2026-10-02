@@ -8297,6 +8297,32 @@ async function boot() {
   setTimeout(runReconciliation, 5 * 60 * 1000); // 1er run à T+5min
   setInterval(runReconciliation, RECONCILE_INTERVAL_MS);
 
+  // ★ Curation continue — pré-résolution des videoId YouTube du catalogue (~1×/jour).
+  //   Nourrit providers.youtube.videoId par lots pour que les lectures host web
+  //   n'aient (presque) jamais à chercher sur YouTube en direct (protège le quota).
+  //   Garde quotidienne via Meta (idempotent au redémarrage) + PAUSE si une soirée est
+  //   live (on réserve le quota au direct). Render free dort → run opportuniste au réveil.
+  const YT_PRERESOLVE_KEY = 'youtube_preresolve_last';
+  const YT_PRERESOLVE_MIN_MS = 20 * 60 * 60 * 1000;   // ~quotidien
+  const YT_PRERESOLVE_LIMIT = 60;                      // marge sous 100/j pour le live
+  const maybeRunYoutubePreresolve = async () => {
+    try {
+      const meta = await Meta.findOne({ key: YT_PRERESOLVE_KEY }).lean();
+      const last = meta?.value ? new Date(meta.value).getTime() : 0;
+      if (Date.now() - last < YT_PRERESOLVE_MIN_MS) return;
+      const liveCount = [...parties.values()].filter((p) => p && (p.lifecycle?.status === 'live' || p.currentTrack)).length;
+      if (liveCount > 0) { console.log('[YTPreresolve] soirée(s) live → report (quota réservé au direct)'); return; }
+      await Meta.updateOne({ key: YT_PRERESOLVE_KEY }, { $set: { key: YT_PRERESOLVE_KEY, value: new Date().toISOString(), updatedAt: new Date() } }, { upsert: true });
+      const { preresolveYoutubeBatch } = await import('./services/youtubePreresolve.js');
+      const r = await preresolveYoutubeBatch({ limit: YT_PRERESOLVE_LIMIT });
+      console.log(`[YTPreresolve] lot quotidien : ${r.ok} résolus, ${r.miss} sans match, ${r.searches} recherches`);
+    } catch (err) {
+      console.error(`[YTPreresolve] ❌ ${err.message}`);
+    }
+  };
+  setTimeout(maybeRunYoutubePreresolve, 2 * 60 * 1000);       // 1er check à T+2min
+  setInterval(maybeRunYoutubePreresolve, 60 * 60 * 1000);     // puis vérif horaire (run si dû)
+
   // ─── Sentry Express error handler ─────────────────────────────────────────
   // Must be AFTER all routes, BEFORE server.listen.
   // Captures errors thrown in Express route handlers (not socket.io — those are
