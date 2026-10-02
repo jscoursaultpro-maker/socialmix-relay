@@ -5758,6 +5758,9 @@ io.on('connection', (socket) => {
 
     // ★ R5 fix: requestedBy inclus dans le payload — les guests voient l'attribution en temps réel
     io.to(`guest:${party.code}`).emit('track:update', { ...stripSecret(track), requestedBy });
+    // ★ Host web : la SPA hôte est dans la room host:CODE (pas guest:CODE) — sans ce relais
+    // sa propre carte ON AIR reste bloquée sur « En attente… » alors que le son joue.
+    io.to(`host:${party.code}`).emit('track:update', { ...stripSecret(track), requestedBy });
     console.log(`🎵 [${party.code}] Track: ${track?.title} — ${track?.artist} (by: ${requestedBy.guestName || 'DJ Brain'})`);
 
     // ★ Bug J — Fire-and-forget résolution artwork si absent (tracks iOS Jukebox local, etc.)
@@ -5856,6 +5859,7 @@ io.on('connection', (socket) => {
     
     // Broadcast
     io.to(`guest:${party.code}`).emit('track:update', liveTrack);
+    io.to(`host:${party.code}`).emit('track:update', liveTrack);   // ★ carte ON AIR de la SPA hôte
 
     // ★ Bug J — Fire-and-forget résolution artwork si absent (tracks iOS Jukebox local)
     if (isNewTrack && liveTrack.title && liveTrack.artist && !liveTrack.artworkURL) {
