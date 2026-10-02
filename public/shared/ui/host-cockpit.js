@@ -92,6 +92,10 @@
         '<div class="hc-phase-sub" id="hc-phase-sub">—</div>' +
         '<div class="hc-stats"><span class="fr" id="hc-fr">Fraîcheur —</span><span><b id="hc-people">0</b> personnes</span></div>' +
       '</div>' +
+      '<div class="hc-card" id="hc-sugg-card" style="display:none">' +
+        '<div class="hc-next-h">💡 Suggestions des invités <span class="n" id="hc-sugg-n">0</span></div>' +
+        '<div class="hc-q" id="hc-sugg-list"></div>' +
+      '</div>' +
       '<div class="hc-card">' +
         '<div class="hc-next-h">🎚️ À suivre <span class="n" id="hc-q-n">0</span></div>' +
         '<div class="hc-q" id="hc-q"></div>' +
@@ -115,7 +119,48 @@
       else if (act === 'del') { if (isSug) e.dismissSuggestion({ title: title, guestName: guest, trackId: id }); else e.removeFromQueue(id); }
       setTimeout(renderQueue, 150);
     });
+    // Délégation clics Suggestions invités (Ajouter à la file / Refuser)
+    w.querySelector('#hc-sugg-list').addEventListener('click', function (ev) {
+      var b = ev.target.closest ? ev.target.closest('button[data-act]') : null;
+      if (!b) return;
+      var e = eng(); if (!e) return;
+      var sugg = { trackId: b.getAttribute('data-id') || null, title: b.getAttribute('data-title'), artist: b.getAttribute('data-artist') || '', guestName: b.getAttribute('data-guest') };
+      var act = b.getAttribute('data-act');
+      if (act === 'add') { if (e.addSuggestionToQueue) e.addSuggestionToQueue(sugg); }
+      else if (act === 'reject') { if (e.dismissSuggestion) e.dismissSuggestion({ title: sugg.title, guestName: sugg.guestName, trackId: sugg.trackId }); }
+      setTimeout(function () { renderSuggestions(); renderQueue(); }, 150);
+    });
     return w;
+  }
+
+  // Suggestions invités en attente (pas encore dans la file) → carte Ajouter / Refuser.
+  function renderSuggestions() {
+    var box = document.getElementById('hc-sugg-list'); if (!box) return;
+    var e = eng();
+    var inQ = {};
+    var up = (e && e.getUpcoming) ? e.getUpcoming() : [];
+    up.forEach(function (t) { inQ[normT(t.title)] = true; });
+    var now = (e && e.getNowPlaying) ? e.getNowPlaying() : null;
+    if (now) inQ[normT(now.title)] = true;
+    var list = ((lastState && lastState.suggestions) || []).filter(function (s) {
+      if (!s || ['dismissed', 'played', 'unavailable', 'queued'].indexOf(s.status) >= 0) return false;
+      if (s.isHost) return false;
+      return !inQ[normT(s.title || s.query)];
+    });
+    var card = document.getElementById('hc-sugg-card'); if (card) card.style.display = list.length ? '' : 'none';
+    var nEl = document.getElementById('hc-sugg-n'); if (nEl) nEl.textContent = list.length;
+    box.innerHTML = list.slice(0, 10).map(function (s) {
+      var who = esc(s.guestName || (s.suggestedByUser && s.suggestedByUser.firstName) || 'Invité');
+      var title = esc(s.title || s.query || ''); var artist = esc(s.artist || '');
+      var da = ' data-id="' + esc(s.trackId || '') + '" data-title="' + title + '" data-artist="' + artist + '" data-guest="' + who + '"';
+      return '<div class="hc-row">' +
+        '<div class="hc-ti"><div class="tt">' + title + '</div><div class="ar">' + artist + '</div>' +
+          '<div class="hc-sug"><span class="av">👤</span> ' + who + '</div></div>' +
+        '<div class="hc-acts">' +
+          '<button class="hc-now" data-act="add"' + da + '>➕ Ajouter</button>' +
+          '<button class="hc-del" data-act="reject"' + da + ' aria-label="Refuser">✕</button>' +
+        '</div></div>';
+    }).join('');
   }
 
   function ensureMounted() {
@@ -207,6 +252,7 @@
     var sw = document.getElementById('hc-auto-sw');
     if (sw && e && e.getAutoAdvance) sw.classList.toggle('on', e.getAutoAdvance());
     renderQueue();
+    renderSuggestions();
     pollState();
   }
 
