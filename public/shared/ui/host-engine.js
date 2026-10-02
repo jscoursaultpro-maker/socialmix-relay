@@ -28,6 +28,7 @@
   var autoAdvance = true;        // ENCHAÎNEMENT AUTO (toggle host)
   var stallTries = 0;            // tentatives de récupération pour le titre courant
   var skipping = false;          // garde anti-réentrance pendant un saut de titre injouable
+  var pendingStart = null;       // Apple : {code} en attente du geste ▶ pour authorize()+1er titre
 
   var _dbg = null;      // corps scrollable des logs (là où log() ajoute les lignes)
   var _dbgWrap = null;  // conteneur (barre + corps)
@@ -143,7 +144,11 @@
     // callback ; sinon interactif (peut rediriger vers Spotify). Apple/YouTube : toujours interactif.
     var spotifyCb = provider === 'spotify'
       && /[?&]code=/.test(location.search) && /[?&]state=host_auth\b/.test(location.search);
-    var cr = await engine.connect({ interactive: !spotifyCb });
+    // Apple : authorize() EXIGE un geste utilisateur. Un lancement auto (retour SSO ?hostlaunch=1)
+    // n'en a pas → connect interactif ici bloquerait indéfiniment. On sonde en non-interactif
+    // (configure + état d'auth) ; l'autorisation se fera au premier ▶ (startPending).
+    var interactive = (provider === 'apple') ? false : !spotifyCb;
+    var cr = await engine.connect({ interactive: interactive });
     log('moteur ' + provider + ' connect → ' + JSON.stringify({ ok: cr && cr.ok, ready: engine.isReady && engine.isReady(), needsAuth: cr && cr.needsAuth, reason: cr && cr.reason }));
     if (spotifyCb) { try { history.replaceState({}, '', location.pathname); } catch (e) {} }
     return engine;
@@ -287,10 +292,35 @@
     focusSpaOnParty(code);
 
     await ensureEngine(party.provider);
-    if (!engine.isReady()) { var r = await engine.connect({ interactive: true }); if (r && r.redirecting) return { ok: false, redirecting: true }; }
-
-    await loadAndPlayFirst(code);
+    if (engine.isReady()) {
+      await loadAndPlayFirst(code);
+    } else if (engine.id === 'apple') {
+      // Apple non encore autorisé (retour SSO sans geste) → armer le ▶ : le tap fera authorize()+1er titre.
+      pendingStart = { code: code };
+      isPlaying = false;
+      try { var ic = document.getElementById('hm-pp-ic'); if (ic) ic.textContent = '▶'; } catch (e) {}
+      log('Apple prêt — touche ▶ pour lancer la soirée', 'info');
+      toast('Touche ▶ pour lancer la musique');
+    } else {
+      var r = await engine.connect({ interactive: true });
+      if (r && r.redirecting) return { ok: false, redirecting: true };
+      await loadAndPlayFirst(code);
+    }
     return { ok: true, code: code };
+  }
+
+  // Apple : authorize() + lecture du 1er titre, déclenchés PAR le geste ▶ (sinon Safari bloque).
+  async function startPending() {
+    var ps = pendingStart;
+    if (!engine || !ps) return false;
+    if (!engine.isReady()) {
+      var r = await engine.connect({ interactive: true });   // authorize() DANS le geste utilisateur
+      log('moteur ' + engine.id + ' connect(geste) → ' + JSON.stringify({ ok: r && r.ok, ready: engine.isReady && engine.isReady() }), (engine.isReady && engine.isReady()) ? 'info' : 'warn');
+      if (!engine.isReady()) { toast('Autorisation ' + engine.id + ' refusée'); return false; }
+    }
+    pendingStart = null; isPlaying = true;
+    await loadAndPlayFirst(ps.code);
+    return true;
   }
 
   async function loadAndPlayFirst(code) {
@@ -315,10 +345,14 @@
   var isPlaying = true;
   async function togglePlay() {
     if (!engine) return;
+    if (pendingStart) { await startPending(); return isPlaying; }   // 1er ▶ = autorise + lance
     if (isPlaying) { await engine.pause(); isPlaying = false; } else { await engine.resume(); isPlaying = true; }
     return isPlaying;
   }
-  async function play() { if (engine) { await engine.resume(); isPlaying = true; } }
+  async function play() {
+    if (pendingStart) { await startPending(); return; }
+    if (engine) { await engine.resume(); isPlaying = true; }
+  }
   async function pause() { if (engine) { await engine.pause(); isPlaying = false; } }
   async function next() {
     if (!engine) return;
