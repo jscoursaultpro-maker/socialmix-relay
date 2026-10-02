@@ -150,6 +150,7 @@
     // Le moteur a enchaîné sur le titre mémorisé → avancer l'index + ré-émettre.
     if (idx + 1 < tracks.length) { idx++; stallTries = 0; var now = tracks[idx]; if (now) emitTrackUpdate(now); }
     await prequeueNext();
+    await ensureBuffer(3);   // garde la file alimentée par le DJ Brain (continuité)
   }
 
   // ── Avance jusqu'au premier titre réellement jouable (robustesse soirée live) ──
@@ -319,12 +320,48 @@
     emitHost('host:suggestionPlayed', { trackTitle: opts.title, guestName: opts.guestName, guestId: opts.guestId || opts.guestName });
   }
 
+  function normKey(s) { return String(s == null ? '' : s).toLowerCase().replace(/\(.*?\)|\[.*?\]/g, '').replace(/[^a-z0-9]/g, '').trim(); }
+
+  // ★ Host valide une suggestion → elle ENTRE dans la file « À suivre » (par défaut en prochain).
+  //   Doctrine produit : guest propose → host valide → play. Emet host:acceptSuggestion (statut 'queued').
+  function addSuggestionToQueue(sugg, position) {
+    sugg = sugg || {};
+    if (!sugg.title) return null;
+    var key = normKey(sugg.title);
+    var exists = tracks.findIndex(function (t) { return (sugg.trackId && String(t.trackId) === String(sugg.trackId)) || normKey(t.title) === key; });
+    var t;
+    if (exists > idx) {
+      t = tracks[exists]; // déjà en file → pas de doublon
+    } else {
+      t = { trackId: sugg.trackId || ('sugg_' + key), title: sugg.title, artist: sugg.artist || '', isrc: sugg.isrc || null, _suggested: true, _guestName: sugg.guestName || null };
+      var at = (position === 'end') ? tracks.length : (idx + 1);
+      tracks.splice(at, 0, t);
+      if (at === idx + 1) { queuedPid = null; prequeueNext(); }
+    }
+    emitHost('host:acceptSuggestion', { trackTitle: sugg.title, guestName: sugg.guestName, trackId: sugg.trackId });
+    log('suggestion ajoutée à la file : ' + sugg.title);
+    return t;
+  }
+
+  // ★ Continuité : garde toujours au moins `min` titres d'avance (recharge via le DJ Brain).
+  async function ensureBuffer(min) {
+    min = min || 3;
+    if (!party || !engine) return;
+    if (tracks.length - idx - 1 >= min) return;
+    try {
+      var d = await fetchNext(party.code, 5);
+      var fresh = (d.tracks || []).filter(function (t) { return !tracks.some(function (e) { return String(e.trackId) === String(t.trackId) || normKey(e.title) === normKey(t.title); }); });
+      if (fresh.length) { tracks = tracks.concat(fresh); log('buffer complété (+' + fresh.length + ' via DJ Brain)'); }
+    } catch (e) { log('ensureBuffer: ' + e.message, 'warn'); }
+  }
+
   window.AhOuaiHostEngine = {
     launchHost: launchHost, play: play, pause: pause, togglePlay: togglePlay,
     next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode,
     setAutoAdvance: setAutoAdvance, getAutoAdvance: getAutoAdvance,
     getUpcoming: getUpcoming, playNow: playNow, move: move,
     removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,
+    addSuggestionToQueue: addSuggestionToQueue, ensureBuffer: ensureBuffer,
     _debug: function () { return { party: party, idx: idx, tracks: tracks.length, isPlaying: isPlaying, auto: autoAdvance, engine: engine ? engine.id : null }; }
   };
   if (!booted) { booted = true; log('prêt (brique 2 — chemin YouTube)'); }
