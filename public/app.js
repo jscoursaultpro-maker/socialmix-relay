@@ -6650,7 +6650,15 @@ async function init() {
   const urlParamsObj = new URLSearchParams(window.location.search);
   const sbMarker = urlParamsObj.get('sb') === '1';
   const sbAuth = urlParamsObj.get('sbauth');
-  
+
+  // ★ Retour OAuth Spotify host (?code&state=host_auth) → reprendre le lancement host web.
+  //   Le redirect Spotify perd nos query params → on relit le provider depuis sessionStorage.
+  if (urlParamsObj.get('state') === 'host_auth' && urlParamsObj.get('code')) {
+    let hp = 'spotify'; try { hp = sessionStorage.getItem('ahouai_host_provider') || 'spotify'; } catch (e) {}
+    console.log('[init] retour OAuth Spotify → reprise host (' + hp + ')');
+    if (typeof startHostWeb === 'function') { startHostWeb({ provider: hp }); return; }
+  }
+
   if (sbMarker && state.partyCode) {
     // Priority 1: try inline URL payload
     if (sbAuth) {
@@ -6823,6 +6831,8 @@ async function _hasSupabaseSession() {
 async function startHostWeb(opts) {
   opts = opts || {};
   const provider = opts.provider || (() => { try { return new URL(location.href).searchParams.get('provider'); } catch(e){ return null; } })() || 'youtube';
+  // Persiste le provider : une éventuelle redirection OAuth (Spotify) perd les query params.
+  try { sessionStorage.setItem('ahouai_host_provider', provider); } catch(e) {}
   // Marque la connexion comme « host » pour que le handler connect NE lance PAS d'auto-join invité.
   window._ahouaiHostLaunching = true;
   try {
@@ -6854,8 +6864,21 @@ async function _goAuthedHost(provider, justplay) {
   window.location.href = 'https://ahouai.com/login?redirect=' + encodeURIComponent(abs);
 }
 
-function goCreateParty() { _goAuthedHost('youtube', false); }
-function goJustPlay()    { _goAuthedHost('youtube', true); }
+// « Je crée » / « Je lance » → ouvrir le sélecteur de lecteur (YouTube / Spotify / Apple).
+var _choiceJustPlay = false;
+function _showProviderPick(justplay) {
+  _choiceJustPlay = !!justplay;
+  var m = document.getElementById('choice-main'); var p = document.getElementById('provider-pick');
+  if (m) m.style.display = 'none'; if (p) p.style.display = 'flex';
+}
+function cancelProviderPick() {
+  var m = document.getElementById('choice-main'); var p = document.getElementById('provider-pick');
+  if (p) p.style.display = 'none'; if (m) m.style.display = 'flex';
+}
+function pickProvider(provider) { _goAuthedHost(provider || 'youtube', _choiceJustPlay); }
+
+function goCreateParty() { _showProviderPick(false); }
+function goJustPlay()    { _showProviderPick(true); }
 function goJoinParty()   { showScreen('code'); }
 
 document.addEventListener('DOMContentLoaded', init);

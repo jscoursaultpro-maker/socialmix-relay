@@ -66,13 +66,16 @@
   // ── Moteur ─────────────────────────────────────────────────────────────────
   async function ensureEngine(provider) {
     if (engine) return engine;
-    ensureYtMount();
+    provider = provider || 'youtube';
+    if (provider === 'youtube') ensureYtMount();   // zone vidéo seulement pour YouTube
     await refreshToken();                          // charge le token AVANT la création (resolve l'utilise)
-    var mod = await import('/shared/player-engine.js?v=pe-02');
-    engine = await mod.createEngine(provider || 'youtube', {
-      getToken: function () { return _token; },    // token synchrone pour /api/resolve (requis, 401 sinon)
-      onLog: function (m, l) { log(m, l); }
-    });
+    var opts = { getToken: function () { return _token; }, onLog: function (m, l) { log(m, l); } };
+    if (provider === 'spotify') {
+      // clientId public (PKCE) pour le moteur Spotify
+      try { var cfg = await fetch('/api/config/spotify').then(function (r) { return r.ok ? r.json() : {}; }); opts.clientId = cfg.clientId || null; } catch (e) {}
+    }
+    var mod = await import('/shared/player-engine.js?v=pe-03');
+    engine = await mod.createEngine(provider, opts);
     // Auto-advance : à chaque changement de titre réel, avancer l'index + ré-émettre.
     engine.on('trackChanged', function () { /* état visuel géré par la SPA via party:state */ });
     engine.on('trackEnded', function () { onEngineAdvanced(); });
@@ -92,7 +95,12 @@
         advanceToPlayable(idx + 1, 'stall');
       }
     });
-    await engine.connect({ interactive: true });
+    // Retour OAuth Spotify (?code&state=host_auth) → connect NON interactif pour consommer le
+    // callback ; sinon interactif (peut rediriger vers Spotify). Apple/YouTube : toujours interactif.
+    var spotifyCb = provider === 'spotify'
+      && /[?&]code=/.test(location.search) && /[?&]state=host_auth\b/.test(location.search);
+    await engine.connect({ interactive: !spotifyCb });
+    if (spotifyCb) { try { history.replaceState({}, '', location.pathname); } catch (e) {} }
     return engine;
   }
 
@@ -147,9 +155,15 @@
 
   async function onEngineAdvanced() {
     if (!autoAdvance) return;    // auto coupé → on ne saute pas tout seul
-    // Le moteur a enchaîné sur le titre mémorisé → avancer l'index + ré-émettre.
-    if (idx + 1 < tracks.length) { idx++; stallTries = 0; var now = tracks[idx]; if (now) emitTrackUpdate(now); }
-    await prequeueNext();
+    var selfAdv = engine && engine.capabilities && engine.capabilities.selfAdvancing;
+    if (selfAdv) {
+      // YouTube : le moteur a déjà chargé le titre mémorisé → avancer l'index + ré-émettre.
+      if (idx + 1 < tracks.length) { idx++; stallTries = 0; var now = tracks[idx]; if (now) emitTrackUpdate(now); }
+      await prequeueNext();
+    } else {
+      // Spotify / Apple : rien n'est pré-chargé → jouer explicitement le prochain titre jouable.
+      await advanceToPlayable(idx + 1, 'auto');
+    }
     await ensureBuffer(3);   // garde la file alimentée par le DJ Brain (continuité)
   }
 

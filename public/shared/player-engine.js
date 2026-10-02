@@ -95,11 +95,11 @@ export class NotYetAvailableEngine extends BasePlayerEngine {
 export async function createEngine(id, opts = {}) {
   try {
     if (id === 'spotify') {
-      const { default: SpotifyEngine } = await import('/shared/spotify-engine.js');
+      const { default: SpotifyEngine } = await import('/shared/spotify-engine.js?v=sp-01');
       return new SpotifyEngine(opts);
     }
     if (id === 'apple') {
-      const mod = await import('/shared/apple-engine.js').catch(() => null);
+      const mod = await import('/shared/apple-engine.js?v=ap-01').catch(() => null);
       if (mod?.default) return new mod.default(opts);
     }
     if (id === 'youtube') {
