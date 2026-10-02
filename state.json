@@ -337,67 +337,38 @@
     },
     "6ab677c09c7c780f08381ff5": {
       "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
+      "exportedAt": "2026-10-02T08:37:45.017Z",
+      "status": "awaiting_review"
     },
     "6ab644d89c7c780f0837bff1": {
       "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
-    },
-    "6ab6245c9c7c780f0837aa3e": {
-      "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
-    },
-    "6ab621fd9c7c780f0837a8d4": {
-      "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
+      "exportedAt": "2026-10-02T08:37:45.017Z",
+      "status": "awaiting_review"
     },
     "6ab5625c9c7c780f0836cf61": {
       "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
+      "exportedAt": "2026-10-02T08:37:45.017Z",
+      "status": "awaiting_review"
     },
     "6ab547f49c7c780f0836bc8d": {
       "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
-    },
-    "6ab52af59c7c780f08368bc6": {
-      "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
+      "exportedAt": "2026-10-02T08:37:45.017Z",
+      "status": "awaiting_review"
     },
     "6ab4d8649c7c780f0835fed3": {
       "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
+      "exportedAt": "2026-10-02T08:37:45.017Z",
+      "status": "awaiting_review"
     },
     "6ab450f49c7c780f083547d1": {
       "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
-    },
-    "6ab3f5689c7c780f0833e96e": {
-      "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
-    },
-    "6ab2ca929c7c780f0831d11f": {
-      "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
-    },
-    "6ab2a0ff9c7c780f0831978c": {
-      "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
-    },
-    "6ab2a09d9c7c780f0831973f": {
-      "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
-    },
-    "6ab286d59c7c780f0830ab25": {
-      "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
+      "exportedAt": "2026-10-02T08:37:45.017Z",
+      "status": "awaiting_review"
     },
     "6ab258839c7c780f082d0be6": {
       "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
-    },
-    "6ab1d5179c7c780f082c5a9e": {
-      "inbox": "2026-10-02-d.json",
-      "exportedAt": "2026-10-02T08:37:45.017Z"
+      "exportedAt": "2026-10-02T08:37:45.017Z",
+      "status": "awaiting_review"
     }
   },
   "imported": {
@@ -580,6 +551,51 @@
       "file": "2026-10-02-c.json",
       "at": "2026-10-02T08:06:56.126Z",
       "confidence": "high"
+    },
+    "6ab6245c9c7c780f0837aa3e": {
+      "file": "2026-10-02-d.json",
+      "at": "2026-10-02T08:46:23.607Z",
+      "confidence": "high"
+    },
+    "6ab621fd9c7c780f0837a8d4": {
+      "file": "2026-10-02-d.json",
+      "at": "2026-10-02T08:46:23.984Z",
+      "confidence": "high"
+    },
+    "6ab52af59c7c780f08368bc6": {
+      "file": "2026-10-02-d.json",
+      "at": "2026-10-02T08:46:24.378Z",
+      "confidence": "medium"
+    },
+    "6ab3f5689c7c780f0833e96e": {
+      "file": "2026-10-02-d.json",
+      "at": "2026-10-02T08:46:25.434Z",
+      "confidence": "high"
+    },
+    "6ab2ca929c7c780f0831d11f": {
+      "file": "2026-10-02-d.json",
+      "at": "2026-10-02T08:46:25.805Z",
+      "confidence": "medium"
+    },
+    "6ab2a0ff9c7c780f0831978c": {
+      "file": "2026-10-02-d.json",
+      "at": "2026-10-02T08:46:26.181Z",
+      "confidence": "high"
+    },
+    "6ab2a09d9c7c780f0831973f": {
+      "file": "2026-10-02-d.json",
+      "at": "2026-10-02T08:46:26.549Z",
+      "confidence": "high"
+    },
+    "6ab286d59c7c780f0830ab25": {
+      "file": "2026-10-02-d.json",
+      "at": "2026-10-02T08:46:26.923Z",
+      "confidence": "high"
+    },
+    "6ab1d5179c7c780f082c5a9e": {
+      "file": "2026-10-02-d.json",
+      "at": "2026-10-02T08:46:27.290Z",
+      "confidence": "high"
     }
   },
   "files": {
@@ -598,9 +614,11 @@
       "at": "2026-10-02T08:06:53.750Z"
     },
     "2026-10-02-d": {
-      "status": "rejected",
-      "reason": "3/16 classifications invalides (>15 %)",
-      "at": "2026-10-02T08:45:11.908Z"
+      "status": "partial",
+      "applied": 9,
+      "deferred": 7,
+      "invalid": 0,
+      "at": "2026-10-02T08:46:22.526Z"
     }
   }
 }
