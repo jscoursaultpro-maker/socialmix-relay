@@ -2255,9 +2255,16 @@ function enterCockpit() {
 
 // ─── Socket.IO Connection ────────────────────────────
 function connectToRelay() {
+  // ★ Garde anti-storm (02/10) : ne JAMAIS recréer un socket déjà connecté.
+  //   enterCockpit() / focusSpaOnParty / le self-join hôte rappellent connectToRelay ; sans cette
+  //   garde chaque appel faisait `socket = io(...)` → nouveau socket → le handler connect relance
+  //   rebind + requestJoin → enterCockpit → connectToRelay → … boucle de reconnexion (socket qui
+  //   change toutes les ~1 s) jusqu'au RATE_LIMIT, et guest:suggest/host:trackUpdate tombaient sur
+  //   un socket non lié ([no_party]). Si déjà connecté → réutiliser le socket courant.
+  if (socket && socket.connected) { return; }
   const url = window.location.origin;
   updateConnection('connecting', 'Connexion...');
-  
+
   socket = io(url, {
     reconnection: true,
     reconnectionDelay: 1000,
