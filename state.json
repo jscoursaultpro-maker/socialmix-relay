@@ -596,6 +596,11 @@
       "deferred": 2,
       "invalid": 0,
       "at": "2026-10-02T08:06:53.750Z"
+    },
+    "2026-10-02-d": {
+      "status": "rejected",
+      "reason": "3/16 classifications invalides (>15 %)",
+      "at": "2026-10-02T08:45:11.908Z"
     }
   }
 }
