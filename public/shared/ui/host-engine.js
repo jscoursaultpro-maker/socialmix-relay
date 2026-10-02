@@ -329,15 +329,11 @@
     if (!sugg.title) return null;
     var key = normKey(sugg.title);
     var exists = tracks.findIndex(function (t) { return (sugg.trackId && String(t.trackId) === String(sugg.trackId)) || normKey(t.title) === key; });
-    var t;
-    if (exists > idx) {
-      t = tracks[exists]; // déjà en file → pas de doublon
-    } else {
-      t = { trackId: sugg.trackId || ('sugg_' + key), title: sugg.title, artist: sugg.artist || '', isrc: sugg.isrc || null, _suggested: true, _guestName: sugg.guestName || null };
-      var at = (position === 'end') ? tracks.length : (idx + 1);
-      tracks.splice(at, 0, t);
-      if (at === idx + 1) { queuedPid = null; prequeueNext(); }
-    }
+    if (exists > idx) return tracks[exists]; // déjà en file → pas de doublon, pas de ré-émission
+    var t = { trackId: sugg.trackId || ('sugg_' + key), title: sugg.title, artist: sugg.artist || '', isrc: sugg.isrc || null, _suggested: true, _guestName: sugg.guestName || null };
+    var at = (position === 'end') ? tracks.length : (idx + 1);
+    tracks.splice(at, 0, t);
+    if (at === idx + 1) { queuedPid = null; prequeueNext(); }
     emitHost('host:acceptSuggestion', { trackTitle: sugg.title, guestName: sugg.guestName, trackId: sugg.trackId });
     log('suggestion ajoutée à la file : ' + sugg.title);
     return t;
