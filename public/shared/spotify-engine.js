@@ -11,7 +11,7 @@
  * y accède via `engine.raw` (SpotifyService), toujours gardé par `engine.id === 'spotify'`.
  */
 import SpotifyService from '/shared/spotify-service.js';
-import { BasePlayerEngine } from '/shared/player-engine.js';
+import { BasePlayerEngine } from '/shared/player-engine.js?v=pe-04';
 
 export default class SpotifyEngine extends BasePlayerEngine {
   constructor(opts = {}) {

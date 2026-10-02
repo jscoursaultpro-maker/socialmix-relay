@@ -118,7 +118,7 @@
       // clientId public (PKCE) pour le moteur Spotify
       try { var cfg = await fetch('/api/config/spotify').then(function (r) { return r.ok ? r.json() : {}; }); opts.clientId = cfg.clientId || null; } catch (e) {}
     }
-    var mod = await import('/shared/player-engine.js?v=pe-03');
+    var mod = await import('/shared/player-engine.js?v=pe-04');
     engine = await mod.createEngine(provider, opts);
     // Auto-advance : à chaque changement de titre réel, avancer l'index + ré-émettre.
     engine.on('trackChanged', function () { /* état visuel géré par la SPA via party:state */ });

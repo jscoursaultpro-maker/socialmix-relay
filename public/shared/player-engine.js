@@ -52,12 +52,29 @@ export class BasePlayerEngine {
   on(event, cb) { (this._handlers[event] ||= []).push(cb); return this; }
   _emit(event, payload) { for (const cb of this._handlers[event] || []) { try { cb(payload); } catch (e) { this.onLog(`handler ${event}: ${e.message}`, 'error'); } } }
 
-  /** Résolution serveur : id provider pour un titre AhOuai ({ trackId }). */
+  /** Résolution serveur : id provider pour un titre AhOuai ({ trackId }) OU une suggestion
+   *  (isrc/deezerID/titre+artiste, sans _id — lien Deezer collé par un guest). */
   async resolve(track) {
-    if (!track?.trackId) return null;
+    if (!track) return null;
     const token = this._getToken();
+    // _id Mongo valide (24 hex) → résolution standard ; sinon repli suggestion par métadonnées.
+    const tid = track.trackId != null ? String(track.trackId) : '';
+    const isMongoId = /^[a-f0-9]{24}$/i.test(tid);
+    let qs;
+    if (isMongoId) {
+      qs = `trackId=${encodeURIComponent(tid)}`;
+    } else {
+      const parts = [];
+      if (track.isrc) parts.push(`isrc=${encodeURIComponent(track.isrc)}`);
+      const dz = track.deezerID || track.deezerId;
+      if (dz) parts.push(`deezerId=${encodeURIComponent(dz)}`);
+      if (track.title)  parts.push(`title=${encodeURIComponent(track.title)}`);
+      if (track.artist) parts.push(`artist=${encodeURIComponent(track.artist)}`);
+      if (!parts.length) return null;   // rien pour résoudre
+      qs = parts.join('&');
+    }
     try {
-      const r = await fetch(`/api/resolve?provider=${this.id}&trackId=${encodeURIComponent(track.trackId)}`, {
+      const r = await fetch(`/api/resolve?provider=${this.id}&${qs}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (!r.ok) { this.onLog(`resolve ${this.id} HTTP ${r.status}`, 'warn'); return null; }
@@ -95,15 +112,15 @@ export class NotYetAvailableEngine extends BasePlayerEngine {
 export async function createEngine(id, opts = {}) {
   try {
     if (id === 'spotify') {
-      const { default: SpotifyEngine } = await import('/shared/spotify-engine.js?v=sp-01');
+      const { default: SpotifyEngine } = await import('/shared/spotify-engine.js?v=sp-02');
       return new SpotifyEngine(opts);
     }
     if (id === 'apple') {
-      const mod = await import('/shared/apple-engine.js?v=ap-02').catch(() => null);
+      const mod = await import('/shared/apple-engine.js?v=ap-03').catch(() => null);
       if (mod?.default) return new mod.default(opts);
     }
     if (id === 'youtube') {
-      const mod = await import('/shared/youtube-engine.js?v=yt-02').catch(() => null);
+      const mod = await import('/shared/youtube-engine.js?v=yt-03').catch(() => null);
       if (mod?.default) return new mod.default(opts);
     }
   } catch (e) {

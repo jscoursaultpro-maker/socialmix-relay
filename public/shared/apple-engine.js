@@ -12,7 +12,7 @@
  * NON self-advancing : on joue un titre à la fois ; à la fin (completed/ended) on émet
  * 'trackEnded' et le cockpit (host-engine) enchaîne le suivant. Jamais la clé dans les logs.
  */
-import { BasePlayerEngine } from '/shared/player-engine.js';
+import { BasePlayerEngine } from '/shared/player-engine.js?v=pe-04';
 
 const MK_SRC = 'https://js-cdn.music.apple.com/musickit/v3/musickit.js';
 let _loading = null;
