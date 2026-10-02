@@ -99,12 +99,15 @@
   function emitTrackUpdate(t) {
     var s = sock();
     if (!s || !party || !t) return;
+    var cover = t.coverArtURL || t.artworkURL || t.cover || null;
     s.emit('host:trackUpdate', {
       hostSecret: party.hostSecret,   // ★ requis par validateHostSecret (wrapper host:*)
       title: t.title, artist: t.artist,
       spotifyId: (t.spotifyUri ? String(t.spotifyUri).split(':').pop() : null),
       durationMs: t.durationMs || 0,
-      artworkUrl: t.coverArtURL || null,
+      // ★ pochette : le guest lit artworkURL (U majuscule) — on envoie tous les variants pour éviter le décalage
+      artworkURL: cover, artworkUrl: cover, cover: cover, coverArtURL: cover,
+      bpm: t.bpm || null, isrc: t.isrc || null,
       source: 'djbrain-cloud', provider: party.provider || 'youtube',
       sentAt: new Date().toISOString()
     });
