@@ -1,0 +1,15 @@
+================ TRACKS ≥ 3 🔥 NON QUALIFIÉES ================
+Date (UTC)                       : 2026-10-02T16:56:27.257Z
+Seuil feu                        : ≥ 3
+--------------------------------------------------------------
+Total tracks ≥ 3 🔥             : 0
+  dont sans phase                : 0
+  dont sans BPM (null/0)         : 0
+  dont sans phase OU sans BPM    : 0  ← priorité
+  dont sans phase ET sans BPM    : 0  ← urgent
+--------------------------------------------------------------
+CANDIDATES curation auto (vide/partielle, non-verified, deezer OK, ≥ 3 🔥) :
+  0  ← exportable par pipeline immédiatement
+==============================================================
+
+=== TOP 30 (par nombre de feu décroissant) ===
