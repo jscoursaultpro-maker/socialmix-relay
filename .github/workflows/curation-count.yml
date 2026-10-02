@@ -41,6 +41,11 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           COUNT_OUT: curation-data/logs/hot-unqualified-latest.txt
         run: node scripts/curation/count_hot_unqualified_2026-10-02.mjs || true
+      - name: Explore raw party votes (fallback)
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          COUNT_OUT: curation-data/logs/party-votes-latest.txt
+        run: node scripts/curation/explore_party_votes_2026-10-02.mjs || true
       - name: Commit result
         if: always()
         working-directory: curation-data
