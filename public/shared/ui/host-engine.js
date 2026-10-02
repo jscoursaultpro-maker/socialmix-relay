@@ -29,7 +29,21 @@
   var stallTries = 0;            // tentatives de récupération pour le titre courant
   var skipping = false;          // garde anti-réentrance pendant un saut de titre injouable
 
-  function log(m, lvl) { try { console.log('[host-engine]' + (lvl ? ' ' + lvl : ''), m); } catch (e) {} }
+  var _dbg = null, _dbgOn = /[?&]hostdebug=1\b/.test(location.search);
+  function _dbgPanel() {
+    if (_dbg || !_dbgOn || !document.body) return _dbg;
+    var d = document.createElement('div');
+    d.id = 'host-debug';
+    d.style.cssText = 'position:fixed;left:6px;right:6px;bottom:6px;max-height:42vh;overflow:auto;z-index:99999;background:rgba(0,0,0,.9);color:#8fffd8;font:11px/1.4 ui-monospace,Menlo,monospace;padding:8px 10px;border:1px solid #22e3c9;border-radius:10px;white-space:pre-wrap';
+    document.body.appendChild(d); _dbg = d; return d;
+  }
+  function log(m, lvl) {
+    try { console.log('[host-engine]' + (lvl ? ' ' + lvl : ''), m); } catch (e) {}
+    try {
+      var p = _dbgPanel();
+      if (p) { var line = document.createElement('div'); line.textContent = (lvl ? '[' + lvl + '] ' : '') + m; if (lvl === 'warn' || lvl === 'error') line.style.color = '#ff9ec4'; p.appendChild(line); p.scrollTop = p.scrollHeight; }
+    } catch (e) {}
+  }
   function sock() { try { return (typeof socket !== 'undefined' && socket) ? socket : (window.socket || null); } catch (e) { return window.socket || null; } }
   function appState() { try { return (typeof state !== 'undefined' && state) ? state : (window.state || null); } catch (e) { return window.state || null; } }
 
@@ -100,7 +114,8 @@
     // callback ; sinon interactif (peut rediriger vers Spotify). Apple/YouTube : toujours interactif.
     var spotifyCb = provider === 'spotify'
       && /[?&]code=/.test(location.search) && /[?&]state=host_auth\b/.test(location.search);
-    await engine.connect({ interactive: !spotifyCb });
+    var cr = await engine.connect({ interactive: !spotifyCb });
+    log('moteur ' + provider + ' connect → ' + JSON.stringify({ ok: cr && cr.ok, ready: engine.isReady && engine.isReady(), needsAuth: cr && cr.needsAuth, reason: cr && cr.reason }));
     if (spotifyCb) { try { history.replaceState({}, '', location.pathname); } catch (e) {} }
     return engine;
   }
@@ -188,9 +203,11 @@
           var pid = await engine.resolve(cand);
           if (pid) {
             var ok = await engine.play(pid);
+            log('essai "' + (cand.title || '?') + '" resolve=' + pid + ' play=' + (ok ? 'OK' : 'ÉCHEC'), ok ? 'info' : 'warn');
             if (ok) { idx = i; queuedPid = null; stallTries = 0; emitTrackUpdate(cand); await prequeueNext(); log('saut (' + (reason || '') + ') → ' + cand.title); return; }
+          } else {
+            log('essai "' + (cand.title || '?') + '" resolve=NULL (non résolu)', 'warn');
           }
-          log('titre injouable, on saute : ' + (cand.title || '?'), 'warn');
         }
         attempts++; i++;
       }
@@ -251,13 +268,16 @@
     var d = await fetchNext(code, 5);
     tracks = d.tracks || []; idx = 0; queuedPid = null; stallTries = 0;
     if (!tracks.length) { toast('Aucun titre trouvé'); return; }
+    log('file ' + tracks.length + ' titres · 1er = ' + (tracks[0] && tracks[0].title));
     var first = tracks[0];
     var pid = await engine.resolve(first);
+    log('resolve(1er) → ' + (pid || 'NULL') + (pid ? '' : ' (titre non résolu sur ce provider)'), pid ? 'info' : 'warn');
     if (pid) {
       var ok = await engine.play(pid);
+      log('play(1er) → ' + (ok ? 'OK' : 'ÉCHEC'), ok ? 'info' : 'warn');
       if (ok) { emitTrackUpdate(first); await prequeueNext(); return; }
     }
-    // Premier titre injouable sur YouTube → chercher le premier titre jouable de la file.
+    // Premier titre injouable → chercher le premier titre jouable de la file.
     log('premier titre injouable → recherche du prochain jouable', 'warn');
     await advanceToPlayable(1, 'first');
   }
