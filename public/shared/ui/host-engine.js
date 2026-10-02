@@ -317,6 +317,26 @@
     return { ok: true, code: code };
   }
 
+  // ── Rebind après (re)connexion socket ──────────────────────────────────────
+  // Socket.IO reconnect = NOUVEAU socket serveur (socket.partyCode perdu). Sans ça, le host
+  // pilote encore la musique en local mais le serveur ne le rattache plus à sa soirée →
+  // guest:suggest renvoie [no_party]. On ré-émet host:startParty (chemin RESUME, hostSecret
+  // identique) pour re-poser socket.partyCode + rejoindre la room host:CODE.
+  function rebind() {
+    var s = sock();
+    if (!s || !party || !party.code) return false;
+    var st = appState();
+    var profile = {
+      name: (st && (st.guestName || st.guestFirstName)) || 'DJ',
+      email: (st && st.guestEmail) || '',
+      emoji: (st && st.guestEmoji) || '🎧',
+      photo: (st && st.guestPhoto) || null, phone: '', instagram: ''
+    };
+    s.emit('host:startParty', { code: party.code, hostSecret: party.hostSecret, profile: profile, streamingProvider: party.provider, deviceId: null });
+    log('rebind soirée hôte (' + party.code + ') après (re)connexion', 'info');
+    return true;
+  }
+
   // Apple : authorize() + lecture du 1er titre, déclenchés PAR le geste ▶ (sinon Safari bloque).
   async function startPending() {
     var ps = pendingStart;
@@ -459,7 +479,7 @@
 
   window.AhOuaiHostEngine = {
     launchHost: launchHost, play: play, pause: pause, togglePlay: togglePlay,
-    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode,
+    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind,
     setAutoAdvance: setAutoAdvance, getAutoAdvance: getAutoAdvance,
     getUpcoming: getUpcoming, playNow: playNow, move: move,
     removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,

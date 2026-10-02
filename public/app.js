@@ -2288,9 +2288,24 @@ function connectToRelay() {
       }
     }
     
-    // ★ Lancement host : ne pas déclencher l'auto-join invité. Le host crée sa soirée
-    //   via host:startParty (host-engine), pas via guest:join → sinon « Aucune soirée active ».
-    if (window._ahouaiHostLaunching) { console.log('[connect] mode host → skip auto-join invité'); return; }
+    // ★ Lancement host : pas d'auto-join invité classique (sinon « Aucune soirée active »).
+    //   Mais sur un RECONNECT, le nouveau socket serveur a perdu sa partyCode → il faut re-binder
+    //   la soirée hôte (host:startParty RESUME) ET re-self-join invité, sinon guest:suggest = [no_party].
+    if (window._ahouaiHostLaunching) {
+      try {
+        var he = window.AhOuaiHostEngine;
+        if (he && he.isActive && he.isActive()) {
+          var hc = (he.getCode && he.getCode()) || state.partyCode || null;
+          console.log('[connect] mode host → rebind soirée', hc);
+          if (typeof he.rebind === 'function') he.rebind();
+          window._ahouaiHostSelfJoined = null;              // autoriser le re-join invité
+          if (typeof _hostSelfJoin === 'function') setTimeout(function () { _hostSelfJoin(hc); }, 300);
+        } else {
+          console.log('[connect] mode host (1er) → launchHost prendra le relais');
+        }
+      } catch (e) { console.warn('[connect] host rebind:', e); }
+      return;
+    }
     // Try to resume existing session first
     const resumeData = loadResumeSession();
     if (resumeData && resumeData.partyCode === state.partyCode) {
