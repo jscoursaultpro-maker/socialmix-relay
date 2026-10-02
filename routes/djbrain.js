@@ -74,21 +74,46 @@ const rateLimitMap = new Map();
 const RATE_PER_USER = 20;
 setInterval(() => rateLimitMap.clear(), 60_000).unref?.();
 
-/** Construit la map suggestions { trackId: {consensus,guestCount,boostCount} } depuis l'état party. */
-function buildSuggestionsMap(party) {
-  const map = {};
-  const list = party?.suggestions || [];
-  for (const s of list) {
-    const tid = s.trackId || s.trackObjectId || s._id;
-    if (!tid) continue;
-    map[String(tid)] = {
-      consensus: s.consensusScore != null ? s.consensusScore : 60,
-      guestCount: Array.isArray(s.suggestedBy) ? s.suggestedBy.length
-        : (Array.isArray(s.suggestedByUsers) ? s.suggestedByUsers.length : 1),
-      boostCount: Array.isArray(s.boostedByUsers) ? s.boostedByUsers.length : 0,
-    };
+/**
+ * Résout les suggestions guests → Track._id (via deezerID ou ISRC) pour le scoring DJ Brain.
+ * Les suggestions stockées portent {deezerID, isrc, ...} mais PAS de Track._id ; il faut donc
+ * les résoudre dans la collection Track, sinon le boost suggestion ne s'applique jamais.
+ * Renvoie { map: {_id: {consensus,guestCount,boostCount}}, trackIds: [_id…] }.
+ */
+async function resolveSuggestions(party) {
+  const list = (party?.suggestions || []).filter(
+    (s) => s && !['dismissed', 'played', 'unavailable'].includes(s.status));
+  if (!list.length) return { map: {}, trackIds: [] };
+
+  const deezerIds = [...new Set(list.map((s) => s.deezerID ?? s.deezerId).filter((v) => v != null).map(Number))];
+  const isrcs = [...new Set(list.map((s) => s.isrc).filter(Boolean))];
+  const or = [];
+  if (deezerIds.length) or.push({ 'providers.deezer.trackId': { $in: deezerIds } });
+  if (isrcs.length) or.push({ isrc: { $in: isrcs } });
+  if (!or.length) return { map: {}, trackIds: [] };
+
+  const rows = await Track.find({ $or: or }, { _id: 1, isrc: 1, 'providers.deezer.trackId': 1 }).lean();
+  const byDeezer = {}, byIsrc = {};
+  for (const r of rows) {
+    const dz = r.providers?.deezer?.trackId;
+    if (dz != null) byDeezer[String(dz)] = r._id;
+    if (r.isrc) byIsrc[r.isrc] = r._id;
   }
-  return map;
+
+  const map = {}, trackIds = [];
+  for (const s of list) {
+    const dz = s.deezerID ?? s.deezerId;
+    const id = (dz != null && byDeezer[String(dz)]) || (s.isrc && byIsrc[s.isrc]) || null;
+    if (!id) continue;
+    const key = String(id);
+    const guestCount = Array.isArray(s.suggestedBy) ? s.suggestedBy.length
+      : (Array.isArray(s.suggestedByUsers) ? s.suggestedByUsers.length : 1);
+    const boostCount = Array.isArray(s.boostedBy) ? s.boostedBy.length
+      : (Array.isArray(s.boostedByUsers) ? s.boostedByUsers.length : (s.boostCount || 0));
+    if (map[key]) { map[key].guestCount += guestCount; map[key].boostCount += boostCount; }
+    else { map[key] = { consensus: s.consensusScore != null ? s.consensusScore : 60, guestCount, boostCount }; trackIds.push(key); }
+  }
+  return { map, trackIds };
 }
 
 router.get('/next', requireSupabaseAuth, async (req, res) => {
@@ -125,7 +150,10 @@ router.get('/next', requireSupabaseAuth, async (req, res) => {
     const trackHistory = party?.trackHistory || []; // NEWEST-FIRST (index 0 = dernier joué)
     const lastHist = trackHistory[0];
     const currentBPM = lastHist?.bpm || party?.currentBPM || 0;
-    const suggestions = buildSuggestionsMap(party);
+    // Suggestions guests résolues en Track._id (boost scoring + injection pool).
+    let suggestions = {}, suggTrackIds = [];
+    try { const rs = await resolveSuggestions(party); suggestions = rs.map; suggTrackIds = rs.trackIds; }
+    catch (e) { console.warn('[djbrain] resolveSuggestions KO:', e.message); }
 
     // ── First Track Doctrine (Lot B / Task #61) ───────────────────────────────
     // Aucun titre encore joué → ouverture dédiée (arrival+emotional+BPM≤85, deezerRank DESC).
@@ -171,9 +199,9 @@ router.get('/next', requireSupabaseAuth, async (req, res) => {
     //   Sans ça, une suggestion non échantillonnée dans le pool ne remonte jamais.
     try {
       const have = new Set(pool.map((t) => String(t._id)));
-      const suggIds = Object.keys(suggestions).filter((id) => /^[a-f0-9]{24}$/i.test(id) && !have.has(id));
-      if (suggIds.length) {
-        const extra = await Track.find({ _id: { $in: suggIds } }, TRACK_PROJECTION).lean();
+      const missing = suggTrackIds.filter((id) => !have.has(id));
+      if (missing.length) {
+        const extra = await Track.find({ _id: { $in: missing } }, TRACK_PROJECTION).lean();
         for (const t of extra) pool.push(t);
       }
     } catch (e) { /* best-effort : injection suggestions non bloquante */ }
