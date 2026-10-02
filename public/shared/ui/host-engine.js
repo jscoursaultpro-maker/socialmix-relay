@@ -197,6 +197,9 @@
   // ── Lancement d'une soirée en host depuis la SPA ───────────────────────────
   async function launchHost(opts) {
     opts = opts || {};
+    // Garde idempotente : évite une double soirée si launchHost est appelé 2x
+    // (ex. startHostWeb + l'IIFE autoLaunchHost sur le même chargement ?hostlaunch=1).
+    if (party && party.code) { log('launchHost ignoré (déjà actif ' + party.code + ')'); focusSpaOnParty(party.code); return { ok: true, code: party.code }; }
     var s = sock();
     var st = appState();
     if (!s) { toast('Socket non connecté'); return { ok: false }; }

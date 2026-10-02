@@ -836,8 +836,13 @@ async function handleSupabaseSession(session) {
           console.warn('[SSO] Socket timeout — user peut cliquer REJOINDRE manuellement');
         }
       }, 200);
+    } else if (/[?&]hostlaunch=1\b/.test(location.search)) {
+      // Retour de login pour créer/lancer une soirée host → démarrer le host web.
+      console.log('[SSO] hostlaunch après login → démarrage host web');
+      startHostWeb();
     } else {
-      console.log('[SSO] Pas de code party, retour landing');
+      console.log('[SSO] Pas de code party, retour écran de choix');
+      if (typeof showScreen === 'function') showScreen('choice');
     }
   } catch (err) {
     console.error('[SSO] handleSupabaseSession fail:', err);
@@ -6811,15 +6816,41 @@ async function _hasSupabaseSession() {
   } catch (e) { return false; }
 }
 
-// Va vers `dest` (sur join) si connecté ; sinon login ahouai.com avec retour sur `dest`.
-async function _goAuthed(dest) {
+// Démarre le host web EN PAGE : connecte le socket (requis par launchHost) puis lance.
+async function startHostWeb(opts) {
+  opts = opts || {};
+  const provider = opts.provider || (() => { try { return new URL(location.href).searchParams.get('provider'); } catch(e){ return null; } })() || 'youtube';
+  try {
+    if (typeof connectToRelay === 'function' && (typeof socket === 'undefined' || !socket || !socket.connected)) {
+      try { connectToRelay(); } catch(e) {}
+    }
+    let tries = 0;
+    const iv = setInterval(() => {
+      tries++;
+      const s = (typeof socket !== 'undefined' && socket) ? socket : (window.socket || null);
+      if (s && s.connected && window.AhOuaiHostEngine) {
+        clearInterval(iv);
+        try { window.AhOuaiHostEngine.launchHost({ provider: provider }); }
+        catch(e) { console.warn('[host] launchHost:', e); }
+      } else if (tries > 60) {
+        clearInterval(iv);
+        try { showToast('Connexion au serveur impossible, réessaie', 3000); } catch(e) {}
+      }
+    }, 200);
+  } catch(e) { console.warn('[host] startHostWeb:', e); }
+}
+
+// Porte host : si session → lance en page ; sinon login ahouai.com avec retour sur /?hostlaunch=1.
+async function _goAuthedHost(provider, justplay) {
+  provider = provider || 'youtube';
+  if (await _hasSupabaseSession()) { startHostWeb({ provider: provider }); return; }
+  const dest = '/?sb=1&hostlaunch=1&provider=' + encodeURIComponent(provider) + (justplay ? '&mode=justplay' : '');
   const abs = new URL(dest, window.location.origin).href;
-  if (await _hasSupabaseSession()) { window.location.href = dest; return; }
   window.location.href = 'https://ahouai.com/login?redirect=' + encodeURIComponent(abs);
 }
 
-function goCreateParty() { _goAuthed('/?sb=1&hostlaunch=1&provider=youtube'); }
-function goJustPlay()    { _goAuthed('/?sb=1&hostlaunch=1&provider=youtube&mode=justplay'); }
+function goCreateParty() { _goAuthedHost('youtube', false); }
+function goJustPlay()    { _goAuthedHost('youtube', true); }
 function goJoinParty()   { showScreen('code'); }
 
 document.addEventListener('DOMContentLoaded', init);
