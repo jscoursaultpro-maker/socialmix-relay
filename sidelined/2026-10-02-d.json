@@ -1,0 +1,198 @@
+{
+  "_meta": {
+    "file": "2026-10-02-d",
+    "created_at": "2026-10-02T08:37:45.016Z",
+    "mode": "stock",
+    "total": 16,
+    "sidelined": 4,
+    "doctrine": "scripts/curation/DOCTRINE_PREMIUM_V2.md",
+    "instructions": "scripts/curation/CLAUDE_CURATION_PROMPT.md",
+    "output_expected": "outbox/2026-10-02-d.json"
+  },
+  "tracks": [
+    {
+      "_id": "6ab5199c9c7c780f0836760d",
+      "title": "End of the Road",
+      "artist": "Boyz II Men",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 733705,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-24T12:37:49.001Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 733705,
+          "title": "Sharon's Waltz",
+          "artist": "Joe Zawinul",
+          "album": "The Rise & Fall of the Third Stream",
+          "duration": 306,
+          "isrc": "USAT20105544",
+          "release_date": "1994-05-13",
+          "bpm": 126.8,
+          "rank": 24986,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/733705",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/9/0/2/0/902deaf38bf008734d3f48c0794a08fe.mp3?hdnea=exp=1790931151~acl=/api/1/1/9/0/2/0/902deaf38bf008734d3f48c0794a08fe.mp3*~data=user_id=0,application_id=42~hmac=d04b12eeb087d020ffd48f830bfcab9bce22a6063aa64248adaf48d2ec59df03"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6ab4e0bc9c7c780f083620bb",
+      "title": "In Circles",
+      "artist": "Lumin-8, House Arrest & Afterglow",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3594976222,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-24T08:35:08.505Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 3594976222,
+          "title": "In Circles",
+          "artist": "Lumin8",
+          "album": "In Circles",
+          "duration": 162,
+          "isrc": "NLYK92500721",
+          "release_date": "2025-10-17",
+          "bpm": null,
+          "rank": 455058,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3594976222",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/6/9/4/0/694ac588bb5383333b38d5fbb170e8b4.mp3?hdnea=exp=1790931152~acl=/api/1/1/6/9/4/0/694ac588bb5383333b38d5fbb170e8b4.mp3*~data=user_id=0,application_id=42~hmac=944856bf85b1e3af568499b54875bea19922eb93cd0960d241299560ded98674"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 1,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6ab276179c7c780f082d564a",
+      "title": "Memories (feat. Kid Cudi)",
+      "artist": "David Guetta & Kid Cudi",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 408951,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-22T12:35:35.550Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    },
+    {
+      "_id": "6ab24ab69c7c780f082cfbe9",
+      "title": "Addicted (feat. TIMID. & FIRSTCLASS) [Sistek Remix] [Mixed]",
+      "artist": "Daytona, Lews & Naarly",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3437555771,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-22T09:30:30.246Z",
+      "current": {
+        "genre": "Afro",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 3437555771,
+          "title": "Addicted (feat. TIMID.)",
+          "artist": "Naarly",
+          "album": "Addicted (feat. TIMID.)",
+          "duration": 134,
+          "isrc": "US38Y2554792",
+          "release_date": "2025-07-04",
+          "bpm": null,
+          "rank": 746317,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3437555771",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/3/1/f/0/31f5b9028124eb8efa58e541e63ff126.mp3?hdnea=exp=1790931163~acl=/api/1/1/3/1/f/0/31f5b9028124eb8efa58e541e63ff126.mp3*~data=user_id=0,application_id=42~hmac=22988b59c72806541676d6da5fe251e7214b71e6f7df62752ec618b65dd008ea"
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 1,
+          "artistSim": 0.33,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    }
+  ]
+}
