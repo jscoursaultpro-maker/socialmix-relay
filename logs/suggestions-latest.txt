@@ -1,0 +1,43 @@
+=== PARTY SUGGESTIONS EXPLORATION ===
+Date (UTC)              : 2026-10-02T12:11:09.220Z
+Parties total           : 905
+Parties avec suggestions: 263
+Suggestions totales     : 8610
+Suggestions uniques     : 896
+---
+Déjà en tracks          : 476
+  dont qualifiées       : 321
+  dont à qualifier      : 155
+Absentes de tracks      : 420
+
+=== TOP 30 suggestions ABSENTES de tracks (par fréquence) ===
+   50× | dz=-          | Load Test Band — Test Suggestion
+   38× | dz=-          | Beyonce — Crazy In Love
+   35× | dz=-          | Dua Lipa — Shape of You
+   35× | dz=-          | Miley Cyrus — Easy On Me
+   34× | dz=-          | The Weeknd — Starboy
+   33× | dz=-          | Adele — About Damn Time
+   33× | dz=-          | Harry Styles — Levitating
+   33× | dz=-          | Ed Sheeran — Heat Waves
+   33× | dz=-          | Beyoncé — Blinding Lights
+   32× | dz=-          | Glass Animals — Flowers
+   32× | dz=-          | Ed Sheeran — Starboy
+   32× | dz=-          | Sam Smith — Flowers
+   32× | dz=-          | Taylor Swift — About Damn Time
+   32× | dz=-          | The Weeknd — Levitating
+   32× | dz=-          | Dua Lipa — Heat Waves
+   31× | dz=-          | Glass Animals — One Dance
+   31× | dz=-          | Miley Cyrus — Montero
+   31× | dz=-          | Dua Lipa — Anti-Hero
+   30× | dz=-          | Adele — Flowers
+   30× | dz=-          | Miley Cyrus — Heat Waves
+   30× | dz=-          | Glass Animals — About Damn Time
+   30× | dz=-          | Lil Nas X — Shape of You
+   30× | dz=-          | Beyoncé — Starboy
+   30× | dz=-          | Lizzo — Montero
+   30× | dz=-          | Harry Styles — Easy On Me
+   30× | dz=-          | Harry Styles — Shape of You
+   30× | dz=-          | Sam Smith — good 4 u
+   30× | dz=-          | Adele — As It Was
+   30× | dz=-          | David Guetta — Flowers
+   30× | dz=-          | Taylor Swift — Starboy
