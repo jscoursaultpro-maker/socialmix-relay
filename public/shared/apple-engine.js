@@ -114,12 +114,21 @@ export default class AppleEngine extends BasePlayerEngine {
   async play(songId) {
     if (!this.isReady()) { const r = await this.connect({ interactive: true }); if (!r.ok) return false; }
     this._curId = String(songId);
+    // File posée séparément : même si play() est bloqué (geste), un ▶ ultérieur jouera ce titre.
+    try { await this._music.setQueue({ song: String(songId) }); }
+    catch (e) { this.onLog(`Apple setQueue erreur : ${e.message}`, 'warn'); this._emit('error', 'Titre Apple indisponible'); return false; }
     try {
-      await this._music.setQueue({ song: String(songId) });
       await this._music.play();
       this._emit('trackChanged', { ...this._readState() });
       return true;
-    } catch (e) { this.onLog(`Apple play erreur : ${e.message}`, 'error'); this._emit('error', e); return false; }
+    } catch (e) {
+      var msg = (e && (e.name + ' ' + (e.message || ''))) || '';
+      this.onLog(`Apple play erreur : ${msg}`, 'warn');
+      if (/NotAllowed|gesture|user interaction|interact/i.test(msg)) { this._emit('needsUserGesture'); }
+      else if (/subscription|Unauthorized|403|capability/i.test(msg)) { this._emit('error', 'Abonnement Apple Music requis (ou non actif)'); }
+      else { this._emit('error', 'Lecture Apple impossible : ' + (e && e.message || 'inconnue')); }
+      return false;
+    }
   }
   async queueNext(songId) {
     // Non self-advancing : le cockpit rejoue le suivant à la fin. On pré-charge quand même
