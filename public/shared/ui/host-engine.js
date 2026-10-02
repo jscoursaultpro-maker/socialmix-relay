@@ -186,6 +186,14 @@
       sentAt: new Date().toISOString()
     });
     log('host:trackUpdate → ' + t.title);
+    // Host web : la SPA hôte joue en local → on met à jour SA carte ON AIR tout de suite,
+    // sans dépendre d'un retour serveur (latence / room). Même forme que updateNowPlaying().
+    try {
+      var np = { title: t.title, artist: t.artist, bpm: t.bpm || null,
+                 genre: t.genre || null, artworkURL: cover, source: 'djbrain-cloud' };
+      if (typeof window.updateNowPlaying === 'function') window.updateNowPlaying(np);
+      var ap = appState(); if (ap) ap.currentTrack = { title: t.title, artist: t.artist };
+    } catch (e) {}
   }
 
   async function prequeueNext() {
