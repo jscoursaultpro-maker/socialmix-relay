@@ -1423,35 +1423,35 @@
       "applied": 0,
       "deferred": 65,
       "invalid": 0,
-      "at": "2026-10-02T10:57:27.605Z"
+      "at": "2026-10-02T19:43:19.353Z"
     },
     "2026-10-02-c": {
       "status": "partial",
       "applied": 0,
       "deferred": 2,
       "invalid": 0,
-      "at": "2026-10-02T10:57:27.608Z"
+      "at": "2026-10-02T19:43:19.390Z"
     },
     "2026-10-02-d": {
       "status": "partial",
       "applied": 0,
       "deferred": 7,
       "invalid": 0,
-      "at": "2026-10-02T10:57:27.609Z"
+      "at": "2026-10-02T19:43:19.391Z"
     },
     "2026-10-02-e": {
       "status": "partial",
-      "applied": 1,
+      "applied": 0,
       "deferred": 7,
       "invalid": 0,
-      "at": "2026-10-02T13:00:44.823Z"
+      "at": "2026-10-02T19:43:19.396Z"
     },
     "2026-10-02-g": {
       "status": "partial",
-      "applied": 1,
+      "applied": 0,
       "deferred": 5,
       "invalid": 0,
-      "at": "2026-10-02T17:28:23.911Z"
+      "at": "2026-10-02T19:43:19.397Z"
     }
   }
 }
