@@ -23,6 +23,17 @@ const verified = await tracks.countDocuments({ isVerified: true });
 const noPhase = await tracks.countDocuments({ $or: [{ phase: null }, { phase: '' }, { phase: { $exists: false } }] });
 const last24h = await tracks.countDocuments({ createdAt: { $gte: new Date(Date.now() - 24 * 3600 * 1000) } });
 
+// Stats SUGGESTIONS (host/guest/suggestion)
+const SUGG_SOURCES = ['host_suggestion', 'guest_suggestion', 'suggestion'];
+const suggTotal = await tracks.countDocuments({ source: { $in: SUGG_SOURCES } });
+const suggCandidates = await tracks.countDocuments({ ...CANDIDATE_QUERY, source: { $in: SUGG_SOURCES } });
+const suggWithDeezer = await tracks.countDocuments({ ...CANDIDATE_QUERY, source: { $in: SUGG_SOURCES }, 'providers.deezer.trackId': { $gt: 0 } });
+const suggByQL = await tracks.aggregate([
+  { $match: { source: { $in: SUGG_SOURCES } } },
+  { $group: { _id: { s: '$source', ql: { $ifNull: ['$qualityLevel', 'absent'] } }, n: { $sum: 1 } } },
+  { $sort: { n: -1 } }
+]).toArray();
+
 const lines = [];
 lines.push('================ CATALOGUE AHOUAI — COMPTAGE ================');
 lines.push(`Date (UTC)              : ${new Date().toISOString()}`);
@@ -34,6 +45,12 @@ lines.push(`Créées dernières 24 h   : ${last24h}`);
 lines.push('--------------------------------------------------------------');
 lines.push(`CANDIDATES curation auto (vide/partielle, non vérifiées, non bloquées) : ${candidates}`);
 lines.push(`  dont avec deezer trackId : ${candidatesWithDeezerId}`);
+lines.push('--------------------------------------------------------------');
+lines.push(`SUGGESTIONS (source ∈ host/guest/suggestion) : total ${suggTotal}`);
+lines.push(`  candidates qualifiables                  : ${suggCandidates}`);
+lines.push(`  dont avec deezer trackId (export OK)     : ${suggWithDeezer}`);
+lines.push(`  répartition source × qualityLevel :`);
+for (const r of suggByQL) lines.push(`    ${String(r._id.s).padEnd(18)} ql=${String(r._id.ql).padEnd(10)} : ${r.n}`);
 lines.push('==============================================================');
 console.log('\n' + lines.join('\n') + '\n');
 if (process.env.COUNT_OUT) fs.writeFileSync(process.env.COUNT_OUT, lines.join('\n') + '\n', 'utf8');
