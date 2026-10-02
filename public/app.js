@@ -6792,9 +6792,35 @@ async function init() {
     // QR scan, no profile yet → onboarding (nouveau flow Chantier 5)
     showOnboarding(params.code.toUpperCase());
   } else {
-    showScreen('landing');
+    // Domaine nu (pas de code, pas de session) → écran de choix 3 portes (host/guest).
+    showScreen('choice');
   }
 }
+
+// ═══════════════════════════════════════════
+// ★ Écran de choix (domaine nu) — 3 portes : créer / rejoindre / lancer la musique
+// Le login vit sur ahouai.com (SSO Google/Apple/email, session partagée via cookie .ahouai.com).
+// Les portes host rebondissent vers ce login si pas de session, avec retour (redirect) sur join.
+// ═══════════════════════════════════════════
+async function _hasSupabaseSession() {
+  try {
+    if (!_supabaseClient && typeof initSupabaseSSO === 'function') { await initSupabaseSSO(); }
+    if (!_supabaseClient) return false;
+    const { data } = await _supabaseClient.auth.getSession();
+    return !!(data && data.session);
+  } catch (e) { return false; }
+}
+
+// Va vers `dest` (sur join) si connecté ; sinon login ahouai.com avec retour sur `dest`.
+async function _goAuthed(dest) {
+  const abs = new URL(dest, window.location.origin).href;
+  if (await _hasSupabaseSession()) { window.location.href = dest; return; }
+  window.location.href = 'https://ahouai.com/login?redirect=' + encodeURIComponent(abs);
+}
+
+function goCreateParty() { _goAuthed('/?sb=1&hostlaunch=1&provider=youtube'); }
+function goJustPlay()    { _goAuthed('/?sb=1&hostlaunch=1&provider=youtube&mode=justplay'); }
+function goJoinParty()   { showScreen('code'); }
 
 document.addEventListener('DOMContentLoaded', init);
 
