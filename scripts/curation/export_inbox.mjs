@@ -88,6 +88,8 @@ if (isMain) {
     if (SOURCES_ARG === 'suggestions') SOURCES = ['guest_suggestion', 'host_suggestion', 'suggestion'];
     else SOURCES = SOURCES_ARG.split(',').map(s => s.trim()).filter(Boolean);
   }
+  // --priority user-signal → trie par userSignalScore DESC avant deezerRank
+  const PRIORITY = String(arg('priority', process.env.CURATION_PRIORITY || '') || '').trim();
   const STAMP = todayStamp();
   const fileBase = `${STAMP}-${RUN}`;
 
@@ -125,13 +127,20 @@ if (isMain) {
   if (MODE === 'flux') query.createdAt = { $gte: new Date(Date.now() - 36 * 3600 * 1000) };
   if (SOURCES) query.source = { $in: SOURCES };
 
-  // Priorité : popularité Deezer décroissante (convention des batches V2), puis plus récent.
+  // Priorité : par défaut popularité Deezer. En mode user-signal, les tracks suggérées/aimées remontent.
+  let sortSpec;
+  if (PRIORITY === 'user-signal') {
+    // userSignalScore DESC (null traité comme 0), puis deezerRank, puis createdAt
+    sortSpec = { userSignalScore: -1, deezerRank: -1, createdAt: -1 };
+  } else {
+    sortSpec = { deezerRank: -1, createdAt: -1 };
+  }
   const selected = await tracks.find(query)
-    .sort({ deezerRank: -1, createdAt: -1 })
+    .sort(sortSpec)
     .limit(LIMIT)
     .toArray();
 
-  console.log(`\n=== EXPORT INBOX ${fileBase} — mode=${MODE} limit=${LIMIT} dry=${DRY}${SOURCES ? ' sources=' + SOURCES.join(',') : ''} ===`);
+  console.log(`\n=== EXPORT INBOX ${fileBase} — mode=${MODE} limit=${LIMIT} dry=${DRY}${SOURCES ? ' sources=' + SOURCES.join(',') : ''}${PRIORITY ? ' priority=' + PRIORITY : ''} ===`);
   console.log(`Candidats sélectionnés : ${selected.length} (pending exclus : ${pendingIds.length}, sidelined exclus : ${sidelinedIds.length})`);
 
   const inbox = [];
@@ -151,6 +160,11 @@ if (isMain) {
       deezerRank: t.deezerRank || null,
       qualityLevel: t.qualityLevel || null,
       source: t.source || null,
+      userSignal: (t.userSignalScore || t.userSignalSuggestedCount || t.userSignalFeuCount) ? {
+        score: t.userSignalScore || 0,
+        suggested: t.userSignalSuggestedCount || 0,
+        feu: t.userSignalFeuCount || 0
+      } : null,
       createdAt: t.createdAt || null,
       current: {
         genre: t.genre || null, phase: t.phase || null, bpm: t.bpm || null, bpmSource: t.bpmSource || null,

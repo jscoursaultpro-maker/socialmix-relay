@@ -23,6 +23,9 @@ on:
       sources:
         description: 'Filtre source : "suggestions" (raccourci = host+guest+suggestion) ou CSV. Vide = toutes.'
         default: ''
+      priority:
+        description: 'Tri : "user-signal" (suggérées/aimées en tête) ou vide (deezerRank par défaut)'
+        default: ''
       dry_run:
         description: 'Ne rien écrire (test)'
         type: boolean
@@ -82,6 +85,7 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           DRY_RUN: ${{ steps.p.outputs.dry }}
           CURATION_SOURCES: ${{ github.event_name == 'workflow_dispatch' && inputs.sources || '' }}
+          CURATION_PRIORITY: ${{ github.event_name == 'workflow_dispatch' && inputs.priority || '' }}
         run: node scripts/curation/export_inbox.mjs --limit "${{ steps.p.outputs.limit }}" --mode "${{ steps.p.outputs.mode }}" --run "${{ steps.p.outputs.run }}" --data-dir ./curation-data
       - name: Analyse BPM par signal (librosa sur preview Deezer)
         if: steps.p.outputs.dry == '0'
