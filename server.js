@@ -1582,7 +1582,11 @@ app.get('/api/admin/tracks/bangers-review', adminAuth, async (req, res) => {
     
     let query = {};
     if (filterCuration && filterCuration !== 'all') {
-      query.curation = filterCuration;
+      if (filterCuration === 'empty') {
+        query.curation = { $in: [null, ''] };
+      } else {
+        query.curation = filterCuration;
+      }
     } else if (!filterCuration) {
       query.curation = 'in'; // old default
     }
@@ -2269,7 +2273,11 @@ app.get('/api/monitor/tracks', adminAuth, async (req, res) => {
     }
 
     if (curation && curation !== 'all') {
-      query.curation = curation;
+      if (curation === 'empty') {
+        query.curation = { $in: [null, ''] };
+      } else {
+        query.curation = curation;
+      }
     }
 
     if (search) {
