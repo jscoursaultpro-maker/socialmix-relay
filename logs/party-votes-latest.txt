@@ -1,0 +1,21 @@
+================ VOTES 🔥 (agrégés live depuis Party.guestVotes) ================
+Date (UTC)                   : 2026-10-02T17:00:44.918Z
+Parties scannées (non-demo)  : 931
+Total votes 🔥               : 21
+Tracks uniques avec 🔥       : 10
+
+=== TOP 30 tracks par feu (clé = ce qui est stocké dans guestVotes) ===
+  🔥 10 [NOT RESOLVED] key=F44D6EB4-8182-4AD1-B052-018C5DFC414A
+  🔥  2 [NOT RESOLVED] key=undefined
+  🔥  2 [NOT RESOLVED] key=6a50de57ea70fae835205058
+  🔥  1 [NOT RESOLVED] key=jQXDmlrmQqSYZEX0AAAJ
+  🔥  1 [NOT RESOLVED] key=bIh8XeUgDlCUnQJ4AAAL
+  🔥  1 [NOT RESOLVED] key=5b7WfpRRrACwT-h2AAAX
+  🔥  1 [NOT RESOLVED] key=39x8903XXtCFPhwnAAAJ
+  🔥  1 [NOT RESOLVED] key=user_1e00dd2b5ae74c59
+  🔥  1 [NOT RESOLVED] key=6a39ce78c561be58ea424829
+  🔥  1 [NOT RESOLVED] key=6aad458831a8ac2bc3171351
+
+Top 30 — tracks résolues     : 0
+Top 30 — non qualifiées      : 0  ← priorité
+==============================================================
