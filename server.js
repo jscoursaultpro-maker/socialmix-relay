@@ -2272,8 +2272,45 @@ app.get('/api/monitor/tracks', adminAuth, async (req, res) => {
     else if (sort === 'rank_asc') sortObj.deezerRank = 1;
     else sortObj.deezerRank = -1; // Default
 
-    const tracks = await Track.find(query).sort(sortObj).skip((page - 1) * limit).limit(limit).lean();
-    const total = await Track.countDocuments(query);
+    let tracks;
+    let total;
+
+    if (sort === 'djbrain') {
+      const pipeline = [
+        { $match: query },
+        { $addFields: {
+            curationScore: {
+              $switch: {
+                branches: [
+                  { case: { $eq: ['$curation', 'in'] }, then: 3 },
+                  { case: { $eq: ['$curation', 'backlog'] }, then: 2 },
+                  { case: { $eq: ['$curation', 'filler'] }, then: 1 }
+                ],
+                default: 2
+              }
+            },
+            qualityScore: {
+              $switch: {
+                branches: [
+                  { case: { $eq: ['$qualityLevel', 'platine'] }, then: 4 },
+                  { case: { $eq: ['$qualityLevel', 'complete'] }, then: 3 },
+                  { case: { $eq: ['$qualityLevel', 'partielle'] }, then: 2 },
+                  { case: { $eq: ['$qualityLevel', 'vide'] }, then: 1 }
+                ],
+                default: 0
+              }
+            }
+        }},
+        { $sort: { curationScore: -1, qualityScore: -1, deezerRank: -1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: limit }
+      ];
+      tracks = await Track.aggregate(pipeline);
+      total = await Track.countDocuments(query);
+    } else {
+      tracks = await Track.find(query).sort(sortObj).skip((page - 1) * limit).limit(limit).lean();
+      total = await Track.countDocuments(query);
+    }
 
     res.json({
       tracks: tracks,
