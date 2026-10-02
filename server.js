@@ -8316,8 +8316,14 @@ async function boot() {
       const meta = await Meta.findOne({ key: YT_PRERESOLVE_KEY }).lean();
       const last = meta?.value ? new Date(meta.value).getTime() : 0;
       if (Date.now() - last < YT_PRERESOLVE_MIN_MS) return;
-      const liveCount = [...parties.values()].filter((p) => p && (p.lifecycle?.status === 'live' || p.currentTrack)).length;
-      if (liveCount > 0) { console.log('[YTPreresolve] soirée(s) live → report (quota réservé au direct)'); return; }
+      // « Live » = activité réelle < 20 min (évite qu'une soirée zombie bloque le job en permanence).
+      const ACTIVE_MS = 20 * 60 * 1000;
+      const liveCount = [...parties.values()].filter((p) => {
+        if (!p || p.endedAt) return false;
+        const la = p.lifecycle?.lastActivityAt || p.phaseStartedAt || p.createdAt;
+        return la && (Date.now() - new Date(la).getTime() < ACTIVE_MS);
+      }).length;
+      if (liveCount > 0) { console.log(`[YTPreresolve] ${liveCount} soirée(s) active(s) → report (quota réservé au direct)`); return; }
       await Meta.updateOne({ key: YT_PRERESOLVE_KEY }, { $set: { key: YT_PRERESOLVE_KEY, value: new Date().toISOString(), updatedAt: new Date() } }, { upsert: true });
       const { preresolveYoutubeBatch } = await import('./services/youtubePreresolve.js');
       const r = await preresolveYoutubeBatch({ limit: YT_PRERESOLVE_LIMIT });
