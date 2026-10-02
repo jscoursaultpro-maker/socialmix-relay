@@ -47,6 +47,10 @@ export default class YouTubeEngine extends BasePlayerEngine {
     this._curVideoId = null;
     this._wakeLock   = null;
     this._poll       = null;
+    this._wd         = null;         // watchdog anti-blocage (stall)
+    this._loadTs     = 0;            // horodatage du dernier load (grâce au démarrage)
+    this._lastPos    = -1;           // dernière position connue (ms) pour détecter le gel
+    this._lastProgressTs = 0;        // dernier moment où la position a progressé
     this._state      = { providerId: null, positionMs: 0, durationMs: 0, isPlaying: false, title: null, artist: null, artworkUrl: null };
     this._meta       = {};           // videoId → {title, artist, artworkUrl} (fourni par play/queueNext)
   }
@@ -83,7 +87,7 @@ export default class YouTubeEngine extends BasePlayerEngine {
         events: {
           onReady: () => { this._ready = true; resolve(); },
           onStateChange: (e) => this._onStateChange(e),
-          onError: (e) => this.onLog(`YouTube player error ${e.data}`, 'warn'),
+          onError: (e) => this._onError(e.data),
           onAutoplayBlocked: () => this._emit('needsUserGesture'),
         }
       });
@@ -93,6 +97,7 @@ export default class YouTubeEngine extends BasePlayerEngine {
   _onStateChange(e) {
     const YT = window.YT;
     if (e.data === YT.PlayerState.ENDED) {
+      this._stopWatchdog();
       // Fin naturelle → charger le prochain mémorisé (enchaînement sans geste)
       if (this._pendingNext) {
         const next = this._pendingNext;
@@ -104,16 +109,54 @@ export default class YouTubeEngine extends BasePlayerEngine {
       }
     } else if (e.data === YT.PlayerState.PLAYING) {
       this._startPoll();
+      this._armWatchdog(/* keepProgress */ true);  // lecture en cours : surveiller le gel
     } else if (e.data === YT.PlayerState.PAUSED) {
       this._stopPoll();
+      this._stopWatchdog();  // pause volontaire → pas un blocage
       this._emit('stateChanged', { ...this._readState() });
     }
   }
+
+  // ── Erreurs YouTube : 2=param invalide · 5=HTML5 · 100=retirée/privée · 101/150=embed interdit.
+  //    Toutes fatales pour CE titre → on signale au cockpit pour qu'il saute. ───────────────
+  _onError(code) {
+    this.onLog(`YouTube error ${code} sur ${this._curVideoId}`, 'warn');
+    this._stopWatchdog();
+    this._emit('trackUnavailable', { providerId: this._curVideoId, code });
+  }
+
+  // ── Watchdog anti-blocage (port de l'esprit Task #51 iOS, côté web) ──────────
+  _armWatchdog(keepProgress) {
+    this._loadTs = Date.now();
+    if (!keepProgress) { this._lastPos = -1; this._lastProgressTs = Date.now(); }
+    if (!this._wd) this._wd = setInterval(() => this._watch(), 2000);
+  }
+  _stopWatchdog() { if (this._wd) { clearInterval(this._wd); this._wd = null; } }
+  _watch() {
+    const p = this._player, YT = window.YT;
+    if (!p || !YT) return;
+    let st, pos = 0;
+    try { st = p.getPlayerState?.(); pos = (p.getCurrentTime?.() || 0) * 1000; } catch { return; }
+    const S = YT.PlayerState;
+    if (st === S.PLAYING) {
+      if (pos > this._lastPos + 250) { this._lastPos = pos; this._lastProgressTs = Date.now(); }
+      else if (Date.now() - this._lastProgressTs > 8000) {
+        this.onLog('Watchdog : lecture figée > 8s', 'warn'); this._stall();
+      }
+      return;
+    }
+    // Démarrage/bufferisation qui ne décolle jamais (bloqué > 12s après le load).
+    if ((st === S.BUFFERING || st === S.UNSTARTED || st === S.CUED) && Date.now() - this._loadTs > 12000) {
+      this.onLog(`Watchdog : démarrage bloqué > 12s (état ${st})`, 'warn'); this._stall();
+    }
+  }
+  _stall() { this._stopWatchdog(); this._emit('stalled', { providerId: this._curVideoId }); }
 
   _loadAndEmit(videoId) {
     const prev = this._curVideoId;
     this._curVideoId = videoId;
     this._player.loadVideoById(videoId);
+    this._armWatchdog();
     if (prev) this._emit('trackEnded', { providerId: prev });
     this._emit('trackChanged', { ...this._readState() });
     this._requestWakeLock();
@@ -161,6 +204,7 @@ export default class YouTubeEngine extends BasePlayerEngine {
       this._player.loadVideoById(videoId);   // charge + démarre (geste utilisateur du "Lancer")
       this._requestWakeLock();
       this._startPoll();
+      this._armWatchdog();
       this._emit('trackChanged', { ...this._readState() });
       return true;
     } catch (e) { this.onLog(`YouTube play erreur : ${e.message}`, 'error'); return false; }
@@ -192,6 +236,7 @@ export default class YouTubeEngine extends BasePlayerEngine {
 
   dispose() {
     this._stopPoll();
+    this._stopWatchdog();
     if (this._visBound) { document.removeEventListener('visibilitychange', this._visBound); this._visBound = null; }
     try { this._wakeLock?.release?.(); } catch {}
     this._wakeLock = null;
