@@ -295,6 +295,7 @@
     };
     s.emit('host:startParty', { code: code, hostSecret: hostSecret, profile: profile, streamingProvider: party.provider, deviceId: null });
     log('host:startParty émis (' + code + ', ' + party.provider + ')');
+    bindSuggestionListener();   // auto ON → les suggestions entrent seules dans « À suivre »
 
     // Bascule la vue de la SPA sur la soirée de l'host → la barre host s'affiche sur On Air.
     focusSpaOnParty(code);
@@ -448,6 +449,27 @@
 
   function normKey(s) { return String(s == null ? '' : s).toLowerCase().replace(/\(.*?\)|\[.*?\]/g, '').replace(/[^a-z0-9]/g, '').trim(); }
 
+  // ★ Écoute des suggestions invités (room host:CODE). Auto ON → la suggestion entre SEULE
+  //   dans « À suivre » (promesse UI « les suggestions entrent seules dans la file »). Auto OFF →
+  //   la carte « Suggestions des invités » (host-cockpit) la présente, l'hôte l'ajoute à la main.
+  var _suggBound = false;
+  function bindSuggestionListener() {
+    if (_suggBound) return;
+    var s = sock(); if (!s) return;
+    _suggBound = true;
+    s.on('guest:suggested', function (sugg) {
+      try {
+        if (!party || !sugg || !sugg.title) return;
+        if (!autoAdvance) return;   // auto OFF → carte manuelle, on ne touche pas à la file
+        var t = addSuggestionToQueue(sugg, 'end');   // place en fin de file (le DJ Brain réordonne au refill)
+        if (t) {
+          log('suggestion auto-ajoutée (' + (sugg.guestName || 'invité') + ') : ' + sugg.title, 'info');
+          try { if (window.AhOuaiHostCockpit && window.AhOuaiHostCockpit.renderQueue) window.AhOuaiHostCockpit.renderQueue(); } catch (e) {}
+        }
+      } catch (e) { log('guest:suggested: ' + e.message, 'warn'); }
+    });
+  }
+
   // ★ Host valide une suggestion → elle ENTRE dans la file « À suivre » (par défaut en prochain).
   //   Doctrine produit : guest propose → host valide → play. Emet host:acceptSuggestion (statut 'queued').
   function addSuggestionToQueue(sugg, position) {
@@ -456,7 +478,9 @@
     var key = normKey(sugg.title);
     var exists = tracks.findIndex(function (t) { return (sugg.trackId && String(t.trackId) === String(sugg.trackId)) || normKey(t.title) === key; });
     if (exists > idx) return tracks[exists]; // déjà en file → pas de doublon, pas de ré-émission
-    var t = { trackId: sugg.trackId || ('sugg_' + key), title: sugg.title, artist: sugg.artist || '', isrc: sugg.isrc || null, _suggested: true, _guestName: sugg.guestName || null };
+    var t = { trackId: sugg.trackId || ('sugg_' + key), title: sugg.title, artist: sugg.artist || '', isrc: sugg.isrc || null,
+              deezerID: sugg.deezerID || sugg.deezerId || null, coverArtURL: sugg.coverURL || sugg.coverArtURL || sugg.artworkURL || null,
+              _suggested: true, _guestName: sugg.guestName || null };
     var at = (position === 'end') ? tracks.length : (idx + 1);
     tracks.splice(at, 0, t);
     if (at === idx + 1) { queuedPid = null; prequeueNext(); }
