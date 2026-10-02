@@ -25,6 +25,7 @@
   var idx = 0;
   var queuedPid = null;
   var booted = false;
+  var autoAdvance = true;        // ENCHAÎNEMENT AUTO (toggle host)
 
   function log(m, lvl) { try { console.log('[host-engine]' + (lvl ? ' ' + lvl : ''), m); } catch (e) {} }
   function sock() { try { return (typeof socket !== 'undefined' && socket) ? socket : (window.socket || null); } catch (e) { return window.socket || null; } }
@@ -111,6 +112,7 @@
   }
 
   async function prequeueNext() {
+    if (!autoAdvance) return;    // enchaînement auto coupé → pas de préqueue
     if (!engine || !engine.capabilities || !engine.capabilities.selfAdvancing) return;
     var nx = tracks[idx + 1];
     if (!nx) {
@@ -125,6 +127,7 @@
   }
 
   async function onEngineAdvanced() {
+    if (!autoAdvance) return;    // auto coupé → on ne saute pas tout seul
     // Le moteur a enchaîné sur le titre mémorisé → avancer l'index + ré-émettre.
     if (idx + 1 < tracks.length) { idx++; var now = tracks[idx]; if (now) emitTrackUpdate(now); }
     await prequeueNext();
@@ -204,11 +207,43 @@
 
   function isActive() { return !!party; }
   function getNowPlaying() { return tracks[idx] || null; }
+  function getCode() { return party ? party.code : null; }
+
+  // ── ENCHAÎNEMENT AUTO ───────────────────────────────────────────────────────
+  function setAutoAdvance(on) { autoAdvance = !!on; if (autoAdvance) prequeueNext(); return autoAdvance; }
+  function getAutoAdvance() { return autoAdvance; }
+
+  // ── À SUIVRE (file des prochains titres, ajustable) ─────────────────────────
+  function getUpcoming() {
+    return tracks.slice(idx + 1).map(function (t) {
+      return { trackId: String(t.trackId), title: t.title, artist: t.artist, coverArtURL: t.coverArtURL || null, _score: t._score, phase: t.phase };
+    });
+  }
+  // Joue tout de suite un titre de la file (le place juste après le courant puis avance).
+  async function playNow(trackId) {
+    var j = tracks.findIndex(function (t) { return String(t.trackId) === String(trackId); });
+    if (j <= idx) return;
+    var t = tracks.splice(j, 1)[0];
+    tracks.splice(idx + 1, 0, t);
+    queuedPid = null;
+    await next();
+  }
+  // Réordonne un titre de la file (dir: 'up' | 'down').
+  function move(trackId, dir) {
+    var j = tracks.findIndex(function (t) { return String(t.trackId) === String(trackId); });
+    if (j <= idx) return;
+    var k = dir === 'up' ? j - 1 : j + 1;
+    if (k <= idx || k >= tracks.length) return;
+    var tmp = tracks[j]; tracks[j] = tracks[k]; tracks[k] = tmp;
+    if (j === idx + 1 || k === idx + 1) { queuedPid = null; prequeueNext(); }
+  }
 
   window.AhOuaiHostEngine = {
     launchHost: launchHost, play: play, pause: pause, togglePlay: togglePlay,
-    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying,
-    _debug: function () { return { party: party, idx: idx, tracks: tracks.length, isPlaying: isPlaying, engine: engine ? engine.id : null }; }
+    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode,
+    setAutoAdvance: setAutoAdvance, getAutoAdvance: getAutoAdvance,
+    getUpcoming: getUpcoming, playNow: playNow, move: move,
+    _debug: function () { return { party: party, idx: idx, tracks: tracks.length, isPlaying: isPlaying, auto: autoAdvance, engine: engine ? engine.id : null }; }
   };
   if (!booted) { booted = true; log('prêt (brique 2 — chemin YouTube)'); }
 
