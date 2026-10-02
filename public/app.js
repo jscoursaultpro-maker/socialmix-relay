@@ -2288,6 +2288,9 @@ function connectToRelay() {
       }
     }
     
+    // ★ Lancement host : ne pas déclencher l'auto-join invité. Le host crée sa soirée
+    //   via host:startParty (host-engine), pas via guest:join → sinon « Aucune soirée active ».
+    if (window._ahouaiHostLaunching) { console.log('[connect] mode host → skip auto-join invité'); return; }
     // Try to resume existing session first
     const resumeData = loadResumeSession();
     if (resumeData && resumeData.partyCode === state.partyCode) {
@@ -6820,6 +6823,8 @@ async function _hasSupabaseSession() {
 async function startHostWeb(opts) {
   opts = opts || {};
   const provider = opts.provider || (() => { try { return new URL(location.href).searchParams.get('provider'); } catch(e){ return null; } })() || 'youtube';
+  // Marque la connexion comme « host » pour que le handler connect NE lance PAS d'auto-join invité.
+  window._ahouaiHostLaunching = true;
   try {
     if (typeof connectToRelay === 'function' && (typeof socket === 'undefined' || !socket || !socket.connected)) {
       try { connectToRelay(); } catch(e) {}
