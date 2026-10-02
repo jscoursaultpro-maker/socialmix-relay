@@ -889,97 +889,15 @@
       "inbox": "2026-10-02-b.json",
       "exportedAt": "2026-10-02T16:36:43.287Z"
     },
-    "6a352c42eaf607dcb667cac8": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a80aec6cbdff7847491e2ed": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a80b2dccbdff7847491e458": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a7defb2cbdff784748fec9e": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a5b8fd1ab166fef3abc5a1a": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a844106cbdff7847493e730": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a80b88fcbdff7847491e627": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a71c8e1e5112e9b03a4452c": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a71c4cce5112e9b03a442ae": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a71b9a5e5112e9b03a43d5e": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a8d64f829babfe4d3983f94": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a843ee9cbdff7847493e618": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a82d15fcbdff7847492e30e": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a7f3056cbdff784749119e3": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
     "6a7df045cbdff784748fece5": {
       "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a721c39e5112e9b03a47c44": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a71dfd3e5112e9b03a45a3b": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a71b8a1e5112e9b03a43ce5": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a6202220ecc3ba504e8ac97": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a61fef20ecc3ba504e8aaf2": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a8d62f329babfe4d3983eac": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
+      "exportedAt": "2026-10-02T17:20:44.522Z",
+      "status": "awaiting_review"
     },
     "6a89c553cbdff7847497f5cf": {
       "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a89bdbecbdff7847497f3b8": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
+      "exportedAt": "2026-10-02T17:20:44.522Z",
+      "status": "awaiting_review"
     },
     "6a89bd1fcbdff7847497f38b": {
       "inbox": "2026-10-02-g.json",
@@ -987,39 +905,18 @@
     },
     "6a88b06bcbdff78474974076": {
       "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a886098cbdff7847497154b": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a885d0ccbdff78474970e7c": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a85d729cbdff7847494fd17": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a85d202cbdff7847494fa81": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
+      "exportedAt": "2026-10-02T17:20:44.522Z",
+      "status": "awaiting_review"
     },
     "6a85ce36cbdff7847494f932": {
       "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a8444a7cbdff7847493e92b": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
+      "exportedAt": "2026-10-02T17:20:44.522Z",
+      "status": "awaiting_review"
     },
     "6a841f73cbdff7847493d11f": {
       "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
-    },
-    "6a830280cbdff78474930a67": {
-      "inbox": "2026-10-02-g.json",
-      "exportedAt": "2026-10-02T17:20:44.522Z"
+      "exportedAt": "2026-10-02T17:20:44.522Z",
+      "status": "awaiting_review"
     }
   },
   "imported": {
@@ -1382,6 +1279,141 @@
       "file": "2026-10-02-e.json",
       "at": "2026-10-02T13:00:45.886Z",
       "confidence": "high"
+    },
+    "6a352c42eaf607dcb667cac8": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:15.687Z",
+      "confidence": "high"
+    },
+    "6a80aec6cbdff7847491e2ed": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:16.063Z",
+      "confidence": "high"
+    },
+    "6a80b2dccbdff7847491e458": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:16.562Z",
+      "confidence": "medium"
+    },
+    "6a7defb2cbdff784748fec9e": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:16.929Z",
+      "confidence": "medium"
+    },
+    "6a5b8fd1ab166fef3abc5a1a": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:17.308Z",
+      "confidence": "medium"
+    },
+    "6a844106cbdff7847493e730": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:17.674Z",
+      "confidence": "high"
+    },
+    "6a80b88fcbdff7847491e627": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:18.047Z",
+      "confidence": "high"
+    },
+    "6a71c8e1e5112e9b03a4452c": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:18.427Z",
+      "confidence": "high"
+    },
+    "6a71c4cce5112e9b03a442ae": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:18.802Z",
+      "confidence": "high"
+    },
+    "6a71b9a5e5112e9b03a43d5e": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:19.181Z",
+      "confidence": "high"
+    },
+    "6a8d64f829babfe4d3983f94": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:19.554Z",
+      "confidence": "medium"
+    },
+    "6a843ee9cbdff7847493e618": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:19.932Z",
+      "confidence": "high"
+    },
+    "6a82d15fcbdff7847492e30e": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:20.305Z",
+      "confidence": "high"
+    },
+    "6a7f3056cbdff784749119e3": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:20.686Z",
+      "confidence": "high"
+    },
+    "6a721c39e5112e9b03a47c44": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:21.059Z",
+      "confidence": "high"
+    },
+    "6a71dfd3e5112e9b03a45a3b": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:21.439Z",
+      "confidence": "high"
+    },
+    "6a71b8a1e5112e9b03a43ce5": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:21.813Z",
+      "confidence": "high"
+    },
+    "6a6202220ecc3ba504e8ac97": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:22.195Z",
+      "confidence": "high"
+    },
+    "6a61fef20ecc3ba504e8aaf2": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:22.570Z",
+      "confidence": "high"
+    },
+    "6a8d62f329babfe4d3983eac": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:22.947Z",
+      "confidence": "high"
+    },
+    "6a89bdbecbdff7847497f3b8": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:23.321Z",
+      "confidence": "medium"
+    },
+    "6a886098cbdff7847497154b": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:23.699Z",
+      "confidence": "medium"
+    },
+    "6a885d0ccbdff78474970e7c": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:24.072Z",
+      "confidence": "high"
+    },
+    "6a85d729cbdff7847494fd17": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:24.450Z",
+      "confidence": "high"
+    },
+    "6a85d202cbdff7847494fa81": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:24.822Z",
+      "confidence": "medium"
+    },
+    "6a8444a7cbdff7847493e92b": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:25.201Z",
+      "confidence": "medium"
+    },
+    "6a830280cbdff78474930a67": {
+      "file": "2026-10-02-g.json",
+      "at": "2026-10-02T17:27:25.576Z",
+      "confidence": "medium"
     }
   },
   "files": {
@@ -1412,6 +1444,13 @@
       "deferred": 7,
       "invalid": 0,
       "at": "2026-10-02T13:00:44.823Z"
+    },
+    "2026-10-02-g": {
+      "status": "partial",
+      "applied": 27,
+      "deferred": 5,
+      "invalid": 1,
+      "at": "2026-10-02T17:27:14.599Z"
     }
   }
 }
