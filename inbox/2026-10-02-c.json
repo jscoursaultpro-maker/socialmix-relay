@@ -1,0 +1,994 @@
+{
+  "_meta": {
+    "file": "2026-10-02-c",
+    "created_at": "2026-10-02T07:59:58.915Z",
+    "mode": "stock",
+    "total": 20,
+    "sidelined": 0,
+    "doctrine": "scripts/curation/DOCTRINE_PREMIUM_V2.md",
+    "instructions": "scripts/curation/CLAUDE_CURATION_PROMPT.md",
+    "output_expected": "outbox/2026-10-02-c.json"
+  },
+  "tracks": [
+    {
+      "_id": "6abef79e66f916ca34eb48f6",
+      "title": "Make You Fight",
+      "artist": "Chris Lake & ATRIP",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3953346611,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-10-02T00:15:26.689Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 131,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3953346611,
+          "title": "Make You Fight",
+          "artist": "Chris Lake",
+          "album": "Make You Fight",
+          "duration": 176,
+          "isrc": "GXFCP2600104",
+          "release_date": "2026-05-01",
+          "bpm": null,
+          "rank": 530536,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3953346611"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab83c8e9c7c780f083ad835",
+      "title": "Piece Of Your Heart",
+      "artist": "MEDUZA & Goodboys",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 623723282,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T21:43:42.036Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 124,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 623723282,
+          "title": "Piece Of Your Heart",
+          "artist": "MEDUZA",
+          "album": "Piece Of Your Heart",
+          "duration": 153,
+          "isrc": "DEUM71807719",
+          "release_date": "2019-02-01",
+          "bpm": null,
+          "rank": 753162,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/623723282"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab835f49c7c780f083acefd",
+      "title": "Right On!",
+      "artist": "Silicone Soul",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3437835271,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T21:15:32.892Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 126,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3437835271,
+          "title": "Right On!",
+          "artist": "Silicone Soul",
+          "album": "Right On, Right On",
+          "duration": 192,
+          "isrc": "GBBVL0100972",
+          "release_date": "2001-08-01",
+          "bpm": null,
+          "rank": 411418,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3437835271"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab8242d9c7c780f083ab86b",
+      "title": "Sur la planche 2013",
+      "artist": "La Femme",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 71928219,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T19:59:41.917Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 186,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 71928219,
+          "title": "Sur la planche 2013",
+          "artist": "La Femme",
+          "album": "Psycho Tropical Berlin (Bonus Track Version)",
+          "duration": 230,
+          "isrc": "FR9W11215240",
+          "release_date": "2013-11-11",
+          "bpm": 186.2,
+          "rank": 722275,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/71928219"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab820709c7c780f083ab3ac",
+      "title": "Tranquilo",
+      "artist": "Gramatik",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2596259512,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T19:43:45.002Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 137,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2596259512,
+          "title": "Tranquilo",
+          "artist": "Gramatik",
+          "album": "SB3",
+          "duration": 384,
+          "isrc": "USQY51422117",
+          "release_date": "2010-07-29",
+          "bpm": null,
+          "rank": 224794,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2596259512"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab81da49c7c780f083aafdf",
+      "title": "L'été indien (feat. Laurie Darmon)",
+      "artist": "PalaisVert",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2294097455,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T19:31:48.905Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 123,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2294097455,
+          "title": "L'été indien",
+          "artist": "PalaisVert",
+          "album": "L'été indien",
+          "duration": 230,
+          "isrc": "FR9LX2300270",
+          "release_date": "2023-06-09",
+          "bpm": null,
+          "rank": 532743,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2294097455"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab81a029c7c780f083aabc0",
+      "title": "Tostaky (le continent)",
+      "artist": "Noir Désir",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 1090084,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T19:16:18.871Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 132,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 1090084,
+          "title": "Tostaky (Le continent)",
+          "artist": "Noir Désir",
+          "album": "Tostaky",
+          "duration": 329,
+          "isrc": "FRZ019202430",
+          "release_date": "1998-10-01",
+          "bpm": 134.7,
+          "rank": 683485,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/1090084"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab819119c7c780f083aaaa5",
+      "title": "Cream (Without Rap Monologue)",
+      "artist": "Prince & The New Power Generation",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 664142,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T19:12:17.906Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 115,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 664142,
+          "title": "Cream (Without Rap Monologue)",
+          "artist": "Prince",
+          "album": "Diamonds and Pearls",
+          "duration": 253,
+          "isrc": "USWB19900665",
+          "release_date": "2009-01-24",
+          "bpm": 115.81,
+          "rank": 621771,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/664142"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab807889c7c780f083a8ad0",
+      "title": "Modern Love",
+      "artist": "David Bowie",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 730342582,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T17:57:28.151Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 186,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 730342582,
+          "title": "Modern Love (2018 Remaster)",
+          "artist": "David Bowie",
+          "album": "Let's Dance (2018 Remaster)",
+          "duration": 288,
+          "isrc": "USJT11700480",
+          "release_date": "1983-04-14",
+          "bpm": 186.23,
+          "rank": 835760,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/730342582"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 0.5,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab806b69c7c780f083a89aa",
+      "title": "Just Can't Get Enough",
+      "artist": "Depeche Mode",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 68513610,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T17:53:58.097Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 128,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 68513610,
+          "title": "Just Can't Get Enough",
+          "artist": "Depeche Mode",
+          "album": "The Best of Depeche Mode, Vol. 1 (Deluxe)",
+          "duration": 220,
+          "isrc": "GBAJH0602196",
+          "release_date": "2006-11-08",
+          "bpm": 128,
+          "rank": 869374,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/68513610"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab803f79c7c780f083a85e0",
+      "title": "Moustache Gracias (feat. La Rue Kétanou)",
+      "artist": "Deluxe",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 1651161122,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T17:42:15.105Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 95,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 1651161122,
+          "title": "Moustache Gracias",
+          "artist": "Deluxe",
+          "album": "Moustache Gracias",
+          "duration": 215,
+          "isrc": "FR7GO2000027",
+          "release_date": "2022-03-17",
+          "bpm": null,
+          "rank": 642273,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/1651161122"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab7ff8c9c7c780f083a7ecf",
+      "title": "Réponds",
+      "artist": "Aya Nakamura",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 397141352,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T17:23:24.118Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 130,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 397141352,
+          "title": "Réponds",
+          "artist": "Aya Nakamura",
+          "album": "Journal intime",
+          "duration": 169,
+          "isrc": "FRZ041700637",
+          "release_date": "2017-08-25",
+          "bpm": 130.01,
+          "rank": 952720,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/397141352"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab7fe4a9c7c780f083a7d46",
+      "title": "Mesdames",
+      "artist": "Grand Corps Malade",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 1483940222,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T17:18:02.118Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 135,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 1483940222,
+          "title": "Mesdames",
+          "artist": "Grand Corps Malade",
+          "album": "MESDAMES deluxe",
+          "duration": 178,
+          "isrc": "FRT462000030",
+          "release_date": "2021-09-10",
+          "bpm": null,
+          "rank": 690380,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/1483940222"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab7a40c9c7c780f083a045c",
+      "title": "Xxplosive (feat. Hittman, Six-Two, Nate Dogg & Kurupt)",
+      "artist": "Dr. Dre",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 128743585,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T10:53:00.616Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 168,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 128743585,
+          "title": "Xxplosive",
+          "artist": "Dr. Dre",
+          "album": "2001",
+          "duration": 215,
+          "isrc": "USIR19915073",
+          "release_date": "2008-02-12",
+          "bpm": 168.75,
+          "rank": 698115,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/128743585"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab721b19c7c780f08394aff",
+      "title": "Coldplay - Yellow - Piano Cover",
+      "artist": "Coldplay Piano Covers",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2286852757,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-26T01:36:49.245Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2286852757,
+          "title": "Coldplay - Yellow - Piano Cover",
+          "artist": "Coldplay Piano Covers",
+          "album": "Coldplay - Piano Covers",
+          "duration": 273,
+          "isrc": "SE5XG2345516",
+          "release_date": "2023-05-20",
+          "bpm": null,
+          "rank": 215820,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2286852757"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab6b8b19c7c780f08386f91",
+      "title": "J'accuse",
+      "artist": "Saez",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 5696500,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-25T18:08:49.664Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 107,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 5696500,
+          "title": "J'accuse",
+          "artist": "SAEZ",
+          "album": "J'accuse",
+          "duration": 268,
+          "isrc": "FRZ641000006",
+          "release_date": "2010-03-29",
+          "bpm": 107.1,
+          "rank": 800362,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/5696500"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab6ae309c7c780f083864ac",
+      "title": "How Deep Is Your Love",
+      "artist": "Bee Gees",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 350027751,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-25T17:24:00.302Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 104,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 350027751,
+          "title": "How Deep Is Your Love",
+          "artist": "Bee Gees",
+          "album": "Timeless - The All-Time Greatest Hits",
+          "duration": 245,
+          "isrc": "NLF057790012",
+          "release_date": "2017-04-21",
+          "bpm": 104.93,
+          "rank": 835870,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/350027751"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab6a1019c7c780f08385a79",
+      "title": "MATHÉMATIQUE",
+      "artist": "Leto & IDS",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3629713082,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-25T16:27:45.422Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 132,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3629713082,
+          "title": "MATHÉMATIQUE",
+          "artist": "Leto",
+          "album": "THUG CEREMONY",
+          "duration": 153,
+          "isrc": "DGA062598172",
+          "release_date": "2025-11-07",
+          "bpm": null,
+          "rank": 892679,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/3629713082"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab6895e9c7c780f08383623",
+      "title": "Marcia Baïla",
+      "artist": "Les Rita Mitsouko",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 355774881,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-25T14:46:54.275Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 126,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 355774881,
+          "title": "Marcia Baïla",
+          "artist": "Les Rita Mitsouko",
+          "album": "Rita Mitsouko",
+          "duration": 335,
+          "isrc": "FRZ188400070",
+          "release_date": "1984-01-04",
+          "bpm": null,
+          "rank": 917390,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/355774881"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    },
+    {
+      "_id": "6ab678929c7c780f083820f5",
+      "title": "Petit frère",
+      "artist": "IAM",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 73956352,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "createdAt": "2026-09-25T13:35:14.085Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 88,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 73956352,
+          "title": "Petit frère",
+          "artist": "IAM",
+          "album": "L'école du micro d'argent",
+          "duration": 285,
+          "isrc": "FRY689700510",
+          "release_date": "1999-03-04",
+          "bpm": 88,
+          "rank": 857438,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/73956352"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      }
+    }
+  ]
+}
