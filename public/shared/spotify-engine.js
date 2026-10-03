@@ -34,8 +34,9 @@ export default class SpotifyEngine extends BasePlayerEngine {
   /**
    * Traduction du state Spotify (sonde /me/player) → contrat commun + événements.
    * Sémantique : 'trackChanged' à chaque changement d'URI (y compris la 1re sonde, sans
-   * 'trackEnded') ; 'trackEnded' pour l'URI précédente juste avant ; rejouer le MÊME titre
-   * (prev) n'émet rien. 'stateChanged' à chaque sonde.
+   * 'trackEnded') ; 'trackEnded' pour l'URI précédente juste avant — SAUF quand le Web
+   * Playback SDK est actif (device navigateur), où onTrackEnd est la seule autorité de fin ;
+   * rejouer le MÊME titre (prev) n'émet rien. 'stateChanged' à chaque sonde.
    */
   _onSpotifyState(s) {
     if (!s) return;
@@ -53,7 +54,13 @@ export default class SpotifyEngine extends BasePlayerEngine {
     if (providerId && providerId !== this._lastProviderId) {
       const prev = this._lastProviderId;
       this._lastProviderId = providerId;
-      if (prev) this._emit('trackEnded', { providerId: prev });
+      // ★ 03/10/2026 — fin de titre à la racine : avec le Web Playback SDK actif
+      //   (this.raw._sdkDeviceId défini), onTrackEnd est la SEULE autorité de fin. Le
+      //   trackEnded déduit ici du changement d'URI par la sonde Connect est toujours
+      //   périmé/redondant et déclenchait la cascade de double-avance (jusqu'ici neutralisée
+      //   seulement par le garde côté cockpit). On ne l'émet donc que sans SDK (mobile /
+      //   Connect-only). trackChanged/stateChanged (sonde d'affichage) restent inchangés.
+      if (prev && !this.raw._sdkDeviceId) this._emit('trackEnded', { providerId: prev });
       this._emit('trackChanged', { ...this._state });
     }
     this._emit('stateChanged', { ...this._state });
