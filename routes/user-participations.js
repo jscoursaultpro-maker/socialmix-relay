@@ -66,8 +66,8 @@ router.get('/:code/details', async (req, res) => {
     ]);
 
     const tracks = hph.map(h => ({
-      title: h.trackData?.title || h.titleFallback || 'Unknown Track',
-      artist: h.trackData?.artist || h.artistFallback || 'Unknown Artist',
+      title: h.trackData?.title || h.title || h.titleFallback || 'Unknown Track',
+      artist: h.trackData?.artist || h.artist || h.artistFallback || 'Unknown Artist',
       genre: h.trackData?.genre || h.genreFallback || '',
       bpm: h.trackData?.bpm || 0,
       playedAt: h.playedAt,
