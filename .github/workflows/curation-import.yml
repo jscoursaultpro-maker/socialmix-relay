@@ -20,6 +20,10 @@ on:
         description: 'Simuler sans écrire en BDD'
         type: boolean
         default: false
+      force_reclassify:
+        description: 'Forcer la ré-écriture des tracks complete/platine (hotfix doctrine)'
+        type: boolean
+        default: false
 
 concurrency:
   group: curation-data
@@ -48,6 +52,7 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           APPLY_MIN_CONFIDENCE: ${{ github.event_name == 'schedule' && (vars.CURATION_MIN_CONFIDENCE || 'high') || inputs.apply_min_confidence }}
           DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '0' }}
+          FORCE_RECLASSIFY: ${{ (github.event_name == 'workflow_dispatch' && inputs.force_reclassify) && '1' || '0' }}
         run: |
           FILE_ARG=""
           if [ -n "${{ inputs.file }}" ]; then FILE_ARG="--file ${{ inputs.file }}"; fi
