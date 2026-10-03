@@ -1,0 +1,5724 @@
+{
+  "_meta": {
+    "file": "2026-10-03-a",
+    "created_at": "2026-10-03T05:59:32.029Z",
+    "mode": "stock",
+    "total": 100,
+    "sidelined": 22,
+    "doctrine": "scripts/curation/DOCTRINE_PREMIUM_V2.md",
+    "instructions": "scripts/curation/CLAUDE_CURATION_PROMPT.md",
+    "output_expected": "outbox/2026-10-03-a.json",
+    "bpm_signal_analysis": {
+      "stats": {
+        "total": 100,
+        "analyzed": 94,
+        "skipped_no_preview": 6,
+        "failed": 0
+      },
+      "run_at": "2026-10-03T06:02:37Z",
+      "method": "librosa.feature.tempo on Deezer 30 s preview"
+    }
+  },
+  "tracks": [
+    {
+      "_id": "6ac0331466f916ca34ec8d4d",
+      "title": "Hey Jude (Remastered 2015)",
+      "artist": "The Beatles",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 116348632,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-02T22:41:24.642Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 147,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 116348632,
+          "title": "Hey Jude (Remastered 2015)",
+          "artist": "The Beatles",
+          "album": "1 (Remastered 2015)",
+          "duration": 429,
+          "isrc": "GBUM71505902",
+          "release_date": "2015-12-24",
+          "bpm": 147.66,
+          "rank": 859208,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/116348632",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/b/e/3/0/be3c33e5b05a25dc63b8951748615d74.mp3?hdnea=exp=1791007951~acl=/api/1/1/b/e/3/0/be3c33e5b05a25dc63b8951748615d74.mp3*~data=user_id=0,application_id=42~hmac=2ed5b4c4ab110efa07fc7575545a23aee5dc3c1584f019af12ba10ba4cfac1dc"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 152.0,
+        "bpm_deezer": 147.66,
+        "bpm_recommended": 152.0,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6ac01bb766f916ca34ec6b3b",
+      "title": "Murder On the Dancefloor",
+      "artist": "Coral Reef, Alex Grey & Skye",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2647333362,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-02T21:01:43.726Z",
+      "current": {
+        "genre": "Disco",
+        "phase": null,
+        "bpm": 126,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2647333362,
+          "title": "Murder On The Dancefloor",
+          "artist": "Alex Grey",
+          "album": "Murder On The Dancefloor",
+          "duration": 176,
+          "isrc": "NLYK92400027",
+          "release_date": "2024-02-09",
+          "bpm": null,
+          "rank": 485366,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2647333362",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/3/4/d/0/34d801671bab386a16522e076f140dcd.mp3?hdnea=exp=1791007952~acl=/api/1/1/3/4/d/0/34d801671bab386a16522e076f140dcd.mp3*~data=user_id=0,application_id=42~hmac=a9b1f230e82ebdc0b543e2ebc7e870b5a78c2202f73492563312e21cda94829b"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 129.2,
+        "bpm_deezer": null,
+        "bpm_recommended": 129.2,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6ac01a0f66f916ca34ec6a3c",
+      "title": "Messy",
+      "artist": "Ted Bear & Nito-Onna",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3217202531,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-02T20:54:39.709Z",
+      "current": {
+        "genre": "Hip-Hop",
+        "phase": null,
+        "bpm": 122,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3217202531,
+          "title": "Messy",
+          "artist": "Ted Bear",
+          "album": "Messy",
+          "duration": 224,
+          "isrc": "FXR752412525",
+          "release_date": "2025-02-05",
+          "bpm": null,
+          "rank": 595290,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3217202531",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/5/9/a/0/59adb8a8c216d9759b0bef2bc31baf39.mp3?hdnea=exp=1791007953~acl=/api/1/1/5/9/a/0/59adb8a8c216d9759b0bef2bc31baf39.mp3*~data=user_id=0,application_id=42~hmac=218d58610e1d22a6d210e76be16573bd46093c0f3245b77a137e525a0524941e"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6ac017cc66f916ca34ec68dc",
+      "title": "Stars",
+      "artist": "Bikini Bandits, Kai Sol & Emily Dawn",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3231148821,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-02T20:45:00.685Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": 104,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3231148821,
+          "title": "Stars",
+          "artist": "Bikini Bandits",
+          "album": "Stars",
+          "duration": 189,
+          "isrc": "NLYK92500095",
+          "release_date": "2025-03-14",
+          "bpm": null,
+          "rank": 490268,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3231148821",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/3/7/e/0/37e29bdbf7e015a4ff4297fc91d661d0.mp3?hdnea=exp=1791007954~acl=/api/1/1/3/7/e/0/37e29bdbf7e015a4ff4297fc91d661d0.mp3*~data=user_id=0,application_id=42~hmac=fb07967b0265ce33dc5cd09c896d743c6f84aaccee43938c97f9527063960ec6"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 103.4,
+        "bpm_deezer": null,
+        "bpm_recommended": 103.4,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6ac0162466f916ca34ec67f6",
+      "title": "Positive",
+      "artist": "Jamback",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3604108432,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-02T20:37:56.717Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 129,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3604108432,
+          "title": "Positive",
+          "artist": "Jamback",
+          "album": "Positive",
+          "duration": 169,
+          "isrc": "QMFMF2549064",
+          "release_date": "2025-11-07",
+          "bpm": null,
+          "rank": 611274,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3604108432",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/4/2/6/0/42651180750dbc1f92db438af0f3822a.mp3?hdnea=exp=1791007955~acl=/api/1/1/4/2/6/0/42651180750dbc1f92db438af0f3822a.mp3*~data=user_id=0,application_id=42~hmac=26bd05a18fd1dda12919ada41bc284e9b7fd868ffea303efdfa54f5d9ecbc4cf"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 129.2,
+        "bpm_deezer": null,
+        "bpm_recommended": 129.2,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6ac00b5866f916ca34ec5678",
+      "title": "Night Fever",
+      "artist": "Bando do Sul",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 61448544,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-02T19:51:52.717Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 109,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 61448544,
+          "title": "Night Fever",
+          "artist": "Banda Do Sul",
+          "album": "Banda Do Sul",
+          "duration": 207,
+          "isrc": "ARF411100990",
+          "release_date": "2012-09-13",
+          "bpm": 109.96,
+          "rank": 360940,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/61448544",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/c/e/d/0/ced7c03b01ec73b3fb7b6cf487334df4.mp3?hdnea=exp=1791007957~acl=/api/1/1/c/e/d/0/ced7c03b01ec73b3fb7b6cf487334df4.mp3*~data=user_id=0,application_id=42~hmac=574892aef6dbfd20e45b7f5c33260dd029fa31a5de07df5405caba9b9bc4b4eb"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 112.3,
+        "bpm_deezer": 109.96,
+        "bpm_recommended": 112.3,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6ac008b266f916ca34ec5196",
+      "title": "Mundian to Bach Ke",
+      "artist": "Panjabi MC",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2139840647,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-02T19:40:34.222Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 96,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2139840647,
+          "title": "Mundian To Bach Ke",
+          "artist": "Panjabi MC",
+          "album": "The Album",
+          "duration": 245,
+          "isrc": "GBWYK1800101",
+          "release_date": "2003-05-05",
+          "bpm": null,
+          "rank": 696869,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2139840647",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/b/a/c/0/bac58af20a1e237825938476e6a31522.mp3?hdnea=exp=1791007958~acl=/api/1/1/b/a/c/0/bac58af20a1e237825938476e6a31522.mp3*~data=user_id=0,application_id=42~hmac=3b09e2b5308a7e263ca0c6ede9efd2506a4fc4c73ea6723438dbb0599c53bfa3"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 99.4,
+        "bpm_deezer": null,
+        "bpm_recommended": 99.4,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6ac007e966f916ca34ec513e",
+      "title": "Aerodynamic",
+      "artist": "Daft Punk",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3135554,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-02T19:37:13.208Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 123,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3135554,
+          "title": "Aerodynamic",
+          "artist": "Daft Punk",
+          "album": "Discovery",
+          "duration": 212,
+          "isrc": "GBDUW0000057",
+          "release_date": "2001-03-12",
+          "bpm": null,
+          "rank": 765541,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3135554",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/6/9/9/0/699d41611cf0280f0a55c8ba4a372c14.mp3?hdnea=exp=1791007959~acl=/api/1/1/6/9/9/0/699d41611cf0280f0a55c8ba4a372c14.mp3*~data=user_id=0,application_id=42~hmac=c319f8e8963961524a6c628029b8502993f11e4e88bc904ec0d9a7e3a1cda817"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6ac0066866f916ca34ec5075",
+      "title": "Tokyo At Dusk",
+      "artist": "Napkey",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 1488788482,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-02T19:30:48.238Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 117,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 1488788482,
+          "title": "Tokyo At Dusk",
+          "artist": "Napkey",
+          "album": "42",
+          "duration": 389,
+          "isrc": "FRPES1600630",
+          "release_date": "2021-09-10",
+          "bpm": null,
+          "rank": 338445,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/1488788482",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/4/8/0/14855cf065038bbeca3e10418d949a34.mp3?hdnea=exp=1791007960~acl=/api/1/1/1/4/8/0/14855cf065038bbeca3e10418d949a34.mp3*~data=user_id=0,application_id=42~hmac=3a939cbc800157a3c93f37a14810abdb3cc959ba73ffbb13066dc6d75afe36dc"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6ac005c466f916ca34ec4feb",
+      "title": "C'est la Vie",
+      "artist": "Mahona & House Arrest",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3569701101,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-02T19:28:04.961Z",
+      "current": {
+        "genre": "Hip-Hop",
+        "phase": null,
+        "bpm": 111,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3569701101,
+          "title": "C'est La Vie",
+          "artist": "Mahona",
+          "album": "C'est La Vie",
+          "duration": 132,
+          "isrc": "NLYK92500710",
+          "release_date": "2025-10-10",
+          "bpm": null,
+          "rank": 417350,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3569701101",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/2/8/b/0/28b5cd4d6772867de695ba5e9ae35bc9.mp3?hdnea=exp=1791007961~acl=/api/1/1/2/8/b/0/28b5cd4d6772867de695ba5e9ae35bc9.mp3*~data=user_id=0,application_id=42~hmac=75190365a0c8e6c077e881900fa4b37101b5c8228c8675425f896038673e166b"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 112.3,
+        "bpm_deezer": null,
+        "bpm_recommended": 112.3,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6abffbf766f916ca34ec49f9",
+      "title": "Couleur menthe à l'eau",
+      "artist": "Eddy Mitchell",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 502755302,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-02T18:46:15.028Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 140,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 502755302,
+          "title": "Couleur menthe à l'eau",
+          "artist": "Eddy Mitchell",
+          "album": "La même tribu (Vol. 2)",
+          "duration": 219,
+          "isrc": "FRUM71800322",
+          "release_date": "2018-05-25",
+          "bpm": 140.15,
+          "rank": 659027,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/502755302",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/d/a/7/0/da7463ba8173a57bf337986ac38a5316.mp3?hdnea=exp=1791007962~acl=/api/1/1/d/a/7/0/da7463ba8173a57bf337986ac38a5316.mp3*~data=user_id=0,application_id=42~hmac=69d9d7bafd1f00e65a91c1c0e83de1d2aea3c72e420e0d1c26a53b130e312e03"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 143.6,
+        "bpm_deezer": 140.15,
+        "bpm_recommended": 143.6,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a82dd2dcbdff7847492eaa2",
+      "title": "Riptide (feat. Ilan Kidron)",
+      "artist": "Sigala & Jaxomy",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3441858141,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-17T10:06:37.797Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 122,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3441858141,
+          "title": "Riptide (feat. Ilan Kidron)",
+          "artist": "Sigala",
+          "album": "Riptide (feat. Ilan Kidron)",
+          "duration": 138,
+          "isrc": "GBCEN2500095",
+          "release_date": "2025-07-11",
+          "bpm": null,
+          "rank": 670177,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3441858141",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/9/2/0/0/920c6ab16a47db06d6fa30171caa65d2.mp3?hdnea=exp=1791007964~acl=/api/1/1/9/2/0/0/920c6ab16a47db06d6fa30171caa65d2.mp3*~data=user_id=0,application_id=42~hmac=8692d0dbcfba5a3b714464066f4b163af767fb5b196e672fd8b8a29fc76ea7b5"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a82d9d2cbdff7847492e861",
+      "title": "Ça va !",
+      "artist": "DJ Bens",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2371280195,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-17T09:52:18.538Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2371280195,
+          "title": "Ça va !",
+          "artist": "DJ Bens",
+          "album": "Ça va !",
+          "duration": 154,
+          "isrc": "FRZ082300388",
+          "release_date": "2023-06-07",
+          "bpm": null,
+          "rank": 648971,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/2371280195",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/f/c/5/0/fc5b775e870f0ee4f3f1fe3390d87d57.mp3?hdnea=exp=1791007965~acl=/api/1/1/f/c/5/0/fc5b775e870f0ee4f3f1fe3390d87d57.mp3*~data=user_id=0,application_id=42~hmac=091cf90afbcaa31ad7f9ad71c18d7b9fd3c599cb6c0ea6099dca88e545b6ebbe"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a81ef58cbdff78474926d8b",
+      "title": "Dame Fuego",
+      "artist": "Les Castizos & MVRIN",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3787279892,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-16T17:11:52.512Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 122,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3787279892,
+          "title": "Dame Fuego",
+          "artist": "Les Castizos",
+          "album": "Dame Fuego",
+          "duration": 228,
+          "isrc": "CH7812659939",
+          "release_date": "2026-02-13",
+          "bpm": null,
+          "rank": 369508,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3787279892",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/3/c/3/0/3c31e591585b916b4cfa67363eb2867f.mp3?hdnea=exp=1791007967~acl=/api/1/1/3/c/3/0/3c31e591585b916b4cfa67363eb2867f.mp3*~data=user_id=0,application_id=42~hmac=224c100d929af3510b57f49c7a17aed6a3ae0af74dc3fc1e2712928e0f29921a"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a81e786cbdff78474926adc",
+      "title": "Sex Model",
+      "artist": "PLK & Theodora",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3842413311,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-16T16:38:30.238Z",
+      "current": {
+        "genre": "Hip-Hop",
+        "phase": null,
+        "bpm": 160,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3842413311,
+          "title": "Sex Model",
+          "artist": "PLK",
+          "album": "Sex Model",
+          "duration": 166,
+          "isrc": "FR7O52600070",
+          "release_date": "2026-02-20",
+          "bpm": null,
+          "rank": 999858,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3842413311",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/7/3/a/0/73ab6bc45610720d05616415f3eea253.mp3?hdnea=exp=1791007967~acl=/api/1/1/7/3/a/0/73ab6bc45610720d05616415f3eea253.mp3*~data=user_id=0,application_id=42~hmac=4b35deebb3f3f0efa9c4634f73e9f92f2bb38f7457ba00f288c3d6f4a3ba048b"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 107.7,
+        "bpm_deezer": null,
+        "bpm_recommended": 107.7,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a81d93ccbdff784749265dd",
+      "title": "Let Me Go",
+      "artist": "Karim Naas & ZHIKO",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3472745331,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-16T15:37:32.239Z",
+      "current": {
+        "genre": "Afro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3472745331,
+          "title": "Let Me Go",
+          "artist": "Karim Naas",
+          "album": "Let Me Go",
+          "duration": 139,
+          "isrc": "BE8LH2500343",
+          "release_date": "2025-09-05",
+          "bpm": null,
+          "rank": 144279,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3472745331",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/3/2/6/0/326b9ea5ad7c28461f40a847d7a94359.mp3?hdnea=exp=1791007968~acl=/api/1/1/3/2/6/0/326b9ea5ad7c28461f40a847d7a94359.mp3*~data=user_id=0,application_id=42~hmac=12780d3729e2a9bd1442caa33342b164f8d72c3677e54583ccc61fb62308050e"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a81d353cbdff784749263e7",
+      "title": "BROWN SUGAH",
+      "artist": "Isaiah Falls & SiR",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3505212631,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-16T15:12:19.664Z",
+      "current": {
+        "genre": "Hip-Hop",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3505212631,
+          "title": "BROWN SUGAH",
+          "artist": "Isaiah Falls",
+          "album": "BROWN SUGAH",
+          "duration": 170,
+          "isrc": "NL8RL2551082",
+          "release_date": "2025-09-05",
+          "bpm": null,
+          "rank": 513275,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3505212631",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/5/2/a/0/52a8d0af954a846ce02815acfe13ce1b.mp3?hdnea=exp=1791007969~acl=/api/1/1/5/2/a/0/52a8d0af954a846ce02815acfe13ce1b.mp3*~data=user_id=0,application_id=42~hmac=d465ada4f28cd523f5c12dd1dae75a8224efee81e19aa12afaf7bdbd9fb4b1f2"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a81cf04cbdff78474926269",
+      "title": "Is This Love",
+      "artist": "TRYBE & RAZZ",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3689618172,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-16T14:53:56.332Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3689618172,
+          "title": "Is This Love",
+          "artist": "Trybe",
+          "album": "Is This Love",
+          "duration": 194,
+          "isrc": "BE8LH2500522",
+          "release_date": "2026-01-30",
+          "bpm": null,
+          "rank": 312196,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3689618172",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/3/8/0/0/38063293128c082edc5d5d1b4419e84a.mp3?hdnea=exp=1791007970~acl=/api/1/1/3/8/0/0/38063293128c082edc5d5d1b4419e84a.mp3*~data=user_id=0,application_id=42~hmac=7e17ef8152080f47ae488a1cdfb3685dacb560df00b7ca6f135bd84d7d36e099"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a80d995cbdff7847491f0cf",
+      "title": "Otherside",
+      "artist": "Monkey Safari & AWEN",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3924487721,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T21:26:45.126Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 122,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3924487721,
+          "title": "Otherside",
+          "artist": "Monkey Safari",
+          "album": "Otherside",
+          "duration": 273,
+          "isrc": "FR59R2658452",
+          "release_date": "2026-04-24",
+          "bpm": null,
+          "rank": 212594,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3924487721",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/2/e/6/0/2e69b34523ef31bb1fa654a1704bd2d0.mp3?hdnea=exp=1791007973~acl=/api/1/1/2/e/6/0/2e69b34523ef31bb1fa654a1704bd2d0.mp3*~data=user_id=0,application_id=42~hmac=4bdb9dea6bacae4a143356bf2f8ebe132bd8b82c2012ad553a8a11c4bf0afb9a"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a80d42acbdff7847491ee67",
+      "title": "Astronaute",
+      "artist": "An'Om & Vayn",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3481004631,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T21:03:38.167Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3481004631,
+          "title": "Astronaute",
+          "artist": "An'Om",
+          "album": "Astronaute",
+          "duration": 438,
+          "isrc": "CH6541836026",
+          "release_date": "2018-06-22",
+          "bpm": null,
+          "rank": 879185,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3481004631",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/7/5/a/0/75a343641744c18588fc524e624b1383.mp3?hdnea=exp=1791007975~acl=/api/1/1/7/5/a/0/75a343641744c18588fc524e624b1383.mp3*~data=user_id=0,application_id=42~hmac=8964c0a8da539c870b6f0465c7792c2095797596bfe9445d66b37e9589bd0dab"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 143.6,
+        "bpm_deezer": null,
+        "bpm_recommended": 143.6,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a80d27dcbdff7847491eded",
+      "title": "Cars Hiss By My Window",
+      "artist": "The Doors",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 65445460,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T20:56:29.151Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 65445460,
+          "title": "Cars Hiss by My Window",
+          "artist": "The Doors",
+          "album": "L.A. Woman",
+          "duration": 249,
+          "isrc": "USEE19900767",
+          "release_date": "1971-01-01",
+          "bpm": 106.6,
+          "rank": 480242,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/65445460",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/c/6/d/0/c6de382c20776b0a5394acf56655fbff.mp3?hdnea=exp=1791007976~acl=/api/1/1/c/6/d/0/c6de382c20776b0a5394acf56655fbff.mp3*~data=user_id=0,application_id=42~hmac=054f265f006b10e5dfef042af87c0c11d71816ce05b725475add5ca086ebeaf9"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 107.7,
+        "bpm_deezer": 106.6,
+        "bpm_recommended": 107.7,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a80cf51cbdff7847491ed06",
+      "title": "Calm Down",
+      "artist": "DJ Goja & Magic Phase",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2326109875,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T20:42:57.611Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2326109875,
+          "title": "Calm Down",
+          "artist": "DJ Goja",
+          "album": "Calm Down",
+          "duration": 182,
+          "isrc": "QZS662219068",
+          "release_date": "2022-09-19",
+          "bpm": null,
+          "rank": 588881,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2326109875",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/0/c/f/0/0cfbcf97451ad8aa6fb30361374b9a03.mp3?hdnea=exp=1791007977~acl=/api/1/1/0/c/f/0/0cfbcf97451ad8aa6fb30361374b9a03.mp3*~data=user_id=0,application_id=42~hmac=ec01dda4742ba7d74e5bc74942e2a40d445dc0a7e78698b3ae0e1b0143bfe1f2"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 112.3,
+        "bpm_deezer": null,
+        "bpm_recommended": 112.3,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a80b433cbdff7847491e4af",
+      "title": "It's Time to Wake Up 2023",
+      "artist": "La Femme",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 66539569,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T18:47:15.554Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 66539569,
+          "title": "It's Time to Wake Up 2023",
+          "artist": "La Femme",
+          "album": "Psycho Tropical Berlin",
+          "duration": 411,
+          "isrc": "FR9W11215239",
+          "release_date": "2013-04-20",
+          "bpm": 110,
+          "rank": 551454,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/66539569",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/c/6/0/0/c60803664c46ef076ec152daa89124f6.mp3?hdnea=exp=1791007979~acl=/api/1/1/c/6/0/0/c60803664c46ef076ec152daa89124f6.mp3*~data=user_id=0,application_id=42~hmac=cc89f587390b9972449d68409dbd30578ec3a4d73282c469b5cfb2079d778d88"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 112.3,
+        "bpm_deezer": 110,
+        "bpm_recommended": 112.3,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a809670cbdff7847491d3ee",
+      "title": "Echoes",
+      "artist": "House Arrest, Afterglow & Justin Case",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3539477501,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T16:40:16.255Z",
+      "current": {
+        "genre": "Dance Pop",
+        "phase": null,
+        "bpm": 123,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3539477501,
+          "title": "Echoes",
+          "artist": "House Arrest",
+          "album": "Echoes",
+          "duration": 144,
+          "isrc": "NLYK92500541",
+          "release_date": "2025-09-08",
+          "bpm": null,
+          "rank": 298221,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3539477501",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/9/0/4/0/9046611c5d429e6ff74deb403d062aa6.mp3?hdnea=exp=1791007981~acl=/api/1/1/9/0/4/0/9046611c5d429e6ff74deb403d062aa6.mp3*~data=user_id=0,application_id=42~hmac=c8a1eb0b360d51656b3100fa403dd411c3c8af9d60b7b642adf27a34e5c6f266"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.67,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a807c6dcbdff7847491ca16",
+      "title": "Money For Nothing (Live at Live Aid, Wembley Stadium, 13th July 1985)",
+      "artist": "Dire Straits & Sting",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 1306695732,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T14:49:17.025Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 1306695732,
+          "title": "Money for Nothing (Live at Wembley Stadium, 13th July 1985)",
+          "artist": "Dire Straits",
+          "album": "Dire Straits at Live Aid (Live at Wembley Stadium, 13th July 1985)",
+          "duration": 442,
+          "isrc": "UK6821836633",
+          "release_date": "2021-04-26",
+          "bpm": null,
+          "rank": 405947,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/1306695732",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/8/6/d/0/86da1d1cf16100f1a546faeb82f04bcd.mp3?hdnea=exp=1791007983~acl=/api/1/1/8/6/d/0/86da1d1cf16100f1a546faeb82f04bcd.mp3*~data=user_id=0,application_id=42~hmac=44990b106dd86ebef96ec630d696188c79f254684789eea7d99e849ed3d02870"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a807661cbdff7847491c849",
+      "title": "Le Séducteur",
+      "artist": "Théo Coni",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2914135551,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T14:23:29.658Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2914135551,
+          "title": "Le Séducteur",
+          "artist": "Théo Coni",
+          "album": "Le Séducteur",
+          "duration": 212,
+          "isrc": "TCAIN2446016",
+          "release_date": "2024-07-27",
+          "bpm": null,
+          "rank": 332595,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/2914135551",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/8/1/b/0/81b595e4aa7873142d8afa7b96fcfee1.mp3?hdnea=exp=1791007983~acl=/api/1/1/8/1/b/0/81b595e4aa7873142d8afa7b96fcfee1.mp3*~data=user_id=0,application_id=42~hmac=2513902f74df6e5a63835801459343566f32547bfe62d2009d86a2c638c42bf4"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a804023cbdff7847491aea8",
+      "title": "Come On Over",
+      "artist": "Evan Cole, Lumin-8 & House Arrest",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3463349081,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T10:32:03.609Z",
+      "current": {
+        "genre": "Pop",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3463349081,
+          "title": "Come On Over",
+          "artist": "Evan Cole",
+          "album": "Come On Over",
+          "duration": 148,
+          "isrc": "NLYK92500399",
+          "release_date": "2025-07-25",
+          "bpm": null,
+          "rank": 552549,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3463349081",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/d/9/3/0/d93e772fa1f482aa23f9bb73a98e481d.mp3?hdnea=exp=1791007984~acl=/api/1/1/d/9/3/0/d93e772fa1f482aa23f9bb73a98e481d.mp3*~data=user_id=0,application_id=42~hmac=2b283fb413c82fc2eaffc060cb8b2eba9c35dcf3f78968ca956f4085d5134148"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a7fb272cbdff78474915eb7",
+      "title": "Shining",
+      "artist": "joki & Chella",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3505346531,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T00:27:30.410Z",
+      "current": {
+        "genre": "Afro",
+        "phase": null,
+        "bpm": 116,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3505346531,
+          "title": "Shining",
+          "artist": "joki",
+          "album": "Shining",
+          "duration": 153,
+          "isrc": "BE8LH2500386",
+          "release_date": "2025-08-22",
+          "bpm": null,
+          "rank": 257582,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3505346531",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/5/4/0/0/540eaccc9e1c7507403b4a9dcd02f9cd.mp3?hdnea=exp=1791007986~acl=/api/1/1/5/4/0/0/540eaccc9e1c7507403b4a9dcd02f9cd.mp3*~data=user_id=0,application_id=42~hmac=f774c563da4184990644735db147136418c2448a0525aa83d508733206d79afa"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a7fb266cbdff78474915eb2",
+      "title": "Shatta Confessions",
+      "artist": "Meryl & N'Ken",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3399817861,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T00:27:18.126Z",
+      "current": {
+        "genre": "Hip-Hop",
+        "phase": null,
+        "bpm": 97,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3399817861,
+          "title": "Shatta Confessions",
+          "artist": "Meryl",
+          "album": "Shatta Confessions",
+          "duration": 121,
+          "isrc": "QZTAY2537484",
+          "release_date": "2025-06-06",
+          "bpm": null,
+          "rank": 970122,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/3399817861",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/b/a/e/0/baee435452e7f1e6ba54f66e76c96659.mp3?hdnea=exp=1791007987~acl=/api/1/1/b/a/e/0/baee435452e7f1e6ba54f66e76c96659.mp3*~data=user_id=0,application_id=42~hmac=a191a5f13d4d4d69b5675f1d3696769de05c47dcba25402b69529b5d95c44d72"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 129.2,
+        "bpm_deezer": null,
+        "bpm_recommended": 129.2,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a7fb256cbdff78474915eac",
+      "title": "High Caliber",
+      "artist": "Mahona & Evan Cole",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3527220561,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-15T00:27:02.690Z",
+      "current": {
+        "genre": "Hip-Hop",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3527220561,
+          "title": "High Caliber",
+          "artist": "Mahona",
+          "album": "High Caliber",
+          "duration": 115,
+          "isrc": "NLYK92500510",
+          "release_date": "2025-09-26",
+          "bpm": null,
+          "rank": 553794,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3527220561",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/8/b/d/0/8bd01f4bb8bddd20034d0a33e27d66ed.mp3?hdnea=exp=1791007988~acl=/api/1/1/8/b/d/0/8bd01f4bb8bddd20034d0a33e27d66ed.mp3*~data=user_id=0,application_id=42~hmac=0dd069616434521c471b9beb68c2824d31b22369bcedd0c0200053b033b998ce"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 112.3,
+        "bpm_deezer": null,
+        "bpm_recommended": 112.3,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a7f4a9dcbdff78474912d61",
+      "title": "Coco Chanel",
+      "artist": "Meryl & Eva",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3678134142,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-14T17:04:30.003Z",
+      "current": {
+        "genre": "Hip-Hop",
+        "phase": null,
+        "bpm": 100,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3678134142,
+          "title": "Coco Chanel",
+          "artist": "Meryl",
+          "album": "La Dame",
+          "duration": 131,
+          "isrc": "QT6F52580899",
+          "release_date": "2025-11-28",
+          "bpm": null,
+          "rank": 991642,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/3678134142",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/0/c/0/0/0c01dd623066f4f898757182519ee2ab.mp3?hdnea=exp=1791007989~acl=/api/1/1/0/c/0/0/0c01dd623066f4f898757182519ee2ab.mp3*~data=user_id=0,application_id=42~hmac=462a6db0878751fa48b9f8ba52a31a3bb0e66d54f486b11e4c7a7ec16334d5c9"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 136.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 136.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a7f0040cbdff7847490f1fa",
+      "title": "A Time Like This",
+      "artist": "Haywoode",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3285957751,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-14T11:47:12.151Z",
+      "current": {
+        "genre": "Disco Funk",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3285957751,
+          "title": "A Time Like This",
+          "artist": "Haywoode",
+          "album": "A Time Like This",
+          "duration": 455,
+          "isrc": "FR10S1833759",
+          "release_date": "2018-02-02",
+          "bpm": null,
+          "rank": 115756,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3285957751",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/2/4/9/0/24968ebd606e15ef2249be8fb9cb1f32.mp3?hdnea=exp=1791007990~acl=/api/1/1/2/4/9/0/24968ebd606e15ef2249be8fb9cb1f32.mp3*~data=user_id=0,application_id=42~hmac=530fa10f7e594ac178a949ebb4696d888dec44e698c24f1a9bb89b226922602f"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a7dacaecbdff784748fbd9b",
+      "title": "Diz Aí Teló (feat. Seu Jorge) [Ao Vivo]",
+      "artist": "Michel Teló",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2205483207,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-13T11:38:22.144Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2205483207,
+          "title": "Diz Aí Teló (Ao Vivo)",
+          "artist": "Michel Teló",
+          "album": "Baile do Teló (Ao Vivo)",
+          "duration": 242,
+          "isrc": "BRTKV1500057",
+          "release_date": "2015-12-18",
+          "bpm": null,
+          "rank": 104239,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2205483207",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/6/a/3/0/6a3c33b32c443ca35cd290f36284b210.mp3?hdnea=exp=1791007991~acl=/api/1/1/6/a/3/0/6a3c33b32c443ca35cd290f36284b210.mp3*~data=user_id=0,application_id=42~hmac=9560b1989157c60535816dd9fca4fb87b12b8c061399f70c0e4f5e364d3109aa"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 0.6,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 129.2,
+        "bpm_deezer": null,
+        "bpm_recommended": 129.2,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a7d9bcbcbdff784748fb1f3",
+      "title": "Promises",
+      "artist": "Calvin Harris, Sam Smith",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 542335432,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-13T10:26:19.099Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 123,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 542335432,
+          "title": "Promises",
+          "artist": "Calvin Harris",
+          "album": "Promises",
+          "duration": 213,
+          "isrc": "GBARL1801049",
+          "release_date": "2018-08-17",
+          "bpm": 123.05,
+          "rank": 857843,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/542335432",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/5/4/7/0/5470ab1da420554999cb77b5bd33348b.mp3?hdnea=exp=1791007992~acl=/api/1/1/5/4/7/0/5470ab1da420554999cb77b5bd33348b.mp3*~data=user_id=0,application_id=42~hmac=984e577ba1afb6bfab3e83be2f5d149ad33b9c76f89921da5febc94544810bbe"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": 123.05,
+        "bpm_recommended": 123.0,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a7d9985cbdff784748fb0b9",
+      "title": "Comes Down",
+      "artist": "Avondzy & BAF",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3316169101,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-13T10:16:37.097Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3316169101,
+          "title": "Comes Down",
+          "artist": "Avondzy",
+          "album": "Comes Down",
+          "duration": 142,
+          "isrc": "NLYK92500125",
+          "release_date": "2025-05-09",
+          "bpm": null,
+          "rank": 296273,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3316169101",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/f/a/0/1fa8c35f8e9491433b66d05dcdfa0b72.mp3?hdnea=exp=1791007993~acl=/api/1/1/1/f/a/0/1fa8c35f8e9491433b66d05dcdfa0b72.mp3*~data=user_id=0,application_id=42~hmac=36a27d2b851efdf6fb12c59cce25814935d2f74de538f93eb87b179dd148d4ec"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a7d9299cbdff784748fac64",
+      "title": "Last Summer",
+      "artist": "Afrodisiak & Moonlight",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3949801371,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-13T09:47:05.127Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3949801371,
+          "title": "Last Summer",
+          "artist": "Afrodisiak",
+          "album": "Last Summer",
+          "duration": 159,
+          "isrc": "GBRKQ2607253",
+          "release_date": "2026-05-08",
+          "bpm": null,
+          "rank": 234422,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3949801371",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/d/1/9/0/d190d89ddb9dc2a45a92b4d4b33a0ab1.mp3?hdnea=exp=1791007994~acl=/api/1/1/d/1/9/0/d190d89ddb9dc2a45a92b4d4b33a0ab1.mp3*~data=user_id=0,application_id=42~hmac=ffee9a69364f1e0fff829aba9c1785243fc02855618209eae882c7dac614dca2"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a7d8ffdcbdff784748fa8a5",
+      "title": "Pot-Pourri: O Menino da Porteira / Ai Se Eu Te Pego (Ao Vivo)",
+      "artist": "Michel Teló",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 395105192,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-13T09:35:57.111Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 395105192,
+          "title": "Pot-Pourri: O Menino da Porteira / Ai Se Eu Te Pego (Ao Vivo)",
+          "artist": "Michel Teló",
+          "album": "Bem Sertanejo - O Show (Ao Vivo)",
+          "duration": 181,
+          "isrc": "BRTKV1700013",
+          "release_date": "2017-08-18",
+          "bpm": 95.93,
+          "rank": 198861,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/395105192",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/6/7/3/0/673890f7ce2bea596f247652e5cad1cb.mp3?hdnea=exp=1791007995~acl=/api/1/1/6/7/3/0/673890f7ce2bea596f247652e5cad1cb.mp3*~data=user_id=0,application_id=42~hmac=c6b66cfaa0fe2bc10b4af1a2ef9a1d510f6ecf221a1cd55b4ab46c928f4bc28e"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 95.7,
+        "bpm_deezer": 95.93,
+        "bpm_recommended": 95.7,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a79c41ad9c55c68ccd290ab",
+      "title": "Tonight (I'm F****n' You) [feat. Ludacris & DJ Frank E]",
+      "artist": "Enrique Iglesias",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 10202476,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-10T12:29:14.249Z",
+      "current": {
+        "genre": "Pop/Hip-Hop",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 10202476,
+          "title": "Tonight (I'm Fuckin' You)",
+          "artist": "Enrique Iglesias",
+          "album": "Euphoria",
+          "duration": 234,
+          "isrc": "GBUM71029652",
+          "release_date": "2011-03-28",
+          "bpm": 126,
+          "rank": 590197,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/10202476",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/3/6/0/136ccfb35462a9b89b44a140a9c60809.mp3?hdnea=exp=1791007997~acl=/api/1/1/1/3/6/0/136ccfb35462a9b89b44a140a9c60809.mp3*~data=user_id=0,application_id=42~hmac=307dd1e27cb57bf5bf09a2e615d10cf3d1466fd77e97918b5299e2e9a00e1e16"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 0.57,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": 126,
+        "bpm_recommended": 123.0,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a773eb5d9c55c68ccd11949",
+      "title": "Titanium (feat. Sia)",
+      "artist": "David Guetta",
+      "album": null,
+      "duration_sec": null,
+      "isrc": "GB28K1100036",
+      "deezerTrackId": 62847142,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-08T14:35:33.964Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 126,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 62847142,
+          "title": "Titanium (feat. Sia)",
+          "artist": "David Guetta",
+          "album": "Nothing but the Beat (Ultimate Edition)",
+          "duration": 245,
+          "isrc": "GB28K1100036",
+          "release_date": "2012-12-07",
+          "bpm": 126.05,
+          "rank": 956365,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/62847142",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/6/7/0/0/6704168518eedd6eff222b5fb55f86c0.mp3?hdnea=exp=1791007998~acl=/api/1/1/6/7/0/0/6704168518eedd6eff222b5fb55f86c0.mp3*~data=user_id=0,application_id=42~hmac=9f7dee639c5b857e8496ae4b52aa855106074779e8dff1824a166880ff984739"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": 126.05,
+        "bpm_recommended": 123.0,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a773dd4d9c55c68ccd114cd",
+      "title": "Cassius 1999 (Radio Edit)",
+      "artist": "Cassius",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 120536302,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-08T14:31:48.535Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 120536302,
+          "title": "Cassius 1999 (Radio Edit)",
+          "artist": "Cassius",
+          "album": "1999 (Deluxe Edition)",
+          "duration": 222,
+          "isrc": "FR01Q9800031",
+          "release_date": "2016-03-25",
+          "bpm": 126.82,
+          "rank": 608648,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/120536302",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/9/1/a/0/91a73d824c7c9918c301eeb703adee3b.mp3?hdnea=exp=1791007999~acl=/api/1/1/9/1/a/0/91a73d824c7c9918c301eeb703adee3b.mp3*~data=user_id=0,application_id=42~hmac=eaf5497900bea85eecdca1f877759e76053c3e4be3ec8ff306cea48aae595cee"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 129.2,
+        "bpm_deezer": 126.82,
+        "bpm_recommended": 129.2,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a71e211e5112e9b03a45b5f",
+      "title": "Bésame Mucho (Bonus Track)",
+      "artist": "Cesária Evora",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 6586826,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-04T12:58:57.165Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 6586826,
+          "title": "Besame Mucho (Bonus Track- Great Expectations OST)",
+          "artist": "Cesária Évora",
+          "album": "Great Expectations",
+          "duration": 292,
+          "isrc": "USRHD0530206",
+          "release_date": "1998-01-01",
+          "bpm": 179.8,
+          "rank": 626171,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/6586826",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/f/e/b/0/feb4e8a562335d014484831da54e00c2.mp3?hdnea=exp=1791008000~acl=/api/1/1/f/e/b/0/feb4e8a562335d014484831da54e00c2.mp3*~data=user_id=0,application_id=42~hmac=897eda396b27fa0aedb7e41e039cb76ad7cb8810ff68909294e989984fa92b98"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 0.57,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 89.1,
+        "bpm_deezer": 179.8,
+        "bpm_recommended": 89.1,
+        "agreement": "half_time"
+      }
+    },
+    {
+      "_id": "6a71deb0e5112e9b03a4596c",
+      "title": "Walking On the Moon",
+      "artist": "The Police",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2525866,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-04T12:44:32.323Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2525866,
+          "title": "Walking On The Moon",
+          "artist": "The Police",
+          "album": "The Very Best Of Sting And The Police",
+          "duration": 301,
+          "isrc": "GBAAM7900007",
+          "release_date": "2002-02-10",
+          "bpm": 146.1,
+          "rank": 747423,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2525866",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/7/e/c/0/7ecffb2d7eb2b7ff9f0c8b3826030c07.mp3?hdnea=exp=1791008001~acl=/api/1/1/7/e/c/0/7ecffb2d7eb2b7ff9f0c8b3826030c07.mp3*~data=user_id=0,application_id=42~hmac=6cb8e558c8c3104960d155641825db6b03cd9a08e0bd0baeabe66fd0a9fe593d"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 143.6,
+        "bpm_deezer": 146.1,
+        "bpm_recommended": 143.6,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a71c3f4e5112e9b03a4425b",
+      "title": "Redemption Song",
+      "artist": "Bob Marley & The Wailers",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2542705,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-04T10:50:28.666Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 114,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2542705,
+          "title": "Redemption Song",
+          "artist": "Bob Marley & The Wailers",
+          "album": "Uprising",
+          "duration": 227,
+          "isrc": "USIR28000018",
+          "release_date": "2001-08-02",
+          "bpm": 114.84,
+          "rank": 838788,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2542705",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/6/2/0/0/620b8d26bff21f6b969a4d5f93424497.mp3?hdnea=exp=1791008002~acl=/api/1/1/6/2/0/0/620b8d26bff21f6b969a4d5f93424497.mp3*~data=user_id=0,application_id=42~hmac=6a4408214b60343092ded96b473282a405089fc324b8d3b01ba74ab90302ce5c"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": 114.84,
+        "bpm_recommended": 117.5,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a71c348e5112e9b03a4420d",
+      "title": "Three Little Birds",
+      "artist": "Bob Marley & The Wailers",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 530300641,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-04T10:47:36.628Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 144,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 530300641,
+          "title": "Three Little Birds",
+          "artist": "Bob Marley & The Wailers",
+          "album": "Legend - The Best Of Bob Marley And The Wailers",
+          "duration": 183,
+          "isrc": "USIR27700016",
+          "release_date": "2018-07-20",
+          "bpm": 148.19,
+          "rank": 892997,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/530300641",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/f/6/5/0/f6598530e2b027c128eb9706f48481bc.mp3?hdnea=exp=1791008003~acl=/api/1/1/f/6/5/0/f6598530e2b027c128eb9706f48481bc.mp3*~data=user_id=0,application_id=42~hmac=accedd1ba2aff6d49d53c2b8ac57d80a7eb6b768fc07afe2c791136ebefca02d"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 143.6,
+        "bpm_deezer": 148.19,
+        "bpm_recommended": 143.6,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a71bb66e5112e9b03a43e20",
+      "title": "Buffalo Soldier",
+      "artist": "Bob Marley & The Wailers",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2237439,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-04T10:13:58.657Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 124,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2237439,
+          "title": "Buffalo Soldier",
+          "artist": "Bob Marley & The Wailers",
+          "album": "Confrontation",
+          "duration": 256,
+          "isrc": "USIR28300004",
+          "release_date": "2001-08-02",
+          "bpm": 124.2,
+          "rank": 836675,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2237439",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/9/9/a/0/99a3fa8a8c6932f37cb9fc7b33ba5b54.mp3?hdnea=exp=1791008004~acl=/api/1/1/9/9/a/0/99a3fa8a8c6932f37cb9fc7b33ba5b54.mp3*~data=user_id=0,application_id=42~hmac=b5f1b0f95717ce37b48f770c61505d5ebac241d9659f8f454cb34b4eb0d5e0e3"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": 124.2,
+        "bpm_recommended": 123.0,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a71ba86e5112e9b03a43dcc",
+      "title": "Is This Love",
+      "artist": "Bob Marley & The Wailers",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2293791,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-08-04T10:10:14.967Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 122,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2293791,
+          "title": "Is This Love",
+          "artist": "Bob Marley & The Wailers",
+          "album": "Kaya",
+          "duration": 233,
+          "isrc": "USIR27800259",
+          "release_date": "2001-08-06",
+          "bpm": 122,
+          "rank": 873346,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2293791",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/e/b/3/0/eb388a65d6b8494aeceacd8adf67c8f0.mp3?hdnea=exp=1791008005~acl=/api/1/1/e/b/3/0/eb388a65d6b8494aeceacd8adf67c8f0.mp3*~data=user_id=0,application_id=42~hmac=5f6ad47469decde825578145e4b5e95fc0a5c6f8ff5196d052bf36e3b4e945d6"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": 122,
+        "bpm_recommended": 123.0,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a6cbae6e5112e9b03a16a71",
+      "title": "Laissez-moi danser",
+      "artist": "Dalida",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 7314746,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-31T15:10:30.601Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 7314746,
+          "title": "Laissez-moi danser",
+          "artist": "Dalida",
+          "album": "Comme Si J'Etais La",
+          "duration": 352,
+          "isrc": "FRZ019502890",
+          "release_date": "1997-07-21",
+          "bpm": 135.1,
+          "rank": 708167,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/7314746",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/8/a/5/0/8a579e44c401c2ef65776be9b99acd9d.mp3?hdnea=exp=1791008006~acl=/api/1/1/8/a/5/0/8a579e44c401c2ef65776be9b99acd9d.mp3*~data=user_id=0,application_id=42~hmac=ea48f0ac4424929e337987e2e41d2f1e8c45141121773b817650fa8a728deab4"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 136.0,
+        "bpm_deezer": 135.1,
+        "bpm_recommended": 136.0,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a6cb53ae5112e9b03a161bb",
+      "title": "Fed Up",
+      "artist": "Bazanji",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 1260603292,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-31T14:46:18.584Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 1260603292,
+          "title": "Fed Up",
+          "artist": "Bazanji",
+          "album": "Fed Up",
+          "duration": 160,
+          "isrc": "QZ4JJ1732909",
+          "release_date": "2017-01-22",
+          "bpm": 142.07,
+          "rank": 25291,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/1260603292",
+          "preview": null
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": null,
+        "bpm_deezer": 142.07,
+        "bpm_recommended": 142.07,
+        "agreement": "deezer_only"
+      }
+    },
+    {
+      "_id": "6a6b6d3b061b40413edbbe17",
+      "title": "Comment on fait",
+      "artist": "Vianney & Zazie",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2389689175,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-30T15:26:51.465Z",
+      "current": {
+        "genre": "COCOVARIET",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2389689175,
+          "title": "Comment on fait",
+          "artist": "Vianney",
+          "album": "à 2 à 3",
+          "duration": 180,
+          "isrc": "FR79W2300560",
+          "release_date": "2023-11-10",
+          "bpm": null,
+          "rank": 795007,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2389689175",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/7/1/9/0/7192fb9c66425c26e20946c5d97fd3db.mp3?hdnea=exp=1791008008~acl=/api/1/1/7/1/9/0/7192fb9c66425c26e20946c5d97fd3db.mp3*~data=user_id=0,application_id=42~hmac=529964518012b5e57bc77635d947b2a45427e4f356ba1c71f42964b10a295935"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a6b609d061b40413edbb17a",
+      "title": "Johnny Be Good",
+      "artist": "Chuck Berry",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 4006595,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-30T14:33:01.348Z",
+      "current": {
+        "genre": "Rock",
+        "phase": null,
+        "bpm": 83,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 4006595,
+          "title": "Johnny Be Goode",
+          "artist": "Chuck Berry",
+          "album": "Johnny Be Goode",
+          "duration": 162,
+          "isrc": "GBRED0703402",
+          "release_date": "2008-03-31",
+          "bpm": 166,
+          "rank": 727748,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/4006595",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/f/0/7/0/f07493c67b6b0a633820bb0212de6d5d.mp3?hdnea=exp=1791008009~acl=/api/1/1/f/0/7/0/f07493c67b6b0a633820bb0212de6d5d.mp3*~data=user_id=0,application_id=42~hmac=c359fb3d72ce52406fae13bdf63638e032809bcbb7cb70cf13e48837ddc5d32a"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 0.5,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 161.5,
+        "bpm_deezer": 166,
+        "bpm_recommended": 161.5,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a6b4dca061b40413edba731",
+      "title": "Laisse parler les gens !!! (feat. Jacob Desvarieux & Passi)",
+      "artist": "Jocelyne Labylle & Cheela",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 65004123,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-30T13:12:42.244Z",
+      "current": {
+        "genre": "Zouk",
+        "phase": null,
+        "bpm": 116,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 65004123,
+          "title": "Laisse parler les gens !!! (feat. Jacob Desvarieux & Passi)",
+          "artist": "Jocelyne Labylle",
+          "album": "Dis l'heure 2 zouk: Laisse parler les gens !!! (feat. Jacob Desvarieux & Passi) - Single",
+          "duration": 202,
+          "isrc": "FR40S0300039",
+          "release_date": "2003-06-24",
+          "bpm": 116.1,
+          "rank": 672558,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/65004123",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/a/2/9/0/a2975ca8d6d3f8b124dc597b2ea0d56e.mp3?hdnea=exp=1791008010~acl=/api/1/1/a/2/9/0/a2975ca8d6d3f8b124dc597b2ea0d56e.mp3*~data=user_id=0,application_id=42~hmac=427a2f1015be53eec9ad98d93547f502cc5ffd365ebb4800280848415ee9e373"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": 116.1,
+        "bpm_recommended": 117.5,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a63f1c30ecc3ba504e9bc59",
+      "title": "Get Me Moving",
+      "artist": "Jack David & Montagu",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3577729901,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-24T23:14:11.321Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3577729901,
+          "title": "Get Me Moving",
+          "artist": "Jack David",
+          "album": "Get Me Moving",
+          "duration": 125,
+          "isrc": "BE8LH2500470",
+          "release_date": "2025-10-31",
+          "bpm": null,
+          "rank": 182387,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3577729901",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/2/3/f/0/23f4dc3f411a19a667b0dabb8771f1ba.mp3?hdnea=exp=1791008012~acl=/api/1/1/2/3/f/0/23f4dc3f411a19a667b0dabb8771f1ba.mp3*~data=user_id=0,application_id=42~hmac=c1bc7589897354a45f5ffd8c73825297ad4638f42154399b402e55bf4046d3a2"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a63f11f0ecc3ba504e9bc38",
+      "title": "Can I Feel?",
+      "artist": "Benny Benassi & Rafael Cerato",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3956684091,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-24T23:11:27.349Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 128,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3956684091,
+          "title": "Can I Feel?",
+          "artist": "Benny Benassi",
+          "album": "Can I Feel?",
+          "duration": 176,
+          "isrc": "USUS12600069",
+          "release_date": "2026-05-01",
+          "bpm": null,
+          "rank": 368296,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3956684091",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/b/e/a/0/bea73fa21256b17f47d720a39058114b.mp3?hdnea=exp=1791008013~acl=/api/1/1/b/e/a/0/bea73fa21256b17f47d720a39058114b.mp3*~data=user_id=0,application_id=42~hmac=cb9353f96b44f7660ea36ee29f0bf0ea14c5266d964a58a9eae08b9f8c74a4eb"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 129.2,
+        "bpm_deezer": null,
+        "bpm_recommended": 129.2,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a63f0720ecc3ba504e9bc0a",
+      "title": "In My Mind",
+      "artist": "Dynoro & Gigi D'Agostino",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 505204262,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-24T23:08:34.317Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 126,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 505204262,
+          "title": "In My Mind",
+          "artist": "Dynoro",
+          "album": "In My Mind",
+          "duration": 184,
+          "isrc": "QZ22B1859046",
+          "release_date": "2018-06-08",
+          "bpm": 126.05,
+          "rank": 879283,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/505204262",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/c/3/8/0/c38ccdaf26d61926fd379f145bcd6c08.mp3?hdnea=exp=1791008014~acl=/api/1/1/c/3/8/0/c38ccdaf26d61926fd379f145bcd6c08.mp3*~data=user_id=0,application_id=42~hmac=593b7439b1b8d774a623f85503d442212b584bfce2e46e92c90bbc30698410b0"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 129.2,
+        "bpm_deezer": 126.05,
+        "bpm_recommended": 129.2,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a63ef0d0ecc3ba504e9bba7",
+      "title": "Come Back To Me",
+      "artist": "Chris Crone & MR.WhileAgo",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3703562532,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-24T23:02:37.321Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3703562532,
+          "title": "Come Back To Me",
+          "artist": "Chris Crone",
+          "album": "Come Back To Me",
+          "duration": 185,
+          "isrc": "BE8LH2500658",
+          "release_date": "2026-02-20",
+          "bpm": null,
+          "rank": 160951,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3703562532",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/3/c/0/13c51314896e4e6066eec74b02567117.mp3?hdnea=exp=1791008015~acl=/api/1/1/1/3/c/0/13c51314896e4e6066eec74b02567117.mp3*~data=user_id=0,application_id=42~hmac=435cd2762bed51e6218171ec827f1bb231cf3591c166581d623618af684e8582"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a63eb6b0ecc3ba504e9baaa",
+      "title": "Lady - Hear Me Tonight",
+      "artist": "Sandy Beach, Coral Reef & Lily Ray",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3328916561,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-24T22:47:07.311Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3328916561,
+          "title": "Lady - Hear Me Tonight",
+          "artist": "Sandy Beach",
+          "album": "Lady - Hear Me Tonight",
+          "duration": 128,
+          "isrc": "NLYK92500206",
+          "release_date": "2025-05-02",
+          "bpm": null,
+          "rank": 406908,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3328916561",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/6/7/f/0/67f16b2d15c84c2b447f169597ef4984.mp3?hdnea=exp=1791008017~acl=/api/1/1/6/7/f/0/67f16b2d15c84c2b447f169597ef4984.mp3*~data=user_id=0,application_id=42~hmac=bfebb2ea2c7f95c997f312f6fabe59e74ff28aab2f62ea66bd49ad6903e0afcb"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 112.3,
+        "bpm_deezer": null,
+        "bpm_recommended": 112.3,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a625a4b0ecc3ba504e8e8b2",
+      "title": "I Know What You Want (feat. Flipmode Squad)",
+      "artist": "Busta Rhymes & Mariah Carey",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 15220661,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-23T18:15:39.554Z",
+      "current": {
+        "genre": "Hip-Hop",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 15220661,
+          "title": "I Know What You Want (feat. Flipmode Squad)",
+          "artist": "Busta Rhymes",
+          "album": "The Remixes",
+          "duration": 255,
+          "isrc": "USLIC0601558",
+          "release_date": "2003-10-14",
+          "bpm": 86,
+          "rank": 724608,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/15220661",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/0/8/9/0/089e2d6a37515ef91f78ef260c70ea7a.mp3?hdnea=exp=1791008018~acl=/api/1/1/0/8/9/0/089e2d6a37515ef91f78ef260c70ea7a.mp3*~data=user_id=0,application_id=42~hmac=b9529cb2ba2e2a4291f6b10e1a80230757c4be260ce56efec76f64ddfb459d4c"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 86.1,
+        "bpm_deezer": 86,
+        "bpm_recommended": 86.1,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a6245ed0ecc3ba504e8d976",
+      "title": "Falling Apart",
+      "artist": "Edward Maya, Alex Skrindo & Mokita",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3790509492,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-23T16:48:45.530Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3790509492,
+          "title": "Falling Apart",
+          "artist": "Edward Maya",
+          "album": "Falling Apart",
+          "duration": 160,
+          "isrc": "US39N2621910",
+          "release_date": "2026-02-27",
+          "bpm": null,
+          "rank": 283432,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3790509492",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/5/e/d/0/5ed0939be738c6426f890e1044d9a71d.mp3?hdnea=exp=1791008019~acl=/api/1/1/5/e/d/0/5ed0939be738c6426f890e1044d9a71d.mp3*~data=user_id=0,application_id=42~hmac=5a06e331924945952e22c46a68f94f7b29452808d1b75d015898e3bceef49d25"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a62259d0ecc3ba504e8cd03",
+      "title": "Kryptonite",
+      "artist": "3 Doors Down",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2511224,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-23T14:30:53.438Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2511224,
+          "title": "Kryptonite",
+          "artist": "3 Doors Down",
+          "album": "The Better Life",
+          "duration": 234,
+          "isrc": "USUR19980187",
+          "release_date": "2000-05-26",
+          "bpm": 98.91,
+          "rank": 820804,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2511224",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/9/e/5/0/9e5bd42034a057616588719a67da4ec4.mp3?hdnea=exp=1791008020~acl=/api/1/1/9/e/5/0/9e5bd42034a057616588719a67da4ec4.mp3*~data=user_id=0,application_id=42~hmac=7b80831127607e990aa9af4ee2375f9d828e32151be2b8b7eb2be8b75b51d8bf"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 99.4,
+        "bpm_deezer": 98.91,
+        "bpm_recommended": 99.4,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a6223a70ecc3ba504e8cc1d",
+      "title": "Nightshift Superstar",
+      "artist": "Muse",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3906424811,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-23T14:22:31.817Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3906424811,
+          "title": "Nightshift Superstar",
+          "artist": "Muse",
+          "album": "The Wow! Signal",
+          "duration": 247,
+          "isrc": "GBAYE2600204",
+          "release_date": "2026-06-26",
+          "bpm": null,
+          "rank": 762282,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3906424811",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/c/b/3/0/cb3aa8bf24dd2412bfd15f0e2b600335.mp3?hdnea=exp=1791008021~acl=/api/1/1/c/b/3/0/cb3aa8bf24dd2412bfd15f0e2b600335.mp3*~data=user_id=0,application_id=42~hmac=5ba6b0af485fbed6f295940f26d1fef4bb7c004823a729a1de68f3127421c630"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 112.3,
+        "bpm_deezer": null,
+        "bpm_recommended": 112.3,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a6222c70ecc3ba504e8cbb0",
+      "title": "Hush",
+      "artist": "Muse & Ellie Goulding",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3906424881,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-23T14:18:47.828Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3906424881,
+          "title": "Hush",
+          "artist": "Muse",
+          "album": "The Wow! Signal",
+          "duration": 235,
+          "isrc": "GBAYE2600209",
+          "release_date": "2026-06-26",
+          "bpm": null,
+          "rank": 777866,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3906424881",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/3/c/a/0/3cabc193c4809366bf78c707124d7994.mp3?hdnea=exp=1791008022~acl=/api/1/1/3/c/a/0/3cabc193c4809366bf78c707124d7994.mp3*~data=user_id=0,application_id=42~hmac=ab69f6b9dba68455536009d4c2309e674689d613221577b18471b0f60a00a7e2"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 143.6,
+        "bpm_deezer": null,
+        "bpm_recommended": 143.6,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a61fdce0ecc3ba504e8aa6a",
+      "title": "Verona",
+      "artist": "Muse",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 1877068697,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-23T11:41:02.498Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 1877068697,
+          "title": "Verona",
+          "artist": "Muse",
+          "album": "Will Of The People",
+          "duration": 297,
+          "isrc": "GBAHT2102040",
+          "release_date": "2022-08-26",
+          "bpm": null,
+          "rank": 561326,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/1877068697",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/a/c/0/0/ac0957042899c81f9bb5a5b38802e33d.mp3?hdnea=exp=1791008024~acl=/api/1/1/a/c/0/0/ac0957042899c81f9bb5a5b38802e33d.mp3*~data=user_id=0,application_id=42~hmac=c1fb282fb4bb07685cbe5ed6bb0d604f477b38bb27b5a4a4b974687387bd96fb"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a61fbf00ecc3ba504e8a92e",
+      "title": "Stupid Girl",
+      "artist": "Garbage",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3788156282,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-23T11:33:04.369Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3788156282,
+          "title": "Stupid Girl (Remastered 2015)",
+          "artist": "Garbage",
+          "album": "Garbage (20th Anniversary Edition)",
+          "duration": 259,
+          "isrc": "USGF19500408",
+          "release_date": "2021-01-04",
+          "bpm": null,
+          "rank": 680029,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3788156282",
+          "preview": null
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": null,
+        "bpm_deezer": null,
+        "bpm_recommended": null,
+        "agreement": "none"
+      }
+    },
+    {
+      "_id": "6a61fb220ecc3ba504e8a8d9",
+      "title": "I Think I'm Paranoid",
+      "artist": "Garbage",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3803564062,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-23T11:29:38.358Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3803564062,
+          "title": "I Think I'm Paranoid",
+          "artist": "Garbage",
+          "album": "Version 2.0 (20th Anniversary Edition / Remastered 2018)",
+          "duration": 217,
+          "isrc": "USAL19800023",
+          "release_date": "2021-01-04",
+          "bpm": null,
+          "rank": 625977,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3803564062",
+          "preview": null
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": null,
+        "bpm_deezer": null,
+        "bpm_recommended": null,
+        "agreement": "none"
+      }
+    },
+    {
+      "_id": "6a5c8e2dab166fef3abccce3",
+      "title": "World Is Mine",
+      "artist": "Lane 8, Kasbo & BJOERN",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3937164021,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-19T08:43:25.879Z",
+      "current": {
+        "genre": "Rock",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3937164021,
+          "title": "World Is Mine",
+          "artist": "Lane 8",
+          "album": "World Is Mine",
+          "duration": 286,
+          "isrc": "GBEWA2601290",
+          "release_date": "2026-04-23",
+          "bpm": null,
+          "rank": 449568,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3937164021",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/f/f/a/0/ffa10fd4a3ac1316ba9e38607cee99b0.mp3?hdnea=exp=1791008027~acl=/api/1/1/f/f/a/0/ffa10fd4a3ac1316ba9e38607cee99b0.mp3*~data=user_id=0,application_id=42~hmac=d0bc1e31466a300e8d884016e126c31ed7bfc0b76ddc5c5c0f2bbef6d9dcf2aa"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.67,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5c8564ab166fef3abcca2a",
+      "title": "Your Body",
+      "artist": "Sico Vox, C-Mart & Carmen Amaka",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3627787852,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-19T08:05:56.822Z",
+      "current": {
+        "genre": "Afro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3627787852,
+          "title": "Your Body",
+          "artist": "Sico Vox",
+          "album": "Your Body",
+          "duration": 158,
+          "isrc": "BE8LH2500574",
+          "release_date": "2025-12-05",
+          "bpm": null,
+          "rank": 72391,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3627787852",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/d/2/0/1d2c9229bbfcf11621d5f738725f7ad4.mp3?hdnea=exp=1791008028~acl=/api/1/1/1/d/2/0/1d2c9229bbfcf11621d5f738725f7ad4.mp3*~data=user_id=0,application_id=42~hmac=b202ba0da90a5630caca83b6355c8e07157c2b560deff6377a2220a5ce4863a8"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5badcdab166fef3abc69d5",
+      "title": "Chouchou",
+      "artist": "Dj Kawest & Aya Nakamura",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3407997741,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-18T16:46:05.839Z",
+      "current": {
+        "genre": "Hip-Hop",
+        "phase": null,
+        "bpm": 85,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3407997741,
+          "title": "Chouchou",
+          "artist": "DJ Kawest",
+          "album": "Chouchou",
+          "duration": 200,
+          "isrc": "FR6Q12500022",
+          "release_date": "2025-06-15",
+          "bpm": null,
+          "rank": 722054,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3407997741",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/0/1/5/0/015937aec64f9a3ed64ace88fab695d0.mp3?hdnea=exp=1791008029~acl=/api/1/1/0/1/5/0/015937aec64f9a3ed64ace88fab695d0.mp3*~data=user_id=0,application_id=42~hmac=8c0c66cf34528408ed5e94264550ec39df9a6c99588c41ef21f48363cc6a9887"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 112.3,
+        "bpm_deezer": null,
+        "bpm_recommended": 112.3,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5a671cab166fef3abbacdd",
+      "title": "It Just Won't Do",
+      "artist": "Jerry Ropero & Karl8 & Andrea Monta",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3541223811,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-17T17:32:12.777Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 128,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3541223811,
+          "title": "It Just Won't Do (Edit)",
+          "artist": "Jerry Ropero",
+          "album": "It Just Won't Do",
+          "duration": 139,
+          "isrc": "ITC152500049",
+          "release_date": "2025-09-26",
+          "bpm": null,
+          "rank": 456240,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3541223811",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/2/a/2/0/2a2c19a5337920dafab24a56e91d41ad.mp3?hdnea=exp=1791008031~acl=/api/1/1/2/a/2/0/2a2c19a5337920dafab24a56e91d41ad.mp3*~data=user_id=0,application_id=42~hmac=b63f41d1ef262b8a8c0d0dd00fb605136f029d45083686977a0a8f96dd9e2dc2"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 129.2,
+        "bpm_deezer": null,
+        "bpm_recommended": 129.2,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5a647aab166fef3abbab0e",
+      "title": "POWER",
+      "artist": "Marnik & Axel Cooper",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2621151252,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-17T17:20:58.763Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 150,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2621151252,
+          "title": "POWER",
+          "artist": "Marnik",
+          "album": "POWER",
+          "duration": 140,
+          "isrc": "ITG412400001",
+          "release_date": "2024-02-09",
+          "bpm": null,
+          "rank": 704790,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/2621151252",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/b/0/0/0/b005d6c28ff24c4fcd08722a4b44553d.mp3?hdnea=exp=1791008032~acl=/api/1/1/b/0/0/0/b005d6c28ff24c4fcd08722a4b44553d.mp3*~data=user_id=0,application_id=42~hmac=34c4a2ebfade86a35e3a7283499b20ca589b2abd02dc92279066f218a677b616"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 152.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 152.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5a6358ab166fef3abbaa98",
+      "title": "You're Not Alone",
+      "artist": "Joezi, Tayllor & Mr. V",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3836713151,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-17T17:16:08.770Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3836713151,
+          "title": "You're Not Alone",
+          "artist": "Joezi",
+          "album": "You're Not Alone",
+          "duration": 156,
+          "isrc": "ITBVO2600008",
+          "release_date": "2026-02-27",
+          "bpm": null,
+          "rank": 220554,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3836713151",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/7/1/8/0/718bfd43218a3722adb246f939d232fb.mp3?hdnea=exp=1791008033~acl=/api/1/1/7/1/8/0/718bfd43218a3722adb246f939d232fb.mp3*~data=user_id=0,application_id=42~hmac=0d2dc6b66312d364604903dd5e9bece9e14bda8f850df030836694f22c18e240"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5a60b9ab166fef3abba945",
+      "title": "I Want You",
+      "artist": "House Arrest, Afterglow & Justin Case",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3539477641,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-17T17:04:57.756Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": 122,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3539477641,
+          "title": "I Want You",
+          "artist": "House Arrest",
+          "album": "Echoes",
+          "duration": 175,
+          "isrc": "NLYK92500542",
+          "release_date": "2025-09-08",
+          "bpm": null,
+          "rank": 284784,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3539477641",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/4/f/e/0/4fe5c6388b3165c9900117035f0c25ea.mp3?hdnea=exp=1791008035~acl=/api/1/1/4/f/e/0/4fe5c6388b3165c9900117035f0c25ea.mp3*~data=user_id=0,application_id=42~hmac=197348021ab6def793ab5e09ee22478202bd593a6273db8cea6a93a1a0393e29"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.67,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5a46fdab166fef3abb99bc",
+      "title": "Andalusian Pulse",
+      "artist": "Gotlucky, Temazkal & Henry Chris",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3590269321,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-17T15:15:09.349Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": 123,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3590269321,
+          "title": "Andalusian Pulse",
+          "artist": "Gotlucky",
+          "album": "Andalusian Pulse",
+          "duration": 155,
+          "isrc": "BE8LH2500449",
+          "release_date": "2025-11-21",
+          "bpm": null,
+          "rank": 197192,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3590269321",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/c/a/9/0/ca956f685c78b147ac1cd296fc74dfda.mp3?hdnea=exp=1791008036~acl=/api/1/1/c/a/9/0/ca956f685c78b147ac1cd296fc74dfda.mp3*~data=user_id=0,application_id=42~hmac=9dc60c863d4036c272f64b13a59caa5390ca8dec20c29467e2b6f12a452f67b9"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5a3d5fab166fef3abb8f97",
+      "title": "Rolling in the Deep",
+      "artist": "LAST CALL, Sundays & Bikini Bandits",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2632867302,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-17T14:34:07.424Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": 122,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2632867302,
+          "title": "Rolling In The Deep",
+          "artist": "LAST CALL",
+          "album": "Rolling In The Deep",
+          "duration": 177,
+          "isrc": "NLYK92300212",
+          "release_date": "2024-02-23",
+          "bpm": null,
+          "rank": 305771,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2632867302",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/d/8/2/0/d82e1b76c640d4bd5325c86f0a55b95e.mp3?hdnea=exp=1791008037~acl=/api/1/1/d/8/2/0/d82e1b76c640d4bd5325c86f0a55b95e.mp3*~data=user_id=0,application_id=42~hmac=9d6d31e5b368c3513bfb7934932080f1a6701e1d4db6e74cfcf26c55f16c05ba"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.67,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5a3b89ab166fef3abb8e81",
+      "title": "Love to Hate Me",
+      "artist": "2NOMADS & Sevenkey",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3893935081,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-17T14:26:17.518Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 124,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3893935081,
+          "title": "Love To Hate Me",
+          "artist": "2NOMADS",
+          "album": "Love To Hate Me",
+          "duration": 148,
+          "isrc": "GBKQU2626409",
+          "release_date": "2026-04-10",
+          "bpm": null,
+          "rank": 233439,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3893935081",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/9/e/6/0/9e6bc360cdb49aa1579673e781f573f9.mp3?hdnea=exp=1791008038~acl=/api/1/1/9/e/6/0/9e6bc360cdb49aa1579673e781f573f9.mp3*~data=user_id=0,application_id=42~hmac=018badcda5a125bf8e72616c7b3e062996923671d1d7518dc9236ca22f11c78d"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5a2902ab166fef3abb8024",
+      "title": "Sympathy for the Devil",
+      "artist": "MOGUAI & Jan Blomqvist",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3922575991,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-17T13:07:14.353Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 128,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3922575991,
+          "title": "Sympathy For The Devil",
+          "artist": "MOGUAI",
+          "album": "Sympathy For The Devil",
+          "duration": 219,
+          "isrc": "NLF712601803",
+          "release_date": "2026-04-17",
+          "bpm": null,
+          "rank": 224465,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3922575991",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/4/3/4/0/434fda7c4c4c073fb9a91b0fd205deec.mp3?hdnea=exp=1791008039~acl=/api/1/1/4/3/4/0/434fda7c4c4c073fb9a91b0fd205deec.mp3*~data=user_id=0,application_id=42~hmac=1511a5bf77855ef55eab667effa56b95d984578322f0e281d19de5496deadb9d"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a598adeab166fef3abb1cfa",
+      "title": "Gone",
+      "artist": "Natty Rico & Spirit Fly",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3207258451,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-17T01:52:30.470Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 118,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3207258451,
+          "title": "Gone",
+          "artist": "Natty Rico",
+          "album": "Gone",
+          "duration": 166,
+          "isrc": "NLYK92500064",
+          "release_date": "2025-02-14",
+          "bpm": null,
+          "rank": 320564,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3207258451",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/9/4/e/0/94e36b99b7f00f8cf33f51f7c762dd2b.mp3?hdnea=exp=1791008040~acl=/api/1/1/9/4/e/0/94e36b99b7f00f8cf33f51f7c762dd2b.mp3*~data=user_id=0,application_id=42~hmac=b48475df31b014110277f211e1068da9ec54b6e23128c44ad9ed141f24b06af2"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5978b3ab166fef3abb17b3",
+      "title": "I Wanna Go - John Summit Remix",
+      "artist": "John Summit & Britney Spears",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3595459862,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-17T00:34:59.109Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3595459862,
+          "title": "I Wanna Go - John Summit Remix",
+          "artist": "John Summit",
+          "album": "I Wanna Go - John Summit Remix",
+          "duration": 163,
+          "isrc": "CBEFB2501644",
+          "release_date": "2025-10-17",
+          "bpm": null,
+          "rank": 650768,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3595459862",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/8/9/0/189d4a7ebfa7ab632eb4d57a33ab438a.mp3?hdnea=exp=1791008042~acl=/api/1/1/1/8/9/0/189d4a7ebfa7ab632eb4d57a33ab438a.mp3*~data=user_id=0,application_id=42~hmac=cd48b377a643314036185aaa1bd1d5f4f68f08da116b30c7aa2d8dce514b3421"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 136.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 136.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a596b9eab166fef3abb0c1b",
+      "title": "Come Out and Play",
+      "artist": "Sparrow Sleeps & The Offspring",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 378299591,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T23:39:10.765Z",
+      "current": {
+        "genre": "Pop",
+        "phase": null,
+        "bpm": 158,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 378299591,
+          "title": "Come Out and Play (2008 Remaster)",
+          "artist": "The Offspring",
+          "album": "Smash (2008 Remaster)",
+          "duration": 197,
+          "isrc": "USEP40710207",
+          "release_date": "1994-04-08",
+          "bpm": 159.01,
+          "rank": 849860,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/378299591",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/d/7/1/0/d718e8c0613b7317c33789c926e3f131.mp3?hdnea=exp=1791008042~acl=/api/1/1/d/7/1/0/d718e8c0613b7317c33789c926e3f131.mp3*~data=user_id=0,application_id=42~hmac=2fee5a224e77e214231b9e1c6cd60ed98b5a2db6ecf65da81ba71f9d79ad6507"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 0.67,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 161.5,
+        "bpm_deezer": 159.01,
+        "bpm_recommended": 161.5,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a5967cdab166fef3abb09af",
+      "title": "Je Dois M'en Aller",
+      "artist": "Saint-Honoré & Pamplemousse Rose",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3543182081,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T23:22:53.745Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 122,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3543182081,
+          "title": "Je Dois M'en Aller",
+          "artist": "Saint-Honoré",
+          "album": "Je Dois M'en Aller",
+          "duration": 206,
+          "isrc": "FRP9W2300830",
+          "release_date": "2023-11-03",
+          "bpm": null,
+          "rank": 593666,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3543182081",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/d/6/e/0/d6e02eec1c2b6e27542cd5611bd3d93a.mp3?hdnea=exp=1791008043~acl=/api/1/1/d/6/e/0/d6e02eec1c2b6e27542cd5611bd3d93a.mp3*~data=user_id=0,application_id=42~hmac=a9d39b58109e01d62eaa9219d8e75da6bbf5e00231dcad222dd3d4c65c2640fb"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a596551ab166fef3abb0903",
+      "title": "Happier",
+      "artist": "Mahona & Skye",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3759328702,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T23:12:17.734Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": 100,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3759328702,
+          "title": "Happier",
+          "artist": "Skye",
+          "album": "Happier",
+          "duration": 168,
+          "isrc": "NLYK92600008",
+          "release_date": "2026-01-23",
+          "bpm": null,
+          "rank": 597852,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3759328702",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/b/d/3/0/bd3851847ec62b7ae6c688a808dacef5.mp3?hdnea=exp=1791008044~acl=/api/1/1/b/d/3/0/bd3851847ec62b7ae6c688a808dacef5.mp3*~data=user_id=0,application_id=42~hmac=b6890a8855a0a42cf7513d3d600468f758c847de3c162aad86536e3763baf7bb"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 99.4,
+        "bpm_deezer": null,
+        "bpm_recommended": 99.4,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a595851ab166fef3abb04ea",
+      "title": "Si Vas Al Mar",
+      "artist": "Sinego & Xinobi",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3920760441,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T22:16:49.919Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 118,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3920760441,
+          "title": "Si Vas Al mar",
+          "artist": "Sinego",
+          "album": "MoBlack presents FROM LATIN AMERICA WITH LOVE",
+          "duration": 256,
+          "isrc": "ITFGO2600031",
+          "release_date": "2026-04-10",
+          "bpm": null,
+          "rank": 314541,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3920760441",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/2/a/8/0/2a82390c33c123b78c6cc640c695b658.mp3?hdnea=exp=1791008045~acl=/api/1/1/2/a/8/0/2a82390c33c123b78c6cc640c695b658.mp3*~data=user_id=0,application_id=42~hmac=3ac84575c82531012733e2616f3150246a54e7449111c6ad25f69356f9898d10"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a595136ab166fef3abb02d2",
+      "title": "Inshallah",
+      "artist": "Francis Mercier, MP3 & Shammalee",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3945554401,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T21:46:30.557Z",
+      "current": {
+        "genre": "House",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3945554401,
+          "title": "Inshallah",
+          "artist": "Francis Mercier",
+          "album": "Inshallah",
+          "duration": 155,
+          "isrc": "QZU7C2600035",
+          "release_date": "2026-05-01",
+          "bpm": null,
+          "rank": 336723,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3945554401",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/7/b/6/0/7b62bd5fee52ec1a691c53cab2d8044c.mp3?hdnea=exp=1791008047~acl=/api/1/1/7/b/6/0/7b62bd5fee52ec1a691c53cab2d8044c.mp3*~data=user_id=0,application_id=42~hmac=af18494c1e434a9c80632403a2caf7754bf0a5f2ba8c0bdb58715ef756a442ae"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.67,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a594cf2ab166fef3abb017f",
+      "title": "ATL",
+      "artist": "La Mano 1.9, Gazo & La Rvfleuze",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 4020219591,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T21:28:18.526Z",
+      "current": {
+        "genre": "Hip-Hop",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 4020219591,
+          "title": "ATL",
+          "artist": "La Mano 1.9",
+          "album": "ATL",
+          "duration": 163,
+          "isrc": "FR9W12620823",
+          "release_date": "2026-05-27",
+          "bpm": null,
+          "rank": 985612,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/4020219591",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/a/c/7/0/ac7a5597d817dc7221649efe8159d83d.mp3?hdnea=exp=1791008048~acl=/api/1/1/a/c/7/0/ac7a5597d817dc7221649efe8159d83d.mp3*~data=user_id=0,application_id=42~hmac=0490a6a902ad88f7353b18711ed0c1a34bcf85d143a6d47d54874831b262132b"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.8,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 143.6,
+        "bpm_deezer": null,
+        "bpm_recommended": 143.6,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5925beab166fef3abaf3c7",
+      "title": "I Bring My Gun To The Function (with Boys Noize)",
+      "artist": "Brutalismus 3000 & Boys Noize",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3946983991,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T18:41:02.839Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 150,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3946983991,
+          "title": "I Bring My Gun To The Function (with Boys Noize)",
+          "artist": "Brutalismus 3000",
+          "album": "I Bring My Gun To The Function (with Boys Noize)",
+          "duration": 190,
+          "isrc": "DEE862600434",
+          "release_date": "2026-04-29",
+          "bpm": null,
+          "rank": 516709,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/3946983991",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/f/1/7/0/f1715ff7987ed42d9f28e08ba40e73db.mp3?hdnea=exp=1791008050~acl=/api/1/1/f/1/7/0/f1715ff7987ed42d9f28e08ba40e73db.mp3*~data=user_id=0,application_id=42~hmac=098b0c5e0672197df367dcfe9c6979057d5d39339d23473ebfd8fddd99eb80d2"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 152.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 152.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a591bc8ab166fef3abae9b0",
+      "title": "Walking Away (Infinity)",
+      "artist": "Matway & June",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3194135561,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T17:58:32.994Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 135,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3194135561,
+          "title": "Walking Away (Infinity)",
+          "artist": "Matway",
+          "album": "Walking Away (Infinity)",
+          "duration": 143,
+          "isrc": "DEE862500058",
+          "release_date": "2025-01-21",
+          "bpm": null,
+          "rank": 865212,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3194135561",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/3/7/1/0/371126a03b49fd500fbe50801ea9341f.mp3?hdnea=exp=1791008051~acl=/api/1/1/3/7/1/0/371126a03b49fd500fbe50801ea9341f.mp3*~data=user_id=0,application_id=42~hmac=cf33a378145017a85bf8fc98d1140a8f836a94fa7751d7b95c085abd718d9055"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 136.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 136.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a590b77ab166fef3abae328",
+      "title": "Reality Check",
+      "artist": "Sara Landry & Godtripper",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3922840911,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T16:48:55.955Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 155,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3922840911,
+          "title": "Reality Check",
+          "artist": "Sara Landry",
+          "album": "Hekataia EP",
+          "duration": 293,
+          "isrc": "GXFCP2600109",
+          "release_date": "2026-04-10",
+          "bpm": null,
+          "rank": 299860,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3922840911",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/b/7/9/0/b79e455880cc4e8c2cb77a583fd1f6a6.mp3?hdnea=exp=1791008053~acl=/api/1/1/b/7/9/0/b79e455880cc4e8c2cb77a583fd1f6a6.mp3*~data=user_id=0,application_id=42~hmac=bdd7dedc7fa769fe722c9e0632f58ccc6b7132c67c49a393a0e2d0f414be8cd2"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 152.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 152.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a59088cab166fef3abae21b",
+      "title": "Sun Comes Up Tremendous",
+      "artist": "Disclosure",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3886708461,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T16:36:28.929Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": 142,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3886708461,
+          "title": "The Sun Comes Up Tremendous",
+          "artist": "Disclosure",
+          "album": "The Sun Comes Up Tremendous",
+          "duration": 213,
+          "isrc": "USA2P2565340",
+          "release_date": "2026-04-01",
+          "bpm": null,
+          "rank": 441871,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3886708461",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/3/c/f/0/3cf826d251233f504dfa28ebe62779d3.mp3?hdnea=exp=1791008054~acl=/api/1/1/3/c/f/0/3cf826d251233f504dfa28ebe62779d3.mp3*~data=user_id=0,application_id=42~hmac=953995a38a4ba91816f2be438c6138b460cfac822ac02795ca94f90dcd1d724e"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 0.8,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 143.6,
+        "bpm_deezer": null,
+        "bpm_recommended": 143.6,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a58f2d1ab166fef3abad9fe",
+      "title": "September Song",
+      "artist": "Coral Reef, summer sax & Deep Chills",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3219360381,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T15:03:45.929Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": 96,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3219360381,
+          "title": "September Song",
+          "artist": "Coral Reef",
+          "album": "September Song",
+          "duration": 224,
+          "isrc": "NLYK92500077",
+          "release_date": "2025-02-21",
+          "bpm": null,
+          "rank": 608086,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3219360381",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/7/9/0/0/79046a3cc7d487bc484005d25170f4c0.mp3?hdnea=exp=1791008056~acl=/api/1/1/7/9/0/0/79046a3cc7d487bc484005d25170f4c0.mp3*~data=user_id=0,application_id=42~hmac=23fce9f6072406e1a49ec6c9184b3055a7585d4a1603c58ed5e1802e1a59599d"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 129.2,
+        "bpm_deezer": null,
+        "bpm_recommended": 129.2,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a58ef2fab166fef3abad84e",
+      "title": "Missing You",
+      "artist": "Topic, Shimza & A7S",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3884587191,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T14:48:15.285Z",
+      "current": {
+        "genre": "Pop",
+        "phase": null,
+        "bpm": 100,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3884587191,
+          "title": "Missing You",
+          "artist": "Topic",
+          "album": "Missing You",
+          "duration": 186,
+          "isrc": "QZUCN2202551",
+          "release_date": "2026-03-13",
+          "bpm": null,
+          "rank": 518042,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3884587191",
+          "preview": null
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": null,
+        "bpm_deezer": null,
+        "bpm_recommended": null,
+        "agreement": "none"
+      }
+    },
+    {
+      "_id": "6a58e8a0ab166fef3abad434",
+      "title": "Would I Lie to You?",
+      "artist": "Emily Dawn, summer sax & Skye",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2991715821,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T14:20:16.355Z",
+      "current": {
+        "genre": "Chill/Pop",
+        "phase": null,
+        "bpm": 101,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2991715821,
+          "title": "Would I Lie To You?",
+          "artist": "Emily Dawn",
+          "album": "Would I Lie To You?",
+          "duration": 134,
+          "isrc": "NLYK92400207",
+          "release_date": "2024-10-04",
+          "bpm": null,
+          "rank": 508724,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2991715821",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/c/3/8/0/c38b5c5c37755eaab5bc7e0bfeeda593.mp3?hdnea=exp=1791008058~acl=/api/1/1/c/3/8/0/c38b5c5c37755eaab5bc7e0bfeeda593.mp3*~data=user_id=0,application_id=42~hmac=1a1da9f8905ae74b4c6d4863f0e57a71ec8345ad9194bf82b6b131e8a8eb0ebc"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 136.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 136.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a58b146ab166fef3aba8c44",
+      "title": "Drive Safe",
+      "artist": "Myles Smith & Niall Horan",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3811288132,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T10:24:06.229Z",
+      "current": {
+        "genre": "Pop",
+        "phase": null,
+        "bpm": 118,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3811288132,
+          "title": "Drive Safe",
+          "artist": "Myles Smith",
+          "album": "Drive Safe",
+          "duration": 201,
+          "isrc": "GBARL2600033",
+          "release_date": "2026-02-06",
+          "bpm": null,
+          "rank": 935067,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3811288132",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/d/d/7/0/dd7a44a4a4e1f61eec48b0c4f306b4aa.mp3?hdnea=exp=1791008059~acl=/api/1/1/d/d/7/0/dd7a44a4a4e1f61eec48b0c4f306b4aa.mp3*~data=user_id=0,application_id=42~hmac=38b04518bb8b8fd37338f8a95819783f947def6188c7b67e61854e7894a4cdee"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a58ac4eab166fef3aba8a2c",
+      "title": "Came Here to Dance",
+      "artist": "Alvin Anthony & LIDOR",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3375904201,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-16T10:02:54.683Z",
+      "current": {
+        "genre": "Dance Pop",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3375904201,
+          "title": "Came Here To Dance",
+          "artist": "Alvin Anthony",
+          "album": "Came Here To Dance",
+          "duration": 147,
+          "isrc": "NLYK92500258",
+          "release_date": "2025-05-30",
+          "bpm": null,
+          "rank": 378042,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3375904201",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/1/3/b/0/13bdd1276cf6e4a1e6d0cd6c09b4b856.mp3?hdnea=exp=1791008061~acl=/api/1/1/1/3/b/0/13bdd1276cf6e4a1e6d0cd6c09b4b856.mp3*~data=user_id=0,application_id=42~hmac=f3dd4984c33824a1a049a412a663ff9c5e4f473a8cd04f8684d60d2e1d8fb8e6"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a57ef2eab166fef3aba39fb",
+      "title": "when the party's over",
+      "artist": "bees & honey & FOLA",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3894235961,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-07-15T20:35:58.211Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": 75,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3894235961,
+          "title": "when the party's over",
+          "artist": "bees & honey",
+          "album": "when the party's over",
+          "duration": 184,
+          "isrc": "DE1FB2600044",
+          "release_date": "2026-03-20",
+          "bpm": null,
+          "rank": 425100,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3894235961",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/a/e/c/0/aec6386810cac453acfcaf613526e5a7.mp3?hdnea=exp=1791008062~acl=/api/1/1/a/e/c/0/aec6386810cac453acfcaf613526e5a7.mp3*~data=user_id=0,application_id=42~hmac=a4f3a0bd01e624e1e02dda35439dd6007fbe005d7363c79f609b7e40579bab7a"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 107.7,
+        "bpm_deezer": null,
+        "bpm_recommended": 107.7,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a5647dc6da503a4c64e6880",
+      "title": "Despacito",
+      "artist": "Luis Fonsi",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 143783500,
+      "deezerRank": null,
+      "qualityLevel": "partielle",
+      "source": "editorial",
+      "userSignal": null,
+      "createdAt": "2026-07-14T14:29:49.000Z",
+      "current": {
+        "genre": "Latin",
+        "phase": null,
+        "bpm": 89,
+        "bpmSource": null,
+        "energy": 3,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 143783500,
+          "title": "Despacito",
+          "artist": "Luis Fonsi",
+          "album": "Despacito",
+          "duration": 228,
+          "isrc": "USUM71607007",
+          "release_date": "2017-02-17",
+          "bpm": 178.21,
+          "rank": 833593,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/143783500",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/e/2/f/0/e2fdd715a9cfe24f6b9ba341c1c88c12.mp3?hdnea=exp=1791008063~acl=/api/1/1/e/2/f/0/e2fdd715a9cfe24f6b9ba341c1c88c12.mp3*~data=user_id=0,application_id=42~hmac=7320f00deb2b167b1fa4db44d95934ba699ade5ddd999552907839cc264b76ff"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 89.1,
+        "bpm_deezer": 178.21,
+        "bpm_recommended": 89.1,
+        "agreement": "half_time"
+      }
+    },
+    {
+      "_id": "6a5647d76da503a4c64e687d",
+      "title": "Give Me Everything (feat. Nayer)",
+      "artist": "Pitbull, AFROJACK & Ne-Yo",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 10308117,
+      "deezerRank": null,
+      "qualityLevel": "partielle",
+      "source": "editorial",
+      "userSignal": null,
+      "createdAt": "2026-07-14T14:29:43.897Z",
+      "current": {
+        "genre": "Pop",
+        "phase": null,
+        "bpm": 129,
+        "bpmSource": null,
+        "energy": 9,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 10308117,
+          "title": "Give Me Everything (feat. Nayer)",
+          "artist": "Pitbull",
+          "album": "Give Me Everything (feat. Nayer)",
+          "duration": 256,
+          "isrc": "USJAY1100032",
+          "release_date": "2011-03-21",
+          "bpm": null,
+          "rank": 940597,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/10308117",
+          "preview": null
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 0.5,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": null,
+        "bpm_deezer": null,
+        "bpm_recommended": null,
+        "agreement": "none"
+      }
+    },
+    {
+      "_id": "6a5647ce6da503a4c64e6878",
+      "title": "Where Them Girls At (Radio Edit)",
+      "artist": "David Guetta ft Flo Rida and Nicki Minaj",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 62847150,
+      "deezerRank": null,
+      "qualityLevel": "partielle",
+      "source": "editorial",
+      "userSignal": null,
+      "createdAt": "2026-07-14T14:29:34.300Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 128,
+        "bpmSource": null,
+        "energy": 8,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 62847150,
+          "title": "Where Them Girls At (feat. Nicki Minaj & Flo Rida)",
+          "artist": "David Guetta",
+          "album": "Nothing but the Beat (Ultimate Edition)",
+          "duration": 194,
+          "isrc": "FRZID1100110",
+          "release_date": "2012-12-07",
+          "bpm": 130,
+          "rank": 894132,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/62847150",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/c/5/1/0/c51082f95148f0fbfe29856440ab4b99.mp3?hdnea=exp=1791008066~acl=/api/1/1/c/5/1/0/c51082f95148f0fbfe29856440ab4b99.mp3*~data=user_id=0,application_id=42~hmac=18f8df0861c3018fbd789eed5874512121605c2a38304114d6f36e035cfd623c"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 129.2,
+        "bpm_deezer": 130,
+        "bpm_recommended": 129.2,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a352c42eaf607dcb667cacb",
+      "title": "Pepas",
+      "artist": "Farruko",
+      "album": null,
+      "duration_sec": null,
+      "isrc": "USSD12100307",
+      "deezerTrackId": 1411181832,
+      "deezerRank": null,
+      "qualityLevel": null,
+      "source": "editorial",
+      "userSignal": null,
+      "createdAt": "2026-06-19T11:47:14.873Z",
+      "current": {
+        "genre": "Latin",
+        "phase": null,
+        "bpm": 130,
+        "bpmSource": null,
+        "energy": 7,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 1411181832,
+          "title": "Pepas",
+          "artist": "Farruko",
+          "album": "Pepas",
+          "duration": 284,
+          "isrc": "USSD12100307",
+          "release_date": "2021-06-24",
+          "bpm": null,
+          "rank": 922750,
+          "explicit_lyrics": true,
+          "link": "https://www.deezer.com/track/1411181832",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/2/d/a/0/2dae9a42ff4cf95f5fe860e3cc3d319e.mp3?hdnea=exp=1791008068~acl=/api/1/1/2/d/a/0/2dae9a42ff4cf95f5fe860e3cc3d319e.mp3*~data=user_id=0,application_id=42~hmac=a6c4b464e5366f5cf380eb1001a1ee8177b7fc926ec1858c6581ef207ecef564"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 129.2,
+        "bpm_deezer": null,
+        "bpm_recommended": 129.2,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a352c42eaf607dcb667cac9",
+      "title": "Le Freak",
+      "artist": "Chic",
+      "album": null,
+      "duration_sec": null,
+      "isrc": "USAT27800012",
+      "deezerTrackId": 72060062,
+      "deezerRank": null,
+      "qualityLevel": "partielle",
+      "source": "editorial",
+      "userSignal": null,
+      "createdAt": "2026-06-19T11:47:14.234Z",
+      "current": {
+        "genre": "Disco",
+        "phase": null,
+        "bpm": 119,
+        "bpmSource": null,
+        "energy": 7,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 72060062,
+          "title": "Le Freak",
+          "artist": "Chic",
+          "album": "The Studio Album Collection 1977-1992",
+          "duration": 327,
+          "isrc": "USAT27800012",
+          "release_date": "2013-11-09",
+          "bpm": 118.5,
+          "rank": 735820,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/72060062",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/d/b/e/0/dbe27e246e08fa7bad6dd09b9af59bb0.mp3?hdnea=exp=1791008069~acl=/api/1/1/d/b/e/0/dbe27e246e08fa7bad6dd09b9af59bb0.mp3*~data=user_id=0,application_id=42~hmac=e66fe5aa93efb7e6241ca59e5248b6da7d2875a351a4727fadc08ead8f41fd29"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": 118.5,
+        "bpm_recommended": 117.5,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6a19b871391f5e1520f813e1",
+      "title": "Time",
+      "artist": "Hans Zimmer",
+      "album": null,
+      "duration_sec": null,
+      "isrc": "USRE11000577",
+      "deezerTrackId": 6524423,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "editorial",
+      "userSignal": null,
+      "createdAt": "2026-05-29T16:01:53.264Z",
+      "current": {
+        "genre": "Classique",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": 7,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 6524423,
+          "title": "Time",
+          "artist": "Hans Zimmer",
+          "album": "Inception (Music from the Motion Picture)",
+          "duration": 275,
+          "isrc": "USRE11000577",
+          "release_date": "2010-07-09",
+          "bpm": null,
+          "rank": 808896,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/6524423",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/5/8/e/0/58ef1a65db803c83560c1597bccb7b4f.mp3?hdnea=exp=1791008070~acl=/api/1/1/5/8/e/0/58ef1a65db803c83560c1597bccb7b4f.mp3*~data=user_id=0,application_id=42~hmac=531e10a73ac321edf51d6cad50b5e72cf7dc7ddcfc0172485dcdc9ea7c3aef1e"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6a19b871391f5e1520f813da",
+      "title": "Fists of Fury",
+      "artist": "Kamasi Washington",
+      "album": null,
+      "duration_sec": null,
+      "isrc": "UK7MC1800001",
+      "deezerTrackId": 510165172,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "editorial",
+      "userSignal": null,
+      "createdAt": "2026-05-29T16:01:53.050Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": 7,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 510165172,
+          "title": "Fists of Fury",
+          "artist": "Kamasi Washington",
+          "album": "Heaven and Earth",
+          "duration": 583,
+          "isrc": "UK7MC1800001",
+          "release_date": "2018-06-22",
+          "bpm": null,
+          "rank": 279772,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/510165172",
+          "preview": null
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": null,
+        "bpm_deezer": null,
+        "bpm_recommended": null,
+        "agreement": "none"
+      }
+    }
+  ]
+}
