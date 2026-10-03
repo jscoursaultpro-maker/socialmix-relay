@@ -1,14 +1,14 @@
 === PARTY SUGGESTIONS EXPLORATION ===
-Date (UTC)              : 2026-10-02T17:00:37.474Z
-Parties total           : 932
-Parties avec suggestions: 269
-Suggestions totales     : 8622
-Suggestions uniques     : 898
+Date (UTC)              : 2026-10-03T09:02:39.048Z
+Parties total           : 944
+Parties avec suggestions: 274
+Suggestions totales     : 8653
+Suggestions uniques     : 912
 ---
-Déjà en tracks          : 478
-  dont qualifiées       : 329
-  dont à qualifier      : 149
-Absentes de tracks      : 420
+Déjà en tracks          : 487
+  dont qualifiées       : 353
+  dont à qualifier      : 134
+Absentes de tracks      : 425
 
 === TOP 30 suggestions ABSENTES de tracks (par fréquence) ===
    50× | dz=-          | Load Test Band — Test Suggestion
