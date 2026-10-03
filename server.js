@@ -5584,6 +5584,7 @@ io.on('connection', (socket) => {
       // Note: IIFE async car socket handler n'est pas async — comportement non-bloquant conservé.
       // ★ Fresh Rotation — record playback for this host
       // Bug #77 fix — compteurs + retry + log structuré pour éliminer les writes silencieux.
+      if (!party.hphCounters) party.hphCounters = { success: 0, failed: 0, skipped: 0 };
       const _capturedDoc   = trackDoc;
       const _capturedCode  = party.code;
       const _capturedPhase = party.currentPhase;
@@ -5633,6 +5634,9 @@ io.on('connection', (socket) => {
             }
           }
 
+          let safeProvider = party.streamingProvider || null;
+          if (safeProvider === 'appleMusic') safeProvider = 'apple_music';
+
           const hphDoc = {
             hostUserId:          _capturedUID,
             trackId:             resolvedTrack?._id || null,
@@ -5645,7 +5649,7 @@ io.on('connection', (socket) => {
             phase:               _capturedPhase || _capturedDoc.phase,
             wasSuggestedByGuest: !!_capturedDoc.suggestedBy,
             // ★ fix(#24) — Tracker le provider audio actif pour analytics cross-party
-            provider:            party.streamingProvider || null
+            provider:            safeProvider
           };
 
           // Retry 1x avec backoff 500ms si create échoue (transient MongoDB errors)
