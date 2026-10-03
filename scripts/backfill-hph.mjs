@@ -146,14 +146,27 @@ for (const p of parties) {
   let note = '';
   if (APPLY && aCreer.length) {
     try {
-      const r = await HPH.insertMany(aCreer, { ordered: false });
+      // ★ throwOnValidationError: true — SANS cette option, Mongoose ecarte
+      //   silencieusement les documents qui echouent la validation et resout la
+      //   promesse avec les seuls documents valides (model.js L3059). C'est
+      //   exactement l'echec muet que ce script est cense reparer.
+      const r = await HPH.insertMany(aCreer, { ordered: false, throwOnValidationError: true });
       totalEcrits += r.length;
-      note = `✅ ${r.length} écrits`;
+      note = r.length === aCreer.length ? `✅ ${r.length} écrits` : `⚠️  ${r.length}/${aCreer.length} écrits`;
     } catch (e) {
-      const ok = e.result?.result?.nInserted ?? e.insertedDocs?.length ?? 0;
+      const ok = e.results?.filter(x => x && !x.err).length ?? e.insertedDocs?.length ?? 0;
       totalEcrits += ok;
-      note = `⚠️  ${ok} écrits, ${(e.writeErrors || []).length} rejets`;
-      for (const we of (e.writeErrors || []).slice(0, 2)) console.log(`      rejet: ${we.errmsg?.slice(0, 120)}`);
+      const vErrs = e.validationErrors || e.mongoose?.validationErrors || [];
+      const wErrs = e.writeErrors || [];
+      note = `🚨 ${ok} écrits — ${vErrs.length} rejets validation, ${wErrs.length} rejets écriture`;
+      const vus = new Set();
+      for (const ve of vErrs) {
+        const msg = (ve.message || String(ve)).slice(0, 200);
+        if (!vus.has(msg)) { vus.add(msg); console.log(`      ❌ VALIDATION : ${msg}`); }
+        if (vus.size >= 3) break;
+      }
+      for (const we of wErrs.slice(0, 2)) console.log(`      ❌ ÉCRITURE : ${(we.errmsg || we.message || '').slice(0, 200)}`);
+      if (!vErrs.length && !wErrs.length) console.log(`      ❌ ${e.name} : ${(e.message || '').slice(0, 300)}`);
     }
   }
 
