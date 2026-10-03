@@ -10,8 +10,8 @@
  * Écrans propres à Spotify (appareils, Web Playback SDK, détection fantôme) : host.js
  * y accède via `engine.raw` (SpotifyService), toujours gardé par `engine.id === 'spotify'`.
  */
-import SpotifyService from '/shared/spotify-service.js';
-import { BasePlayerEngine } from '/shared/player-engine.js?v=pe-04';
+import SpotifyService from '/shared/spotify-service.js?v=spsvc-02';
+import { BasePlayerEngine } from '/shared/player-engine.js?v=pe-05';
 
 export default class SpotifyEngine extends BasePlayerEngine {
   constructor(opts = {}) {
@@ -68,7 +68,7 @@ export default class SpotifyEngine extends BasePlayerEngine {
    *   (connexion silencieuse : callback PKCE dans l'URL ou tokens en sessionStorage).
    */
   async connect(opts = {}) {
-    if (this.isReady()) return { ok: true, user: { firstName: this.raw.userFirstName, isPremium: this.raw.isPremium } };
+    if (this.isReady()) { await this._initBrowserDevice(); return { ok: true, user: { firstName: this.raw.userFirstName, isPremium: this.raw.isPremium } }; }
     // Callback PKCE : traité UNE seule fois ; en cas d'échec l'URL est nettoyée pour que
     // l'appel interactif suivant reparte sur startPKCE() (revue 01/10, P1.2).
     if (!opts.interactive && !this._cbTried && SpotifyEngine.hasCallbackInUrl()) {
@@ -80,17 +80,22 @@ export default class SpotifyEngine extends BasePlayerEngine {
         throw e;
       }
       const me = await this.raw.fetchMe();
+      if (this.isReady()) await this._initBrowserDevice();
       return { ok: this.isReady(), user: me ? { firstName: me.firstName, isPremium: me.isPremium } : null, reachable: !!me };
     }
     const already = this.raw.accessToken ? true : await this.raw.init();
     if (already) {
       const me = await this.raw.fetchMe();
+      if (this.isReady()) await this._initBrowserDevice();
       return { ok: this.isReady(), user: me ? { firstName: me.firstName, isPremium: me.isPremium } : null, reachable: !!me };
     }
     if (!opts.interactive) return { ok: false, needsAuth: true };
     await this.raw.startPKCE();   // redirection OAuth → la page reviendra avec ?code
     return { ok: false, redirecting: true };
   }
+
+  // Web Playback SDK : navigateur = device Spotify (desktop). Best-effort, non bloquant en cas d'échec.
+  async _initBrowserDevice() { try { await this.raw.initWebPlayback(); } catch (e) { this.onLog('initWebPlayback: ' + e.message, 'warn'); } }
 
   isReady()        { return !!(this.raw.accessToken && this.raw.isPremium); }
   notReadyReason() {

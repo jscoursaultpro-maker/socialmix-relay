@@ -74,6 +74,63 @@ export default class SpotifyService {
     this._wakeLock      = null;
     this._apiCallCount  = 0;
     this._refreshTimer  = null;
+
+    // ★ Web Playback SDK (03/10) — fait du NAVIGATEUR lui-même un device Spotify (desktop).
+    //   Évite le 404 "device introuvable" quand aucune app Spotify n'est ouverte. Mobile : non
+    //   supporté par Spotify → on retombe sur Connect (app Spotify requise).
+    this._sdkPlayer   = null;
+    this._sdkDeviceId = null;
+    this._sdkReady    = null;   // Promise d'init en cours
+  }
+
+  /**
+   * ★ Initialise le Web Playback SDK : charge le script, crée un Player, et résout avec le
+   *   device_id du navigateur (ou null si impossible : mobile, non-Premium, échec).
+   *   Best-effort : l'appelant retombe sur Connect (device externe) si null.
+   * @returns {Promise<string|null>} device_id du navigateur, ou null
+   */
+  async initWebPlayback() {
+    if (this._sdkDeviceId) return this._sdkDeviceId;
+    if (this._sdkReady) return this._sdkReady;
+    const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+    if (/iphone|ipad|ipod|android/i.test(ua)) {
+      this._log('Web Playback SDK indispo sur mobile → Connect (app Spotify requise)', 'info');
+      return null;
+    }
+    if (!this.accessToken) return null;
+
+    this._sdkReady = new Promise((resolve) => {
+      let settled = false;
+      const done = (v) => { if (!settled) { settled = true; resolve(v); } };
+      const boot = () => {
+        try {
+          const player = new window.Spotify.Player({
+            name: 'AhOuai — Web Host',
+            getOAuthToken: (cb) => { this._ensureToken().then(() => cb(this.accessToken)).catch(() => cb(this.accessToken)); },
+            volume: 0.8,
+          });
+          this._sdkPlayer = player;
+          player.addListener('ready', ({ device_id }) => { this._sdkDeviceId = device_id; this._log('Web Playback SDK prêt (device navigateur)', 'ok'); done(device_id); });
+          player.addListener('not_ready', () => { this._log('SDK device hors-ligne', 'warn'); });
+          player.addListener('initialization_error', ({ message }) => { this._log('SDK init: ' + message, 'warn'); done(null); });
+          player.addListener('authentication_error', ({ message }) => { this._log('SDK auth: ' + message, 'warn'); done(null); });
+          player.addListener('account_error', ({ message }) => { this._log('SDK account (Premium requis): ' + message, 'warn'); done(null); });
+          player.connect();
+        } catch (e) { this._log('SDK boot: ' + e.message, 'warn'); done(null); }
+      };
+      if (window.Spotify && window.Spotify.Player) { boot(); }
+      else {
+        window.onSpotifyWebPlaybackSDKReady = boot;
+        if (!document.querySelector('script[src*="sdk.scdn.co/spotify-player"]')) {
+          const s = document.createElement('script');
+          s.src = 'https://sdk.scdn.co/spotify-player.js'; s.async = true;
+          s.onerror = () => { this._log('Chargement SDK Spotify échoué', 'warn'); done(null); };
+          document.head.appendChild(s);
+        }
+      }
+      setTimeout(() => done(this._sdkDeviceId || null), 10000);   // garde-fou
+    });
+    return this._sdkReady;
   }
 
   // ─── Init ──────────────────────────────────────────────────────────────────
@@ -235,8 +292,13 @@ export default class SpotifyService {
     if (positionMs > 0) body.position_ms = positionMs;
     if (valid.length > 1) body.offset = { position: 0 };
 
-    // Comme iOS : PAS de device_id en query param (L796 SpotifyService.swift)
-    const res = await this._api('PUT', '/me/player/play', body);
+    // ★ Si le device navigateur (Web Playback SDK) est prêt, on le cible explicitement
+    //   (il s'active tout seul) → plus besoin d'app Spotify externe. Sinon, comportement iOS
+    //   historique (pas de device_id → device actif externe via Connect).
+    const playPath = this._sdkDeviceId
+      ? `/me/player/play?device_id=${encodeURIComponent(this._sdkDeviceId)}`
+      : '/me/player/play';
+    const res = await this._api('PUT', playPath, body);
     if (res !== null) {
       this._log(`▶ PLAY [${valid.map(u => u.split(':').pop()).join(', ')}]`, 'ok');
       await this._requestWakeLock();
