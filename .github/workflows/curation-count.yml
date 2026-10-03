@@ -46,6 +46,11 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           COUNT_OUT: curation-data/logs/party-votes-latest.txt
         run: node scripts/curation/explore_party_votes_2026-10-02.mjs || true
+      - name: Check FTMP63 × curation hier (one-shot)
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          COUNT_OUT: curation-data/logs/ftmp63-curated-check.txt
+        run: node scripts/curation/check_ftmp63_curated_2026-10-03.mjs || true
       - name: Commit result
         if: always()
         working-directory: curation-data
