@@ -10,8 +10,8 @@
  * Écrans propres à Spotify (appareils, Web Playback SDK, détection fantôme) : host.js
  * y accède via `engine.raw` (SpotifyService), toujours gardé par `engine.id === 'spotify'`.
  */
-import SpotifyService from '/shared/spotify-service.js?v=spsvc-02';
-import { BasePlayerEngine } from '/shared/player-engine.js?v=pe-05';
+import SpotifyService from '/shared/spotify-service.js?v=spsvc-03';
+import { BasePlayerEngine } from '/shared/player-engine.js?v=pe-06';
 
 export default class SpotifyEngine extends BasePlayerEngine {
   constructor(opts = {}) {
@@ -24,6 +24,9 @@ export default class SpotifyEngine extends BasePlayerEngine {
       onNoDevice:    () => this._emit('noDevice'),
       onAutoPlay:    (d) => this.onLog(`⚡ AUTOPLAY : ${d.name}`, 'warn'),
       onRelink:      (d) => this.onLog(`🔗 RELINK : ${d.requested} → ${d.played}`, 'info'),
+      // ★ Fin de titre détectée par le Web Playback SDK (device navigateur) : Spotify n'est pas
+      //   selfAdvancing, le cockpit enchaîne le suivant (onEngineAdvanced via trackEnded).
+      onTrackEnd:    () => { this.onLog('Spotify : fin de titre → enchaînement', 'info'); this._emit('trackEnded', { providerId: this._lastProviderId }); },
       onLog:         (msg, lvl) => this.onLog(msg, lvl)
     });
   }

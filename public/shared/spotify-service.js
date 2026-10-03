@@ -48,6 +48,7 @@ export default class SpotifyService {
     this.onNoDevice     = opts.onNoDevice     || (() => {});
     this.onAutoPlay     = opts.onAutoPlay     || (() => {});
     this.onRelink       = opts.onRelink       || (() => {});
+    this.onTrackEnd     = opts.onTrackEnd     || (() => {});   // ★ fin de titre (Web Playback SDK)
     this.onLog          = opts.onLog          || ((msg) => console.log('[SpotifyService]', msg));
 
     // Auth state
@@ -111,6 +112,17 @@ export default class SpotifyService {
           });
           this._sdkPlayer = player;
           player.addListener('ready', ({ device_id }) => { this._sdkDeviceId = device_id; this._log('Web Playback SDK prêt (device navigateur)', 'ok'); done(device_id); });
+          // ★ Détection de fin de titre : on jouait (position>0, non pausé) → maintenant pausé à 0
+          //   sur le MÊME titre = fin naturelle (pas de file Spotify, un titre à la fois) → enchaîner.
+          player.addListener('player_state_changed', (st) => {
+            if (!st) return;
+            const prev = this._sdkLastState;
+            const curUri = st.track_window && st.track_window.current_track && st.track_window.current_track.uri;
+            const ended = st.paused && st.position === 0 && prev && !prev.paused && prev.position > 0 &&
+                          prev.uri === curUri;
+            this._sdkLastState = { paused: st.paused, position: st.position, uri: curUri };
+            if (ended) { this._log('SDK: fin de titre', 'info'); try { this.onTrackEnd(); } catch (e) {} }
+          });
           player.addListener('not_ready', () => { this._log('SDK device hors-ligne', 'warn'); });
           player.addListener('initialization_error', ({ message }) => { this._log('SDK init: ' + message, 'warn'); done(null); });
           player.addListener('authentication_error', ({ message }) => { this._log('SDK auth: ' + message, 'warn'); done(null); });

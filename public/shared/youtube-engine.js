@@ -17,7 +17,7 @@
  *
  * Identifiant provider = videoId YouTube (11 car.). resolve(track) passe par /api/resolve.
  */
-import { BasePlayerEngine } from '/shared/player-engine.js?v=pe-05';
+import { BasePlayerEngine } from '/shared/player-engine.js?v=pe-06';
 
 const IFRAME_API = 'https://www.youtube.com/iframe_api';
 const CONTAINER_ID = 'yt-player';   // div visible dans screen-playing (créée si absente)
