@@ -5100,11 +5100,17 @@ io.on('connection', (socket) => {
             if (hu) hostUid = hu._id.toString();
           } catch (_) { /* non-fatal */ }
         }
+        const _prevHostJoinedAt = (existing.participants || []).find(p => p.isHost)?.joinedAt || null;
         existing.participants.unshift({
           id: socket.id, name: hostName, emoji: hostEmoji, userId: hostUid,
           photo: data.profile?.photo || null,
           phone: data.profile?.phone || '', email: data.profile?.email || '', instagram: data.profile?.instagram || '',
-          partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true
+          partyCode: code,
+          // ★ audit FTMP63 03/10 — joinedAt etait rehorodate a CHAQUE reconnexion host.
+          //   Sur FTMP63, l'hote apparaissait arrive a 23h45 pour une soiree ouverte a 18h29.
+          //   On preserve la premiere arrivee connue.
+          joinedAt: _prevHostJoinedAt || new Date().toISOString(),
+          isHost: true, connected: true
         });
       }
 
@@ -5178,11 +5184,15 @@ io.on('connection', (socket) => {
                 if (hu) hostUid = hu._id.toString();
               } catch (_) { /* non-fatal */ }
             }
+            const _prevHostJoinedAtR = (restoredParty.participants || []).find(p => p.isHost)?.joinedAt || null;
             restoredParty.participants.unshift({
               id: socket.id, name: hostName, emoji: hostEmoji, userId: hostUid,
               photo: data.profile?.photo || null,
               phone: data.profile?.phone || '', email: data.profile?.email || '', instagram: data.profile?.instagram || '',
-              partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true
+              partyCode: code,
+              // ★ audit FTMP63 03/10 — idem : ne pas rehorodater une arrivee deja connue.
+              joinedAt: _prevHostJoinedAtR || new Date().toISOString(),
+              isHost: true, connected: true
             });
           }
 
@@ -7819,9 +7829,13 @@ io.on('connection', (socket) => {
         publicId: data.publicId || '',
         width: data.width || 0,
         height: data.height || 0,
-        sizeKB: 0,
         caption: data.caption || '',
         uploadSource: 'host',
+        // ★ audit FTMP63 03/10 — uploaderUserId etait absent de CE chemin alors que
+        //   guest:photo le renseigne. Consequence : les photos prises depuis l'app host
+        //   n'avaient aucun proprietaire, donc aucune ACL de suppression (Task #39).
+        uploaderUserId: party.hostUserId ? String(party.hostUserId) : null,
+        sizeKB: Math.round((data.dataURL?.length || 0) / 1024) || 0,
       });
       photo.id = photoDoc._id.toString();
       console.log(`📸 [${party.code}] host:photo persisted to MongoDB: ${photoDoc._id}`);
