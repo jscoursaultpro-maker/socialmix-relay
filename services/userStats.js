@@ -34,11 +34,29 @@ export async function computeUserStats(hostUserId) {
     return null;
   }
 
-  // All ended parties for this host
+  // All ended parties for this host.
+  //
+  // Audit 03/10/2026 — cette requete echouait a CHAQUE cloture de soiree :
+  //   "Sort exceeded memory limit of 33554432 bytes, but did not opt in to
+  //    external sorting" (9 soirees en 7 jours, dont FTMP63).
+  //
+  // Deux causes cumulees, toutes deux supprimees ici :
+  //   1. .sort({'lifecycle.startedAt': 1}) n'est couvert par AUCUN index
+  //      (cf. Party.js L124-128 : hostUserId+createdAt et hostUserId+endedAt
+  //      seulement) -> SORT bloquant en memoire.
+  //   2. aucune projection -> le SORT brassait les documents Party ENTIERS,
+  //      trackHistory (jusqu'a ~100 entrees) + suggestions + guestVotes +
+  //      participantScores compris. D'ou les 32 Mo depasses des que l'hote
+  //      accumule des soirees.
+  //
+  // Le tri etait de surcroit REDONDANT : partyDates est deja retrie en JS plus
+  // bas, et aucun autre usage de `parties` ne depend de l'ordre (on en lit
+  // .length, .code et .participants). On le retire donc plutot que d'ajouter
+  // allowDiskUse, qui aurait fait spiller sur disque un tri inutile.
   const parties = await Party.find({
     hostUserId,
     endedAt: { $ne: null }
-  }).sort({ 'lifecycle.startedAt': 1 }).lean();
+  }).select('code participants lifecycle.startedAt').lean();
 
   if (parties.length === 0) {
     console.log(`[userStats] ${hostUserId}: no ended parties — skipping`);
