@@ -1,0 +1,11 @@
+================ FTMP63 × CURATION 02/10 — RAPPORT ================
+Date (UTC)                : 2026-10-03T09:09:21.032Z
+Party FTMP63
+  id        : 6abff80166f916ca34ec46e8
+  createdAt : 2026-10-02T18:29:21.298Z
+  endedAt   : 2026-10-02T23:46:58.073Z
+  isDemo    : false
+  status    : ended
+--------------------------------------------------------------
+Playback history total    : 0
+(aucune track jouée)
