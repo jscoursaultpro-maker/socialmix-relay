@@ -81,7 +81,7 @@
     w.id = WRAP_ID;
     w.innerHTML =
       '<div class="hc-card hc-dram">' +
-        '<div class="hd"><span class="t">SOIRÉE EN COURS</span><span class="auto">● AUTO</span></div>' +
+        '<div class="hd"><span class="t">SOIRÉE EN COURS</span><span class="auto" id="hc-mode-badge" title="Cliquer pour revenir à l\'enchaînement automatique">● AUTO</span></div>' +
         '<div class="hc-frise" id="hc-frise"></div>' +
         '<div class="hc-phase-now" id="hc-phase-now">—</div>' +
         '<div class="hc-phase-sub" id="hc-phase-sub">—</div>' +
@@ -134,6 +134,15 @@
         var stage = step.getAttribute('data-stage');
         e.setPhase(stage);
         renderFrise(stage);   // feedback visuel immédiat (le party:state confirmera)
+      });
+    })();
+    // Badge mode phase (● AUTO / ● MANUEL) — cliquable : en manuel, relâche vers l'automatique.
+    (function () {
+      var badge = w.querySelector('#hc-mode-badge'); if (!badge) return;
+      badge.style.cursor = 'pointer';
+      badge.addEventListener('click', function () {
+        var e = eng(); if (!e || !e.getPhaseMode || !e.setAuto) return;
+        if (e.getPhaseMode() !== 'auto') { e.setAuto(); setTimeout(sync, 150); }
       });
     })();
     // AUTO toggle — bascule aussi le mode suggestions (auto-file vs carte manuelle)
@@ -290,6 +299,16 @@
     var sw = document.getElementById('hc-auto-sw');
     var auto = (e && e.getAutoAdvance) ? e.getAutoAdvance() : true;
     if (sw) sw.classList.toggle('on', auto);
+    // Badge mode phase : ● AUTO (cascade) ou ● MANUEL <phase> (décision tenue par l'hôte).
+    var badge = document.getElementById('hc-mode-badge');
+    if (badge) {
+      var pm = (e && e.getPhaseMode) ? e.getPhaseMode() : 'auto';
+      if (pm === 'auto') { badge.textContent = '● AUTO'; badge.style.opacity = ''; }
+      else {
+        var lab = (PHASES.filter(function (p) { return p.key === pm; })[0] || {}).label || pm;
+        badge.textContent = '✋ ' + lab.toUpperCase();
+      }
+    }
     if (auto) {
       // Auto ON → c'est le DJ Brain qui décide QUAND passer les suggestions (scoring
       // phase/énergie, côté serveur). On ne force rien dans la file : elles remontent

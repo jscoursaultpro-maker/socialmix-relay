@@ -5919,22 +5919,41 @@ io.on('connection', (socket) => {
   // Phase update from host — fired when DJ changes phase in CockpitView
   socket.on('host:phaseUpdate', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    const newPhase = (data.phase || 'arrival').toLowerCase();
-    
+    if (!party.hostDecisions) party.hostDecisions = { isPhaseLocked: false, sessionModeOverride: 'auto' };
+    const raw = (data.phase || 'arrival').toLowerCase();
+
+    // ★ Web host (03/10) — retour à l'AUTO : l'hôte relâche sa décision, la cascade reprend
+    //   depuis baseAutoStage (horloge remise à maintenant). override='auto' → computeStage auto.
+    if (raw === 'auto' || data.mode === 'auto') {
+      party.hostDecisions.sessionModeOverride = 'auto';
+      party.phaseStartedAt = new Date().toISOString();
+      party.isDirty = true;
+      Party.updateOne({ code: party.code, endedAt: null }, { $set: { phaseStartedAt: party.phaseStartedAt, 'hostDecisions.sessionModeOverride': 'auto' } }).catch(console.error);
+      console.log(`[${party.code}] Phase -> AUTO (override relâché)`);
+      const st = buildLightState(party);
+      io.to(`guest:${party.code}`).emit('party:state', st);
+      io.to(`host:${party.code}`).emit('party:state', st);
+      return;
+    }
+
+    const newPhase = raw;
     // Feature 1: Manual phase regression is ALWAYS allowed now.
     party.currentPhase = newPhase;
     party.phaseStartedAt = new Date().toISOString();
     // ★ Web host (03/10) : le DJ Brain cloud dérive la phase via computeStage(baseAutoStage, elapsed).
-    //   Un override manuel doit donc repositionner baseAutoStage sinon le cerveau garde l'ancienne
-    //   cascade (badge ≠ sélection). On saute à newPhase et la progression repart de là (clock reset
-    //   via phaseStartedAt). Inerte pour iOS (brain local, ne lit pas baseAutoStage).
+    //   Un override manuel repositionne baseAutoStage (sinon badge ≠ sélection). Inerte pour iOS
+    //   (brain local, ne lit pas baseAutoStage).
     party.baseAutoStage = newPhase;
+    // ★ Web host — HOLD : si l'hôte veut GARDER sa décision (data.hold), le DJ Brain cloud la tient
+    //   via override (computeStage renvoie la phase absolument, pas de dérive temps). iOS n'envoie
+    //   pas hold → comportement d'origine (saut, la cascade reprend depuis newPhase).
+    if (data.hold) party.hostDecisions.sessionModeOverride = newPhase;
     // Immediate write-through for critical state
     party.isDirty = true;
-    Party.updateOne({ code: party.code, endedAt: null }, { $set: { currentPhase: party.currentPhase, phaseStartedAt: party.phaseStartedAt, baseAutoStage: party.baseAutoStage } }).catch(console.error);
+    Party.updateOne({ code: party.code, endedAt: null }, { $set: { currentPhase: party.currentPhase, phaseStartedAt: party.phaseStartedAt, baseAutoStage: party.baseAutoStage, 'hostDecisions.sessionModeOverride': party.hostDecisions.sessionModeOverride } }).catch(console.error);
 
-    console.log(`[${party.code}] Phase -> ${party.currentPhase} (startedAt reset)`);
-    
+    console.log(`[${party.code}] Phase -> ${party.currentPhase}${data.hold ? ' (hold)' : ''} (startedAt reset)`);
+
     // Broadcast state for phase indicator
     const phaseState = buildLightState(party);
     io.to(`guest:${party.code}`).emit('party:state', phaseState);

@@ -24,11 +24,14 @@
   var tracks = [];
   var idx = 0;
   var queuedPid = null;
+  var playingPid = null;         // providerId du titre RÉELLEMENT en cours (garde anti double-avance)
   var booted = false;
   var autoAdvance = true;        // ENCHAÎNEMENT AUTO (toggle host)
   var stallTries = 0;            // tentatives de récupération pour le titre courant
   var skipping = false;          // garde anti-réentrance pendant un saut de titre injouable
   var pendingStart = null;       // Apple : {code} en attente du geste ▶ pour authorize()+1er titre
+  var lastBrainPhase = null;     // phase calculée par le DJ Brain cloud (poussée au serveur = parité iOS)
+  var phaseOverride = 'auto';    // décision hôte : 'auto' (cascade) ou une phase tenue (hold)
 
   var _dbg = null;      // corps scrollable des logs (là où log() ajoute les lignes)
   var _dbgWrap = null;  // conteneur (barre + corps)
@@ -122,7 +125,7 @@
     engine = await mod.createEngine(provider, opts);
     // Auto-advance : à chaque changement de titre réel, avancer l'index + ré-émettre.
     engine.on('trackChanged', function () { /* état visuel géré par la SPA via party:state */ });
-    engine.on('trackEnded', function () { onEngineAdvanced(); });
+    engine.on('trackEnded', function (p) { onEngineAdvanced(p && p.providerId); });
     engine.on('needsUserGesture', function () { isPlaying = false; toast('Touche ▶ pour lancer la lecture'); });
     engine.on('needsVisibleScreen', function () { toast('Garde l\'écran allumé pour YouTube'); });
     engine.on('error', function (e) { var m = (typeof e === 'string') ? e : (e && e.message) || 'Erreur de lecture'; log('engine error: ' + m, 'warn'); toast(m); });
@@ -163,9 +166,9 @@
     try {
       var res = await fetch('/api/djbrain/next?partyCode=' + encodeURIComponent(code) + '&count=' + count + '&provider=youtube',
         { headers: token ? { Authorization: 'Bearer ' + token } : {} });
-      if (res.ok) { var d = await res.json(); if (d && d.tracks && d.tracks.length) { log('djbrain-cloud: ' + d.tracks.length + ' titres (phase ' + d.phase + ')'); return d; } }
+      if (res.ok) { var d = await res.json(); if (d && d.tracks && d.tracks.length) { if (d.phase) lastBrainPhase = d.phase; log('djbrain-cloud: ' + d.tracks.length + ' titres (phase ' + d.phase + ')'); return d; } }
     } catch (e) { log('djbrain-cloud erreur: ' + e.message, 'warn'); }
-    try { var r2 = await fetch('/api/djbrain-lite/next?partyCode=' + encodeURIComponent(code) + '&count=' + count + '&phase=arrival'); return await r2.json(); }
+    try { var r2 = await fetch('/api/djbrain-lite/next?partyCode=' + encodeURIComponent(code) + '&count=' + count + '&phase=arrival'); var dl = await r2.json(); if (dl && dl.phase) lastBrainPhase = dl.phase; return dl; }
     catch (e2) { return { tracks: [] }; }
   }
 
@@ -182,6 +185,9 @@
       // ★ pochette : le guest lit artworkURL (U majuscule) — on envoie tous les variants pour éviter le décalage
       artworkURL: cover, artworkUrl: cover, cover: cover, coverArtURL: cover,
       bpm: t.bpm || null, isrc: t.isrc || null,
+      // ★ Parité iOS (03/10) : on pousse la phase calculée par le cerveau → le serveur synchronise
+      //   party.currentPhase (anti-régression) et la frise/guests suivent la vraie phase qui progresse.
+      currentPhase: lastBrainPhase || null,
       source: 'djbrain-cloud', provider: party.provider || 'youtube',
       sentAt: new Date().toISOString()
     });
@@ -211,12 +217,21 @@
     if (pid) { queuedPid = pid; await engine.queueNext(pid); log('préqueue → ' + nx.title); }
   }
 
-  async function onEngineAdvanced() {
+  async function onEngineAdvanced(endedPid) {
     if (!autoAdvance) return;    // auto coupé → on ne saute pas tout seul
+    // ★ Garde anti double-avance (parité 3 providers) : n'avance QUE sur la fin du titre
+    //   réellement en cours. Spotify ré-émet trackEnded via la sonde Connect avec du retard
+    //   (URI A→B vue après coup) → ce doublon ferait sauter un titre. On l'ignore ici.
+    //   Inoffensif pour YouTube/Apple (leur trackEnded porte toujours l'id du titre courant).
+    if (endedPid != null && playingPid != null && String(endedPid) !== String(playingPid)) {
+      log('trackEnded périmé ignoré (' + endedPid + ' ≠ courant ' + playingPid + ')');
+      return;
+    }
     var selfAdv = engine && engine.capabilities && engine.capabilities.selfAdvancing;
     if (selfAdv) {
       // YouTube : le moteur a déjà chargé le titre mémorisé → avancer l'index + ré-émettre.
       if (idx + 1 < tracks.length) { idx++; stallTries = 0; var now = tracks[idx]; if (now) emitTrackUpdate(now); }
+      playingPid = queuedPid || null;   // le titre que le moteur vient de charger devient le courant
       await prequeueNext();
     } else {
       // Spotify / Apple : rien n'est pré-chargé → jouer explicitement le prochain titre jouable.
@@ -246,7 +261,7 @@
           if (pid) {
             var ok = await engine.play(pid);
             log('essai "' + (cand.title || '?') + '" resolve=' + pid + ' play=' + (ok ? 'OK' : 'ÉCHEC'), ok ? 'info' : 'warn');
-            if (ok) { idx = i; queuedPid = null; stallTries = 0; emitTrackUpdate(cand); await prequeueNext(); log('saut (' + (reason || '') + ') → ' + cand.title); return; }
+            if (ok) { idx = i; queuedPid = null; playingPid = pid; stallTries = 0; emitTrackUpdate(cand); await prequeueNext(); log('saut (' + (reason || '') + ') → ' + cand.title); return; }
           } else {
             log('essai "' + (cand.title || '?') + '" resolve=NULL (non résolu)', 'warn');
           }
@@ -345,9 +360,13 @@
   function setPhase(stage) {
     var s = sock();
     if (!s || !party || !stage) return false;
-    try { s.emit('host:phaseUpdate', { phase: stage, hostSecret: party.hostSecret }); }
+    // ★ Parité iOS : un clic frise = l'hôte PREND sa décision et la TIENT (hold). Le DJ Brain
+    //   cloud garde cette phase (override) jusqu'à ce que l'hôte repasse en AUTO (setAuto).
+    try { s.emit('host:phaseUpdate', { phase: stage, hostSecret: party.hostSecret, hold: true }); }
     catch (e) { log('setPhase: ' + e.message, 'warn'); return false; }
-    log('host:phaseUpdate → ' + stage, 'info');
+    phaseOverride = stage;
+    lastBrainPhase = stage;   // reflète tout de suite la décision dans les prochains trackUpdate
+    log('host:phaseUpdate → ' + stage + ' (hold)', 'info');
     setTimeout(function () {   // laisse le serveur appliquer baseAutoStage avant de re-puller
       try {
         if (tracks.length > idx + 1) tracks = tracks.slice(0, idx + 1);   // vide la file à venir
@@ -359,6 +378,29 @@
     }, 500);
     return true;
   }
+
+  // ── Retour à l'enchaînement AUTO des phases (relâche la décision de l'hôte) ──
+  //   La cascade temporelle du DJ Brain cloud reprend depuis la dernière phase (baseAutoStage).
+  function setAuto() {
+    var s = sock();
+    if (!s || !party) return false;
+    try { s.emit('host:phaseUpdate', { phase: 'auto', mode: 'auto', hostSecret: party.hostSecret }); }
+    catch (e) { log('setAuto: ' + e.message, 'warn'); return false; }
+    phaseOverride = 'auto';
+    log('host:phaseUpdate → AUTO (override relâché)', 'info');
+    setTimeout(function () {
+      try {
+        if (tracks.length > idx + 1) tracks = tracks.slice(0, idx + 1);
+        queuedPid = null;
+        Promise.resolve(ensureBuffer(3)).then(function () {
+          try { if (window.AhOuaiHostCockpit && window.AhOuaiHostCockpit.renderQueue) window.AhOuaiHostCockpit.renderQueue(); } catch (e) {}
+        });
+      } catch (e) {}
+    }, 500);
+    return true;
+  }
+  // 'auto' si la cascade pilote ; sinon la phase tenue par l'hôte.
+  function getPhaseMode() { return (phaseOverride && phaseOverride !== 'auto') ? phaseOverride : 'auto'; }
 
   // ── Terminer la soirée → bascule AfterGlow pour tous ──────────────────────
   //   Émet host:endParty : le serveur clôt la soirée et diffuse party:ended à la room invité.
@@ -398,7 +440,7 @@
     if (pid) {
       var ok = await engine.play(pid);
       log('play(1er) → ' + (ok ? 'OK' : 'ÉCHEC'), ok ? 'info' : 'warn');
-      if (ok) { emitTrackUpdate(first); await prequeueNext(); return; }
+      if (ok) { playingPid = pid; emitTrackUpdate(first); await prequeueNext(); return; }
     }
     // Premier titre injouable → chercher le premier titre jouable de la file.
     log('premier titre injouable → recherche du prochain jouable', 'warn');
@@ -426,7 +468,7 @@
   }
   async function repeat() {
     if (!engine) return; var cur = tracks[idx]; if (!cur) return;
-    var pid = await engine.resolve(cur); if (pid) await engine.play(pid);
+    var pid = await engine.resolve(cur); if (pid) { playingPid = pid; await engine.play(pid); }
   }
 
   function isActive() { return !!party; }
@@ -538,7 +580,7 @@
 
   window.AhOuaiHostEngine = {
     launchHost: launchHost, play: play, pause: pause, togglePlay: togglePlay,
-    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind, log: log, endParty: endParty, setPhase: setPhase,
+    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind, log: log, endParty: endParty, setPhase: setPhase, setAuto: setAuto, getPhaseMode: getPhaseMode,
     setAutoAdvance: setAutoAdvance, getAutoAdvance: getAutoAdvance,
     getUpcoming: getUpcoming, playNow: playNow, move: move,
     removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,

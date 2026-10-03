@@ -141,8 +141,11 @@ router.get('/next', requireSupabaseAuth, async (req, res) => {
       baseAutoStage: party?.baseAutoStage || 'arrival',
       sessionStartMs,
       energyLevel,
-      override: party?.sessionModeOverride || null,
-      locked: party?.isPhaseLocked || false,
+      // ★ Fix 03/10 : l'override/lock de l'hôte est stocké dans party.hostDecisions (handlers
+      //   host:phaseUpdate hold / host:phaseLockChanged / host:sessionModeOverrideChanged), pas à
+      //   la racine. On lit donc hostDecisions en priorité (repli racine pour compat).
+      override: party?.hostDecisions?.sessionModeOverride ?? party?.sessionModeOverride ?? null,
+      locked:   party?.hostDecisions?.isPhaseLocked ?? party?.isPhaseLocked ?? false,
     });
 
     // party.genreVotes est la tally {genre:count} ; guestGenreVotes est {voter:genre} (forme ≠) → ne pas l'utiliser ici.
