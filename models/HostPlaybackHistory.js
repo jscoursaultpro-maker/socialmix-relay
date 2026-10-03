@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { HPH_PROVIDER_ENUM, normalizeProvider } from '../lib/providers.js';
 
 // ★ Fix(Task #44) — 2026-07-16: trackId rendu optionnel pour couvrir les tracks hors-catalogue.
 // Avant : trackId required:true → HPH.create() échouait silencieusement si Track.findOne() = null.
@@ -25,8 +26,20 @@ const HostPlaybackHistorySchema = new mongoose.Schema({
   skipReason:    { type: String,  enum: [null, 'host_skip', 'auto_next', 'guest_skip'],
                    default: null },
   // ★ fix(#24) — Provider audio actif au moment de la lecture (analytics + audit)
-  provider:      { type: String,  enum: ['apple_music', 'spotify', 'deezer', 'just_play', null],
-                   default: null, index: true }
+  provider:      { type: String,  enum: HPH_PROVIDER_ENUM,
+                   default: null, index: true },
+  // ★ audit 03/10/2026 — marque les docs recréés a posteriori depuis party.trackHistory
+  backfilled:    { type: Boolean, default: false, index: true }
+});
+
+// ★ audit 03/10/2026 — filet de sécurité : même si un appelant oublie normalizeProvider(),
+// le schéma ramène la valeur à sa forme canonique plutôt que de rejeter l'écriture.
+// C'est ce rejet qui a fait perdre 556 titres sur 43 soirées (providers appleMusic / youtube).
+HostPlaybackHistorySchema.pre('validate', function(next) {
+  if (this.provider !== null && this.provider !== undefined) {
+    this.provider = normalizeProvider(this.provider);
+  }
+  next();
 });
 
 // Compound dedup guard: même track, même host, même soirée — interdit le double-log

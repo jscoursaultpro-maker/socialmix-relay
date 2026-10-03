@@ -22,6 +22,7 @@ import { EventLog } from './models/EventLog.js'; // ★ A3c — Structured audit
 import { AudioEvent } from './models/AudioEvent.js'; // ★ A6a — Audio pipeline audit
 import GuestSession from './models/GuestSession.js'; // ★ fix(#21 RGPD) — consent + droit à l'oubli
 import HostPlaybackHistory from './models/HostPlaybackHistory.js'; // ★ Fresh Rotation
+import { recordPlayback } from './lib/recordPlayback.js'; // ★ audit 03/10 — ecriture HPH factorisee (2 chemins de lecture)
 import { marked } from 'marked'; // ★ fix(#21) — CGU/Privacy markdown rendering
 import { startMetrics } from './stress-test/metrics.js';   // no-op unless STRESS_METRICS=1
 import { uploadPhoto } from './services/cloudinaryService.js';
@@ -5567,6 +5568,9 @@ io.on('connection', (socket) => {
       const _normNewArtist = (trackDoc.artist || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').trim();
       if (!_lastTitle || _normLastTitle !== _normNewTitle || _normLastArtist !== _normNewArtist) {
         party.trackHistory = cappedUnshift(party.trackHistory, trackDoc, 500);
+        // ★ audit 03/10/2026 — trackCount n'etait ecrit nulle part : le pre('save') du schema
+        //   ne se declenche jamais sur les ecritures atomiques. 158 soirees affichaient 0.
+        party.trackCount = party.trackHistory.length;
       } else {
         console.log(`[${party.code}] 🔄 trackHistory dedup — skip "${trackDoc.title}" (identique au dernier "${_lastTitle}")`);
       }
@@ -5583,101 +5587,11 @@ io.on('connection', (socket) => {
       // résultat caché sur party._mongoId pour éviter le re-query à chaque track.
       // Note: IIFE async car socket handler n'est pas async — comportement non-bloquant conservé.
       // ★ Fresh Rotation — record playback for this host
-      // Bug #77 fix — compteurs + retry + log structuré pour éliminer les writes silencieux.
-      if (!party.hphCounters) party.hphCounters = { success: 0, failed: 0, skipped: 0 };
-      const _capturedDoc   = trackDoc;
-      const _capturedCode  = party.code;
-      const _capturedPhase = party.currentPhase;
-      const _capturedUID   = party.hostUserId;
-      
-      if (!_capturedUID) {
-        party.hphCounters.skipped++;
-        console.warn(`[HPH][alert] party=${_capturedCode} skip reason=no_hostUserId title="${_capturedDoc.title}" counters=${JSON.stringify(party.hphCounters)}`);
-      } else {
-        // Cache _mongoId pour cette soirée (évite re-query par track)
-        if (!party._mongoId) {
-          party._mongoId = Party.findOne({ code: _capturedCode, endedAt: null }).select('_id').lean()
-            .then(p => { if (p) party._mongoId = p._id; return p?._id || null; })
-            .catch(err => {
-              console.error(`[HPH][alert] party=${_capturedCode} _mongoId lookup failed: ${err.message}`);
-              return null;
-            });
-        }
-        (async () => {
-          const partyMongoId = (party._mongoId instanceof Promise)
-            ? await party._mongoId
-            : party._mongoId;
-
-          if (!partyMongoId) {
-            party.hphCounters.skipped++;
-            console.warn(`[HPH][alert] party=${_capturedCode} skip reason=no_partyId title="${_capturedDoc.title}" counters=${JSON.stringify(party.hphCounters)}`);
-            return;
-          }
-
-          const _esc = s => (s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const deezerId = _capturedDoc.deezerId || _capturedDoc.trackId;
-
-          let resolvedTrack = null;
-          if (deezerId) {
-            resolvedTrack = await Track.findOne({ 'providers.deezer.trackId': Number(deezerId) })
-              .select('_id').lean().catch(() => null);
-          }
-          if (!resolvedTrack && _capturedDoc.title) {
-            const titleRegex  = new RegExp('^' + _esc(_capturedDoc.title.trim()) + '$', 'i');
-            const artistFirst = (_capturedDoc.artist || '').split(/[,&]/)[0].trim();
-            const artistRegex = artistFirst ? new RegExp(_esc(artistFirst), 'i') : null;
-            const fallbackQ   = { title: titleRegex };
-            if (artistRegex) fallbackQ.artist = artistRegex;
-            resolvedTrack = await Track.findOne(fallbackQ).select('_id').lean().catch(() => null);
-            if (!resolvedTrack) {
-              console.warn(`[HPH][catalogue-miss] party=${_capturedCode} title="${_capturedDoc.title}" deezerId=${deezerId || 'none'} — HPH créé avec trackId=null`);
-            }
-          }
-
-          let safeProvider = party.streamingProvider || null;
-          if (safeProvider === 'appleMusic') safeProvider = 'apple_music';
-
-          const hphDoc = {
-            hostUserId:          _capturedUID,
-            trackId:             resolvedTrack?._id || null,
-            partyId:             partyMongoId,
-            partyCode:           _capturedCode,
-            deezerTrackId:       deezerId ? Number(deezerId) : null,
-            title:               _capturedDoc.title  || null,
-            artist:              _capturedDoc.artist || null,
-            playedAt:            new Date(),
-            phase:               _capturedPhase || _capturedDoc.phase,
-            wasSuggestedByGuest: !!_capturedDoc.suggestedBy,
-            // ★ fix(#24) — Tracker le provider audio actif pour analytics cross-party
-            provider:            safeProvider
-          };
-
-          // Retry 1x avec backoff 500ms si create échoue (transient MongoDB errors)
-          let attempt = 0;
-          let lastError = null;
-          while (attempt < 2) {
-            try {
-              await HostPlaybackHistory.create(hphDoc);
-              party.hphCounters.success++;
-              console.log(`[HPH][ok] party=${_capturedCode} title="${_capturedDoc.title}" trackId=${resolvedTrack?._id || 'null'} attempt=${attempt + 1} counters=${JSON.stringify(party.hphCounters)}`);
-              return;
-            } catch (e) {
-              if (e.code === 11000) {
-                // Doublon — considéré succès (idempotence)
-                party.hphCounters.success++;
-                return;
-              }
-              lastError = e;
-              attempt++;
-              if (attempt < 2) {
-                await new Promise(r => setTimeout(r, 500));
-              }
-            }
-          }
-          party.hphCounters.failed++;
-          console.error(`[HPH][alert] party=${_capturedCode} CREATE FAILED after 2 attempts title="${_capturedDoc.title}" error="${lastError?.message}" counters=${JSON.stringify(party.hphCounters)}`);
-        })();
-      }
+      // ★ audit 03/10/2026 — bloc factorise dans lib/recordPlayback.js : le meme code sert
+      //   desormais a host:trackUpdate ET a host:liveTrackDetected (Shazam), qui n'ecrivait
+      //   aucun HPH. Non bloquant : le handler socket n'est pas async.
+      recordPlayback(party, trackDoc, { phase: party.currentPhase, source: historySource })
+        .catch(e => console.error(`[HPH][alert] party=${party.code} recordPlayback threw: ${e.message}`));
 
 
 
@@ -5855,6 +5769,12 @@ io.on('connection', (socket) => {
         phase: party.currentPhase || 'unknown',
         ...liveVoteSnapshot
       }, 500);
+      party.trackCount = party.trackHistory.length;
+      // ★ audit 03/10/2026 — ce chemin alimentait trackHistory sans jamais creer de HPH :
+      //   toutes les tracks Shazam DJ Live etaient invisibles pour la Fresh Rotation.
+      recordPlayback(party, { ...liveTrack, phase: party.currentPhase || 'unknown', ...liveVoteSnapshot },
+                     { phase: party.currentPhase, source: 'live_dj_shazam' })
+        .catch(e => console.error(`[HPH][alert] party=${party.code} recordPlayback(live) threw: ${e.message}`));
       // ★ fix(bug-70): Option B — host IS the suggester in DJ Live mode. Aligned at +15 for symmetry.
       addPoints(party, 'host', 'DJ', 15, 'Mix Live Track: ' + liveTrack.title);
     }
