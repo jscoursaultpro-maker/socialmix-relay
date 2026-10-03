@@ -72,8 +72,17 @@ const sansHost = [];
 
 for (const p of parties) {
   const existants = await HPH.find({ $or: [{ partyId: p._id }, { partyCode: p.code }] })
-    .select('title playedAt').lean();
-  const vus = new Set(existants.map(h => `${(h.title || '').toLowerCase().trim()}|${new Date(h.playedAt).getTime()}`));
+    .select('title artist playedAt').lean();
+
+  // ★ Dedup par occurrences de (titre, artiste) normalises.
+  //   NE PAS comparer sur playedAt : un HPH temps reel est horodate avec new Date() au
+  //   moment de l'ecriture, decale de quelques secondes du playedAt de trackHistory.
+  //   Comparer les timestamps ne matche jamais et fait recreer tout l'historique.
+  const cleOf = (t, a) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+                  + '|' + (a || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  const dejaEnHph = new Map();
+  for (const h of existants) { const k = cleOf(h.title, h.artist); dejaEnHph.set(k, (dejaEnHph.get(k) || 0) + 1); }
+  const vusDansHist = new Map();
 
   const hist = [...(p.trackHistory || [])].reverse(); // chronologique
   const provider = normalizeProvider(p.streamingProvider);
@@ -95,7 +104,11 @@ for (const p of parties) {
     if (!t.title && !t.artist) continue;
     const playedAt = t.playedAt ? new Date(t.playedAt) : null;
     if (!playedAt || Number.isNaN(playedAt.getTime())) continue; // pas de date inventée
-    if (vus.has(`${(t.title || '').toLowerCase().trim()}|${playedAt.getTime()}`)) continue;
+    // Un titre rejoue N fois doit exister N fois : on ne cree que le surplus.
+    const cle = cleOf(t.title, t.artist);
+    const rang = (vusDansHist.get(cle) || 0) + 1;
+    vusDansHist.set(cle, rang);
+    if (rang <= (dejaEnHph.get(cle) || 0)) continue; // deja couvert par un doc existant
 
     const deezerId = t.deezerId || t.deezerID || t.trackId;
     const numDeezer = (deezerId && !Number.isNaN(Number(deezerId))) ? Number(deezerId) : null;
