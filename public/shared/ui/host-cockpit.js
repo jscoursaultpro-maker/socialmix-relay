@@ -95,7 +95,7 @@
       '</div>' +
       // Carte suggestions — visible uniquement quand l'enchaînement auto est OFF.
       '<div class="hc-card" id="hc-sugg-card" style="display:none">' +
-        '<div class="hc-next-h">💡 Suggestions des invités <span class="n" id="hc-sugg-n">0</span></div>' +
+        '<div class="hc-next-h">💡 Suggestions <span class="n" id="hc-sugg-n">0</span></div>' +
         '<div class="hc-q" id="hc-sugg-list"></div>' +
       '</div>' +
       '<div class="hc-card">' +
@@ -191,7 +191,8 @@
     if (now) inQ[normT(now.title)] = true;
     var list = ((lastState && lastState.suggestions) || []).filter(function (s) {
       if (!s || ['dismissed', 'played', 'unavailable', 'queued'].indexOf(s.status) >= 0) return false;
-      if (s.isHost) return false;
+      // ★ 03/10 (option A, host=guest) : on affiche AUSSI les suggestions de l'hôte lui-même,
+      //   pour qu'il puisse les ajouter à la main en auto OFF (et que le test solo fonctionne).
       return !inQ[normT(s.title || s.query)];
     });
     card.style.display = list.length ? '' : 'none';
