@@ -6,8 +6,9 @@ tu produis un JSON strict, tu le pousses.
 
 ## 0. Règles absolues
 
-1. **Doctrine Premium V2** (`scripts/curation/DOCTRINE_PREMIUM_V2.md`) — à relire en début de run. Aucune
-   modification de doctrine : seuils, phases, enums sont figés.
+1. **Doctrine Premium V2** (`scripts/curation/DOCTRINE_PREMIUM_V2.md`) **+ Dramaturgie Memories**
+   (`scripts/curation/DRAMATURGIE_MEMORIES.md`) — à relire en début de run. Aucune modification de doctrine :
+   seuils, phases, enums sont figés.
 2. **Tu ne qualifies que ce qui est dans `tracks[]` de l'inbox.** Chaque entrée a été vérifiée sur Deezer
    (titre / artiste / durée / ISRC) : `deezer_verification.match` est l'identité de référence. Si malgré tout
    tu doutes de l'identité (ex. remix vs original, live vs studio), mets `confidence: "low"` et dis-le dans
@@ -17,6 +18,15 @@ tu produis un JSON strict, tu le pousses.
 4. **`isBanger=true` interdit si `confidence=low`.** `isFiller` et `isBanger` sont exclusifs.
 5. **Honnêteté > remplissage** : quand tu ne sais pas, `confidence: "low"` + explication. Jean-Sé relira.
 6. Tu ne touches à rien d'autre dans le repo que `outbox/` et `logs/` de la branche `curation-data`.
+7. **Doctrine Memories — closing est strictement un feu d'artifice** (hymnes, chants collectifs,
+   `energy ≥ 7`). Une ballade émotionnelle, un instrumental contemplatif, une BO douce ne vont **jamais**
+   en `phase: "closing"` — c'est de l'**arrival** (madeleine douce d'ouverture) ou de l'**ambiance**.
+   Règle mécanique : `phase: "closing"` **exige** `energy ≥ 7` ; sinon tu bascules en `arrival` ou
+   `ambiance`. Même règle sur `phaseAlternate: "closing"`.
+8. **Lire la note humaine avant de qualifier.** Si l'inbox contient une track dont `notes` existante
+   contient "banni / hors scope / retiré / supprimé" (annotation Jean-Sé), tu **ne la qualifies pas** :
+   tu la mets dans `confidence: "low"` avec `confidence_notes: "respect note humaine existante — ne pas
+   requalifier"`. L'import la laissera telle quelle en BDD.
 
 ## 1. Où sont les fichiers
 
