@@ -338,6 +338,19 @@
     return true;
   }
 
+  // ── Terminer la soirée → bascule AfterGlow pour tous ──────────────────────
+  //   Émet host:endParty : le serveur clôt la soirée et diffuse party:ended à la room invité.
+  //   L'hôte (membre de la room invité via self-join) reçoit party:ended → écran récap/AfterGlow.
+  function endParty() {
+    var s = sock();
+    if (!s || !party || !party.code) { log('endParty: pas de soirée active', 'warn'); return false; }
+    try { s.emit('host:endParty', { hostSecret: party.hostSecret }); } catch (e) { log('endParty: ' + e.message, 'warn'); return false; }
+    log('host:endParty émis (' + party.code + ')', 'info');
+    try { if (engine) engine.pause(); } catch (e) {}
+    isPlaying = false;
+    return true;
+  }
+
   // Apple : authorize() + lecture du 1er titre, déclenchés PAR le geste ▶ (sinon Safari bloque).
   async function startPending() {
     var ps = pendingStart;
@@ -503,7 +516,7 @@
 
   window.AhOuaiHostEngine = {
     launchHost: launchHost, play: play, pause: pause, togglePlay: togglePlay,
-    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind, log: log,
+    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind, log: log, endParty: endParty,
     setAutoAdvance: setAutoAdvance, getAutoAdvance: getAutoAdvance,
     getUpcoming: getUpcoming, playNow: playNow, move: move,
     removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,

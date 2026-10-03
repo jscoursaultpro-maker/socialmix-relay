@@ -101,7 +101,29 @@
       '<div class="hc-card">' +
         '<div class="hc-next-h">🎚️ À suivre <span class="n" id="hc-q-n">0</span></div>' +
         '<div class="hc-q" id="hc-q"></div>' +
+      '</div>' +
+      // Terminer la soirée → AfterGlow (confirmation en 2 temps, pas de modale navigateur).
+      '<div class="hc-card" style="text-align:center">' +
+        '<button id="hc-end" style="width:100%;padding:13px;border:1px solid rgba(255,77,128,.5);border-radius:12px;background:rgba(255,77,128,.12);color:#ff6b9d;font:800 15px Outfit,sans-serif;cursor:pointer">Terminer la soirée</button>' +
       '</div>';
+    // Terminer la soirée — confirmation en 2 temps (1er clic arme, 2e clic dans 4 s confirme).
+    (function () {
+      var btn = w.querySelector('#hc-end'); if (!btn) return;
+      var armed = false, timer = null;
+      btn.addEventListener('click', function () {
+        var e = eng(); if (!e || !e.endParty) return;
+        if (!armed) {
+          armed = true;
+          btn.textContent = 'Confirmer la fin ?';
+          btn.style.background = 'rgba(255,77,128,.28)';
+          timer = setTimeout(function () { armed = false; btn.textContent = 'Terminer la soirée'; btn.style.background = 'rgba(255,77,128,.12)'; }, 4000);
+          return;
+        }
+        if (timer) clearTimeout(timer);
+        armed = false; btn.disabled = true; btn.textContent = 'Soirée terminée…';
+        e.endParty();   // serveur → party:ended → l'hôte (room invité) bascule sur le récap
+      });
+    })();
     // AUTO toggle — bascule aussi le mode suggestions (auto-file vs carte manuelle)
     w.querySelector('#hc-auto-sw').addEventListener('click', function () {
       var e = eng(); if (!e) return;
