@@ -35,11 +35,12 @@ const HostPlaybackHistorySchema = new mongoose.Schema({
 // ★ audit 03/10/2026 — filet de sécurité : même si un appelant oublie normalizeProvider(),
 // le schéma ramène la valeur à sa forme canonique plutôt que de rejeter l'écriture.
 // C'est ce rejet qui a fait perdre 556 titres sur 43 soirées (providers appleMusic / youtube).
-HostPlaybackHistorySchema.pre('validate', function(next) {
+// Mongoose 9 n'injecte pas `next` dans ce hook : une signature (next) leve
+// "next is not a function" et fait echouer TOUTE validation. Forme synchrone obligatoire.
+HostPlaybackHistorySchema.pre('validate', function() {
   if (this.provider !== null && this.provider !== undefined) {
     this.provider = normalizeProvider(this.provider);
   }
-  next();
 });
 
 // Compound dedup guard: même track, même host, même soirée — interdit le double-log
