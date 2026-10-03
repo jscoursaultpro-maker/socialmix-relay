@@ -1,5 +1,5 @@
 ================ VOTES 🔥 (agrégés live depuis Party.guestVotes) ================
-Date (UTC)                   : 2026-10-03T09:02:45.654Z
+Date (UTC)                   : 2026-10-03T09:06:52.788Z
 Parties scannées (non-demo)  : 943
 Total votes 🔥               : 21
 Tracks uniques avec 🔥       : 10
