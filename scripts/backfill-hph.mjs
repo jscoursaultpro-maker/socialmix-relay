@@ -145,20 +145,16 @@ for (const p of parties) {
 
   let note = '';
   if (APPLY && aCreer.length) {
+    // ★ Le compte annonce ne vient JAMAIS du retour de insertMany : ce retour a
+    //   deja menti deux fois (docs ecartes silencieusement, puis e.results compte
+    //   comme reussites des documents jamais inseres). Seule la base fait foi :
+    //   on recompte avant / apres et on affiche le delta reel.
+    const avant = await HPH.countDocuments({ $or: [{ partyId: p._id }, { partyCode: p.code }] });
     try {
-      // ★ throwOnValidationError: true — SANS cette option, Mongoose ecarte
-      //   silencieusement les documents qui echouent la validation et resout la
-      //   promesse avec les seuls documents valides (model.js L3059). C'est
-      //   exactement l'echec muet que ce script est cense reparer.
-      const r = await HPH.insertMany(aCreer, { ordered: false, throwOnValidationError: true });
-      totalEcrits += r.length;
-      note = r.length === aCreer.length ? `✅ ${r.length} écrits` : `⚠️  ${r.length}/${aCreer.length} écrits`;
+      await HPH.insertMany(aCreer, { ordered: false, throwOnValidationError: true });
     } catch (e) {
-      const ok = e.results?.filter(x => x && !x.err).length ?? e.insertedDocs?.length ?? 0;
-      totalEcrits += ok;
       const vErrs = e.validationErrors || e.mongoose?.validationErrors || [];
       const wErrs = e.writeErrors || [];
-      note = `🚨 ${ok} écrits — ${vErrs.length} rejets validation, ${wErrs.length} rejets écriture`;
       const vus = new Set();
       for (const ve of vErrs) {
         const msg = (ve.message || String(ve)).slice(0, 200);
@@ -168,6 +164,12 @@ for (const p of parties) {
       for (const we of wErrs.slice(0, 2)) console.log(`      ❌ ÉCRITURE : ${(we.errmsg || we.message || '').slice(0, 200)}`);
       if (!vErrs.length && !wErrs.length) console.log(`      ❌ ${e.name} : ${(e.message || '').slice(0, 300)}`);
     }
+    const apres = await HPH.countDocuments({ $or: [{ partyId: p._id }, { partyCode: p.code }] });
+    const reel = apres - avant;
+    totalEcrits += reel;
+    note = reel === aCreer.length ? `✅ ${reel} écrits (vérifié en base)`
+         : reel === 0            ? `🚨 RIEN écrit (0/${aCreer.length}) — vérifié en base`
+         :                         `⚠️  ${reel}/${aCreer.length} écrits (vérifié en base)`;
   }
 
   console.log(pad(p.code, 8) + pad(d10(p.createdAt), 12) + pad(hist.length, 6) + pad(existants.length, 6) +
@@ -176,7 +178,11 @@ for (const p of parties) {
 
 console.log('\n' + '─'.repeat(82));
 console.log(`Documents à créer      : ${totalACreer}`);
-if (APPLY) console.log(`Documents écrits       : ${totalEcrits}`);
+if (APPLY) {
+  console.log(`Documents réellement écrits : ${totalEcrits} / ${totalACreer} (compté en base, pas d'après Mongoose)`);
+  if (totalEcrits === 0 && totalACreer > 0) console.log('🚨 AUCUNE écriture n\'a abouti — voir les messages de validation ci-dessus.');
+  else if (totalEcrits < totalACreer) console.log(`⚠️  ${totalACreer - totalEcrits} document(s) n'ont pas été écrits.`);
+}
 console.log(`Soirées déjà complètes : ${totalDejaOk}`);
 console.log('\nRésolution du hostUserId par chemin :');
 for (const [k, v] of [...viaCount.entries()].sort((a, b) => b[1] - a[1])) console.log(`   ${pad(k, 28)} ${v} soirée(s)`);
