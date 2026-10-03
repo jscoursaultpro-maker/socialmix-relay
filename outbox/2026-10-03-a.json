@@ -2,15 +2,20 @@
   "_meta": {
     "file": "2026-10-03-a",
     "inbox": "inbox/2026-10-03-a.json",
-    "doctrine_version": "PREMIUM_V2+MEMORIES",
-    "curator": "claude_opus_4_7_manual_2026-10-03",
+    "doctrine_version": "PREMIUM_V2+MEMORIES-dramaturgy-v3",
+    "curator": "claude_opus_4_7_manual_2026-10-03-v2",
     "date": "2026-10-03",
-    "mode": "excellence_partial_first_60",
+    "mode": "excellence_strict_memories_batch2_patched",
     "counts": {
       "total": 60,
       "high": 27,
       "medium": 16,
       "low": 17
+    },
+    "patch": {
+      "at": "2026-10-03T19:15:00+02:00",
+      "reason": "Audit excellence strict post doctrine complète: 6 migrations closing (Memories) + 1 correction BPM half-time Three Little Birds",
+      "corrections_count": 7
     }
   },
   "classifications": [
@@ -1438,8 +1443,8 @@
       "uiCategoriesSecondary": [
         "Pop"
       ],
-      "phase": "party",
-      "phaseAlternate": "closing",
+      "phase": "closing",
+      "phaseAlternate": "party",
       "energy": 8,
       "bpm": 96,
       "danceability": 0.82,
@@ -1460,14 +1465,15 @@
         "sing-along",
         "banger-crowd",
         "danceable",
-        "memory-lane"
+        "memory-lane",
+        "closing"
       ],
-      "partyMoment": "peak",
+      "partyMoment": "closing",
       "cooldownDays": 10,
       "suggestable": true,
       "confidence": "high",
       "confidence_notes": "Pot-pourri live 2017 incluant Ai Se Eu Te Pego (le mega hit mondial 2011 de Teló, 'Nossa Nossa'). BPM 96 match Deezer+signal.",
-      "notes": "Pot-pourri live sertanejo avec le mega hit 'Ai Se Eu Te Pego' (2011, Nossa Nossa) — toute room internationale reconnaît le refrain, peak garanti.",
+      "notes": "Pot-pourri live sertanejo avec le mega hit 'Ai Se Eu Te Pego' (2011, Nossa Nossa) — toute room internationale reconnaît le refrain, peak garanti. DRAMATURGIE: closing-Memories (isBanger+isSingalong+energy 8+Latin, hymne feu d'artifice).",
       "justification": "Phase party pour peak-time latin anthem; closing alternatif car energy 8 et sing-along massif; isBanger+isCaliente."
     },
     {
@@ -1519,8 +1525,8 @@
         "Électro",
         "Pop"
       ],
-      "phase": "takeoff",
-      "phaseAlternate": "groove",
+      "phase": "closing",
+      "phaseAlternate": "party",
       "energy": 8,
       "bpm": 123,
       "danceability": 0.78,
@@ -1537,18 +1543,18 @@
       "hasLyrics": true,
       "explicit": false,
       "tags": [
-        "peak-time",
         "banger-crowd",
         "sing-along",
         "memory-lane",
-        "danceable"
+        "danceable",
+        "closing"
       ],
-      "partyMoment": "peak",
+      "partyMoment": "closing",
       "cooldownDays": 10,
       "suggestable": true,
       "confidence": "high",
       "confidence_notes": "Hit EDM mondial 2011 Guetta x Sia (Nothing But The Beat), BPM 123 match Deezer+signal (vraie grille 123 BPM).",
-      "notes": "Hit EDM/anthem émotionnel 2011 — tout refrain Sia hurlé par toute une room. Fonctionne en takeoff pour engager puis bascule party.",
+      "notes": "Hit EDM/anthem émotionnel 2011 — tout refrain Sia hurlé par toute une room. Fonctionne en takeoff pour engager puis bascule party. DRAMATURGIE: closing-Memories (isBanger+isSingalong+energy 8+mood emotional, anthem feu d'artifice sing-along).",
       "justification": "Phase takeoff pour anthem émotionnel qui monte; party alt pour peak-time; isBanger+isSingalong+isEmotional."
     },
     {
@@ -1723,11 +1729,11 @@
         "Chill",
         "Pop"
       ],
-      "phase": "takeoff",
-      "phaseAlternate": "groove",
-      "energy": 6,
-      "bpm": 144,
-      "danceability": 0.7,
+      "phase": "ambiance",
+      "phaseAlternate": "arrival",
+      "energy": 5,
+      "bpm": 74,
+      "danceability": 0.68,
       "isBanger": true,
       "isSingalong": true,
       "isEmotional": false,
@@ -1751,7 +1757,7 @@
       "suggestable": true,
       "confidence": "high",
       "confidence_notes": "Reggae feel-good iconique Marley 1977 (Exodus). Don't worry about a thing — hymne universel. BPM 144 grille match Deezer+signal (ressenti 72). ISRC USIR27700016 confirme 1977.",
-      "notes": "Hymne reggae universel Marley 1977 — 'Don't worry' sing-along par tous, toutes générations. Fonctionne en takeoff ou closing euphorique selon lecture room.",
+      "notes": "Hymne reggae universel Marley 1977 — 'Don't worry' sing-along par tous, toutes générations. Fonctionne en takeoff ou closing euphorique selon lecture room. CORRECTION BPM 144→74 (getsongbpm Legend Deluxe cross-check, reggae feel réel 74 BPM, signal 143.6 était double-time). Phase remappée ambiance/arrival pour cohérence BPM.",
       "justification": "Phase takeoff pour sing-along mid-tempo; groove alt; isBanger+isSingalong hymne."
     },
     {
@@ -1844,7 +1850,7 @@
         "Pop",
         "Old school"
       ],
-      "phase": "groove",
+      "phase": "closing",
       "phaseAlternate": "party",
       "energy": 7,
       "bpm": 136,
@@ -1862,18 +1868,18 @@
       "hasLyrics": true,
       "explicit": false,
       "tags": [
-        "peak-time",
         "sing-along",
         "banger-crowd",
         "memory-lane",
-        "danceable"
+        "danceable",
+        "closing"
       ],
-      "partyMoment": "peak",
+      "partyMoment": "closing",
       "cooldownDays": 14,
       "suggestable": true,
       "confidence": "high",
       "confidence_notes": "Disco italo-français Dalida 1979 ('Monday, Tuesday... Laissez-moi danser'), BPM 136 match Deezer+signal. ISRC FRZ019502890 = compilation 1995, orig 1979.",
-      "notes": "Hit disco Dalida 1979 — refrain 'Monday Tuesday' repris par tout un bal, bascule une room en mode mariage. Peak garanti public FR 35+.",
+      "notes": "Hit disco Dalida 1979 — refrain 'Monday Tuesday' repris par tout un bal, bascule une room en mode mariage. Peak garanti public FR 35+. DRAMATURGIE: closing-Memories (hymne FR disco intergen, feu d'artifice mariage).",
       "justification": "Phase groove pour disco FR 136; party alt pour peak-time FR; isBanger+isSingalong hymne."
     },
     {
@@ -1964,8 +1970,8 @@
       "uiCategoriesSecondary": [
         "Old school"
       ],
-      "phase": "takeoff",
-      "phaseAlternate": "groove",
+      "phase": "closing",
+      "phaseAlternate": "party",
       "energy": 7,
       "bpm": 161,
       "danceability": 0.72,
@@ -1985,14 +1991,15 @@
         "sing-along",
         "memory-lane",
         "banger-crowd",
-        "danceable"
+        "danceable",
+        "closing"
       ],
-      "partyMoment": "all",
+      "partyMoment": "closing",
       "cooldownDays": 14,
       "suggestable": true,
       "confidence": "high",
       "confidence_notes": "Rock'n'roll fondateur Chuck Berry 1958 (titre Deezer typo 'Johnny Be Good' pour 'Johnny B. Goode'). BPM 161 match uptempo rockabilly, ISRC GBRED0703402 = compilation 2007, orig 1958.",
-      "notes": "Rock'n'roll fondateur 1958 — refrain 'Go Johnny Go' hurlé par toute génération. Fonctionne en takeoff room diverse ou mariage multi-gen.",
+      "notes": "Rock'n'roll fondateur 1958 — refrain 'Go Johnny Go' hurlé par toute génération. Fonctionne en takeoff room diverse ou mariage multi-gen. DRAMATURGIE: closing-Memories (rock'n'roll fondateur, Go Johnny Go hurlé par toute génération).",
       "justification": "Phase takeoff pour rock'n'roll uptempo; groove alt; isBanger+isSingalong hymne mondial."
     },
     {
@@ -2005,7 +2012,7 @@
         "Pop",
         "Rap"
       ],
-      "phase": "groove",
+      "phase": "closing",
       "phaseAlternate": "party",
       "energy": 7,
       "bpm": 117,
@@ -2026,14 +2033,15 @@
         "sing-along",
         "banger-crowd",
         "memory-lane",
-        "danceable"
+        "danceable",
+        "closing"
       ],
-      "partyMoment": "peak",
+      "partyMoment": "closing",
       "cooldownDays": 14,
       "suggestable": true,
       "confidence": "high",
       "confidence_notes": "Hit zouk-rap 2003 Jocelyne Labylle x Cheela avec Jacob Desvarieux (Kassav') et Passi. BPM 117 match. Hit massif FR Antilles. ISRC FR40S0300039 confirme 2003.",
-      "notes": "Zouk-rap FR Antilles 2003 — hit intergen avec Jacob Desvarieux (Kassav') + Passi (Ministère AMER). Peak room FR métisse, mariage antillais.",
+      "notes": "Zouk-rap FR Antilles 2003 — hit intergen avec Jacob Desvarieux (Kassav') + Passi (Ministère AMER). Peak room FR métisse, mariage antillais. DRAMATURGIE: closing-Memories (hymne zouk-rap FR 2003, mariage antillais, feu d'artifice sing-along).",
       "justification": "Phase groove pour zouk mid-tempo FR; party alt pour peak; isBanger+isSingalong+isCaliente."
     },
     {
@@ -2321,8 +2329,8 @@
         "Old school",
         "Pop"
       ],
-      "phase": "takeoff",
-      "phaseAlternate": "groove",
+      "phase": "closing",
+      "phaseAlternate": "party",
       "energy": 7,
       "bpm": 99,
       "danceability": 0.62,
@@ -2341,14 +2349,15 @@
       "tags": [
         "memory-lane",
         "sing-along",
-        "banger-crowd"
+        "banger-crowd",
+        "closing"
       ],
-      "partyMoment": "peak",
+      "partyMoment": "closing",
       "cooldownDays": 14,
       "suggestable": true,
       "confidence": "high",
       "confidence_notes": "Hit post-grunge/alt rock 2000 3 Doors Down (The Better Life). BPM 99 match Deezer+signal (rock mid-tempo). ISRC USUR19980187 confirme release orig.",
-      "notes": "Hit post-grunge 2000 — refrain 'If I go crazy...' hurlé par public US-rock. Peak room 30+ nostalgique années 2000.",
+      "notes": "Hit post-grunge 2000 — refrain 'If I go crazy...' hurlé par public US-rock. Peak room 30+ nostalgique années 2000. DRAMATURGIE: closing-Memories (hymne rock 2000 sing-along If I go crazy, feu d'artifice rock générationnel).",
       "justification": "Phase takeoff pour rock mid-tempo singer-along; groove alt; isBanger+isSingalong hit 2000s."
     },
     {
