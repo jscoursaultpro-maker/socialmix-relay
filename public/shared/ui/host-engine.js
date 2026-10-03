@@ -338,6 +338,28 @@
     return true;
   }
 
+  // ── Override manuel de phase (frise cliquable) ────────────────────────────
+  //   Émet host:phaseUpdate → le serveur repositionne currentPhase + baseAutoStage (le DJ Brain
+  //   cloud saute à la phase choisie et progresse depuis elle). Puis on recharge la file à venir
+  //   pour qu'« À suivre » reflète tout de suite la nouvelle phase. Garde le titre courant.
+  function setPhase(stage) {
+    var s = sock();
+    if (!s || !party || !stage) return false;
+    try { s.emit('host:phaseUpdate', { phase: stage, hostSecret: party.hostSecret }); }
+    catch (e) { log('setPhase: ' + e.message, 'warn'); return false; }
+    log('host:phaseUpdate → ' + stage, 'info');
+    setTimeout(function () {   // laisse le serveur appliquer baseAutoStage avant de re-puller
+      try {
+        if (tracks.length > idx + 1) tracks = tracks.slice(0, idx + 1);   // vide la file à venir
+        queuedPid = null;
+        Promise.resolve(ensureBuffer(3)).then(function () {
+          try { if (window.AhOuaiHostCockpit && window.AhOuaiHostCockpit.renderQueue) window.AhOuaiHostCockpit.renderQueue(); } catch (e) {}
+        });
+      } catch (e) { log('setPhase refresh: ' + e.message, 'warn'); }
+    }, 500);
+    return true;
+  }
+
   // ── Terminer la soirée → bascule AfterGlow pour tous ──────────────────────
   //   Émet host:endParty : le serveur clôt la soirée et diffuse party:ended à la room invité.
   //   L'hôte (membre de la room invité via self-join) reçoit party:ended → écran récap/AfterGlow.
@@ -516,7 +538,7 @@
 
   window.AhOuaiHostEngine = {
     launchHost: launchHost, play: play, pause: pause, togglePlay: togglePlay,
-    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind, log: log, endParty: endParty,
+    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind, log: log, endParty: endParty, setPhase: setPhase,
     setAutoAdvance: setAutoAdvance, getAutoAdvance: getAutoAdvance,
     getUpcoming: getUpcoming, playNow: playNow, move: move,
     removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,

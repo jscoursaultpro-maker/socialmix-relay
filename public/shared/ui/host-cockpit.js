@@ -124,6 +124,18 @@
         e.endParty();   // serveur → party:ended → l'hôte (room invité) bascule sur le récap
       });
     })();
+    // Frise cliquable — override manuel de phase (le DJ Brain repart de la phase choisie).
+    (function () {
+      var frise = w.querySelector('#hc-frise'); if (!frise) return;
+      frise.addEventListener('click', function (ev) {
+        var step = ev.target.closest ? ev.target.closest('.hc-step[data-stage]') : null;
+        if (!step) return;
+        var e = eng(); if (!e || !e.setPhase) return;
+        var stage = step.getAttribute('data-stage');
+        e.setPhase(stage);
+        renderFrise(stage);   // feedback visuel immédiat (le party:state confirmera)
+      });
+    })();
     // AUTO toggle — bascule aussi le mode suggestions (auto-file vs carte manuelle)
     w.querySelector('#hc-auto-sw').addEventListener('click', function () {
       var e = eng(); if (!e) return;
@@ -203,7 +215,7 @@
     var curIdx = Math.max(0, PHASES.findIndex(function (p) { return p.key === phaseKey; }));
     frise.innerHTML = PHASES.map(function (p, i) {
       var cls = i < curIdx ? 'done' : (i === curIdx ? 'cur' : '');
-      return '<div class="hc-step ' + cls + '"><div class="hc-dot">' + p.ic + '</div><div class="nm">' + p.label + '</div></div>';
+      return '<div class="hc-step ' + cls + '" data-stage="' + p.key + '" style="cursor:pointer" title="Passer en ' + p.label + '"><div class="hc-dot">' + p.ic + '</div><div class="nm">' + p.label + '</div></div>';
     }).join('');
     var cur = PHASES[curIdx];
     var nowEl = document.getElementById('hc-phase-now'); if (nowEl) nowEl.textContent = cur.label;

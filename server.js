@@ -5988,9 +5988,14 @@ io.on('connection', (socket) => {
     // Feature 1: Manual phase regression is ALWAYS allowed now.
     party.currentPhase = newPhase;
     party.phaseStartedAt = new Date().toISOString();
+    // ★ Web host (03/10) : le DJ Brain cloud dérive la phase via computeStage(baseAutoStage, elapsed).
+    //   Un override manuel doit donc repositionner baseAutoStage sinon le cerveau garde l'ancienne
+    //   cascade (badge ≠ sélection). On saute à newPhase et la progression repart de là (clock reset
+    //   via phaseStartedAt). Inerte pour iOS (brain local, ne lit pas baseAutoStage).
+    party.baseAutoStage = newPhase;
     // Immediate write-through for critical state
     party.isDirty = true;
-    Party.updateOne({ code: party.code, endedAt: null }, { $set: { currentPhase: party.currentPhase, phaseStartedAt: party.phaseStartedAt } }).catch(console.error);
+    Party.updateOne({ code: party.code, endedAt: null }, { $set: { currentPhase: party.currentPhase, phaseStartedAt: party.phaseStartedAt, baseAutoStage: party.baseAutoStage } }).catch(console.error);
 
     console.log(`[${party.code}] Phase -> ${party.currentPhase} (startedAt reset)`);
     
