@@ -489,12 +489,18 @@ app.use((req, res, next) => {
   const isRootPath = req.path === '/' || req.path === '';
   const hasCode = req.query && req.query.code;
   const hasSprintBMarker = req.query && req.query.sb === '1';
+  // ★ fix(03/10) : le retour OAuth Spotify host arrive sur join.ahouai.com/?code=<long>&state=host_auth.
+  //   Ce ?code= ENTRE EN COLLISION avec la convention d'invité (?code=PARTYCODE). Sans ces gardes,
+  //   le code Spotify était redirigé vers ahouai.com/join/<code> (page « moment indisponible »).
+  //   → on NE redirige QUE des codes de forme party (courts) ET jamais le callback host (state=host_auth).
+  const isHostAuthCb = !!(req.query && req.query.state === 'host_auth');
+  const looksLikePartyCode = typeof (req.query && req.query.code) === 'string' && /^[A-Za-z0-9]{4,10}$/.test(req.query.code);
 
   // ★ Bots sociaux : bypass du redirect → laisser le middleware OG SSR servir le HTML
   const ua = req.headers['user-agent'] || '';
   const isSocialBot = /whatsapp|facebookexternalhit|telegrambot|twitterbot|slackbot|discordbot|linkedinbot|imessage|applebot|googlebot|bingbot|embedly|ia_archiver|rogerbot|showyoubot|outbrain|pinterest|vkshare|wget|curl|python-requests/i.test(ua);
 
-  if (isJoinDomain && isRootPath && hasCode && !hasSprintBMarker && !isSocialBot) {
+  if (isJoinDomain && isRootPath && hasCode && looksLikePartyCode && !isHostAuthCb && !hasSprintBMarker && !isSocialBot) {
     return res.redirect(302, `https://ahouai.com/join/${req.query.code}`);
   }
 
