@@ -185,13 +185,34 @@
     catch (e2) { return { tracks: [] }; }
   }
 
+  // ── P1 (#46) : garde anti-rejeu Z11 ───────────────────────────────────────
+  //   Le serveur (server.js:5461) refuse un titre déjà joué ce soir tant que
+  //   confirmReplay n'est pas vrai, et émet z11:replayDetected. Sans écoute côté
+  //   web, le refus était SILENCIEUX : titre non enregistré, guests non mis à
+  //   jour, hôte jamais prévenu. On mémorise le dernier titre émis et, sur
+  //   z11:replayDetected, on demande à l'hôte (confirm, même pattern que
+  //   deleteMyMessage) : oui → ré-émission avec confirmReplay ; non → on enchaîne.
+  var lastTrack = null, z11Bound = false;
+  function onZ11Replay(d) {
+    var t = lastTrack; if (!t) return;
+    var when = '';
+    try { if (d && d.previousPlayedAt) when = ' (déjà joué à ' + new Date(d.previousPlayedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ')'; } catch (e) {}
+    var ok = false;
+    try { ok = window.confirm('« ' + ((d && d.title) || t.title) + ' » a déjà été joué ce soir' + when + '.\nLe rejouer quand même ?'); } catch (e) { ok = true; }
+    if (ok) { t.confirmReplay = true; log('z11: replay confirmé par l\'hôte → ré-émission', 'info'); emitTrackUpdate(t); }
+    else { try { toast('Titre déjà joué — on passe au suivant'); } catch (e) {} log('z11: replay refusé par l\'hôte → next', 'info'); try { next(); } catch (e) {} }
+  }
+
   // ── Émission host:trackUpdate (acceptée car socket dans la room host:CODE) ──
   function emitTrackUpdate(t) {
     var s = sock();
     if (!s || !party || !t) return;
+    lastTrack = t;                                                              // P1 (#46) : mémorisé pour un éventuel confirmReplay
+    if (!z11Bound) { z11Bound = true; s.on('z11:replayDetected', onZ11Replay); }  // écoute Z11 (une seule fois)
     var cover = t.coverArtURL || t.artworkURL || t.cover || null;
     s.emit('host:trackUpdate', {
       hostSecret: party.hostSecret,   // ★ requis par validateHostSecret (wrapper host:*)
+      confirmReplay: t.confirmReplay || false,   // P1 (#46) : rejeu assumé par l'hôte
       title: t.title, artist: t.artist,
       spotifyId: (t.spotifyUri ? String(t.spotifyUri).split(':').pop() : null),
       durationMs: t.durationMs || 0,
