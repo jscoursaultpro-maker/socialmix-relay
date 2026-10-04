@@ -478,6 +478,62 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─── Bots sociaux — source unique (utilisée par les 2 redirects ci-dessous) ──
+// Ils doivent BYPASSER tout redirect pour atteindre le middleware OG SSR (L510+),
+// seul capable de servir og:title/description/image dynamiques. Un bot redirigé
+// scrappe une page sans OG → preview triangle blanc dans WhatsApp/iMessage.
+const SOCIAL_BOT_RE = /whatsapp|facebookexternalhit|telegrambot|twitterbot|slackbot|discordbot|linkedinbot|imessage|applebot|googlebot|bingbot|embedly|ia_archiver|rogerbot|showyoubot|outbrain|pinterest|vkshare|wget|curl|python-requests/i;
+
+// ─── Task #51 : socialmix-relay.onrender.com → join.ahouai.com ───────────────
+// Audit logs Render 04/10/2026 : 1 128 requêtes guest sur .onrender.com en
+// 7 jours (59 % du total), dont 606 de navigateurs sur 23 IP distinctes, tous
+// les jours. Ce ne sont pas des crawlers : des invités réels, dont ceux de
+// FTMP63 le 02/10 entre 18:34 et 19:29 UTC.
+//
+// Sur .onrender.com le cookie Supabase partagé .ahouai.com n'existe pas
+// (app.js L675 et authGuest.js testent /\.ahouai\.com$/), d'où le contournement
+// sbauth. Ramener ce trafic sur le domaine public est donc le préalable au
+// retrait de sbauth (Task #45).
+//
+// PÉRIMÈTRE : NAVIGATIONS DE DOCUMENT UNIQUEMENT. C'est délibéré et c'est le
+// point important de ce middleware. Rediriger /api/* serait nuisible :
+//   1. Les preflight CORS OPTIONS (très présents dans les logs) ne suivent PAS
+//      les redirects — un 302 sur un preflight = requête échouée côté navigateur.
+//   2. Un invité DÉJÀ en soirée sur .onrender.com verrait ses XHR partir en
+//      cross-origin : CORS + en-tête Authorization → sa soirée casse en direct,
+//      à cause du correctif.
+//   3. Le transport Socket.IO (/socket.io/) ne survit pas à un 302 inter-origine.
+// Rediriger le document suffit : le socket (app.js L2265) et les appels /api
+// relatifs dérivent tous de l'origine de la page. Une fois le document servi
+// par join.ahouai.com, tout le reste suit de lui-même.
+app.use((req, res, next) => {
+  const host = (req.hostname || req.headers.host || '').toLowerCase();
+  if (!host.includes('onrender.com')) return next();
+
+  // Jamais sur une écriture, une API, le transport temps réel ou l'admin.
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  if (req.path.startsWith('/api/'))         return next();
+  if (req.path.startsWith('/socket.io/'))   return next();
+  if (req.path.startsWith('/.well-known/')) return next();
+  if (req.path.startsWith('/admin'))        return next();
+  if (req.path.startsWith('/legal'))        return next();
+
+  // Navigation de document : Sec-Fetch-Mode est le signal propre (tous les
+  // navigateurs courants l'envoient) ; Accept: text/html couvre le reste.
+  const isNavigation = (req.headers['sec-fetch-mode'] || '') === 'navigate'
+                    || (req.headers['accept'] || '').includes('text/html');
+  if (!isNavigation) return next();
+
+  if (SOCIAL_BOT_RE.test(req.headers['user-agent'] || '')) return next();
+
+  // originalUrl porte path + query string intacte (code, sb, excludeCode, state…).
+  // 302 et non 301 : un 301 est mis en cache durablement par le navigateur et
+  // rendrait tout rollback pénible pendant la migration.
+  const target = `https://join.ahouai.com${req.originalUrl}`;
+  console.log(`[Task51] ${host}${req.originalUrl} → ${target}`);
+  return res.redirect(302, target);
+});
+
 // ─── Legacy QR redirect (join.ahouai.com/?code=X → ahouai.com/join/X) ───
 // ★ fix(#41-hotfix 28/09): Les bots WhatsApp/Telegram/iMessage recevaient un 302
 // et scrappaient ahouai.com/join/X (OG tags statiques = triangle blanc).
@@ -498,7 +554,7 @@ app.use((req, res, next) => {
 
   // ★ Bots sociaux : bypass du redirect → laisser le middleware OG SSR servir le HTML
   const ua = req.headers['user-agent'] || '';
-  const isSocialBot = /whatsapp|facebookexternalhit|telegrambot|twitterbot|slackbot|discordbot|linkedinbot|imessage|applebot|googlebot|bingbot|embedly|ia_archiver|rogerbot|showyoubot|outbrain|pinterest|vkshare|wget|curl|python-requests/i.test(ua);
+  const isSocialBot = SOCIAL_BOT_RE.test(ua);
 
   if (isJoinDomain && isRootPath && hasCode && looksLikePartyCode && !isHostAuthCb && !hasSprintBMarker && !isSocialBot) {
     return res.redirect(302, `https://ahouai.com/join/${req.query.code}`);

@@ -11,6 +11,26 @@ const CONSENT_KEY = 'socialmix_consent';
 const GENRES = ['Chill', 'Pop', 'Rock', 'Rap', 'Latin', 'Old school', 'Urban Groove', 'Dance', 'Électro'];
 const EMOJIS = ['🎉','🕺','💃','🎶','🌟','🤩','😎','🎭','🔥','💪','✨','💫','🎵','🥳','😈','🦄'];
 
+// ─── Origine canonique des liens d'invitation (Task #51) ─────────────
+// Audit logs Render 04/10/2026 : 59 % du trafic guest arrivait sur
+// socialmix-relay.onrender.com, 23 IP de navigateurs distinctes, tous les jours.
+// Cause : le QR encodait `window.location.origin`, donc l'origine de l'HÔTE.
+// Un hôte web lançant sa soirée depuis .onrender.com fabriquait un QR vers
+// .onrender.com, et TOUS ses invités y restaient — où le cookie Supabase
+// partagé .ahouai.com n'existe pas (cf. app.js L675, test /\.ahouai\.com$/).
+//
+// Les liens destinés à être SCANNÉS ou PARTAGÉS doivent donc porter le domaine
+// public, jamais l'origine courante. Les autres usages de location.origin
+// restent légitimes et ne sont PAS touchés : le socket (L2265) et les redirects
+// OAuth (L742, L6937) doivent suivre l'origine réelle de la page.
+const PUBLIC_JOIN_ORIGIN = 'https://join.ahouai.com';
+function inviteOrigin() {
+  const h = (typeof location !== 'undefined' && location.hostname) || '';
+  // Dev local : garder l'origine courante, sinon un QR de test enverrait en prod.
+  if (h === 'localhost' || h === '127.0.0.1' || h.endsWith('.local')) return location.origin;
+  return PUBLIC_JOIN_ORIGIN;
+}
+
 // ─── Helper: UserChipView HTML ───────────────────────
 function createUserChipHTML(user) {
     const emoji = user.emoji || '🎉';
@@ -6561,7 +6581,7 @@ function showPartyQR() {
   const qrText = $('qr-code-text');
   
   if (qrModal && qrImg && qrText) {
-    const partyUrl = `${window.location.origin}/?code=${state.partyCode}`;
+    const partyUrl = `${inviteOrigin()}/?code=${state.partyCode}`;
     qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(partyUrl)}`;
     qrText.textContent = state.partyCode;
     qrModal.classList.remove('hidden');
@@ -9076,7 +9096,7 @@ function renderSouvenirs() {
 window.shareSouvenirs = function() {
   const code = state.partyCode || '';
   const hostName = state.hostProfile?.name || 'la soirée';
-  const url = `${window.location.origin}/?code=${code}`;
+  const url = `${inviteOrigin()}/?code=${code}`;
   const text = `Souviens-toi de ${hostName} 🎵 sur AhOuai`;
   if (navigator.share) {
     navigator.share({ title: 'AhOuai — Souvenirs', text, url }).catch(() => {});
