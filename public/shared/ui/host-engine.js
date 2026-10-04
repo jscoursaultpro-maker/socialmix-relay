@@ -207,6 +207,23 @@
     else { try { toast('Titre déjà joué — on passe au suivant'); } catch (e) {} log('z11: replay refusé par l\'hôte → next', 'info'); try { next(); } catch (e) {} }
   }
 
+  // ── P1 (#46) : « À suivre » pour les invités ──────────────────────────────
+  //   Le serveur a host:nextTrack (server.js:6117) → nextTrack:update aux invités
+  //   (barre #next-track-bar, index.html:840). Le host web ne l'émettait JAMAIS →
+  //   barre vide. On émet le prochain titre connu (tracks[idx+1]) à chaque
+  //   changement de titre et après chaque préqueue.
+  function emitNextTrack() {
+    var s = sock(); if (!s || !party) return;
+    var nx = tracks[idx + 1]; if (!nx) return;
+    var cover = nx.coverArtURL || nx.artworkURL || nx.cover || null;
+    s.emit('host:nextTrack', {
+      hostSecret: party.hostSecret,
+      title: nx.title, artist: nx.artist,
+      artworkURL: cover, artworkUrl: cover, cover: cover, coverArtURL: cover,
+      trackId: nx.trackId || null, provider: party.provider || 'youtube'
+    });
+  }
+
   // ── Émission host:trackUpdate (acceptée car socket dans la room host:CODE) ──
   function emitTrackUpdate(t) {
     var s = sock();
@@ -238,6 +255,7 @@
       if (typeof window.updateNowPlaying === 'function') window.updateNowPlaying(np);
       var ap = appState(); if (ap) ap.currentTrack = { title: t.title, artist: t.artist };
     } catch (e) {}
+    emitNextTrack();   // P1 (#46) : alimente la barre « À suivre » des invités
   }
 
   async function prequeueNext() {
@@ -253,6 +271,7 @@
     if (!nx) return;
     var pid = await engine.resolve(nx);
     if (pid) { queuedPid = pid; await engine.queueNext(pid); log('préqueue → ' + nx.title); }
+    emitNextTrack();   // P1 (#46) : « À suivre » même quand le prochain vient du buffer
   }
 
   async function onEngineAdvanced(endedPid) {
