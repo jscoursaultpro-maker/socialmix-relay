@@ -142,6 +142,10 @@
     engine.on('needsUserGesture', function () { isPlaying = false; toast('Touche ▶ pour lancer la lecture'); });
     engine.on('needsVisibleScreen', function () { toast('Garde l\'écran allumé pour YouTube'); });
     engine.on('error', function (e) { var m = (typeof e === 'string') ? e : (e && e.message) || 'Erreur de lecture'; log('engine error: ' + m, 'warn'); toast(m); });
+    // P1 (#46) : Spotify sans appareil actif (spotify-engine onNoDevice → 'noDevice').
+    //   Sans écoute, l'hôte ne voyait qu'un « titre injouable » trompeur (host-engine:305)
+    //   alors que le vrai problème est l'absence de device. Message correct + actionnable.
+    engine.on('noDevice', function () { log('spotify: aucun appareil actif', 'warn'); toast('Aucun appareil Spotify actif — ouvre Spotify sur un téléphone/ordi, lance un son, puis touche ▶'); });
     // Titre injouable (retiré / embed interdit / erreur) → sauter, que l'auto soit on ou off.
     engine.on('trackUnavailable', function () { advanceToPlayable(idx + 1, 'indisponible'); });
     // Lecture figée (watchdog) → relancer le titre une fois, puis sauter s'il reste bloqué.
