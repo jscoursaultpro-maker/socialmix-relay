@@ -38,15 +38,22 @@ export const verifyGuestAuth = async (req, res, next) => {
         if (payload && payload.userId) {
           // ★ Fix 25/09 : le sbauth payload contient le userId Supabase (UUID),
           // pas le _id MongoDB (ObjectId). Chercher d'abord par supabaseUserId,
-          // puis email, puis _id en dernier fallback (au cas où un legacy sbauth
+          // puis _id en dernier fallback (au cas où un legacy sbauth
           // contiendrait un ObjectId).
           let user = null;
           const isObjectId = /^[0-9a-fA-F]{24}$/.test(payload.userId);
           if (!isObjectId) {
             user = await User.findOne({ supabaseUserId: payload.userId });
-            if (!user && payload.email) {
-              user = await User.findOne({ email: payload.email });
-            }
+            // ★ Task #49 (04/10/2026) — repli par email SUPPRIMÉ. NE PAS RÉTABLIR.
+            // Le jeton sbauth est du base64 NON SIGNÉ. Avec le repli, il suffisait
+            // de connaître l'email d'une personne pour être authentifié comme elle
+            // sur les 42 routes derrière verifyGuestAuth (suppression de ses photos,
+            // modification de son profil…). Un email n'est pas un secret.
+            // Résoudre par email reste légitime L157 : là l'email vient d'un JWT
+            // Supabase VÉRIFIÉ, pas d'une entrée attaquant.
+            // Vérifié avant suppression : les 5 utilisateurs ayant emprunté le
+            // chemin sbauth sur 7 jours de logs ont tous un supabaseUserId, donc
+            // aucun ne dépendait de ce repli.
           } else {
             user = await User.findById(payload.userId);
           }
@@ -83,14 +90,14 @@ export const verifyGuestAuth = async (req, res, next) => {
           const payload = JSON.parse(payloadStr);
           if (payload && payload.userId) {
             // ★ Fix 25/09 : sbauth cookie contient un userId Supabase (UUID) —
-            // résoudre via supabaseUserId ou email au lieu de _id direct.
+            // résoudre via supabaseUserId au lieu de _id direct.
             let user = null;
             const isObjectId = /^[0-9a-fA-F]{24}$/.test(payload.userId);
             if (!isObjectId) {
               user = await User.findOne({ supabaseUserId: payload.userId });
-              if (!user && payload.email) {
-                user = await User.findOne({ email: payload.email });
-              }
+              // ★ Task #49 (04/10/2026) — repli par email SUPPRIMÉ. NE PAS RÉTABLIR.
+              // Même raison que sur le chemin Bearer ci-dessus : le cookie sbauth
+              // est du base64 non signé, l'email n'est pas un secret.
             } else {
               user = await User.findById(payload.userId);
             }
