@@ -21,6 +21,19 @@
 
   var engine = null;
   var party = null;              // { code, hostSecret, provider }
+
+  // ── P0 (#46) : persistance des creds hôte pour survivre à un rechargement ──
+  //   party vit en mémoire seule : un reload le perd et l'hôte perd la main. On stocke
+  //   { code, hostSecret, provider, name } en sessionStorage (portée onglet, effacé à la
+  //   fermeture — scope suffisant pour un refresh accidentel, pas de hostSecret qui traîne).
+  var HOST_PARTY_KEY = 'ahouai_host_party';
+  function persistParty() {
+    try { if (party && party.code) sessionStorage.setItem(HOST_PARTY_KEY, JSON.stringify({ code: party.code, hostSecret: party.hostSecret, provider: party.provider, name: party.name || null })); } catch (e) {}
+  }
+  function clearPersistedParty() { try { sessionStorage.removeItem(HOST_PARTY_KEY); } catch (e) {} }
+  function loadPersistedParty() {
+    try { var raw = sessionStorage.getItem(HOST_PARTY_KEY); if (!raw) return null; var p = JSON.parse(raw); return (p && p.code && p.hostSecret) ? p : null; } catch (e) { return null; }
+  }
   var tracks = [];
   var idx = 0;
   var queuedPid = null;
@@ -301,6 +314,7 @@
     var code = (opts.code || genCode()).toUpperCase();
     var hostSecret = randomString(32);
     party = { code: code, hostSecret: hostSecret, provider: opts.provider || 'youtube', name: opts.name || null };
+    persistParty();   // P0 (#46) : survivre à un reload
 
     var profile = {
       name: (st && (st.guestName || st.guestFirstName)) || 'DJ',
@@ -350,6 +364,45 @@
     };
     s.emit('host:startParty', { code: party.code, hostSecret: party.hostSecret, profile: profile, streamingProvider: party.provider, deviceId: null });
     log('rebind soirée hôte (' + party.code + ') après (re)connexion', 'info');
+    return true;
+  }
+
+  // ── P0 (#46) : reprise de la soirée après un rechargement de page ──────────
+  //   Au reload, party est null. On le relit depuis sessionStorage et on émet
+  //   host:resumeParty (server.js:4923) pour reprendre la room host:CODE → l'hôte
+  //   récupère la main (skip, modération, phases, suggestions routées vers lui).
+  //   party:resumed ⇒ on réarme le moteur SANS autoplay (l'hôte touche ▶).
+  //   party:error PARTY_NOT_FOUND / INVALID_SECRET ⇒ creds périmés ⇒ auto-purge.
+  //   Appelé une seule fois par le handler 'connect' de app.js, uniquement si une
+  //   soirée hôte a été persistée dans cet onglet (un invité n'a jamais cette clé).
+  function resume() {
+    if (party && party.code) return true;       // déjà actif
+    var p = loadPersistedParty();
+    if (!p) return false;
+    var s = sock();
+    if (!s) return false;
+    party = { code: p.code, hostSecret: p.hostSecret, provider: p.provider || 'youtube', name: p.name || null };
+    window._ahouaiHostLaunching = true;          // réactive le flux host (rebind/self-join)
+    var st = appState();
+    var profile = {
+      name: (st && (st.guestName || st.guestFirstName)) || p.name || 'DJ',
+      email: (st && st.guestEmail) || '',
+      emoji: (st && st.guestEmoji) || '🎧',
+      photo: (st && st.guestPhoto) || null, phone: '', instagram: ''
+    };
+    s.once('party:resumed', function (d) {
+      log('party:resumed (' + (d && d.code) + ') — main hôte récupérée après reload', 'info');
+      try { focusSpaOnParty(party.code); } catch (e) {}
+      try { ensureEngine(party.provider); } catch (e) {}   // réarme le ▶, pas d'autoplay
+    });
+    s.once('party:error', function (e) {
+      if (e && (e.error === 'PARTY_NOT_FOUND' || e.error === 'INVALID_SECRET')) {
+        log('resume refusé (' + e.error + ') — purge des creds hôte', 'warn');
+        party = null; window._ahouaiHostLaunching = false; clearPersistedParty();
+      }
+    });
+    s.emit('host:resumeParty', { code: party.code, hostSecret: party.hostSecret, profile: profile });
+    log('host:resumeParty émis (' + party.code + ') après reload', 'info');
     return true;
   }
 
@@ -409,6 +462,7 @@
     var s = sock();
     if (!s || !party || !party.code) { log('endParty: pas de soirée active', 'warn'); return false; }
     try { s.emit('host:endParty', { hostSecret: party.hostSecret }); } catch (e) { log('endParty: ' + e.message, 'warn'); return false; }
+    clearPersistedParty();   // P0 (#46) : soirée finie → plus de reprise
     log('host:endParty émis (' + party.code + ')', 'info');
     try { if (engine) engine.pause(); } catch (e) {}
     isPlaying = false;
@@ -580,7 +634,7 @@
 
   window.AhOuaiHostEngine = {
     launchHost: launchHost, play: play, pause: pause, togglePlay: togglePlay,
-    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind, log: log, endParty: endParty, setPhase: setPhase, setAuto: setAuto, getPhaseMode: getPhaseMode,
+    next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind, resume: resume, hasPersistedParty: loadPersistedParty, log: log, endParty: endParty, setPhase: setPhase, setAuto: setAuto, getPhaseMode: getPhaseMode,
     setAutoAdvance: setAutoAdvance, getAutoAdvance: getAutoAdvance,
     getUpcoming: getUpcoming, playNow: playNow, move: move,
     removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,
