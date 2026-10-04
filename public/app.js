@@ -2321,6 +2321,26 @@ function connectToRelay() {
     // ★ Lancement host : pas d'auto-join invité classique (sinon « Aucune soirée active »).
     //   Mais sur un RECONNECT, le nouveau socket serveur a perdu sa partyCode → il faut re-binder
     //   la soirée hôte (host:startParty RESUME) ET re-self-join invité, sinon guest:suggest = [no_party].
+    // ★ P0 (#46) : reprise hôte après rechargement de page. Si CET onglet a lancé une
+    //   soirée hôte (creds persistés en sessionStorage) et qu'on n'est pas déjà en flux de
+    //   lancement, on reprend la main via host:resumeParty. Un invité n'a jamais cette clé
+    //   → le flux invité plus bas est intact (doctrine : ne pas toucher au web guest).
+    if (!window._ahouaiHostLaunching && window.AhOuaiHostEngine &&
+        typeof window.AhOuaiHostEngine.hasPersistedParty === 'function' &&
+        window.AhOuaiHostEngine.hasPersistedParty() &&
+        typeof window.AhOuaiHostEngine.resume === 'function') {
+      try {
+        if (window.AhOuaiHostEngine.resume()) {
+          var rc0 = window.AhOuaiHostEngine.getCode ? window.AhOuaiHostEngine.getCode() : null;
+          if (typeof _hostLog === 'function') _hostLog('reload → host:resumeParty ' + rc0, 'info');
+          if (rc0 && typeof _hostSelfJoin === 'function') {
+            window._ahouaiHostSelfJoined = null;
+            setTimeout(function () { _hostSelfJoin(rc0); }, 400);
+          }
+          return;
+        }
+      } catch (e) { console.warn('[connect] host resume:', e); }
+    }
     if (window._ahouaiHostLaunching) {
       try {
         var he = window.AhOuaiHostEngine;
