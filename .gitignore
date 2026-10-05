@@ -21,6 +21,7 @@ test-photo.js
 
 # Scripts exceptions
 !scripts/*.mjs
+!scripts/curation/*.mjs
 
 # Bogus artists CSV export
 bogus_artists.csv

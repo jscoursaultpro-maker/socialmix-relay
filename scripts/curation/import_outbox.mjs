@@ -210,6 +210,14 @@ if (isMain) {
         'language', 'hasLyrics', 'explicit', 'tags', 'partyMoment', 'cooldownDays', 'notes', 'suggestable', 'confidence', 'confidence_notes']) {
         track[f] = c[f];
       }
+      // Propagation ISRC depuis vérification Deezer de l'inbox (06/10/2026)
+      // Permet la résolution cross-platform (Apple Music, Spotify) via ISRC exact.
+      // Jamais d'écrasement d'un ISRC existant.
+      const inboxIsrc = inboxById.get(id)?.deezer_verification?.match?.isrc;
+      if (!track.isrc && inboxIsrc && typeof inboxIsrc === 'string' && inboxIsrc.length >= 10) {
+        track.isrc = inboxIsrc.toUpperCase();
+      }
+
       track.classifiedBy = CLASSIFIED_BY;
       track.classifiedAt = new Date();
       track.doctrineVersion = DOCTRINE_VERSION;
