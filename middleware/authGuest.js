@@ -25,50 +25,11 @@ export const verifyGuestAuth = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     let token = null;
 
-    // ★ Fix 25/09 : si le client déclare X-Auth-Type: sbauth, traiter le
-    // Bearer token comme payload sbauth base64 (userId encodé) plutôt que
-    // comme JWT/Supabase access_token. Résout la boucle 401 sur
-    // openUniversModal pour les guests sbauth-bypass.
-    const authType = (req.headers['x-auth-type'] || '').toLowerCase();
-    if (authType === 'sbauth' && authHeader && authHeader.startsWith('Bearer ')) {
-      const sbauthToken = authHeader.split(' ')[1];
-      try {
-        const payloadStr = Buffer.from(decodeURIComponent(sbauthToken), 'base64').toString('utf8');
-        const payload = JSON.parse(payloadStr);
-        if (payload && payload.userId) {
-          // ★ Fix 25/09 : le sbauth payload contient le userId Supabase (UUID),
-          // pas le _id MongoDB (ObjectId). Chercher d'abord par supabaseUserId,
-          // puis _id en dernier fallback (au cas où un legacy sbauth
-          // contiendrait un ObjectId).
-          let user = null;
-          const isObjectId = /^[0-9a-fA-F]{24}$/.test(payload.userId);
-          if (!isObjectId) {
-            user = await User.findOne({ supabaseUserId: payload.userId });
-            // ★ Task #49 (04/10/2026) — repli par email SUPPRIMÉ. NE PAS RÉTABLIR.
-            // Le jeton sbauth est du base64 NON SIGNÉ. Avec le repli, il suffisait
-            // de connaître l'email d'une personne pour être authentifié comme elle
-            // sur les 42 routes derrière verifyGuestAuth (suppression de ses photos,
-            // modification de son profil…). Un email n'est pas un secret.
-            // Résoudre par email reste légitime L157 : là l'email vient d'un JWT
-            // Supabase VÉRIFIÉ, pas d'une entrée attaquant.
-            // Vérifié avant suppression : les 5 utilisateurs ayant emprunté le
-            // chemin sbauth sur 7 jours de logs ont tous un supabaseUserId, donc
-            // aucun ne dépendait de ce repli.
-          } else {
-            user = await User.findById(payload.userId);
-          }
-          if (user && !user.isDeleted && !user.isBanned) {
-            console.log(`[authGuest] auth via Bearer sbauth (X-Auth-Type: sbauth), resolved user ${user._id} from ${isObjectId ? 'ObjectId' : 'supabaseUserId'}`);
-            req.user = user;
-            return next();
-          }
-        }
-      } catch (e) {
-        console.warn('[authGuest] Bearer sbauth decode failed:', e.message);
-      }
-      // Si sbauth déclaré mais échec → 401 direct plutôt que tenter JWT/Supabase
-      return res.status(401).json({ error: 'Invalid sbauth token' });
-    }
+    // ★ Task #45 (05/10/2026) — acceptation sbauth SUPPRIMÉE (en-tête X-Auth-Type: sbauth +
+    //   Bearer base64). Le jeton sbauth était du base64 NON SIGNÉ, forgeable depuis un
+    //   supabaseUserId. L'auth passe désormais UNIQUEMENT par un JWT vérifié : Bearer
+    //   access_token Supabase, cookie Supabase partagé (sb-*-auth-token, plus bas), JWT legacy
+    //   iOS, session UUID, ou hostSecret. NE PAS RÉTABLIR sbauth.
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
@@ -84,33 +45,8 @@ export const verifyGuestAuth = async (req, res, next) => {
         return [parts[0].trim(), parts.slice(1).join('=')];
       }));
 
-      if (cookies['sbauth']) {
-        try {
-          const payloadStr = Buffer.from(decodeURIComponent(cookies['sbauth']), 'base64').toString('utf8');
-          const payload = JSON.parse(payloadStr);
-          if (payload && payload.userId) {
-            // ★ Fix 25/09 : sbauth cookie contient un userId Supabase (UUID) —
-            // résoudre via supabaseUserId au lieu de _id direct.
-            let user = null;
-            const isObjectId = /^[0-9a-fA-F]{24}$/.test(payload.userId);
-            if (!isObjectId) {
-              user = await User.findOne({ supabaseUserId: payload.userId });
-              // ★ Task #49 (04/10/2026) — repli par email SUPPRIMÉ. NE PAS RÉTABLIR.
-              // Même raison que sur le chemin Bearer ci-dessus : le cookie sbauth
-              // est du base64 non signé, l'email n'est pas un secret.
-            } else {
-              user = await User.findById(payload.userId);
-            }
-            if (user && !user.isDeleted && !user.isBanned) {
-              console.log(`[authGuest] auth via cookie sbauth, resolved user ${user._id} from ${isObjectId ? 'ObjectId' : 'supabaseUserId'}`);
-              req.user = user;
-              return next();
-            }
-          }
-        } catch (e) {
-          console.warn('[authGuest] sbauth decode failed:', e.message);
-        }
-      }
+      // ★ Task #45 — cookie sbauth SUPPRIMÉ (base64 non signé). Seul le cookie Supabase
+      //   partagé .ahouai.com (sb-*-auth-token, ci-dessous) authentifie via JWT vérifié.
 
       const sbTokens = Object.keys(cookies).filter(k => k.match(/^sb-.*-auth-token/)).sort();
       if (sbTokens.length > 0) {
