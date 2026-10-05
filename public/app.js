@@ -857,9 +857,16 @@ async function handleSupabaseSession(session) {
         }
       }, 200);
     } else if (/[?&]hostlaunch=1\b/.test(location.search)) {
-      // Retour de login pour créer/lancer une soirée host → démarrer le host web.
-      console.log('[SSO] hostlaunch après login → démarrage host web');
-      startHostWeb();
+      // Retour de login pour créer/lancer une soirée host.
+      // ★ Task #60 : create=1 → écran détails (nom/visibilité/cover) ; sinon (justplay) → lancement direct.
+      var _prov = (new URLSearchParams(location.search)).get('provider') || 'youtube';
+      if (/[?&]create=1\b/.test(location.search)) {
+        console.log('[SSO] hostlaunch+create après login → écran détails soirée');
+        _showCreateDetails(_prov);
+      } else {
+        console.log('[SSO] hostlaunch après login → démarrage host web');
+        startHostWeb();
+      }
     } else {
       console.log('[SSO] Pas de code party, retour écran de choix');
       if (typeof showScreen === 'function') showScreen('choice');
@@ -6934,6 +6941,17 @@ async function startHostWeb(opts) {
   const provider = opts.provider || (() => { try { return new URL(location.href).searchParams.get('provider'); } catch(e){ return null; } })() || 'youtube';
   // Persiste le provider : une éventuelle redirection OAuth (Spotify) perd les query params.
   try { sessionStorage.setItem('ahouai_host_provider', provider); } catch(e) {}
+  // ★ Task #60 — métadonnées de création : persistées pour survivre à un hop OAuth (Spotify),
+  //   relues ensuite pour alimenter le payload host:startParty. Cover en base64 (schéma MVP).
+  var _meta = { name: opts.name || null, visibility: opts.visibility || null, coverPhoto: opts.coverPhoto || null, justplay: !!opts.justplay };
+  try {
+    if (opts.name != null || opts.visibility != null || opts.coverPhoto != null || opts.justplay) {
+      sessionStorage.setItem('ahouai_host_create', JSON.stringify(_meta));
+    } else {
+      var _saved = sessionStorage.getItem('ahouai_host_create');
+      if (_saved) _meta = JSON.parse(_saved);
+    }
+  } catch(e) {}
   // Marque la connexion comme « host » pour que le handler connect NE lance PAS d'auto-join invité.
   window._ahouaiHostLaunching = true;
   try {
@@ -6947,8 +6965,8 @@ async function startHostWeb(opts) {
       if (s && s.connected && window.AhOuaiHostEngine) {
         clearInterval(iv);
         try {
-          Promise.resolve(window.AhOuaiHostEngine.launchHost({ provider: provider }))
-            .then((r) => { _hostSelfJoin((r && r.code) || null); })
+          Promise.resolve(window.AhOuaiHostEngine.launchHost({ provider: provider, name: _meta.name, visibility: _meta.visibility, coverPhoto: _meta.coverPhoto, justplay: _meta.justplay }))
+            .then((r) => { try { sessionStorage.removeItem('ahouai_host_create'); } catch(e){} _hostSelfJoin((r && r.code) || null); })
             .catch(e => console.warn('[host] launchHost:', e));
         } catch(e) { console.warn('[host] launchHost:', e); }
       } else if (tries > 60) {
@@ -6996,8 +7014,15 @@ function _hostSelfJoin(code) {
 // Porte host : si session → lance en page ; sinon login ahouai.com avec retour sur /?hostlaunch=1.
 async function _goAuthedHost(provider, justplay) {
   provider = provider || 'youtube';
-  if (await _hasSupabaseSession()) { startHostWeb({ provider: provider }); return; }
-  const dest = '/?sb=1&hostlaunch=1&provider=' + encodeURIComponent(provider) + (justplay ? '&mode=justplay' : '');
+  if (await _hasSupabaseSession()) {
+    // ★ Task #60 : « Je crée » → écran détails (nom/visibilité/cover) avant lancement.
+    //   « Je lance » (justplay) → démarrage direct, sans détails.
+    if (justplay) { startHostWeb({ provider: provider, justplay: true }); }
+    else { _showCreateDetails(provider); }
+    return;
+  }
+  // Pas de session → login ahouai.com, retour sur / avec le contexte (create=1 ou mode=justplay).
+  const dest = '/?sb=1&hostlaunch=1&provider=' + encodeURIComponent(provider) + (justplay ? '&mode=justplay' : '&create=1');
   const abs = new URL(dest, window.location.origin).href;
   window.location.href = 'https://ahouai.com/login?redirect=' + encodeURIComponent(abs);
 }
@@ -7018,6 +7043,52 @@ function pickProvider(provider) { _goAuthedHost(provider || 'youtube', _choiceJu
 function goCreateParty() { _showProviderPick(false); }
 function goJustPlay()    { _showProviderPick(true); }
 function goJoinParty()   { showScreen('code'); }
+
+// ★ Task #60 — Écran « Détails de la soirée » (nom / visibilité / cover) avant lancement.
+//   Collecté APRÈS auth (le round-trip login perdrait les champs). Cover lu en base64 (schéma MVP).
+var _createProvider = 'youtube';
+var _createCoverB64 = null;
+function _showCreateDetails(provider) {
+  _createProvider = provider || 'youtube';
+  _createCoverB64 = null;
+  try {
+    var nm = document.getElementById('cd-name'); if (nm) nm.value = '';
+    var vis = document.getElementById('cd-visibility');
+    if (vis) {
+      vis.setAttribute('data-value', 'friends');
+      vis.querySelectorAll('.cd-vis-btn').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-vis') === 'friends'); });
+    }
+    var pv = document.getElementById('cd-cover-preview'); if (pv) { pv.style.display = 'none'; pv.src = ''; }
+  } catch (e) {}
+  showScreen('create-details');
+}
+function submitCreateDetails() {
+  var name = '', visibility = 'friends';
+  try { name = (document.getElementById('cd-name').value || '').trim(); } catch (e) {}
+  try { visibility = document.getElementById('cd-visibility').getAttribute('data-value') || 'friends'; } catch (e) {}
+  startHostWeb({ provider: _createProvider, name: name, visibility: visibility, coverPhoto: _createCoverB64 || null });
+}
+// Sélection visibilité (délégation).
+document.addEventListener('click', function (ev) {
+  var b = ev.target && ev.target.closest ? ev.target.closest('#cd-visibility .cd-vis-btn') : null;
+  if (!b) return;
+  var box = document.getElementById('cd-visibility'); if (!box) return;
+  box.setAttribute('data-value', b.getAttribute('data-vis') || 'friends');
+  box.querySelectorAll('.cd-vis-btn').forEach(function (x) { x.classList.toggle('is-on', x === b); });
+});
+// Cover → base64 (garde-fou taille : > 3 Mo refusé pour ne pas gonfler le payload socket / doc Party).
+document.addEventListener('change', function (ev) {
+  if (!ev.target || ev.target.id !== 'cd-cover') return;
+  var f = ev.target.files && ev.target.files[0]; if (!f) return;
+  if (f.size > 3 * 1024 * 1024) { try { showToast('Image trop lourde (max 3 Mo)', 3000); } catch (e) {} ev.target.value = ''; return; }
+  var rd = new FileReader();
+  rd.onload = function (e) {
+    _createCoverB64 = (e.target && e.target.result) || null;
+    var pv = document.getElementById('cd-cover-preview');
+    if (pv && _createCoverB64) { pv.src = _createCoverB64; pv.style.display = 'block'; }
+  };
+  rd.readAsDataURL(f);
+});
 
 document.addEventListener('DOMContentLoaded', init);
 

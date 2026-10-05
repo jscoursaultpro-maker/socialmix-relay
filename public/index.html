@@ -105,6 +105,61 @@
             <p class="landing-footer">Pas besoin de télécharger · 100% navigateur</p>
         </div>
     </div>
+
+    <!-- ═══ ★ Task #60 — DÉTAILS DE LA SOIRÉE (après « Je crée » + provider, host authentifié) ═══ -->
+    <div id="create-details-screen" class="screen">
+        <div class="landing-container">
+            <div class="landing-glow"></div>
+            <div class="landing-logo">
+                <img class="landing-logo-img" src="assets/brand/ahouai-logo.png" alt="AhOuai">
+                <p class="logo-sub">TA SOIRÉE EN 2 TOUCHES</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:16px; width:100%; max-width:420px; margin:8px auto 0;">
+                <label class="cd-field">
+                    <span class="cd-label">Nom de la soirée <small>(optionnel)</small></span>
+                    <input type="text" id="cd-name" class="cd-input" maxlength="60" placeholder="Ex. L'anniv de Gabin" autocomplete="off">
+                </label>
+                <div class="cd-field">
+                    <span class="cd-label">Qui peut la voir ?</span>
+                    <div class="cd-vis" id="cd-visibility" data-value="friends">
+                        <button type="button" class="cd-vis-btn" data-vis="private">🔒 Privé</button>
+                        <button type="button" class="cd-vis-btn is-on" data-vis="friends">👥 Amis</button>
+                        <button type="button" class="cd-vis-btn" data-vis="public">🌍 Public</button>
+                    </div>
+                </div>
+                <label class="cd-field">
+                    <span class="cd-label">Photo de couverture <small>(optionnel)</small></span>
+                    <div class="cd-cover" id="cd-cover-wrap">
+                        <input type="file" id="cd-cover" accept="image/*" style="display:none">
+                        <button type="button" class="cd-cover-btn" onclick="document.getElementById('cd-cover').click()">📷 Choisir une image</button>
+                        <img id="cd-cover-preview" class="cd-cover-preview" style="display:none" alt="">
+                    </div>
+                </div>
+                <button type="button" class="choice-card" id="cd-launch" onclick="submitCreateDetails()" style="justify-content:center">
+                    <span class="choice-ic">🚀</span>
+                    <span class="choice-txt"><strong>Lancer la soirée</strong></span>
+                </button>
+                <a href="#" onclick="event.preventDefault(); showScreen('choice');" style="text-align:center;color:#8390ad;font:500 13px Outfit,system-ui,sans-serif;text-decoration:none">← Retour</a>
+            </div>
+            <p class="landing-footer">Pas besoin de télécharger · 100% navigateur</p>
+        </div>
+    </div>
+    <style>
+      #create-details-screen .cd-field{display:flex;flex-direction:column;gap:7px}
+      #create-details-screen .cd-label{font:700 13px Outfit,system-ui,sans-serif;color:#cfd8ea}
+      #create-details-screen .cd-label small{color:#8390ad;font-weight:500}
+      #create-details-screen .cd-input{width:100%;padding:13px 15px;border-radius:14px;background:rgba(255,255,255,.05);
+        border:1px solid rgba(45,226,208,.22);color:#eaf2ff;font:500 15px Outfit,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+      #create-details-screen .cd-input:focus{outline:none;border-color:rgba(45,226,208,.55)}
+      #create-details-screen .cd-vis{display:flex;gap:8px}
+      #create-details-screen .cd-vis-btn{flex:1;padding:11px 6px;border-radius:12px;background:rgba(255,255,255,.05);
+        border:1px solid rgba(255,255,255,.12);color:#cfd8ea;font:700 13px Outfit,system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
+      #create-details-screen .cd-vis-btn.is-on{background:rgba(45,226,208,.14);border-color:rgba(45,226,208,.55);color:#eaf2ff}
+      #create-details-screen .cd-cover{display:flex;flex-direction:column;gap:10px}
+      #create-details-screen .cd-cover-btn{padding:12px;border-radius:12px;background:rgba(255,255,255,.05);
+        border:1px dashed rgba(255,255,255,.22);color:#cfd8ea;font:600 14px Outfit,system-ui,sans-serif;cursor:pointer}
+      #create-details-screen .cd-cover-preview{width:100%;max-height:160px;object-fit:cover;border-radius:14px;border:1px solid rgba(255,255,255,.14)}
+    </style>
     <style>
       #choice-screen .choice-card{display:flex;align-items:center;gap:14px;width:100%;padding:16px 18px;border-radius:18px;
         background:rgba(255,255,255,.05);border:1px solid rgba(45,226,208,.22);color:#eaf2ff;cursor:pointer;text-align:left;
@@ -1335,11 +1390,11 @@
     <!-- ★ SSO web (task #33) — Supabase JS SDK pour Apple/Google OAuth -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <script src="/shared/supabase-cookie.js"></script>
-    <script src="app.js?v=20261005-task55-pending-retry"></script>
+    <script src="app.js?v=20261005-task60-create-meta"></script>
     <!-- ★ Mode host (brique 1) — détection + barre de contrôles musique, module autonome -->
     <script src="/shared/ui/host-mode.js?v=hostmode-05"></script>
     <!-- ★ Mode host (brique 2) — moteur musique YouTube dans le guest -->
-    <script src="/shared/ui/host-engine.js?v=hostengine-33"></script>
+    <script src="/shared/ui/host-engine.js?v=hostengine-34"></script>
     <!-- ★ On Air host — ENCHAÎNEMENT AUTO + dramaturgie + À SUIVRE -->
     <script src="/shared/ui/host-cockpit.js?v=hostcockpit-11"></script>
 </body>

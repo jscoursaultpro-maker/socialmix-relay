@@ -716,7 +716,14 @@ app.use('/.well-known/apple-app-site-association', (req, res, next) => {
   next();
 });
 
-
+// ★ Task #60 — Redirige l'ENTRÉE legacy /host et /host/ vers le flow unifié / (landing + provider +
+//   cockpit/salle d'attente). Préserve la query (?sb=1&hostlaunch=1&provider=X&create=1) pour le retour
+//   de login. Seules ces 2 URLs exactes rebondissent : les assets /host/* (host.js, host.css, display)
+//   restent servis par express.static (filet legacy, non supprimé — cf. Task #64 / dual host web).
+app.get(['/host', '/host/'], (req, res) => {
+  const qs = req.url.indexOf('?') >= 0 ? req.url.slice(req.url.indexOf('?')) : '';
+  return res.redirect(302, '/' + qs);
+});
 
 app.use(express.static(join(__dirname, 'public'), {
   maxAge: 0,
@@ -5354,8 +5361,11 @@ io.on('connection', (socket) => {
     const partyName = data.partyName || data.welcomeText || '';
     const isJustPlay = data.isJustPlay === true;
     const visibility = data.visibility || 'friends';  // ★ V7: party visibility from iOS
+    const coverPhoto = (typeof data.coverPhoto === 'string' && data.coverPhoto) ? data.coverPhoto : null;  // ★ Task #60: base64 (schéma MVP)
     party.isJustPlay = isJustPlay;
     party.visibility = visibility;
+    party.welcomeText = partyName;   // ★ Task #60: nom de soirée (exposé via buildLightState partyName||welcomeText)
+    party.coverPhoto = coverPhoto;   // ★ Task #60: cover base64 en RAM (buildLightState + guest welcome)
     Party.findOneAndUpdate(
       { code },
       { $setOnInsert: {
@@ -5363,6 +5373,8 @@ io.on('connection', (socket) => {
           createdAt: new Date(),
           hostSecret: party.hostSecret,
           partyName: partyName,
+          welcomeText: partyName,    // ★ Task #60
+          coverPhoto: coverPhoto,    // ★ Task #60: persistance cover base64
           isJustPlay: isJustPlay,
           hostProfile: party.hostProfile,
           hostUserId: party.hostUserId || null,
