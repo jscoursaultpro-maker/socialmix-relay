@@ -215,7 +215,10 @@
       waitApproval = next;                 // optimiste, confirmé par l'ack + le prochain party:state
       this.classList.toggle('on', next);
       e.setApprovalMode(next, function (ack) {
-        if (ack && typeof ack.enabled === 'boolean') waitApproval = ack.enabled;
+        // ★ Task #67 — rollback optimiste si le serveur rejette (ex. NOT_HOST : host non
+        //   autoritaire). Sans ça, l'UI resterait sur un faux « ON » jamais persisté en Mongo.
+        if (ack && ack.ok === false) { waitApproval = !next; }
+        else if (ack && typeof ack.enabled === 'boolean') { waitApproval = ack.enabled; }
         renderWaitingRoom();
       });
       renderWaitingRoom();
@@ -349,8 +352,12 @@
       }
       renderWaitingRoom();
     });
+    // ★ Task #67 — revendique l'identité host autoritaire une fois par socket (ouverture cockpit
+    //   / reconnexion). Sans ça, un host dont la party a été ré-hydratée par une action guest
+    //   (hostSocketId=null) voit ses mutations (toggle, modération, admission) rejetées en silence.
+    var e = eng(); if (e && e.claim) e.claim();
     // Charge l'état host immédiatement (peuple la salle d'attente au montage / à la reconnexion).
-    var e = eng(); if (e && e.requestHostState) e.requestHostState();
+    if (e && e.requestHostState) e.requestHostState();
   }
 
   function renderWaitingRoom() {
