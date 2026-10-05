@@ -181,7 +181,12 @@
     count = count || 5;
     var token = await getToken();
     try {
-      var res = await fetch('/api/djbrain/next?partyCode=' + encodeURIComponent(code) + '&count=' + count + '&provider=youtube',
+      // ★ G1 (parité provider) — utiliser le provider RÉEL de la soirée (plus de hardcode
+      //   'youtube'). Le serveur (routes/djbrain.js) accepte spotify|apple|youtube et s'en
+      //   sert comme préférence DOUCE au scoring (select.js) — aucun filtrage du pool, donc
+      //   aucun risque de file vide pour Spotify/Apple. Repli 'youtube' si provider absent.
+      var _prov = (party && party.provider) || 'youtube';
+      var res = await fetch('/api/djbrain/next?partyCode=' + encodeURIComponent(code) + '&count=' + count + '&provider=' + encodeURIComponent(_prov),
         { headers: token ? { Authorization: 'Bearer ' + token } : {} });
       if (res.ok) { var d = await res.json(); if (d && d.tracks && d.tracks.length) { if (d.phase) lastBrainPhase = d.phase; log('djbrain-cloud: ' + d.tracks.length + ' titres (phase ' + d.phase + ')'); return d; } }
     } catch (e) { log('djbrain-cloud erreur: ' + e.message, 'warn'); }
