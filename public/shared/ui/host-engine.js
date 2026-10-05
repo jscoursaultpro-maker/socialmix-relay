@@ -366,8 +366,17 @@
       emoji: (st && st.guestEmoji) || '🎧',
       photo: (st && st.guestPhoto) || null, phone: '', instagram: ''
     };
-    s.emit('host:startParty', { code: code, hostSecret: hostSecret, profile: profile, streamingProvider: party.provider, deviceId: null });
-    log('host:startParty émis (' + code + ', ' + party.provider + ')');
+    // ★ Task #60 — métadonnées de création transmises au serveur (déjà persistées côté serveur :
+    //   partyName/visibility/isJustPlay ; coverPhoto base64 persisté par le delta serveur de ce PR).
+    s.emit('host:startParty', {
+      code: code, hostSecret: hostSecret, profile: profile,
+      streamingProvider: party.provider, deviceId: null,
+      partyName: opts.name || null,
+      visibility: opts.visibility || null,
+      coverPhoto: opts.coverPhoto || null,
+      isJustPlay: !!opts.justplay
+    });
+    log('host:startParty émis (' + code + ', ' + party.provider + (opts.name ? ', « ' + opts.name + ' »' : '') + ')');
     bindSuggestionListener();   // auto ON → les suggestions entrent seules dans « À suivre »
 
     // Bascule la vue de la SPA sur la soirée de l'host → la barre host s'affiche sur On Air.
