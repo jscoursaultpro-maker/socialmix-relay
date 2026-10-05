@@ -81,7 +81,13 @@
       '#' + WRAP_ID + ' .hc-wait .hc-wait-toggle .lab b{display:block;font:800 15px Outfit,sans-serif;color:#f4f8ff}',
       '#' + WRAP_ID + ' .hc-wait .hc-wait-toggle .lab span{font:500 12px Outfit,sans-serif;color:#9aa6c2}',
       '#' + WRAP_ID + ' .hc-pending-av{width:30px;height:30px;border-radius:50%;background:rgba(91,200,255,.18);color:#8fd3ff;display:flex;align-items:center;justify-content:center;font-size:15px;flex:0 0 auto}',
-      '#' + WRAP_ID + ' .hc-ok{border:none;background:linear-gradient(135deg,#22e3c9,#13b7a3);color:#06121d;font:800 12px Outfit,sans-serif;border-radius:10px;padding:0 12px;height:30px;cursor:pointer;white-space:nowrap}'
+      '#' + WRAP_ID + ' .hc-ok{border:none;background:linear-gradient(135deg,#22e3c9,#13b7a3);color:#06121d;font:800 12px Outfit,sans-serif;border-radius:10px;padding:0 12px;height:30px;cursor:pointer;white-space:nowrap}',
+      // ★ Task #62 — mini-roster On Air
+      '#' + WRAP_ID + ' .hc-crew-list{display:flex;flex-wrap:wrap;gap:10px}',
+      '#' + WRAP_ID + ' .hc-crew-chip{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:4px 11px 4px 4px}',
+      '#' + WRAP_ID + ' .hc-crew-av{width:26px;height:26px;border-radius:50%;background:rgba(34,227,201,.18);color:#22e3c9;display:flex;align-items:center;justify-content:center;font-size:13px;overflow:hidden;flex:0 0 auto}',
+      '#' + WRAP_ID + ' .hc-crew-av img{width:100%;height:100%;object-fit:cover}',
+      '#' + WRAP_ID + ' .hc-crew-nm{font:600 12px Outfit,sans-serif;color:#e7edf7;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}'
     ].join('');
     var el = document.createElement('style'); el.id = STYLE_ID; el.textContent = c; document.head.appendChild(el);
   }
@@ -97,8 +103,15 @@
         '<div class="hc-phase-sub" id="hc-phase-sub">—</div>' +
         '<div class="hc-stats"><span class="fr" id="hc-fr">Fraîcheur —</span><span><b id="hc-people">0</b> personnes</span></div>' +
       '</div>' +
-      // ★ Task #55 — Salle d'attente : visible si le toggle est ON OU si des invités patientent.
-      '<div class="hc-card hc-wait" id="hc-wait-card" style="display:none">' +
+      // ★ Task #62 — Mini-roster « Dans la soirée » sur On Air (noms/avatars des participants).
+      //   Évite au host de quitter On Air pour voir qui est entré (le roster complet reste au Social Hub).
+      '<div class="hc-card hc-crew" id="hc-crew-card" style="display:none">' +
+        '<div class="hc-next-h">👥 Dans la soirée <span class="n" id="hc-crew-n">0</span></div>' +
+        '<div class="hc-crew-list" id="hc-crew-list"></div>' +
+      '</div>' +
+      // ★ Task #55/#61 — Salle d'attente : le TOGGLE est toujours visible en mode host (sinon le host
+      //   ne peut jamais activer la validation) ; seule la LISTE des pending est conditionnelle.
+      '<div class="hc-card hc-wait" id="hc-wait-card">' +
         '<div class="hc-next-h">🚪 Salle d\'attente <span class="n" id="hc-wait-n">0</span></div>' +
         '<div class="hc-wait-toggle">' +
           '<div class="lab"><b>Valider les invités</b><span>ON : chaque invité attend ton feu vert · OFF : entrée libre</span></div>' +
@@ -342,7 +355,9 @@
 
   function renderWaitingRoom() {
     var card = document.getElementById('hc-wait-card'); if (!card) return;
-    card.style.display = (waitApproval || pending.length > 0) ? '' : 'none';
+    // ★ Task #61 : carte (donc le toggle) TOUJOURS visible en mode host — c'est le seul moyen
+    //   d'activer la validation. Seule la liste des pending reste conditionnelle (ci-dessous).
+    card.style.display = '';
     var sw = document.getElementById('hc-wait-sw'); if (sw) sw.classList.toggle('on', !!waitApproval);
     var nEl = document.getElementById('hc-wait-n'); if (nEl) nEl.textContent = pending.length;
     var box = document.getElementById('hc-wait-list'); if (!box) return;
@@ -360,6 +375,25 @@
           '<button class="hc-ok" data-act="approve" data-uid="' + uid + '">✓ Admettre</button>' +
           '<button class="hc-del" data-act="deny" data-uid="' + uid + '" aria-label="Refuser">✕</button>' +
         '</div></div>';
+    }).join('');
+  }
+
+  // ★ Task #62 — Mini-roster « Dans la soirée » : noms/avatars des participants, lu depuis le state
+  //   global (alimenté par party:state / participants:update dans app.js). Host-gated (dans le cockpit).
+  function renderCrew() {
+    var card = document.getElementById('hc-crew-card'); if (!card) return;
+    var st = (typeof state !== 'undefined' && state) ? state : (window.state || {});
+    var list = (st && Array.isArray(st.participants)) ? st.participants : [];
+    card.style.display = list.length ? '' : 'none';
+    var nEl = document.getElementById('hc-crew-n'); if (nEl) nEl.textContent = list.length;
+    var box = document.getElementById('hc-crew-list'); if (!box) return;
+    box.innerHTML = list.map(function (p) {
+      var nm = (p && (p.name || p.firstName)) || 'Invité';
+      var badge = (p && p.isHost) ? ' 🎧' : '';
+      var av = (p && p.photo)
+        ? '<span class="hc-crew-av"><img src="' + esc(p.photo) + '" alt=""></span>'
+        : '<span class="hc-crew-av">' + esc((p && p.emoji) || '🎉') + '</span>';
+      return '<div class="hc-crew-chip">' + av + '<span class="hc-crew-nm">' + esc(nm) + badge + '</span></div>';
     }).join('');
   }
 
@@ -419,6 +453,7 @@
     var tnow = Date.now();
     if (tnow - _lastStateReq > 3000) { _lastStateReq = tnow; if (e && e.requestHostState) e.requestHostState(); }
     renderWaitingRoom();
+    renderCrew();
     pollState();
   }
 
