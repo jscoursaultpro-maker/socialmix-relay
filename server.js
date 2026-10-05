@@ -241,7 +241,11 @@ const DEFAULT_FEATURE_FLAGS = {
   spotifyProvider: true,
   deezerProvider: false,
   appleMusicProvider: true,
-  partyArchive: true
+  partyArchive: true,
+  // ★ Task #69 — Salle d'attente (modération host : approuver chaque invité). Source unique
+  //   SERVEUR, lue partout (host web, guest web, iOS). OFF par défaut (nouvelle feature → plus
+  //   prudent que CRITIQUE). Contrainte Jean-Sé : désactiver ici = désactivé sur toutes les surfaces.
+  waitingRoom: false
 };
 
 async function initFeatureFlags() {
@@ -276,6 +280,14 @@ async function initFeatureFlags() {
     console.error('[FeatureFlags] DB Init error:', err);
     globalFeatureFlagsCache = { ...DEFAULT_FEATURE_FLAGS };
   }
+}
+
+// ★ Task #69 — Lecture du flag global (source unique serveur). Vérif STRICTE à true : un flag
+//   absent ou OFF ⇒ désactivé. Utilisé pour la Salle d'attente (waitingRoom), lue à tous les
+//   points de contrôle requiresApproval (gate requestJoin, exposition buildLightState, toggle).
+function featureEnabled(name) {
+  const f = globalFeatureFlagsCache || DEFAULT_FEATURE_FLAGS;
+  return f[name] === true;
 }
 
 
@@ -4661,7 +4673,11 @@ function buildLightState(party, isHost = false) {
     participants: lightParticipants,
     // ★ Task #55: toggle salle d'attente (bool, non sensible) → exposé à tous pour que l'UI
     //   host reflète l'état. pendingGuests contient des emails (PII) → HOST SEULEMENT.
-    requiresApproval: party.requiresApproval === true,
+    // ★ Task #69: gaté par le flag global waitingRoom. OFF ⇒ requiresApproval jamais exposé
+    //   (toujours false) ; waitingRoomEnabled=false ⇒ le client masque la carte / n'affiche
+    //   jamais la salle d'attente (safety belt sans fetch séparé, piggyback party:state).
+    waitingRoomEnabled: featureEnabled('waitingRoom'),
+    requiresApproval: featureEnabled('waitingRoom') && party.requiresApproval === true,
     ...(isHost ? { pendingGuests: (party.pendingGuests || []).map(g => ({
       userId: String(g.userId), firstName: g.firstName || '', lastName: g.lastName || '', email: g.email || '', requestedAt: g.requestedAt
     })) } : {}),
@@ -4861,14 +4877,27 @@ io.on('connection', (socket) => {
     if (event.startsWith('host:')) {
       return origOn(event, (...args) => {
         ensureHostRoom();
-        // startParty, scheduleParty, deleteParty, resumeParty, sendToAfterglow handle their own auth or need DB access
-        if (['host:startParty', 'host:scheduleParty', 'host:deleteParty', 'host:resumeParty', 'host:sendToAfterglow'].includes(event)) {
+        // startParty, scheduleParty, deleteParty, resumeParty, sendToAfterglow handle their own auth or need DB access.
+        // ★ Task #67 — host:claim s'authentifie lui-même (hostSecret OU JWT) ET doit fonctionner
+        //   AVANT que socket.partyCode soit lié (reconnexion web) → exempt de validateHostSecret.
+        if (['host:startParty', 'host:scheduleParty', 'host:deleteParty', 'host:resumeParty', 'host:sendToAfterglow', 'host:claim'].includes(event)) {
           handler(...args);
           return;
         }
         // All other host:* events require valid hostSecret
         const payload = args[0];
         if (!validateHostSecret(socket, payload)) return;
+        // ★ Task #67 — un host authentifié EST le host autoritaire. Après ré-hydratation RAM
+        //   via action guest, party.hostSocketId est remis à null (cf. restore) : toute mutation
+        //   (setApprovalMode, deletePhoto/deleteMessage, approveGuest) serait alors rejetée (NOT_HOST).
+        //   On (re)pose l'identité ici, une fois le secret validé, pour auto-réparer le host web.
+        try {
+          const _p = getParty(socket);
+          if (_p) {
+            if (_p.hostSocketId !== socket.id) _p.hostSocketId = socket.id;
+            if (socket.partyCode && !socket.rooms.has(`host:${socket.partyCode}`)) socket.join(`host:${socket.partyCode}`);
+          }
+        } catch (_) {}
         handler(...args);
       });
     }
@@ -6295,6 +6324,7 @@ io.on('connection', (socket) => {
     socket.emit('session:token', { sessionToken, partyCode: code, userId });
     io.to(`host:${code}`).emit('guest:joined', guest);
     io.to(`guest:${code}`).emit('participants:update', party.participants);
+    io.to(`host:${code}`).emit('participants:update', party.participants); // ★ Task #67 — parité roster host (arrivée)
     if (guest.name && guest.name !== 'Guest') {
       if (!party.profilePointsGiven.has(guest.name)) {
         party.profilePointsGiven.add(guest.name);
@@ -6479,7 +6509,9 @@ io.on('connection', (socket) => {
     //   requiresApproval=false → comportement actuel strictement préservé. Grandfathering :
     //   les invités déjà dans participants sont rebindés plus haut (branche "already approved")
     //   et n'atteignent jamais ce gate → un toggle mid-party n'affecte que les arrivants futurs.
-    const requiresApproval = party.requiresApproval === true;
+    // ★ Task #69 — le flag global waitingRoom prime. OFF ⇒ on IGNORE requiresApproval même si
+    //   true en Mongo (safety si le flag est re-désactivé après avoir été actif) ⇒ autoApprove.
+    const requiresApproval = featureEnabled('waitingRoom') && party.requiresApproval === true;
     const isPreApproved = (!requiresApproval && AUTO_APPROVE_GUESTS) || (party.preApprovedGuests || []).some(id => id.toString() === userIdStr);
 
     if (isPreApproved) {
@@ -6503,6 +6535,7 @@ io.on('connection', (socket) => {
       socket.emit('session:token', { sessionToken, partyCode: code, userId: userIdStr });
       io.to(`host:${code}`).emit('guest:joined', guest);
       io.to(`guest:${code}`).emit('participants:update', party.participants);
+      io.to(`host:${code}`).emit('participants:update', party.participants); // ★ Task #67 — parité roster host (pré-approuvé)
       console.log(`✅ [${code}] guest:requestJoin — PRE-APPROVED: ${firstName} ${lastName} (${userIdStr})`);
       return cb({ ok: true, status: 'approved' });
     }
@@ -6607,6 +6640,7 @@ io.on('connection', (socket) => {
       }
     }
     io.to(`guest:${party.code}`).emit('participants:update', party.participants);
+    io.to(`host:${party.code}`).emit('participants:update', party.participants); // ★ Task #67 — parité roster host (admission)
 
     Party.findOneAndUpdate(
       { code: party.code },
@@ -6659,6 +6693,11 @@ io.on('connection', (socket) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     if (socket.id !== party.hostSocketId) return cb({ ok: false, error: 'NOT_HOST', message: 'Seul le host peut changer le mode d\'approbation.' });
+    // ★ Task #69 — flag global waitingRoom. OFF ⇒ la feature n'existe pas : refus net (pas d'écriture).
+    if (!featureEnabled('waitingRoom')) {
+      console.warn(`🚫 [${party.code}] host:setApprovalMode rejeté — flag waitingRoom OFF`);
+      return cb({ ok: false, code: 'FEATURE_DISABLED', message: 'La Salle d\'attente est désactivée.' });
+    }
 
     const enabled = !!(data && data.enabled);
     party.requiresApproval = enabled;
@@ -6673,6 +6712,82 @@ io.on('connection', (socket) => {
 
     console.log(`🚪 [${party.code}] host:setApprovalMode → ${enabled ? 'ON (validation requise)' : 'OFF (entrée libre)'}`);
     cb({ ok: true, enabled });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ★ Task #67 — HOST CLAIM (re-revendication identité host autoritaire)
+  // ═══════════════════════════════════════════════════════════════════
+  // Problème résolu : le host web qui (re)ouvre son cockpit, ou dont le socket
+  // s'est reconnecté, n'est pas réenregistré comme party.hostSocketId — surtout
+  // quand la party a été ré-hydratée en RAM par une action guest (hostSocketId=null).
+  // Conséquence : getParty(socket) est null (socket.partyCode non lié) → validateHostSecret
+  // échoue en silence, et même une fois lié, host:setApprovalMode / deletePhoto / deleteMessage
+  // / approveGuest sont rejetés (socket.id !== party.hostSocketId). host:requestState, lui,
+  // n'a aucune garde → le cockpit s'affiche quand même, ce qui MASQUE le problème.
+  // host:claim reconstruit l'identité : auth (hostSecret OU JWT Supabase == hostUserId),
+  // puis socket.partyCode + join(host:${code}) + hostSocketId = socket.id + resync party:state.
+  // Exempt de l'intercepteur (cf. liste ci-dessus) car il s'authentifie lui-même.
+  socket.on('host:claim', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const code = (data && data.code ? String(data.code) : '').toUpperCase();
+    if (!code) return cb({ ok: false, error: 'NO_CODE' });
+
+    // Résoudre la party (RAM → DB rehydrate), même schéma que les autres chemins host.
+    let party = parties.get(code);
+    if (!party) {
+      try {
+        const dbParty = await Party.findOne({ code, endedAt: null });
+        if (!dbParty) return cb({ ok: false, error: 'PARTY_NOT_FOUND', message: 'Aucune soirée active avec ce code.' });
+        party = createPartyState(code, dbParty._id);
+        party.hostSecret = dbParty.hostSecret;
+        party.hostProfile = dbParty.hostProfile || null;
+        party.hostUserId = dbParty.hostUserId || null;
+        party.hostSocketId = null;
+        party.participants = dbParty.participants || [];
+        party.pendingGuests = dbParty.pendingGuests || [];
+        party.preApprovedGuests = dbParty.preApprovedGuests || [];
+        party.requiresApproval = dbParty.requiresApproval === true;
+        parties.set(code, party);
+      } catch (err) {
+        console.error(`[${code}] host:claim rehydrate failed:`, err.message);
+        return cb({ ok: false, error: 'SERVER_ERROR' });
+      }
+    }
+
+    // ── Auth : hostSecret (primaire) OU JWT Supabase dont le sub == hostUserId (secondaire) ──
+    let authed = false;
+    let authVia = null;
+    if (data && data.hostSecret && party.hostSecret && data.hostSecret === party.hostSecret) {
+      authed = true; authVia = 'hostSecret';
+    } else if (data && data.supabaseAccessToken && party.hostUserId) {
+      try {
+        const payload = await verifySupabaseJWT(data.supabaseAccessToken);
+        const sub = payload && payload.sub;
+        if (sub) {
+          const hostUser = await User.findById(party.hostUserId).select('supabaseUserId').lean();
+          if (hostUser && hostUser.supabaseUserId && String(hostUser.supabaseUserId) === String(sub)) {
+            authed = true; authVia = 'jwt';
+          }
+        }
+      } catch (e) {
+        console.warn(`[${code}] host:claim JWT verify failed: ${e.message}`);
+      }
+    }
+    if (!authed) {
+      console.warn(`🔒 [${code}] host:claim REJECTED (ni hostSecret ni JWT valides) from ${socket.id}`);
+      return cb({ ok: false, error: 'CLAIM_UNAUTHORIZED' });
+    }
+
+    // ── Revendication : ce socket devient le host autoritaire ──
+    socket.partyCode = code;
+    socket.join(`host:${code}`);
+    party.hostSocketId = socket.id;
+    hostSecretFailures.delete(socket.id); // reset compteur d'échecs (anti-lockout après reco)
+    if (data && data.profile && !party.hostProfile) party.hostProfile = data.profile;
+
+    console.log(`🪪 [${code}] host:claim OK via ${authVia} → hostSocketId=${socket.id} (host room rejointe, requiresApproval=${party.requiresApproval === true})`);
+    socket.emit('party:state', buildLightState(party, true)); // resync host : full trackHistory + pendingGuests
+    return cb({ ok: true, code, requiresApproval: party.requiresApproval === true });
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -6776,6 +6891,7 @@ io.on('connection', (socket) => {
     socket.emit('party:state', buildLightState(party));
     io.to(`host:${code}`).emit('guest:joined', participant);
     io.to(`guest:${code}`).emit('participants:update', party.participants);
+    io.to(`host:${code}`).emit('participants:update', party.participants); // ★ Task #67 — parité roster host (legacy join)
 
     cb({
       ok: true,
@@ -8240,6 +8356,7 @@ io.on('connection', (socket) => {
             io.to(`guest:${code}`).emit('votes:update', { genreVotes: totals });
           }
           io.to(`guest:${code}`).emit('participants:update', party.participants);
+          io.to(`host:${code}`).emit('participants:update', party.participants); // ★ Task #67 — parité roster host (départ après grâce)
           // CR1 FIX: Send both id AND name so host can match by either
           io.to(`host:${code}`).emit('guest:left', { id: socket.id, name: participant.name });
           party.isDirty = true;
@@ -8293,6 +8410,7 @@ io.on('connection', (socket) => {
         }
         party.participants = party.participants.filter(p => p.id !== socket.id);
         io.to(`guest:${code}`).emit('participants:update', party.participants);
+        io.to(`host:${code}`).emit('participants:update', party.participants); // ★ Task #67 — parité roster host (départ immédiat)
         // CR1 FIX: Send both id AND name so host can match by either
         io.to(`host:${code}`).emit('guest:left', { id: socket.id, name: pName });
         console.log(`❌ [${code}] Removed immediately: ${pName} (${socket.id})`);
