@@ -2555,8 +2555,10 @@ function connectToRelay() {
         .filter(p => p.url);
     }
     if (Array.isArray(ps.messages)) {
+      // ★ Task #55 : conserver `id` au resync (la modération host supprime par id ; sans lui le ✕ host
+      //   serait sans effet après chaque party:state). Neutre pour le guest (self-delete par id OU texte).
       state.liveMessages = ps.messages
-        .map(m => ({ message: m?.message || m?.text || '', guestName: m?.guestName || 'Guest', sentAt: m?.sentAt || '' }))
+        .map(m => ({ id: m?.id, message: m?.message || m?.text || '', guestName: m?.guestName || 'Guest', sentAt: m?.sentAt || '' }))
         .filter(m => m.message);
     }
     if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
@@ -8502,6 +8504,25 @@ window.deleteMyPhoto = function(url) {
   }
 };
 
+// ★ Task #55 — Modération host : supprimer N'IMPORTE quelle photo / message (pas seulement les siens).
+//   Gated host-mode (bouton invisible pour un invité). La maj revient par photos:update / messages:update.
+//   Photo : host:deletePhoto {index} — index = position dans state.allPhotos, qui est 1:1 avec
+//   party.photos côté serveur (chaque entrée a une url/dataURL → aucun filtrage ne décale l'index).
+function _souvHostMode() { try { return !!(window.AhOuaiHostMode && window.AhOuaiHostMode.isHostMode()); } catch (e) { return false; } }
+window.hostDeletePhoto = function(url) {
+  if (!url || !socket || !socket.connected) return;
+  if (!confirm("Retirer cette photo de la soirée ?")) return;
+  const arr = state.allPhotos || [];
+  const idx = arr.findIndex(x => x && ((x.url || x.dataUrl || x.dataURL) === url));
+  if (idx < 0) return;
+  socket.emit('host:deletePhoto', { index: idx });
+};
+window.hostDeleteMessage = function(id) {
+  if (!id || !socket || !socket.connected) return;
+  if (!confirm("Retirer ce message de la soirée ?")) return;
+  socket.emit('host:deleteMessage', { id: String(id) });
+};
+
 // ★ AGIR Partager : rendu "Mes photos" + "Mes mots" + empty state
 function renderAgirSharePanel() {
   const state = window.state || {};
@@ -8896,10 +8917,14 @@ function renderSouvenirs() {
   if (photosEl && photosGrid) {
     const usable = photos.map(p => typeof p === 'string' ? { url: p } : p)
       .filter(p => p && (p.url || p.dataUrl)).slice(0, 6);
+    const _hostMod = _souvHostMode();
     photosGrid.innerHTML = usable.map(p => {
       const isMine = (!p.guestName || p.guestName === state.guestName);
       const url = p.url || p.dataUrl || p.dataURL || '';
-      const delBtn = isMine ? `<button onclick="deleteMyPhoto('${_souvEscape(url)}')" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.6); border:none; border-radius:50%; width:28px; height:28px; font-size:14px; color:white; cursor:pointer; z-index:10;" aria-label="Supprimer">🗑️</button>` : '';
+      // Host-mode : ✕ de modération sur les photos des AUTRES (les siennes gardent le 🗑️ self-delete).
+      const delBtn = isMine
+        ? `<button onclick="deleteMyPhoto('${_souvEscape(url)}')" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.6); border:none; border-radius:50%; width:28px; height:28px; font-size:14px; color:white; cursor:pointer; z-index:10;" aria-label="Supprimer">🗑️</button>`
+        : (_hostMod ? `<button onclick="hostDeletePhoto('${_souvEscape(url)}')" style="position:absolute; top:8px; right:8px; background:rgba(255,63,180,0.75); border:none; border-radius:50%; width:28px; height:28px; font-size:13px; color:white; cursor:pointer; z-index:10;" aria-label="Retirer (host)" title="Retirer (host)">✕</button>` : '');
       return `
       <div class="souvenirs-photo-item" style="position:relative;">
         <img src="${_souvEscape(url)}" alt="" loading="lazy">
@@ -8922,9 +8947,13 @@ function renderSouvenirs() {
       .slice(-6)
       .reverse()
       .slice(0, 4);
+    const _hostModMsg = _souvHostMode();
     msgList.innerHTML = recent.map(m => {
       const isMine = (!m.guestName || m.guestName === state.guestName);
-      const delBtn = isMine ? `<button onclick="deleteMyMessage('${_souvEscape(m.id || '')}', '${_souvEscape(m.message || m.text || '')}')" class="v2-msg-delete" style="background:none; border:none; font-size:16px; color:var(--ag-danger, #ff4444); cursor:pointer; padding:2px; margin-left:auto;" aria-label="Supprimer">🗑️</button>` : '';
+      // Host-mode : ✕ de modération sur les messages des AUTRES (les siens gardent le 🗑️ self-delete).
+      const delBtn = isMine
+        ? `<button onclick="deleteMyMessage('${_souvEscape(m.id || '')}', '${_souvEscape(m.message || m.text || '')}')" class="v2-msg-delete" style="background:none; border:none; font-size:16px; color:var(--ag-danger, #ff4444); cursor:pointer; padding:2px; margin-left:auto;" aria-label="Supprimer">🗑️</button>`
+        : (_hostModMsg ? `<button onclick="hostDeleteMessage('${_souvEscape(m.id || '')}')" style="background:none; border:none; font-size:15px; color:#ff8ec9; cursor:pointer; padding:2px; margin-left:auto;" aria-label="Retirer (host)" title="Retirer (host)">✕</button>` : '');
       return `
       <div class="souvenirs-message-item" style="display:flex; align-items:center;">
         <div style="flex:1; min-width:0;">

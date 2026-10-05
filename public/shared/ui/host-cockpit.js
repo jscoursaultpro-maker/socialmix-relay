@@ -18,6 +18,8 @@
     { key: 'closing',  label: 'Memories',  ic: '🎬' }
   ];
   var lastState = null, lastPoll = 0, booting = false;
+  // ★ Task #55 — Salle d'attente : état local alimenté par party:state (isHost) + host:pendingGuestRequest.
+  var pending = [], waitApproval = false, _wiredSock = null, _lastStateReq = 0;
 
   function eng() { return window.AhOuaiHostEngine || null; }
   function hostOn() { try { return window.AhOuaiHostMode && window.AhOuaiHostMode.isHostMode(); } catch (e) { return false; } }
@@ -71,7 +73,15 @@
       '#' + WRAP_ID + ' .hc-del{width:30px;height:30px;border-radius:9px;border:1px solid rgba(255,63,180,.32);background:rgba(255,63,180,.1);color:#ff8ec9;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}',
       '#' + WRAP_ID + ' .hc-sug{display:inline-flex;align-items:center;gap:5px;font:700 11px Outfit,sans-serif;color:#22e3c9;margin-top:3px}',
       '#' + WRAP_ID + ' .hc-sug .av{width:16px;height:16px;border-radius:50%;background:rgba(34,227,201,.25);display:inline-flex;align-items:center;justify-content:center;font-size:10px}',
-      '#' + WRAP_ID + ' .hc-empty{color:#6b7799;font:500 13px Outfit,sans-serif;text-align:center;padding:8px}'
+      '#' + WRAP_ID + ' .hc-empty{color:#6b7799;font:500 13px Outfit,sans-serif;text-align:center;padding:8px}',
+      // ★ Task #55 — Salle d'attente
+      '#' + WRAP_ID + ' .hc-wait{border:1px solid rgba(91,200,255,.28)}',
+      '#' + WRAP_ID + ' .hc-wait .hc-wait-toggle{display:flex;align-items:center;gap:12px;margin:2px 0 12px}',
+      '#' + WRAP_ID + ' .hc-wait .hc-wait-toggle .lab{flex:1;min-width:0}',
+      '#' + WRAP_ID + ' .hc-wait .hc-wait-toggle .lab b{display:block;font:800 15px Outfit,sans-serif;color:#f4f8ff}',
+      '#' + WRAP_ID + ' .hc-wait .hc-wait-toggle .lab span{font:500 12px Outfit,sans-serif;color:#9aa6c2}',
+      '#' + WRAP_ID + ' .hc-pending-av{width:30px;height:30px;border-radius:50%;background:rgba(91,200,255,.18);color:#8fd3ff;display:flex;align-items:center;justify-content:center;font-size:15px;flex:0 0 auto}',
+      '#' + WRAP_ID + ' .hc-ok{border:none;background:linear-gradient(135deg,#22e3c9,#13b7a3);color:#06121d;font:800 12px Outfit,sans-serif;border-radius:10px;padding:0 12px;height:30px;cursor:pointer;white-space:nowrap}'
     ].join('');
     var el = document.createElement('style'); el.id = STYLE_ID; el.textContent = c; document.head.appendChild(el);
   }
@@ -86,6 +96,15 @@
         '<div class="hc-phase-now" id="hc-phase-now">—</div>' +
         '<div class="hc-phase-sub" id="hc-phase-sub">—</div>' +
         '<div class="hc-stats"><span class="fr" id="hc-fr">Fraîcheur —</span><span><b id="hc-people">0</b> personnes</span></div>' +
+      '</div>' +
+      // ★ Task #55 — Salle d'attente : visible si le toggle est ON OU si des invités patientent.
+      '<div class="hc-card hc-wait" id="hc-wait-card" style="display:none">' +
+        '<div class="hc-next-h">🚪 Salle d\'attente <span class="n" id="hc-wait-n">0</span></div>' +
+        '<div class="hc-wait-toggle">' +
+          '<div class="lab"><b>Valider les invités</b><span>ON : chaque invité attend ton feu vert · OFF : entrée libre</span></div>' +
+          '<div class="hc-sw" id="hc-wait-sw"></div>' +
+        '</div>' +
+        '<div class="hc-q" id="hc-wait-list"></div>' +
       '</div>' +
       // Sélecteur descendu, juste au-dessus de la file qu'il pilote.
       '<div class="hc-card hc-auto">' +
@@ -175,6 +194,31 @@
       else if (act === 'down') e.move(id, 'down');
       else if (act === 'del') { if (isSug) e.dismissSuggestion({ title: title, guestName: guest, trackId: id }); else e.removeFromQueue(id); }
       setTimeout(renderQueue, 150);
+    });
+    // ★ Task #55 — Toggle « Valider les invités » : bascule party.requiresApproval côté serveur.
+    w.querySelector('#hc-wait-sw').addEventListener('click', function () {
+      var e = eng(); if (!e || !e.setApprovalMode) return;
+      var next = !waitApproval;
+      waitApproval = next;                 // optimiste, confirmé par l'ack + le prochain party:state
+      this.classList.toggle('on', next);
+      e.setApprovalMode(next, function (ack) {
+        if (ack && typeof ack.enabled === 'boolean') waitApproval = ack.enabled;
+        renderWaitingRoom();
+      });
+      renderWaitingRoom();
+    });
+    // ★ Task #55 — Admettre (host:approveGuest) / Refuser (host:denyGuest existant). Retrait optimiste.
+    w.querySelector('#hc-wait-list').addEventListener('click', function (ev) {
+      var b = ev.target.closest ? ev.target.closest('button[data-act]') : null;
+      if (!b) return;
+      var e = eng(); if (!e) return;
+      var uid = b.getAttribute('data-uid'), act = b.getAttribute('data-act');
+      if (!uid) return;
+      pending = pending.filter(function (p) { return String(p.userId) !== String(uid); });
+      renderWaitingRoom();
+      var done = function () { if (e.requestHostState) e.requestHostState(); setTimeout(renderWaitingRoom, 250); };
+      if (act === 'approve' && e.approveGuest) e.approveGuest(uid, done);
+      else if (act === 'deny' && e.denyGuest) e.denyGuest(uid, done);
     });
     return w;
   }
@@ -270,6 +314,55 @@
     }).join('');
   }
 
+  // ★ Task #55 — Salle d'attente : socket partagé (même binding global lexical que host-engine).
+  function sockRef() { try { return (typeof socket !== 'undefined' && socket) ? socket : (window.socket || null); } catch (e) { return window.socket || null; } }
+
+  // Attache les écouteurs une fois par instance de socket (robuste à la reconnexion = nouveau socket).
+  function wireWaitingRoom() {
+    var s = sockRef(); if (!s || s === _wiredSock) return;
+    _wiredSock = s;
+    // party:state (host) → pendingGuests + requiresApproval font autorité (buildLightState isHost=true).
+    s.on('party:state', function (ps) {
+      if (!ps) return;
+      if (Array.isArray(ps.pendingGuests)) pending = ps.pendingGuests.slice();
+      if (typeof ps.requiresApproval === 'boolean') waitApproval = ps.requiresApproval;
+      renderWaitingRoom();
+    });
+    // Ajout live d'un invité qui frappe à la porte (émis par le serveur au seul hostSocketId).
+    s.on('host:pendingGuestRequest', function (g) {
+      if (!g || !g.userId) return;
+      if (!pending.some(function (p) { return String(p.userId) === String(g.userId); })) {
+        pending.push({ userId: g.userId, firstName: g.firstName || '', lastName: g.lastName || '', email: g.email || '', requestedAt: g.requestedAt || Date.now() });
+      }
+      renderWaitingRoom();
+    });
+    // Charge l'état host immédiatement (peuple la salle d'attente au montage / à la reconnexion).
+    var e = eng(); if (e && e.requestHostState) e.requestHostState();
+  }
+
+  function renderWaitingRoom() {
+    var card = document.getElementById('hc-wait-card'); if (!card) return;
+    card.style.display = (waitApproval || pending.length > 0) ? '' : 'none';
+    var sw = document.getElementById('hc-wait-sw'); if (sw) sw.classList.toggle('on', !!waitApproval);
+    var nEl = document.getElementById('hc-wait-n'); if (nEl) nEl.textContent = pending.length;
+    var box = document.getElementById('hc-wait-list'); if (!box) return;
+    if (!pending.length) {
+      box.innerHTML = waitApproval ? '<div class="hc-empty">Personne en attente. Les invités qui scannent le QR apparaîtront ici.</div>' : '';
+      return;
+    }
+    box.innerHTML = pending.map(function (p) {
+      var nm = ((p.firstName || '') + ' ' + (p.lastName || '')).trim() || p.email || 'Invité';
+      var uid = esc(String(p.userId || ''));
+      return '<div class="hc-row" data-uid="' + uid + '">' +
+        '<div class="hc-pending-av">🙋</div>' +
+        '<div class="hc-ti"><div class="tt">' + esc(nm) + '</div></div>' +
+        '<div class="hc-acts">' +
+          '<button class="hc-ok" data-act="approve" data-uid="' + uid + '">✓ Admettre</button>' +
+          '<button class="hc-del" data-act="deny" data-uid="' + uid + '" aria-label="Refuser">✕</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
   async function pollState() {
     var e = eng(); var code = e && e.getCode && e.getCode();
     if (!code) return;
@@ -320,6 +413,12 @@
       renderSuggCard();
     }
     renderQueue();
+    // ★ Task #55 — Salle d'attente : brancher les écouteurs + rafraîchir l'état host (sécurité
+    //   en plus du live host:pendingGuestRequest : couvre le cas « host rejoint après coup »).
+    wireWaitingRoom();
+    var tnow = Date.now();
+    if (tnow - _lastStateReq > 3000) { _lastStateReq = tnow; if (e && e.requestHostState) e.requestHostState(); }
+    renderWaitingRoom();
     pollState();
   }
 

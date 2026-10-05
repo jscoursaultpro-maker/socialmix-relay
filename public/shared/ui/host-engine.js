@@ -622,6 +622,15 @@
     emitHost('host:suggestionPlayed', { trackTitle: opts.title, guestName: opts.guestName, guestId: opts.guestId || opts.guestName });
   }
 
+  // ★ Task #55 — Salle d'attente (modération des entrées). Réutilise le socket partagé ;
+  //   le serveur authentifie par socket.id === party.hostSocketId (comme host:approveGuest).
+  //   Refus = host:denyGuest existant (le client guest écoute déjà guest:denied). Zéro doublon.
+  function approveGuest(userId, cb) { var s = sock(); if (s) s.emit('host:approveGuest', { userId: String(userId) }, cb || function () {}); }
+  function denyGuest(userId, cb) { var s = sock(); if (s) s.emit('host:denyGuest', { userId: String(userId) }, cb || function () {}); }
+  function setApprovalMode(enabled, cb) { var s = sock(); if (s) s.emit('host:setApprovalMode', { enabled: !!enabled }, cb || function () {}); }
+  // Redemande l'état host complet (buildLightState isHost=true → pendingGuests + requiresApproval).
+  function requestHostState() { var s = sock(); if (s) s.emit('host:requestState', {}); }
+
   function normKey(s) { return String(s == null ? '' : s).toLowerCase().replace(/\(.*?\)|\[.*?\]/g, '').replace(/[^a-z0-9]/g, '').trim(); }
 
   // ★ Écoute des suggestions invités (room host:CODE). Auto ON → la suggestion entre SEULE
@@ -683,6 +692,7 @@
     getUpcoming: getUpcoming, playNow: playNow, move: move,
     removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,
     addSuggestionToQueue: addSuggestionToQueue, ensureBuffer: ensureBuffer,
+    approveGuest: approveGuest, denyGuest: denyGuest, setApprovalMode: setApprovalMode, requestHostState: requestHostState,
     _debug: function () { return { party: party, idx: idx, tracks: tracks.length, isPlaying: isPlaying, auto: autoAdvance, engine: engine ? engine.id : null }; }
   };
   if (!booted) { booted = true; log('prêt (brique 2 — chemin YouTube)'); }
