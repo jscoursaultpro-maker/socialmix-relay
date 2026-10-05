@@ -20,6 +20,7 @@
   var lastState = null, lastPoll = 0, booting = false;
   // ★ Task #55 — Salle d'attente : état local alimenté par party:state (isHost) + host:pendingGuestRequest.
   var pending = [], waitApproval = false, _wiredSock = null, _lastStateReq = 0;
+  var featureOn = true;   // ★ Task #69 — flag global waitingRoom (alimenté par party:state.waitingRoomEnabled)
 
   function eng() { return window.AhOuaiHostEngine || null; }
   function hostOn() { try { return window.AhOuaiHostMode && window.AhOuaiHostMode.isHostMode(); } catch (e) { return false; } }
@@ -210,6 +211,7 @@
     });
     // ★ Task #55 — Toggle « Valider les invités » : bascule party.requiresApproval côté serveur.
     w.querySelector('#hc-wait-sw').addEventListener('click', function () {
+      if (!featureOn) return;   // ★ Task #69 — flag global OFF : toggle désactivé (serveur refuserait de toute façon)
       var e = eng(); if (!e || !e.setApprovalMode) return;
       var next = !waitApproval;
       waitApproval = next;                 // optimiste, confirmé par l'ack + le prochain party:state
@@ -342,6 +344,8 @@
       if (!ps) return;
       if (Array.isArray(ps.pendingGuests)) pending = ps.pendingGuests.slice();
       if (typeof ps.requiresApproval === 'boolean') waitApproval = ps.requiresApproval;
+      // ★ Task #69 — flag global : OFF ⇒ carte masquée + toggle inerte (cf. renderWaitingRoom / listener).
+      if (typeof ps.waitingRoomEnabled === 'boolean') featureOn = ps.waitingRoomEnabled;
       renderWaitingRoom();
     });
     // Ajout live d'un invité qui frappe à la porte (émis par le serveur au seul hostSocketId).
@@ -362,8 +366,10 @@
 
   function renderWaitingRoom() {
     var card = document.getElementById('hc-wait-card'); if (!card) return;
-    // ★ Task #61 : carte (donc le toggle) TOUJOURS visible en mode host — c'est le seul moyen
-    //   d'activer la validation. Seule la liste des pending reste conditionnelle (ci-dessous).
+    // ★ Task #69 : flag global waitingRoom OFF ⇒ la feature n'existe pas → carte masquée.
+    //   ★ Task #61 : flag ON ⇒ carte (donc le toggle) TOUJOURS visible en mode host — c'est le
+    //   seul moyen d'activer la validation. Seule la liste des pending reste conditionnelle.
+    if (!featureOn) { card.style.display = 'none'; return; }
     card.style.display = '';
     var sw = document.getElementById('hc-wait-sw'); if (sw) sw.classList.toggle('on', !!waitApproval);
     var nEl = document.getElementById('hc-wait-n'); if (nEl) nEl.textContent = pending.length;

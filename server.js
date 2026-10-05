@@ -241,7 +241,11 @@ const DEFAULT_FEATURE_FLAGS = {
   spotifyProvider: true,
   deezerProvider: false,
   appleMusicProvider: true,
-  partyArchive: true
+  partyArchive: true,
+  // ★ Task #69 — Salle d'attente (modération host : approuver chaque invité). Source unique
+  //   SERVEUR, lue partout (host web, guest web, iOS). OFF par défaut (nouvelle feature → plus
+  //   prudent que CRITIQUE). Contrainte Jean-Sé : désactiver ici = désactivé sur toutes les surfaces.
+  waitingRoom: false
 };
 
 async function initFeatureFlags() {
@@ -276,6 +280,14 @@ async function initFeatureFlags() {
     console.error('[FeatureFlags] DB Init error:', err);
     globalFeatureFlagsCache = { ...DEFAULT_FEATURE_FLAGS };
   }
+}
+
+// ★ Task #69 — Lecture du flag global (source unique serveur). Vérif STRICTE à true : un flag
+//   absent ou OFF ⇒ désactivé. Utilisé pour la Salle d'attente (waitingRoom), lue à tous les
+//   points de contrôle requiresApproval (gate requestJoin, exposition buildLightState, toggle).
+function featureEnabled(name) {
+  const f = globalFeatureFlagsCache || DEFAULT_FEATURE_FLAGS;
+  return f[name] === true;
 }
 
 
@@ -4661,7 +4673,11 @@ function buildLightState(party, isHost = false) {
     participants: lightParticipants,
     // ★ Task #55: toggle salle d'attente (bool, non sensible) → exposé à tous pour que l'UI
     //   host reflète l'état. pendingGuests contient des emails (PII) → HOST SEULEMENT.
-    requiresApproval: party.requiresApproval === true,
+    // ★ Task #69: gaté par le flag global waitingRoom. OFF ⇒ requiresApproval jamais exposé
+    //   (toujours false) ; waitingRoomEnabled=false ⇒ le client masque la carte / n'affiche
+    //   jamais la salle d'attente (safety belt sans fetch séparé, piggyback party:state).
+    waitingRoomEnabled: featureEnabled('waitingRoom'),
+    requiresApproval: featureEnabled('waitingRoom') && party.requiresApproval === true,
     ...(isHost ? { pendingGuests: (party.pendingGuests || []).map(g => ({
       userId: String(g.userId), firstName: g.firstName || '', lastName: g.lastName || '', email: g.email || '', requestedAt: g.requestedAt
     })) } : {}),
@@ -6493,7 +6509,9 @@ io.on('connection', (socket) => {
     //   requiresApproval=false → comportement actuel strictement préservé. Grandfathering :
     //   les invités déjà dans participants sont rebindés plus haut (branche "already approved")
     //   et n'atteignent jamais ce gate → un toggle mid-party n'affecte que les arrivants futurs.
-    const requiresApproval = party.requiresApproval === true;
+    // ★ Task #69 — le flag global waitingRoom prime. OFF ⇒ on IGNORE requiresApproval même si
+    //   true en Mongo (safety si le flag est re-désactivé après avoir été actif) ⇒ autoApprove.
+    const requiresApproval = featureEnabled('waitingRoom') && party.requiresApproval === true;
     const isPreApproved = (!requiresApproval && AUTO_APPROVE_GUESTS) || (party.preApprovedGuests || []).some(id => id.toString() === userIdStr);
 
     if (isPreApproved) {
@@ -6675,6 +6693,11 @@ io.on('connection', (socket) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
     if (socket.id !== party.hostSocketId) return cb({ ok: false, error: 'NOT_HOST', message: 'Seul le host peut changer le mode d\'approbation.' });
+    // ★ Task #69 — flag global waitingRoom. OFF ⇒ la feature n'existe pas : refus net (pas d'écriture).
+    if (!featureEnabled('waitingRoom')) {
+      console.warn(`🚫 [${party.code}] host:setApprovalMode rejeté — flag waitingRoom OFF`);
+      return cb({ ok: false, code: 'FEATURE_DISABLED', message: 'La Salle d\'attente est désactivée.' });
+    }
 
     const enabled = !!(data && data.enabled);
     party.requiresApproval = enabled;
