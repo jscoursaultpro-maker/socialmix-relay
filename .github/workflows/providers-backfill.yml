@@ -1,0 +1,70 @@
+# Backfill ISRC + résolution providers (Apple Music, YouTube) pour que
+# les tracks curées par Claude soient jouables sur toutes les plateformes.
+#
+# Toujours dry-run par défaut. workflow_dispatch pour chaque étape.
+name: providers-backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Quel script lancer'
+        type: choice
+        options:
+          - backfill-isrc
+          - resolve-apple-music
+        required: true
+      dry_run:
+        description: 'Simuler sans écrire en BDD'
+        type: boolean
+        default: true
+      limit:
+        description: 'Limiter à N tracks (0 = pas de limite)'
+        default: '0'
+      force_verified:
+        description: 'Autoriser l''écriture sur isVerified=true (platine)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: providers-backfill
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: curation-data
+          path: curation-data
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Run action
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CURATION_DATA_DIR: ./curation-data
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+          LIMIT: ${{ inputs.limit }}
+          FORCE_VERIFIED: ${{ inputs.force_verified && '1' || '0' }}
+        run: |
+          case "${{ inputs.action }}" in
+            backfill-isrc)
+              node scripts/curation/backfill_isrc_from_inbox_2026-10-06.mjs
+              ;;
+            resolve-apple-music)
+              node scripts/curation/resolve_apple_music_isrc_2026-10-06.mjs
+              ;;
+            *)
+              echo "Unknown action"
+              exit 1
+              ;;
+          esac
