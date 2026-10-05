@@ -322,6 +322,10 @@
                 <button id="wr-update-btn" class="c5-btn c5-btn-secondary">
                     ✏️ Mettre à jour
                 </button>
+                <!-- ★ Task #55 — Retenter : renvoie la demande (utile si le host vient d'arriver ou a ouvert l'entrée) -->
+                <button id="wr-retry-btn" class="c5-btn c5-btn-secondary" style="margin-top:8px;">
+                    🔄 Retenter ma demande
+                </button>
             </div>
         </div>
     </div>
@@ -1331,7 +1335,7 @@
     <!-- ★ SSO web (task #33) — Supabase JS SDK pour Apple/Google OAuth -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <script src="/shared/supabase-cookie.js"></script>
-    <script src="app.js?v=20261005-task55-moderation"></script>
+    <script src="app.js?v=20261005-task55-pending-retry"></script>
     <!-- ★ Mode host (brique 1) — détection + barre de contrôles musique, module autonome -->
     <script src="/shared/ui/host-mode.js?v=hostmode-05"></script>
     <!-- ★ Mode host (brique 2) — moteur musique YouTube dans le guest -->

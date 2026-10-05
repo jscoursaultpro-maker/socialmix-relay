@@ -1288,6 +1288,28 @@ function setupWaitingRoomScreen() {
       });
     });
   }
+
+  // ★ Task #55 — « Retenter » (révélé après 60s de silence) : renvoie la demande d'accès.
+  //   _emitRequestJoin gère les deux issues via l'ack serveur : status 'approved' → cockpit
+  //   (host a accepté entre-temps OU a coupé le toggle), 'pending' → ré-arme l'écran d'attente.
+  //   Serveur idempotent (pas de doublon dans pendingGuests sur re-demande).
+  const retryBtn = $('wr-retry-btn');
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => {
+      const info = state.chantier5.pendingInfo || {};
+      const fn = (info.firstName || state.guestName || '').trim();
+      const ln = (info.lastName || state.guestLastName || '').trim();
+      const em = (info.email || '').trim();
+      if (!em) { showToast('Reprends ton inscription (email manquant)'); return; }
+      if (!socket || !socket.connected) { showToast('Connexion perdue, patiente…'); return; }
+      retryBtn.disabled = true;
+      const prev = retryBtn.innerHTML;
+      retryBtn.innerHTML = '⏳ Envoi…';
+      showToast('🔄 Demande renvoyée au host');
+      _emitRequestJoin(fn, ln, em);
+      setTimeout(() => { if (retryBtn) { retryBtn.disabled = false; retryBtn.innerHTML = prev; } }, 3000);
+    });
+  }
 }
 
 // ── 60s timer → reveal CTA card ──
