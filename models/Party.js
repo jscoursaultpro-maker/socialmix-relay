@@ -25,6 +25,9 @@ const PartySchema = new mongoose.Schema({
   }],
   // ★ Chantier 5: Pre-approved guests (auto-approve on requestJoin)
   preApprovedGuests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  // ★ Task #55: Salle d'attente activable par soirée (toggle host). Défaut false =
+  //   comportement actuel strictement préservé. Au schéma pour éviter le strip mongoose strict.
+  requiresApproval: { type: Boolean, default: false },
   guestVotes:       { type: mongoose.Schema.Types.Mixed, default: {} },
   suggestions:      [mongoose.Schema.Types.Mixed],
   hostProfile:      { type: mongoose.Schema.Types.Mixed, default: null },
