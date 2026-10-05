@@ -83,6 +83,11 @@ console.log(`🎯 ${total} tracks à résoudre côté Apple Music (ISRC lookup).
 if (LIMIT) console.log(`   LIMIT=${LIMIT} → traitement partiel.`);
 if (DRY) console.log(`   DRY_RUN=1 → aucun write.`);
 
+// Instrumentation : write a run start log doc
+const runId = `apple_music_${Date.now()}`;
+const runLog = db.collection('ProvidersResolveRunLog');
+await runLog.insertOne({ runId, kind: 'start', total, limit: LIMIT, dry: DRY, at: new Date() });
+
 let processed = 0, matched = 0, nomatch = 0, skipped = 0, errors = 0;
 
 for await (const t of cursor) {
@@ -96,6 +101,10 @@ for await (const t of cursor) {
 
   try {
     const song = await appleLookup(t.isrc);
+    // Log sample attempts
+    if (processed <= 5) {
+      await runLog.insertOne({ runId, kind: 'attempt', processed, isrc: t.isrc, title: t.title?.slice(0,40), artist: t.artist?.slice(0,30), gotSong: !!song, trackId: song?.trackId || null, kind2: song?.kind || null, at: new Date() });
+    }
     if (!song || !song.trackId) {
       nomatch++;
       if (processed % 50 === 0) console.log(`  … ${processed}/${total}  matched=${matched} nomatch=${nomatch}`);
@@ -144,4 +153,5 @@ console.log(`\n═════════════════════�
 console.log(`✓ Done. Processed: ${processed}  Matched: ${matched}  NoMatch: ${nomatch}  Skipped: ${skipped}  Errors: ${errors}`);
 console.log(`  Coverage gain : +${matched} tracks avec Apple Music trackId.`);
 
+await runLog.insertOne({ runId, kind: 'end', processed, matched, nomatch, skipped, errors, at: new Date() });
 await mongoose.disconnect();
