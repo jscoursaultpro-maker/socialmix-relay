@@ -643,6 +643,23 @@
     var tmp = tracks[j]; tracks[j] = tracks[k]; tracks[k] = tmp;
     if (j === idx + 1 || k === idx + 1) { queuedPid = null; prequeueNext(); }
   }
+  // ★ G3 (parité file) — réordonne un titre vers une position ARBITRAIRE de « À suivre »
+  //   (drag&drop). toIndex = index 0-based dans getUpcoming(). On re-préqueue si la tête
+  //   de file a pu changer (même logique souple que move : le web re-queue, pas de verrou dur).
+  function moveTo(trackId, toIndex) {
+    var j = tracks.findIndex(function (t) { return String(t.trackId) === String(trackId); });
+    if (j <= idx) return false;                 // jamais le titre courant ou passé
+    var t = tracks.splice(j, 1)[0];
+    var target = idx + 1 + (parseInt(toIndex, 10) || 0);
+    if (target > tracks.length) target = tracks.length;
+    if (target < idx + 1) target = idx + 1;
+    tracks.splice(target, 0, t);
+    queuedPid = null; prequeueNext();
+    return true;
+  }
+  // ★ G3 — trackId du prochain titre DÉJÀ pré-chargé dans le moteur (tête de file engagée),
+  //   pour l'indicateur « prochain » côté cockpit. null si rien n'est encore préqueué.
+  function getQueuedTrackId() { return (queuedPid && tracks[idx + 1]) ? String(tracks[idx + 1].trackId) : null; }
 
   // ── Gestion des suggestions / file (contrôles host) ────────────────────────
   function emitHost(ev, payload) { var s = sock(); if (s && party) s.emit(ev, Object.assign({ hostSecret: party.hostSecret }, payload || {})); }
@@ -731,7 +748,7 @@
     launchHost: launchHost, play: play, pause: pause, togglePlay: togglePlay,
     next: next, repeat: repeat, isActive: isActive, getNowPlaying: getNowPlaying, getCode: getCode, rebind: rebind, resume: resume, hasPersistedParty: loadPersistedParty, log: log, endParty: endParty, setPhase: setPhase, setAuto: setAuto, getPhaseMode: getPhaseMode,
     setAutoAdvance: setAutoAdvance, getAutoAdvance: getAutoAdvance,
-    getUpcoming: getUpcoming, playNow: playNow, move: move,
+    getUpcoming: getUpcoming, playNow: playNow, move: move, moveTo: moveTo, getQueuedTrackId: getQueuedTrackId,
     removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,
     addSuggestionToQueue: addSuggestionToQueue, ensureBuffer: ensureBuffer,
     approveGuest: approveGuest, denyGuest: denyGuest, setApprovalMode: setApprovalMode, requestHostState: requestHostState, claim: claim,

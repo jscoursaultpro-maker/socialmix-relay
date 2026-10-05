@@ -88,7 +88,13 @@
       '#' + WRAP_ID + ' .hc-crew-chip{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:4px 11px 4px 4px}',
       '#' + WRAP_ID + ' .hc-crew-av{width:26px;height:26px;border-radius:50%;background:rgba(34,227,201,.18);color:#22e3c9;display:flex;align-items:center;justify-content:center;font-size:13px;overflow:hidden;flex:0 0 auto}',
       '#' + WRAP_ID + ' .hc-crew-av img{width:100%;height:100%;object-fit:cover}',
-      '#' + WRAP_ID + ' .hc-crew-nm{font:600 12px Outfit,sans-serif;color:#e7edf7;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}'
+      '#' + WRAP_ID + ' .hc-crew-nm{font:600 12px Outfit,sans-serif;color:#e7edf7;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}',
+      // ★ G3 — drag&drop file « À suivre » (poignée + état glissé + marqueur prochain)
+      '#' + WRAP_ID + ' .hc-drag{width:24px;height:30px;display:flex;align-items:center;justify-content:center;color:#6b7799;font-size:16px;line-height:1;cursor:grab;touch-action:none;user-select:none;flex:0 0 auto}',
+      '#' + WRAP_ID + ' .hc-drag:active{cursor:grabbing}',
+      '#' + WRAP_ID + ' .hc-row.dragging{opacity:.92;border-color:rgba(34,227,201,.5);background:rgba(34,227,201,.08);box-shadow:0 8px 24px rgba(0,0,0,.45)}',
+      '#' + WRAP_ID + ' .hc-q.hc-dragging{cursor:grabbing}',
+      '#' + WRAP_ID + ' .hc-next-badge{display:inline-flex;align-items:center;gap:4px;font:800 10px Outfit,sans-serif;color:#06121d;background:#22e3c9;border-radius:999px;padding:2px 7px;margin-top:3px}'
     ].join('');
     var el = document.createElement('style'); el.id = STYLE_ID; el.textContent = c; document.head.appendChild(el);
   }
@@ -209,6 +215,49 @@
       else if (act === 'del') { if (isSug) e.dismissSuggestion({ title: title, guestName: guest, trackId: id }); else e.removeFromQueue(id); }
       setTimeout(renderQueue, 150);
     });
+    // ★ G3 — Drag&drop tactile de la file « À suivre » (Pointer Events, sans lib externe).
+    //   Poignée ⠿ → on réinsère la ligne entre ses voisines selon la position du doigt, puis
+    //   au relâché on commit l'ordre via engine.moveTo(id, index) + renderQueue (source de vérité).
+    //   ↑/↓ restent dispo (desktop/accessibilité). L'estampille « suggéré par » est préservée.
+    (function wireQueueDnD() {
+      var qEl = w.querySelector('#hc-q'); if (!qEl) return;
+      var dragRow = null, dragId = null, startY = 0, moved = false;
+      function others() {
+        return Array.prototype.slice.call(qEl.querySelectorAll('.hc-row')).filter(function (r) { return r !== dragRow; });
+      }
+      qEl.addEventListener('pointerdown', function (ev) {
+        var h = ev.target && ev.target.closest ? ev.target.closest('.hc-drag') : null; if (!h) return;
+        dragRow = h.closest('.hc-row'); if (!dragRow) return;
+        dragId = dragRow.getAttribute('data-id'); startY = ev.clientY; moved = false;
+        dragRow.classList.add('dragging'); qEl.classList.add('hc-dragging');
+        try { qEl.setPointerCapture(ev.pointerId); } catch (e) {}
+        ev.preventDefault();
+      });
+      qEl.addEventListener('pointermove', function (ev) {
+        if (!dragRow) return;
+        ev.preventDefault();
+        if (Math.abs(ev.clientY - startY) > 4) moved = true;
+        var list = others(), after = null;
+        for (var i = 0; i < list.length; i++) {
+          var rect = list[i].getBoundingClientRect();
+          if (ev.clientY < rect.top + rect.height / 2) { after = list[i]; break; }
+        }
+        if (after) qEl.insertBefore(dragRow, after); else qEl.appendChild(dragRow);
+      });
+      function endDrag(ev) {
+        if (!dragRow) return;
+        dragRow.classList.remove('dragging'); qEl.classList.remove('hc-dragging');
+        var id = dragId;
+        var newIdx = Array.prototype.slice.call(qEl.querySelectorAll('.hc-row')).indexOf(dragRow);
+        dragRow = null; dragId = null;
+        try { qEl.releasePointerCapture(ev.pointerId); } catch (e) {}
+        var en = eng();
+        if (moved && en && en.moveTo && id && newIdx >= 0) { en.moveTo(id, newIdx); setTimeout(renderQueue, 60); }
+        else { renderQueue(); }   // simple tap / annulation → re-render propre depuis le moteur
+      }
+      qEl.addEventListener('pointerup', endDrag);
+      qEl.addEventListener('pointercancel', endDrag);
+    })();
     // ★ Task #55 — Toggle « Valider les invités » : bascule party.requiresApproval côté serveur.
     w.querySelector('#hc-wait-sw').addEventListener('click', function () {
       if (!featureOn) return;   // ★ Task #69 — flag global OFF : toggle désactivé (serveur refuserait de toute façon)
@@ -314,14 +363,20 @@
     var nEl = document.getElementById('hc-q-n'); if (nEl) nEl.textContent = up.length;
     if (!up.length) { q.innerHTML = '<div class="hc-empty">La file se remplit avec le DJ Brain…</div>'; return; }
     var sm = suggMap();
+    // ★ G3 — titre déjà pré-chargé (tête de file engagée) → marqueur « prochain ».
+    var qid = (e && e.getQueuedTrackId) ? e.getQueuedTrackId() : null;
     q.innerHTML = up.slice(0, 10).map(function (t, i) {
       var sug = sm[normT(t.title)];
       var who = sug ? esc(sug.name) : '';
+      // ★ Estampille « suggéré par X » — à PRÉSERVER (crédit suggéreur conservé au drop via host:suggestionPlayed).
       var sugLine = sug ? '<div class="hc-sug"><span class="av">👤</span> suggéré par ' + who + '</div>' : '';
+      var nextBadge = (qid && String(t.trackId) === qid) ? '<span class="hc-next-badge">▶ prochain</span>' : '';
       var dataAttr = ' data-id="' + esc(t.trackId) + '" data-title="' + esc(t.title) + '" data-guest="' + who + '" data-sug="' + (sug ? '1' : '') + '"';
-      return '<div class="hc-row">' +
+      // ★ G3 — data-id + data-idx sur la ligne (réordonnancement DnD) + poignée ⠿.
+      return '<div class="hc-row" data-id="' + esc(t.trackId) + '" data-idx="' + i + '">' +
+        '<div class="hc-drag" aria-label="Glisser pour réordonner" title="Glisser pour réordonner">⠿</div>' +
         '<div class="hc-rank">' + (i + 1) + '</div>' +
-        '<div class="hc-ti"><div class="tt">' + esc(t.title) + '</div><div class="ar">' + esc(t.artist || '') + '</div>' + sugLine + '</div>' +
+        '<div class="hc-ti"><div class="tt">' + esc(t.title) + '</div><div class="ar">' + esc(t.artist || '') + '</div>' + nextBadge + sugLine + '</div>' +
         '<div class="hc-acts">' +
           '<button class="hc-mini" data-act="up"' + dataAttr + ' aria-label="Monter">↑</button>' +
           '<button class="hc-mini" data-act="down"' + dataAttr + ' aria-label="Descendre">↓</button>' +
