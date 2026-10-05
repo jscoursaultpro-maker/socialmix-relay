@@ -1233,6 +1233,9 @@ function enterCockpitFromOnboarding() {
 
 // ── Show waiting room ──
 function showWaitingRoom(hostFirstName, hostPhoto, partyName) {
+  // ★ Task #69 — safety belt : flag global waitingRoom OFF ⇒ ne jamais afficher la salle
+  //   d'attente, même si un guest:pendingApproval arrivait (le serveur ne l'émet pas quand OFF).
+  if (state._waitingRoomEnabled === false) { console.warn('[C5] waitingRoom flag OFF — showWaitingRoom ignoré'); return; }
   state.chantier5.screen = 'waiting';
   state.chantier5.waitingSince = Date.now();
 
@@ -2504,6 +2507,9 @@ function connectToRelay() {
 
   // ═══ HOST → GUEST Events ═══
   socket.on('party:state', (ps) => {
+    // ★ Task #69 — flag global waitingRoom (safety belt guest) : mémorisé pour ne jamais
+    //   afficher la salle d'attente quand la feature est OFF (le serveur ne l'émet pas non plus).
+    if (ps && typeof ps.waitingRoomEnabled === 'boolean') state._waitingRoomEnabled = ps.waitingRoomEnabled;
     if (ps.currentTrack) { state.currentTrack = ps.currentTrack; updateNowPlaying(ps.currentTrack); }
     // ★ Mes suggestions inline: load once after first state sync
     if (!_myDataLoaded && state.guestName) loadMyData();

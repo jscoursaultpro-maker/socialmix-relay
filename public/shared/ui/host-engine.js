@@ -417,6 +417,7 @@
     };
     s.emit('host:startParty', { code: party.code, hostSecret: party.hostSecret, profile: profile, streamingProvider: party.provider, deviceId: null });
     log('rebind soirée hôte (' + party.code + ') après (re)connexion', 'info');
+    claim();   // ★ Task #67 — réaffirme hostSocketId après reconnexion (nouveau socket serveur)
     return true;
   }
 
@@ -447,6 +448,7 @@
       log('party:resumed (' + (d && d.code) + ') — main hôte récupérée après reload', 'info');
       try { focusSpaOnParty(party.code); } catch (e) {}
       try { ensureEngine(party.provider); } catch (e) {}   // réarme le ▶, pas d'autoplay
+      try { claim(); } catch (e) {}   // ★ Task #67 — réaffirme hostSocketId après reload
     });
     s.once('party:error', function (e) {
       if (e && (e.error === 'PARTY_NOT_FOUND' || e.error === 'INVALID_SECRET')) {
@@ -456,6 +458,32 @@
     });
     s.emit('host:resumeParty', { code: party.code, hostSecret: party.hostSecret, profile: profile });
     log('host:resumeParty émis (' + party.code + ') après reload', 'info');
+    return true;
+  }
+
+  // ── Task #67 — (re)revendication explicite de l'identité host autoritaire ──────
+  //   Le serveur peut avoir perdu party.hostSocketId (ré-hydratation RAM via action guest,
+  //   ou socket reconnecté sans partyCode lié). Sans claim, host:setApprovalMode / deletePhoto /
+  //   deleteMessage / approveGuest sont rejetés (NOT_HOST) et le roster host reste figé.
+  //   claim() réaffirme côté serveur : hostSocketId = ce socket + room host:CODE + resync
+  //   party:state. Idempotent et peu coûteux → appelé à l'ouverture du cockpit et à chaque
+  //   reconnexion. Auth par hostSecret (toujours dispo côté client).
+  function claim() {
+    var s = sock();
+    if (!s || !party || !party.code) return false;
+    var st = appState();
+    var profile = {
+      name: (st && (st.guestName || st.guestFirstName)) || party.name || 'DJ',
+      email: (st && st.guestEmail) || '',
+      emoji: (st && st.guestEmoji) || '🎧',
+      photo: (st && st.guestPhoto) || null, phone: '', instagram: ''
+    };
+    try {
+      s.emit('host:claim', { code: party.code, hostSecret: party.hostSecret, profile: profile }, function (ack) {
+        if (ack && ack.ok) log('host:claim OK (' + party.code + ') — identité host réaffirmée', 'info');
+        else log('host:claim refusé (' + party.code + '): ' + (ack && ack.error), 'warn');
+      });
+    } catch (e) { log('claim: ' + e.message, 'warn'); return false; }
     return true;
   }
 
@@ -701,7 +729,7 @@
     getUpcoming: getUpcoming, playNow: playNow, move: move,
     removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,
     addSuggestionToQueue: addSuggestionToQueue, ensureBuffer: ensureBuffer,
-    approveGuest: approveGuest, denyGuest: denyGuest, setApprovalMode: setApprovalMode, requestHostState: requestHostState,
+    approveGuest: approveGuest, denyGuest: denyGuest, setApprovalMode: setApprovalMode, requestHostState: requestHostState, claim: claim,
     _debug: function () { return { party: party, idx: idx, tracks: tracks.length, isPlaying: isPlaying, auto: autoAdvance, engine: engine ? engine.id : null }; }
   };
   if (!booted) { booted = true; log('prêt (brique 2 — chemin YouTube)'); }
