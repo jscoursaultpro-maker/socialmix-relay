@@ -4834,7 +4834,6 @@ function populateTrombinoscope() {
     { name: state.guestName || 'Toi', emoji: state.guestEmoji, photo: state.guestPhoto }
   ];
   renderTrombi(grid, users);
-  renderCockpitTrombi(users);
 }
 
 function updateTrombinoscope(participants) {
@@ -4859,7 +4858,6 @@ function updateTrombinoscope(participants) {
     }
   });
   renderTrombi(grid, users);
-  renderCockpitTrombi(users);
 }
 
 function renderTrombi(grid, users) {
@@ -4898,38 +4896,8 @@ function renderTrombi(grid, users) {
   }
 }
 
-function renderCockpitTrombi(users) {
-  const container = $('cockpit-trombi');
-  if (!container) return;
-  container.innerHTML = '';
-  
-  users.forEach((u, idx) => {
-    const d = document.createElement('div');
-    d.style.cssText = "width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); overflow: hidden; flex-shrink: 0; cursor: pointer; position: relative;";
-    
-    if (u.photo) {
-      const img = document.createElement('img');
-      img.src = u.photo;
-      img.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
-      d.appendChild(img);
-    } else {
-      const span = document.createElement('span');
-      span.textContent = u.emoji || '😎';
-      d.appendChild(span);
-    }
-    
-    if (u.isHost) {
-      d.style.border = "2px solid #00e0c4";
-      const badge = document.createElement('div');
-      badge.style.cssText = "position: absolute; bottom: -2px; background: #00e0c4; color: #000; font-size: 7px; font-weight: 900; padding: 1px 3px; border-radius: 4px; letter-spacing: 0.5px;";
-      badge.textContent = "HÔTE";
-      d.appendChild(badge);
-    }
-    
-    d.addEventListener('click', () => showTrombiContact(idx));
-    container.appendChild(d);
-  });
-}
+// ★ Task #62 — renderCockpitTrombi retiré : visait #cockpit-trombi, élément absent du DOM
+//   (référence morte, no-op). Le roster On Air host est désormais rendu par host-cockpit.js.
 
 // Show contact lightbox for a single participant
 function showTrombiContact(idx) {
