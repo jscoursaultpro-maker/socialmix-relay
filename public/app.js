@@ -1922,10 +1922,8 @@ async function getAuthCredential() {
       if (session?.access_token) return { type: 'supabase', token: session.access_token };
     } catch (_) {}
   }
-  const match = document.cookie.match(/(?:^|;\s*)sbauth=([^;]+)/);
-  if (match) {
-    return { type: 'sbauth', token: match[1] };
-  }
+  // ★ Task #45 — repli cookie sbauth SUPPRIMÉ (base64 non signé). Seul un JWT Supabase vérifié
+  //   authentifie (session partagée .ahouai.com). NE PAS RÉTABLIR.
   return null;
 }
 
@@ -5333,8 +5331,9 @@ async function openUniversModal(targetUserId) {
   try {
     const cred = await getAuthCredential();
     if (!cred) throw Object.assign(new Error('AUTH_MISSING'), { status: 401 });
-    const headers = { Authorization: `Bearer ${cred.token}`, 'X-Auth-Type': cred.type };
-    if (cred.type === 'sbauth' && typeof state !== 'undefined' && state.partyCode) {
+    const headers = { Authorization: `Bearer ${cred.token}` };
+    // ★ Task #45 : plus de X-Auth-Type sbauth. X-Party-Code conservé pour le repli session-UUID serveur.
+    if (typeof state !== 'undefined' && state.partyCode) {
       headers['X-Party-Code'] = state.partyCode;
     }
     const response = await fetch(`/api/user/univers/${encodeURIComponent(targetUserId)}`, {
@@ -6722,7 +6721,8 @@ async function init() {
   // ★ Legacy cockpit skip: detect Sprint B redirection
   const urlParamsObj = new URLSearchParams(window.location.search);
   const sbMarker = urlParamsObj.get('sb') === '1';
-  const sbAuth = urlParamsObj.get('sbauth');
+  // ★ Task #45 — ingestion ?sbauth= SUPPRIMÉE. Expire tout ancien cookie sbauth (1 an, base64 non signé).
+  try { document.cookie = 'sbauth=; Domain=.ahouai.com; Path=/; Max-Age=0; Secure; SameSite=Lax'; } catch (_) {}
 
   // ★ Retour OAuth Spotify host (?code&state=host_auth) → reprendre le lancement host web.
   //   Le redirect Spotify perd nos query params → on relit le provider depuis sessionStorage.
@@ -6733,42 +6733,8 @@ async function init() {
   }
 
   if (sbMarker && state.partyCode) {
-    // Priority 1: try inline URL payload
-    if (sbAuth) {
-      try {
-        const authData = JSON.parse(atob(decodeURIComponent(sbAuth)));
-        const oldUserId3 = state.userId;
-        state.userId = authData.userId;
-        if (state.userId && state.userId !== oldUserId3) {
-          if (typeof renderGuestSuggestions === 'function') renderGuestSuggestions();
-          if (typeof renderCaMonte === 'function') renderCaMonte();
-        }
-        state.guestName = authData.firstName;
-        state.guestEmail = authData.email || '';
-        state.guestEmoji = '🎉';
-
-        // ★ Fix 25/09 : poser le cookie sbauth pour que getAuthCredential()
-        // le retrouve plus tard (ex: openUniversModal). Sans cela, un guest
-        // sbauth-bypass tombe sur l'écran reconnexion SSO quand il clique
-        // "Nos Univers" alors qu'il est déjà authentifié.
-        try {
-          const cookieValue = encodeURIComponent(sbAuth);
-          const oneYear = 60 * 60 * 24 * 365;
-          document.cookie = `sbauth=${cookieValue}; Domain=.ahouai.com; Path=/; Max-Age=${oneYear}; Secure; SameSite=Lax`;
-        } catch (_) { /* cookie set fail non bloquant */ }
-
-        saveProfile();
-        setupSocialHub();
-        setupExitModal();
-
-        console.log('[init] sb=1 URL bypass successful');
-        enterCockpit();
-        return;
-      } catch (e) {
-        console.warn('[init] sbauth decode failed, trying cookie fallback:', e);
-      }
-    }
-    
+    // ★ Task #45 — l'ancienne « Priority 1 » (payload ?sbauth= base64 non signé posé en cookie 1 an)
+    //   est SUPPRIMÉE. L'identité est hydratée par la session Supabase partagée via /api/me/legacy.
     // Priority 2: fallback cookie /api/me/legacy
     try {
       const meRes = await fetch('/api/me/legacy', { credentials: 'include' });
