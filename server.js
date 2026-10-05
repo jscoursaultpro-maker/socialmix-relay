@@ -4652,6 +4652,12 @@ function buildLightState(party, isHost = false) {
   const light = {
     code: party.code,
     participants: lightParticipants,
+    // ★ Task #55: toggle salle d'attente (bool, non sensible) → exposé à tous pour que l'UI
+    //   host reflète l'état. pendingGuests contient des emails (PII) → HOST SEULEMENT.
+    requiresApproval: party.requiresApproval === true,
+    ...(isHost ? { pendingGuests: (party.pendingGuests || []).map(g => ({
+      userId: String(g.userId), firstName: g.firstName || '', lastName: g.lastName || '', email: g.email || '', requestedAt: g.requestedAt
+    })) } : {}),
     // B2+B3 — boostedByUsers enrichi + plafonné à 8 dans le payload émis.
     // profileCache reconstruit depuis participants RAM à chaque buildLightState
     // (synchrone, toujours live — pas de stale possible).
@@ -4983,6 +4989,11 @@ io.on('connection', (socket) => {
         photos: dbParty.photos || [],
         participantScores: dbParty.participantScores || {},
         guestVotes: dbParty.guestVotes || {},
+        // ★ Task #55: restaurer la salle d'attente + son toggle au resume (sinon un host
+        //   qui rouvre verrait une salle d'attente vide alors que des pending existent en DB).
+        pendingGuests: dbParty.pendingGuests || [],
+        preApprovedGuests: dbParty.preApprovedGuests || [],
+        requiresApproval: dbParty.requiresApproval === true,
         currentPhase: dbParty.currentPhase || 'arrival',
         hostSocketId: socket.id,
         isPreParty: false,
@@ -6405,6 +6416,7 @@ io.on('connection', (socket) => {
         party.participants = dbParty.participants || [];
         party.pendingGuests = dbParty.pendingGuests || [];
         party.preApprovedGuests = dbParty.preApprovedGuests || [];
+        party.requiresApproval = dbParty.requiresApproval === true;   // ★ Task #55
         party.hostUserId = dbParty.hostUserId || null;
         parties.set(code, party);
       } catch (err) {
@@ -6450,7 +6462,13 @@ io.on('connection', (socket) => {
     //   en pending sans que le host puisse les approuver → bloques indefiniment ou refuses.
     //   A DESACTIVER (retirer cette variable) apres livraison Etape 3 iOS.
     const AUTO_APPROVE_GUESTS = (process.env.AUTO_APPROVE_GUESTS || 'true') === 'true';
-    const isPreApproved = AUTO_APPROVE_GUESTS || (party.preApprovedGuests || []).some(id => id.toString() === userIdStr);
+    // ★ Task #55: la décision du host prime. Si SA soirée exige l'approbation (toggle ON,
+    //   party.requiresApproval), l'env AUTO_APPROVE_GUESTS ne court-circuite plus. Défaut
+    //   requiresApproval=false → comportement actuel strictement préservé. Grandfathering :
+    //   les invités déjà dans participants sont rebindés plus haut (branche "already approved")
+    //   et n'atteignent jamais ce gate → un toggle mid-party n'affecte que les arrivants futurs.
+    const requiresApproval = party.requiresApproval === true;
+    const isPreApproved = (!requiresApproval && AUTO_APPROVE_GUESTS) || (party.preApprovedGuests || []).some(id => id.toString() === userIdStr);
 
     if (isPreApproved) {
       const sessionToken = randomUUID();
@@ -6620,6 +6638,29 @@ io.on('connection', (socket) => {
 
     console.log(`❌ [${party.code}] host:denyGuest: ${pendingEntry.firstName} (${targetUserId})`);
     cb({ ok: true });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ★ Task #55 — HOST SET APPROVAL MODE (toggle salle d'attente, par soirée)
+  // ═══════════════════════════════════════════════════════════════════
+  socket.on('host:setApprovalMode', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    if (socket.id !== party.hostSocketId) return cb({ ok: false, error: 'NOT_HOST', message: 'Seul le host peut changer le mode d\'approbation.' });
+
+    const enabled = !!(data && data.enabled);
+    party.requiresApproval = enabled;
+    party.isDirty = true;
+
+    // Persistance Party doc (champ présent au schéma → pas de strip mongoose strict).
+    Party.findOneAndUpdate(
+      { code: party.code },
+      { $set: { requiresApproval: enabled } },
+      { upsert: false }
+    ).catch(err => console.error(`[${party.code}] ⚠️ Write-through (host:setApprovalMode) failed:`, err.message));
+
+    console.log(`🚪 [${party.code}] host:setApprovalMode → ${enabled ? 'ON (validation requise)' : 'OFF (entrée libre)'}`);
+    cb({ ok: true, enabled });
   });
 
   // ═══════════════════════════════════════════════════════════════════
