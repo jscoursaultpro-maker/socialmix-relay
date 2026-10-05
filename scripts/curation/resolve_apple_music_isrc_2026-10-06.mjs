@@ -34,27 +34,53 @@ const PAUSE_MS = Number(process.env.PAUSE_MS || 120000);  // 2 min
 const USER_AGENT = 'AhOuai-curation/1.0 (contact@ahouai.com)';
 
 let lastCall = 0;
-async function appleLookup(isrc) {
+async function throttle() {
   const wait = MIN_INTERVAL_MS - (Date.now() - lastCall);
-  if (wait > 0) await new Promise(r => setTimeout(r, wait + Math.random() * 50));  // jitter 0-50 ms
+  if (wait > 0) await new Promise(r => setTimeout(r, wait + Math.random() * 50));
   lastCall = Date.now();
-  const url = `https://itunes.apple.com/lookup?isrc=${encodeURIComponent(isrc)}&entity=musicTrack&limit=5`;
+}
+
+async function itunesFetch(url) {
+  await throttle();
   const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' } });
   if (res.status === 403 || res.status === 429) {
-    console.error(`⚠️  Status ${res.status} on ISRC ${isrc} — pausing 30s`);
+    console.error(`⚠️  Status ${res.status} on ${url} — pausing 30s`);
     await new Promise(r => setTimeout(r, 30000));
     return null;
   }
   if (!res.ok) return null;
-  try {
-    const data = await res.json();
-    if (!data?.results?.length) return null;
-    // Prioriser track type "song" (vs "musicVideo")
-    const song = data.results.find(r => r.kind === 'song' || r.wrapperType === 'track') || data.results[0];
-    return song;
-  } catch {
-    return null;
+  try { return await res.json(); } catch { return null; }
+}
+
+function pickSong(results) {
+  if (!results?.length) return null;
+  return results.find(r => (r.kind === 'song' || r.wrapperType === 'track') && r.trackId) || null;
+}
+
+async function appleLookup(isrc, title, artist) {
+  // Country based on ISRC country code prefix (2 letters)
+  const country = (isrc || '').substring(0, 2).toLowerCase() || 'us';
+  // Try 1: lookup?isrc with country matching ISRC prefix
+  const u1 = `https://itunes.apple.com/lookup?isrc=${encodeURIComponent(isrc)}&entity=musicTrack&country=${country}&limit=5`;
+  let data = await itunesFetch(u1);
+  let song = pickSong(data?.results);
+  if (song) return { song, via: `lookup_isrc_${country}` };
+  // Try 2: lookup?isrc fallback US
+  if (country !== 'us') {
+    const u1b = `https://itunes.apple.com/lookup?isrc=${encodeURIComponent(isrc)}&entity=musicTrack&country=us&limit=5`;
+    data = await itunesFetch(u1b);
+    song = pickSong(data?.results);
+    if (song) return { song, via: 'lookup_isrc_us_fallback' };
   }
+  // Try 3: search by title+artist (fuzzy)
+  if (title && artist) {
+    const term = `${title} ${artist}`.replace(/\s+/g, ' ').trim();
+    const u2 = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=musicTrack&limit=10&media=music`;
+    data = await itunesFetch(u2);
+    song = pickSong(data?.results);
+    if (song) return { song, via: 'search_term' };
+  }
+  return { song: null, via: 'none' };
 }
 
 // Connect MongoDB
@@ -100,10 +126,10 @@ for await (const t of cursor) {
   }
 
   try {
-    const song = await appleLookup(t.isrc);
+    const { song, via } = await appleLookup(t.isrc, t.title, t.artist);
     // Log sample attempts
-    if (processed <= 5) {
-      await runLog.insertOne({ runId, kind: 'attempt', processed, isrc: t.isrc, title: t.title?.slice(0,40), artist: t.artist?.slice(0,30), gotSong: !!song, trackId: song?.trackId || null, kind2: song?.kind || null, at: new Date() });
+    if (processed <= 10) {
+      await runLog.insertOne({ runId, kind: 'attempt', processed, isrc: t.isrc, title: t.title?.slice(0,40), artist: t.artist?.slice(0,30), gotSong: !!song, trackId: song?.trackId || null, via, at: new Date() });
     }
     if (!song || !song.trackId) {
       nomatch++;
