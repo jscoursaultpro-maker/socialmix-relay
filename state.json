@@ -1144,45 +1144,20 @@
       "exportedAt": "2026-10-03T05:59:32.031Z",
       "status": "awaiting_review"
     },
-    "6a58b146ab166fef3aba8c44": {
-      "inbox": "2026-10-03-a.json",
-      "exportedAt": "2026-10-03T05:59:32.031Z"
-    },
     "6a58ac4eab166fef3aba8a2c": {
       "inbox": "2026-10-03-a.json",
-      "exportedAt": "2026-10-03T05:59:32.031Z"
+      "exportedAt": "2026-10-03T05:59:32.031Z",
+      "status": "awaiting_review"
     },
     "6a57ef2eab166fef3aba39fb": {
       "inbox": "2026-10-03-a.json",
-      "exportedAt": "2026-10-03T05:59:32.031Z"
-    },
-    "6a5647dc6da503a4c64e6880": {
-      "inbox": "2026-10-03-a.json",
-      "exportedAt": "2026-10-03T05:59:32.031Z"
-    },
-    "6a5647d76da503a4c64e687d": {
-      "inbox": "2026-10-03-a.json",
-      "exportedAt": "2026-10-03T05:59:32.031Z"
-    },
-    "6a5647ce6da503a4c64e6878": {
-      "inbox": "2026-10-03-a.json",
-      "exportedAt": "2026-10-03T05:59:32.031Z"
-    },
-    "6a352c42eaf607dcb667cacb": {
-      "inbox": "2026-10-03-a.json",
-      "exportedAt": "2026-10-03T05:59:32.031Z"
-    },
-    "6a352c42eaf607dcb667cac9": {
-      "inbox": "2026-10-03-a.json",
-      "exportedAt": "2026-10-03T05:59:32.031Z"
-    },
-    "6a19b871391f5e1520f813e1": {
-      "inbox": "2026-10-03-a.json",
-      "exportedAt": "2026-10-03T05:59:32.031Z"
+      "exportedAt": "2026-10-03T05:59:32.031Z",
+      "status": "awaiting_review"
     },
     "6a19b871391f5e1520f813da": {
       "inbox": "2026-10-03-a.json",
-      "exportedAt": "2026-10-03T05:59:32.031Z"
+      "exportedAt": "2026-10-03T05:59:32.031Z",
+      "status": "awaiting_review"
     }
   },
   "imported": {
@@ -1905,6 +1880,41 @@
       "file": "2026-10-03-a.json",
       "at": "2026-10-03T17:49:02.261Z",
       "confidence": "high"
+    },
+    "6a58b146ab166fef3aba8c44": {
+      "file": "2026-10-03-a.json",
+      "at": "2026-10-05T13:56:07.298Z",
+      "confidence": "high"
+    },
+    "6a5647dc6da503a4c64e6880": {
+      "file": "2026-10-03-a.json",
+      "at": "2026-10-05T13:56:07.657Z",
+      "confidence": "high"
+    },
+    "6a5647d76da503a4c64e687d": {
+      "file": "2026-10-03-a.json",
+      "at": "2026-10-05T13:56:08.016Z",
+      "confidence": "high"
+    },
+    "6a5647ce6da503a4c64e6878": {
+      "file": "2026-10-03-a.json",
+      "at": "2026-10-05T13:56:08.354Z",
+      "confidence": "high"
+    },
+    "6a352c42eaf607dcb667cacb": {
+      "file": "2026-10-03-a.json",
+      "at": "2026-10-05T13:56:08.695Z",
+      "confidence": "high"
+    },
+    "6a352c42eaf607dcb667cac9": {
+      "file": "2026-10-03-a.json",
+      "at": "2026-10-05T13:56:09.035Z",
+      "confidence": "high"
+    },
+    "6a19b871391f5e1520f813e1": {
+      "file": "2026-10-03-a.json",
+      "at": "2026-10-05T13:56:09.377Z",
+      "confidence": "high"
     }
   },
   "files": {
@@ -1945,10 +1955,10 @@
     },
     "2026-10-03-a": {
       "status": "partial",
-      "applied": 0,
-      "deferred": 46,
+      "applied": 7,
+      "deferred": 49,
       "invalid": 0,
-      "at": "2026-10-05T12:07:53.839Z"
+      "at": "2026-10-05T13:56:06.298Z"
     }
   }
 }
