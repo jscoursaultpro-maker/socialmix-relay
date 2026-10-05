@@ -8174,6 +8174,9 @@ io.on('connection', (socket) => {
 
   socket.on('host:deletePhoto', (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    // ★ Task #56 — garde host : seul le socket hôte peut modérer (parité host:approveGuest/denyGuest).
+    //   Avant, tout socket de la room pouvait supprimer une photo. Refus silencieux + log (pas de crash).
+    if (socket.id !== party.hostSocketId) { console.warn(`🔒 [${party.code}] host:deletePhoto refusé — émetteur non-host (${socket.id})`); return; }
     const idx = data && data.index;
     if (typeof idx === 'number' && idx >= 0 && idx < party.photos.length) {
       party.photos.splice(idx, 1);
@@ -8184,6 +8187,9 @@ io.on('connection', (socket) => {
 
   socket.on('host:deleteMessage', (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    // ★ Task #56 — garde host : seul le socket hôte peut modérer (parité host:approveGuest/denyGuest).
+    //   Avant, tout socket de la room pouvait supprimer un message. Refus silencieux + log (pas de crash).
+    if (socket.id !== party.hostSocketId) { console.warn(`🔒 [${party.code}] host:deleteMessage refusé — émetteur non-host (${socket.id})`); return; }
     const msgId = data && data.id;
     if (msgId && party.messages) {
       party.messages = party.messages.filter(m => m.id !== msgId);
