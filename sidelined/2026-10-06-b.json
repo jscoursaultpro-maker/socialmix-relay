@@ -1,0 +1,98 @@
+{
+  "_meta": {
+    "file": "2026-10-06-b",
+    "created_at": "2026-10-06T17:05:49.520Z",
+    "mode": "stock",
+    "total": 0,
+    "sidelined": 2,
+    "doctrine": "scripts/curation/DOCTRINE_PREMIUM_V2.md",
+    "instructions": "scripts/curation/CLAUDE_CURATION_PROMPT.md",
+    "output_expected": "outbox/2026-10-06-b.json"
+  },
+  "tracks": [
+    {
+      "_id": "6ac4c3a466f916ca34f40e7e",
+      "title": "Nuthin' But A \"G\" Thang",
+      "artist": "Dr. Dre & Snoop Dogg",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 795715,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-06T09:47:16.488Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "mismatch",
+        "via": "deezer_id",
+        "match": {
+          "id": 795715,
+          "title": "Comatose - Grisha Mix",
+          "artist": "Front Line Assembly",
+          "album": "Re-Wind",
+          "duration": 351,
+          "isrc": "US57M0510308",
+          "release_date": "2005-12-13",
+          "bpm": 105,
+          "rank": null,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/795715",
+          "preview": null
+        },
+        "cmp": {
+          "ok": false,
+          "titleSim": 0,
+          "artistSim": 0,
+          "durationDelta": null
+        },
+        "reason": "deezer_id_points_to_other_track"
+      }
+    },
+    {
+      "_id": "6ac4bfef66f916ca34f40c20",
+      "title": "All Eyez On Me (feat. Big Syke)",
+      "artist": "2Pac",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 75159,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-06T09:31:27.496Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    }
+  ]
+}
