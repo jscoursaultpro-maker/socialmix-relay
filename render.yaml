@@ -11,3 +11,24 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+
+  # ★ 06/10/2026 — Pré-résolution YouTube quotidienne (90 tracks/jour, quota API 100/jour).
+  # Résout providers.youtube.videoId pour que le host web puisse jouer les tracks DJ Brain
+  # sans consommer le quota Google à la volée en soirée.
+  # Variables à poser dans le dashboard Render (sync:false = valeur manuelle, pas versionnée) :
+  #   - MONGODB_URI       (identique au service web)
+  #   - YOUTUBE_API_KEY   (projet Google Cloud ahouai, cf. reference_youtube_data_api)
+  - type: cron
+    name: youtube-preresolve-daily
+    runtime: node
+    plan: starter
+    buildCommand: npm install --omit=dev
+    schedule: "7 3 * * *"
+    startCommand: node scripts/youtube-preresolve.mjs --limit 90
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: YOUTUBE_API_KEY
+        sync: false
