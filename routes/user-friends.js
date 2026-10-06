@@ -14,10 +14,10 @@ const router = Router();
 /**
  * ★ Fix Sprint B — utiliser verifyGuestAuth au lieu de requireAuth :
  * - Supporte Supabase JWT (iOS host, ahouai-web) ET
- * - Session UUID Sprint B (web guest sbauth-bypass) ET
+ * - Session UUID serveur liée au participant approuvé ET
  * - Legacy JWT (iOS host historique) ET
  * - hostSecret (iOS host)
- * Sinon les guests Sprint B (sans session Supabase browser) ne peuvent
+ * Sinon les guests approuvés sans session Supabase browser ne peuvent
  * pas envoyer/accepter de demande d'ami.
  *
  * Compat : verifyGuestAuth set req.user au lieu de req.currentUser →

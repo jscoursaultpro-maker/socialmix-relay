@@ -3,9 +3,9 @@
  *
  * Task V1 P0 #21 — RGPD guest onboarding
  * Tests:
- *  1. guest:join sans email → socket error:validation
- *  2. guest:join email invalide → socket error:validation
- *  3. guest:join valide → party:state reçu
+ *  1. guest:join legacy → refusé
+ *  2. guest:requestJoin email invalide → refusé
+ *  3. guest:requestJoin valide → party:state reçu
  *  4. GET /cgu → 200 + HTML render
  *  5. GET /privacy → 200 + HTML render
  *  6. DELETE /api/guest/data → 200 + suppression correcte
@@ -37,7 +37,7 @@ describe('guest-rgpd — email required + legal routes + droit oubli', async () 
 
     hostSocket = createHostSocket(serverCtx.url);
     await connected(hostSocket);
-    await startParty(hostSocket, { code: CODE, hostSecret: SECRET, hostName: 'Test Host', hostEmoji: '🎧' });
+    await startParty(hostSocket, { code: CODE, hostSecret: SECRET, hostName: 'Test Host', hostEmoji: '🎧', visibility: 'public' });
   });
 
   after(async () => {
@@ -48,51 +48,38 @@ describe('guest-rgpd — email required + legal routes + droit oubli', async () 
     if (serverCtx?.proc) serverCtx.proc.kill();
   });
 
-  // ── 1. guest:join sans email → error:validation ─────────────────────────
-  it('guest:join sans email → reçoit error:validation', async () => {
+  // ── 1. L'ancien événement ne peut plus contourner la salle d'attente ─────
+  it('guest:join legacy → refus explicite', async () => {
     const gs = createGuestSocket(serverCtx.url);
     sockets.push(gs);
     await connected(gs);
-    // Start listening BEFORE emit
-    const errPromise = waitFor(gs, 'error:validation', 3000);
-    gs.emit('guest:join', {
-      name: 'TestGuest', lastName: 'One', emoji: '🎉',
-      partyCode: CODE,
-      email: '',
-      consentAcceptedAt: new Date().toISOString()
-    });
-    const err = await errPromise;
-    assert.equal(err.field, 'email', 'field should be email');
+    const reply = await new Promise(resolve => gs.emit('guest:join', { partyCode: CODE }, resolve));
+    assert.equal(reply.ok, false);
+    assert.equal(reply.error, 'LEGACY_JOIN_DISABLED');
   });
 
-  // ── 2. guest:join email invalide → error:validation ─────────────────────
-  it('guest:join email invalide → reçoit error:validation', async () => {
+  // ── 2. requestJoin email invalide → ACK contrôlé ─────────────────────────
+  it('guest:requestJoin email invalide → refus INVALID_EMAIL', async () => {
     const gs = createGuestSocket(serverCtx.url);
     sockets.push(gs);
     await connected(gs);
-    const errPromise = waitFor(gs, 'error:validation', 3000);
-    gs.emit('guest:join', {
-      name: 'TestGuest', lastName: 'Two', emoji: '🎉',
-      partyCode: CODE,
-      email: 'not-an-email',
-      consentAcceptedAt: new Date().toISOString()
-    });
-    const err = await errPromise;
-    assert.equal(err.field, 'email');
+    const reply = await new Promise(resolve => gs.emit('guest:requestJoin', {
+      code: CODE, firstName: 'TestGuest', lastName: 'Two', email: 'not-an-email', cguAccepted: true
+    }, resolve));
+    assert.equal(reply.ok, false);
+    assert.equal(reply.error, 'INVALID_EMAIL');
   });
 
-  // ── 3. guest:join valide → party:state reçu ─────────────────────────────
-  it('guest:join valide → reçoit party:state', async () => {
+  // ── 3. requestJoin valide sur soirée publique → party:state ─────────────
+  it('guest:requestJoin valide → reçoit party:state', async () => {
     const gs = createGuestSocket(serverCtx.url);
     sockets.push(gs);
     await connected(gs);
     const statePromise = waitFor(gs, 'party:state', 5000);
-    gs.emit('guest:join', {
-      name: 'TestGuest', lastName: 'Three', emoji: '🎉',
-      partyCode: CODE,
-      email: 'guest.three@example.com',
-      consentAcceptedAt: new Date().toISOString()
-    });
+    gs.emit('guest:requestJoin', {
+      code: CODE, firstName: 'TestGuest', lastName: 'Three',
+      email: 'guest.three@example.com', cguAccepted: true
+    }, () => {});
     const state = await statePromise;
     assert.ok(state, 'party:state should be received');
     assert.equal(state.code, CODE);
@@ -129,12 +116,10 @@ describe('guest-rgpd — email required + legal routes + droit oubli', async () 
     sockets.push(gs);
     await connected(gs);
     const stateP = waitFor(gs, 'party:state', 5000);
-    gs.emit('guest:join', {
-      name: 'DeleteMe', lastName: 'Guest', emoji: '🗑️',
-      partyCode: CODE,
-      email: 'delete.me@example.com',
-      consentAcceptedAt: new Date().toISOString()
-    });
+    gs.emit('guest:requestJoin', {
+      code: CODE, firstName: 'DeleteMe', lastName: 'Guest',
+      email: 'delete.me@example.com', cguAccepted: true
+    }, () => {});
     await stateP.catch(() => {});
     // Attendre persistence async GuestSession
     await new Promise(r => setTimeout(r, 600));

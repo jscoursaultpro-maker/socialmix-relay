@@ -149,6 +149,45 @@ html, body {
   margin-top: 20px; letter-spacing: 0.3px;
 }
 
+/* Choice / provider gateway — same visual language as the five live universes. */
+#choice-screen { background:#060a13; align-items:stretch; }
+.choice-shell { width:100%; min-height:100%; display:grid; grid-template-columns:minmax(0,1.08fr) minmax(420px,.92fr); overflow:hidden; }
+.choice-brand-panel,.choice-action-panel { position:relative; display:flex; flex-direction:column; justify-content:center; padding:clamp(42px,6vw,96px); }
+.choice-brand-panel { isolation:isolate; background:linear-gradient(145deg,#070b17 5%,#111035 52%,#351348 100%); border-right:1px solid rgba(92,238,226,.16); }
+.choice-brand-panel::after { content:""; position:absolute; inset:0; z-index:-1; background:radial-gradient(circle at 74% 22%,rgba(255,47,174,.24),transparent 30%),radial-gradient(circle at 20% 82%,rgba(0,224,195,.2),transparent 32%); }
+.choice-logo { width:clamp(180px,18vw,285px); height:auto; object-fit:contain; margin-bottom:36px; filter:drop-shadow(0 14px 34px rgba(158,48,255,.25)); }
+.choice-kicker,.choice-step { color:#35e4d4; font:900 clamp(12px,1vw,15px)/1.2 var(--font-display); letter-spacing:.18em; }
+.choice-brand-panel h1 { margin:16px 0 22px; max-width:720px; font:900 clamp(48px,6.2vw,104px)/.9 var(--font-display); letter-spacing:-.065em; color:#fff; }
+.choice-brand-panel h1 span { background:linear-gradient(90deg,#6be8ff,#b95cff 52%,#ff3eab); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.choice-lead { max-width:590px; color:#c4c8d9; font:500 clamp(18px,1.5vw,25px)/1.45 var(--font); }
+.choice-promise { margin-top:46px; display:flex; align-items:center; gap:15px; width:max-content; max-width:100%; padding:16px 20px; border:1px solid rgba(68,231,217,.22); border-radius:18px; background:rgba(5,11,25,.45); backdrop-filter:blur(16px); text-align:left; }
+.choice-promise>span { color:#ff43b5; font-size:28px; }.choice-promise p{color:#aeb7cc;font-size:14px;line-height:1.4}.choice-promise strong{color:#fff;font-size:16px}
+.choice-action-panel { background:radial-gradient(circle at 50% 40%,rgba(12,98,118,.14),transparent 48%),#080d17; }
+.choice-stack { width:100%; max-width:610px; margin:auto; display:flex; flex-direction:column; gap:14px; }
+.provider-stack h2 { margin:4px 0 0; font:900 clamp(38px,4vw,58px)/1 var(--font-display); color:#fff; letter-spacing:-.045em; }
+.provider-intro { margin:0 0 16px; color:#98a4ba; font-size:16px; line-height:1.45; }
+#choice-screen .choice-card { display:grid; grid-template-columns:58px minmax(0,1fr) 30px; align-items:center; gap:16px; width:100%; min-height:92px; padding:16px 20px; border-radius:24px; background:linear-gradient(110deg,rgba(20,31,50,.9),rgba(28,23,59,.82)); border:1px solid rgba(90,224,216,.22); color:#f6f7ff; cursor:pointer; text-align:left; box-shadow:0 18px 42px rgba(0,0,0,.18); transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+#choice-screen .choice-card:hover { transform:translateY(-3px); border-color:rgba(65,236,220,.72); box-shadow:0 22px 52px rgba(0,0,0,.3),0 0 32px rgba(23,211,210,.08); }
+#choice-screen .choice-card:active { transform:scale(.985); }
+#choice-screen .choice-ic,.provider-logo { width:54px;height:54px;border-radius:17px;display:grid;place-items:center;font-size:26px;font-weight:900;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 0 24px rgba(69,222,215,.12); }
+.choice-ic-host{background:linear-gradient(145deg,#163753,#7350e9)}.choice-ic-guest{background:linear-gradient(145deg,#064e59,#0ed6be);color:#07111b}.choice-ic-play{background:linear-gradient(145deg,#6f1746,#fa3aa8)}
+.provider-logo.youtube-logo{background:#ff2638;color:#fff}.provider-logo.spotify-logo{background:#1ed760;color:#06150c;font-size:36px}.provider-logo.apple-logo{background:linear-gradient(145deg,#fa5b72,#ff244d);color:white;font-size:30px}
+#choice-screen .choice-txt { display:flex; flex-direction:column; gap:5px; min-width:0; }
+#choice-screen .choice-txt strong { font:850 clamp(18px,1.5vw,22px)/1.1 var(--font-display); }
+#choice-screen .choice-txt small { color:#9da9bd; font:500 14px/1.35 var(--font); }
+.choice-arrow { color:#45e6d8; font-size:24px; font-weight:900; }.choice-secure{margin-top:8px;text-align:center;color:#727f95;font-size:12px}.choice-back{margin-top:12px;text-align:center;color:#96a4bc;font-weight:700;text-decoration:none}.choice-back:hover{color:#fff}
+
+@media (max-width:820px) {
+  .choice-shell { grid-template-columns:1fr; overflow-y:auto; }
+  .choice-brand-panel { min-height:auto; padding:34px 22px 30px; justify-content:flex-start; border-right:0; border-bottom:1px solid rgba(92,238,226,.14); }
+  .choice-logo { width:170px; margin-bottom:24px; }
+  .choice-brand-panel h1 { font-size:clamp(48px,15vw,72px); margin:12px 0 16px; }
+  .choice-lead { font-size:17px; }.choice-promise{display:none}
+  .choice-action-panel { padding:28px 18px 48px; justify-content:flex-start; }
+  #choice-screen .choice-card { min-height:84px; border-radius:21px; padding:14px; grid-template-columns:52px minmax(0,1fr) 22px; }
+  #choice-screen .choice-ic,.provider-logo{width:50px;height:50px;border-radius:15px}
+}
+
 /* ═══════════════════════════════════════════
    SCREEN 1b: GDPR CONSENT
    ═══════════════════════════════════════════ */
@@ -4381,7 +4420,8 @@ body.founder-program-open { overflow: hidden; }
   box-shadow: 0 0 14px rgba(0, 224, 195, .14);
 }
 .v2-suggest-action-icon { font-size: 15px; line-height: 1; }
-.v2-music-services { display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 16px; }
+.v2-music-services { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 22px; }
+.v2-paste-icon { font-size: 14px; line-height: 1; }
 .v2-music-services i {
   display: grid;
   place-items: center;
@@ -4394,6 +4434,19 @@ body.founder-program-open { overflow: hidden; }
 .v2-music-services .is-deezer { color: #fff; background: linear-gradient(135deg, #ff2ca6, #7d42ff); }
 .v2-music-services .is-spotify { border-radius: 50%; color: #07140d; background: #1ed760; }
 .v2-music-services .is-apple { color: #05070b; background: #fff; }
+.v2-music-services img {
+  display: block;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  padding: 3px;
+  border-radius: 7px;
+  background: #fff;
+}
+.v2-music-services img[src*="deezer"] {
+  object-fit: cover;
+  object-position: left center;
+}
 @media (max-width: 360px) {
   .v2-suggest-actions { gap: 5px; }
   .v2-suggest-actions button { min-height: 46px; padding-inline: 2px; font-size: 8px; }
@@ -5587,6 +5640,100 @@ body.founder-program-open { overflow: hidden; }
 .story-guest-copy { border: 0; padding: 0; text-align: left; background: transparent; }.story-friend-btn.is-friend { border-color: rgba(119,217,176,.4); color: #77d9b0; background: rgba(119,217,176,.1); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ═══ TYPOGRAPHIE LISIBLE + HEADERS SYSTÉMATIQUES — 5 UNIVERS ═══ */
+#tab-agir .v2-space-heading,
+#tab-soiree .v2-space-heading,
+#tab-hub .v2-space-heading,
+#tab-memories .v2-space-heading,
+#tab-backstage .v2-space-heading {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  margin: 6px 0 20px;
+  padding: 7px 2px;
+  position: relative;
+  isolation: isolate;
+}
+#tab-agir .v2-space-heading > div,
+#tab-soiree .v2-space-heading > div,
+#tab-hub .v2-space-heading > div,
+#tab-memories .v2-space-heading > div,
+#tab-backstage .v2-space-heading > div { min-width: 0; text-align: left; }
+#tab-agir .v2-space-heading h1,
+#tab-soiree .v2-space-heading h1,
+#tab-hub .v2-space-heading h1,
+#tab-memories .v2-space-heading h1,
+#tab-backstage .v2-space-heading h1 {
+  margin: 0;
+  color: #fff;
+  font: 900 clamp(34px, 10.5vw, 50px)/.98 var(--font-display);
+  letter-spacing: -.045em;
+}
+#tab-agir .v2-space-heading p,
+#tab-soiree .v2-space-heading p,
+#tab-hub .v2-space-heading p,
+#tab-memories .v2-space-heading p,
+#tab-backstage .v2-space-heading p {
+  margin: 5px 0 0;
+  color: rgba(226, 224, 244, .76);
+  font-size: clamp(14px, 3.8vw, 17px);
+  font-weight: 650;
+  line-height: 1.25;
+}
+#tab-agir .v2-space-icon,
+#tab-soiree .v2-space-icon,
+#tab-hub .v2-space-icon,
+#tab-memories .v2-space-icon,
+#tab-backstage .v2-space-icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  place-items: center;
+  border-radius: 18px;
+  background: rgba(255,255,255,.045);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+  font-size: 31px;
+}
+#tab-agir .v2-space-icon { color: #ff78cc; }
+#tab-soiree .v2-space-icon { color: #38e8d8; }
+#tab-hub .v2-space-icon { color: #c084fc; }
+#tab-memories .v2-space-icon { color: #fb7185; }
+#tab-backstage .v2-space-icon { color: #ff78cc; }
+#tab-agir .v2-space-icon svg,
+#tab-soiree .v2-space-icon svg,
+#tab-hub .v2-space-icon svg,
+#tab-memories .v2-space-icon svg,
+#tab-backstage .v2-space-icon svg { width: 34px; height: 34px; stroke: currentColor; fill: none; }
+#tab-agir .v2-space-icon svg { fill: currentColor; stroke: none; }
+
+/* Les infos essentielles ne descendent plus sous 11–12 px. */
+.v2-action-card strong { font-size: 15px; }
+.v2-action-card small { font-size: 12px; }
+.v2-suggest-actions button { min-height: 55px; font-size: 11px; }
+.v2-banger-copy strong { font-size: 14px; }
+.v2-banger-copy span { font-size: 11px; }
+.v2-banger-item button { font-size: 10px; }
+.moi-panel h2, .moi-library-heading h2 { font-size: 13px; }
+.moi-track-row strong { font-size: 13px; }
+.moi-track-row small, .moi-empty, .moi-circle-row p { font-size: 11px; }
+.bottom-nav .nav-label { font-size: 10px; }
+
+@media (max-width: 360px) {
+  #tab-agir .v2-space-icon,
+  #tab-soiree .v2-space-icon,
+  #tab-hub .v2-space-icon,
+  #tab-memories .v2-space-icon,
+  #tab-backstage .v2-space-icon { width: 50px; height: 50px; flex-basis: 50px; }
+  #tab-agir .v2-space-heading h1,
+  #tab-soiree .v2-space-heading h1,
+  #tab-hub .v2-space-heading h1,
+  #tab-memories .v2-space-heading h1,
+  #tab-backstage .v2-space-heading h1 { font-size: 32px; }
+}
+
 /* ═══ UNIFIED PAGE HEADERS — ON AIR · MOI · AFTERGLOW ═══ */
 /* Layout colonne centré : icône au-dessus + h1 blanc + baseline */
 
@@ -6011,6 +6158,47 @@ body.kb-open .bottom-nav {
 }
 .ag-boost-tip.show { opacity: 1; }
 
+/* Le bandeau d'ouverture de l'app réserve sa place : aucun header/toast ne se chevauche. */
+body.has-app-banner #cockpit-screen,
+body.has-app-banner #landing-screen,
+body.has-app-banner #pre-party {
+  padding-top: 72px;
+}
+
+body.has-app-banner .toast,
+body.has-app-banner #toast {
+  top: calc(env(safe-area-inset-top) + 88px) !important;
+}
+
+/* Parité de lisibilité Guest Web : même poids visuel dans les cinq univers. */
+#cockpit-screen .bottom-nav .nav-label,
+#cockpit-screen .bottom-nav span:last-child {
+  font-size: clamp(10px, 2.7vw, 12px);
+  font-weight: 850;
+  letter-spacing: .02em;
+}
+
+@media (min-width: 900px) {
+  #cockpit-screen {
+    width: min(100%, 1060px);
+    max-width: 1060px;
+    margin-inline: auto;
+  }
+  #cockpit-screen .cockpit-content,
+  #cockpit-screen .tab-content {
+    max-width: 960px;
+    margin-inline: auto;
+  }
+  #cockpit-screen .bottom-nav {
+    width: min(900px, calc(100vw - 48px));
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 24px 24px 0 0;
+  }
+}
+
 
 /* G2 (01/10/26) — bandeau services : logos officiels sur pastilles claires (visibles sur fond sombre) */
 .soiree-services-strip{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;margin:12px 0 2px;}
@@ -6026,3 +6214,20 @@ body.kb-open .bottom-nav {
 .onair-scroll-cue.show{display:inline-flex;animation:onair-cue-bounce 1.4s ease-in-out infinite;}
 .onair-scroll-cue span{font-size:14px;line-height:1;}
 @keyframes onair-cue-bounce{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(4px);}}
+
+/* Final cascade: all five universes deliberately share one header contract. */
+#cockpit-screen :is(#tab-agir,#tab-soiree,#tab-hub,#tab-memories,#tab-backstage) .v2-space-heading{
+  display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:14px;
+  margin:6px 0 20px;padding:7px 2px;transform:none;
+}
+#cockpit-screen :is(#tab-agir,#tab-soiree,#tab-hub,#tab-memories,#tab-backstage) .v2-space-heading>div{text-align:left;}
+#cockpit-screen :is(#tab-agir,#tab-soiree,#tab-hub,#tab-memories,#tab-backstage) .v2-space-heading h1{
+  margin:0;color:#fff;font:900 clamp(34px,10.5vw,50px)/.98 var(--font-display);letter-spacing:-.045em;
+}
+#cockpit-screen :is(#tab-agir,#tab-soiree,#tab-hub,#tab-memories,#tab-backstage) .v2-space-heading p{
+  margin:5px 0 0;color:rgba(226,224,244,.76);font-size:clamp(14px,3.8vw,17px);font-weight:650;line-height:1.25;
+}
+#cockpit-screen :is(#tab-agir,#tab-soiree,#tab-hub,#tab-memories,#tab-backstage) .v2-space-icon{
+  display:grid;width:58px;height:58px;flex:0 0 58px;place-items:center;border-radius:18px;
+  background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);font-size:31px;
+}

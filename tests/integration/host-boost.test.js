@@ -57,7 +57,13 @@ describe('host-boost limits', async () => {
 
   it('host boost respects max 3 pending guard (returns 429 on 4th)', async () => {
     // Join guest socket
-    guestSocket.emit('guest:join', { partyCode: CODE, guestId: 'guest-boost-test', guestName: 'Guest' });
+    guestSocket.emit('guest:requestJoin', {
+      code: CODE,
+      firstName: 'Guest',
+      lastName: 'Boost',
+      email: 'guest.boost@example.com',
+      cguAccepted: true
+    }, () => {});
     await waitFor(guestSocket, 'party:state');
 
     // 1. Add 4 suggestions via guest socket

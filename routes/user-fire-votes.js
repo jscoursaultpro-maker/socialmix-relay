@@ -12,6 +12,7 @@ import { Router } from 'express';
 import Party from '../models/Party.js';
 import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
 import { findOrCreateFromSupabase } from '../services/userService.js';
+import { enrichArtwork } from '../services/deezerArtwork.js';
 
 const router = Router();
 
@@ -265,7 +266,7 @@ router.get('/', requireAuth, async (req, res) => {
       return new Date(b.lastVotedAt) - new Date(a.lastVotedAt);
     });
 
-    fireVotes = fireVotes.slice(0, limit);
+    fireVotes = await enrichArtwork(fireVotes.slice(0, limit));
 
     console.log(`[UserFireVotes] user=${userName} email=${userEmail} hasValidEmail=${hasValidEmail} hasValidUserId=${hasValidUserId} → agg ${aggResult.length} tracks, deduped ${fireVotes.length} tracks (took ${Date.now() - startAgg}ms)`);
     return res.json({ fireVotes: fireVotes.map(fv => ({

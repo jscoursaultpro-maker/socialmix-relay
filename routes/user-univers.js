@@ -24,39 +24,17 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Party from '../models/Party.js';
 import Friendship from '../models/Friendship.js';
-import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
-import { findOrCreateFromSupabase } from '../services/userService.js';
 import { verifyGuestAuth } from '../middleware/authGuest.js';
 import { computeIdentityKey, findMatches } from '../utils/participantDedup.js';
 
 const router = Router();
 
 async function requireAuth(req, res, next) {
-  try {
-    const authType = req.headers['x-auth-type'];
-    if (authType === 'sbauth') {
-      return verifyGuestAuth(req, res, (err) => {
-        if (err) return next(err);
-        req.currentUser = req.user;
-        next();
-      });
-    }
-
-    const authHeader = req.headers.authorization || '';
-    if (!authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'AUTH_MISSING', message: 'Authorization: Bearer <token> required' });
-    }
-    const token = authHeader.slice(7);
-    const payload = await verifySupabaseJWT(token);
-    const user = await findOrCreateFromSupabase(payload);
-    req.currentUser = user;
+  return verifyGuestAuth(req, res, (err) => {
+    if (err) return next(err);
+    req.currentUser = req.user;
     next();
-  } catch (err) {
-    if (err.name === 'AuthError') {
-      return res.status(401).json({ error: 'AUTH_FAILED', message: err.message });
-    }
-    return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
-  }
+  });
 }
 
 /** Encapsule la clef canonique du contrat (6 valeurs). */

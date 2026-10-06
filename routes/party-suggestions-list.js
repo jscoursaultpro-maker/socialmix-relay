@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { verifyGuestAuth } from '../middleware/authGuest.js';
 import Party from '../models/Party.js';
 import User from '../models/User.js';
+import { enrichArtwork } from '../services/deezerArtwork.js';
 
 const router = Router();
 router.use(verifyGuestAuth);
@@ -45,7 +46,7 @@ router.get('/:code/suggestions', async (req, res) => {
     const hostName = hostProfile.firstName || hostProfile.name || 'Host';
     const hostEmoji = hostProfile.emoji || '🎧';
 
-    const enriched = pending.map(s => {
+    const enriched = await enrichArtwork(pending.map(s => {
       const uid = (s.suggestedBy || s.guestId || '').toString();
       const isHost = uid === 'host' || !OID_RE.test(uid);
       const user = userMap.get(uid);
@@ -87,7 +88,7 @@ router.get('/:code/suggestions', async (req, res) => {
         boostedByUsers: s.boostedByUsers || [],
         isMine         // ★ feat(#43): booléen précalculé serveur, front dérive canBoost = !isMine
       };
-    });
+    }));
 
     res.json({ suggestions: enriched });
   } catch (err) {

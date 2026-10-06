@@ -15,6 +15,7 @@
 import { Router } from 'express';
 import { verifyGuestAuth } from '../middleware/authGuest.js';
 import Party from '../models/Party.js';
+import { enrichArtwork } from '../services/deezerArtwork.js';
 
 const router = Router();
 
@@ -112,7 +113,7 @@ router.get('/suggestions/past', verifyGuestAuth, async (req, res) => {
 
     // A1 — total, hasMore, pagination
     const total   = allItems.length;
-    const items   = allItems.slice(offset, offset + limit);
+    const items   = await enrichArtwork(allItems.slice(offset, offset + limit));
     const hasMore = offset + items.length < total;
 
     console.log(`[me/suggestions/past] user=${userName} limit=${limit} offset=${offset} → ${items.length}/${total} (hasMore=${hasMore})`);

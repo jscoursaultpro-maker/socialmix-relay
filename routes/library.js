@@ -8,9 +8,10 @@ router.get('/search', async (req, res) => {
   try {
     const q = req.query.q;
     if (!q) return res.json({ data: [] });
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 15, 1), 25);
 
     // Minimal Deezer proxy
-    const deezerRes = await fetch(`https://api.deezer.com/search/track?q=${encodeURIComponent(String(q))}&limit=5`);
+    const deezerRes = await fetch(`https://api.deezer.com/search/track?q=${encodeURIComponent(String(q))}&limit=${limit}`);
     if (!deezerRes.ok) throw new Error('Deezer API error');
     const deezerData = await deezerRes.json();
 

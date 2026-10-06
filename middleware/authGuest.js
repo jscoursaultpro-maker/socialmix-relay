@@ -47,7 +47,6 @@ export const verifyGuestAuth = async (req, res, next) => {
 
       // ★ Task #45 — cookie sbauth SUPPRIMÉ (base64 non signé). Seul le cookie Supabase
       //   partagé .ahouai.com (sb-*-auth-token, ci-dessous) authentifie via JWT vérifié.
-
       const sbTokens = Object.keys(cookies).filter(k => k.match(/^sb-.*-auth-token/)).sort();
       if (sbTokens.length > 0) {
         try {
@@ -163,9 +162,7 @@ export const verifyGuestAuth = async (req, res, next) => {
       return next();
     }
 
-    // 3. Fallback: treat token as internal session UUID (sbauth-bypass guests)
-    // These guests authenticated via URL param and have no local Supabase session.
-    // The server assigned them a UUID session token stored in party.sessionTokens.
+    // 3. Fallback: exact server-issued session UUID bound to one approved participant.
     const partyCode = req.params.code || req.headers['x-party-code'] || '';
     if (partyCode) {
       const party = await Party.findOne(
@@ -173,16 +170,16 @@ export const verifyGuestAuth = async (req, res, next) => {
         { sessionTokens: 1, participants: 1 }
       );
       if (party) {
-        const guestName = (party.sessionTokens || {})[token];
-        if (guestName) {
-          // Found session UUID → resolve participant's userId
+        const tokenIdentity = (party.sessionTokens || {})[token];
+        if (tokenIdentity) {
           const participant = (party.participants || []).find(
-            p => p.name === guestName && p.userId
+            p => p.sessionToken === token && p.userId &&
+              (!tokenIdentity || String(p.userId) === String(tokenIdentity))
           );
           if (participant) {
             const user = await User.findById(participant.userId);
             if (user && !user.isDeleted && !user.isBanned) {
-              console.log(`[authGuest] ✅ Auth via session UUID for ${guestName} (userId: ${participant.userId})`);
+              console.log('[authGuest] ✅ Auth via participant session UUID');
               req.user = user;
               return next();
             }

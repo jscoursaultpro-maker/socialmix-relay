@@ -245,7 +245,7 @@ const DEFAULT_FEATURE_FLAGS = {
   // ★ Task #69 — Salle d'attente (modération host : approuver chaque invité). Source unique
   //   SERVEUR, lue partout (host web, guest web, iOS). OFF par défaut (nouvelle feature → plus
   //   prudent que CRITIQUE). Contrainte Jean-Sé : désactiver ici = désactivé sur toutes les surfaces.
-  waitingRoom: false
+  waitingRoom: true
 };
 
 async function initFeatureFlags() {
@@ -4543,6 +4543,24 @@ function getMutableParty(socket) {
   return party;
 }
 
+// A pending socket also carries partyCode, so getMutableParty alone is never
+// sufficient authorization for a guest mutation.
+function getApprovedGuest(party, socket) {
+  if (!party || !socket) return null;
+  return (party.participants || []).find(participant =>
+    !participant.isHost && participant.id === socket.id && participant.connected !== false
+  ) || null;
+}
+
+function requireApprovedGuest(party, socket, callback) {
+  const participant = getApprovedGuest(party, socket);
+  if (participant) return participant;
+  const reply = typeof callback === 'function' ? callback : () => {};
+  reply({ ok: false, error: 'NOT_APPROVED', message: 'Ton accès doit être validé par l’hôte.' });
+  socket.emit('guest:accessRequired', { reason: 'NOT_APPROVED' });
+  return null;
+}
+
 // ★ Chantier 5: resolve stable userId for a guest socket
 // Priority: socket.user._id (from auth/requestJoin) > participant.userId > socket.id
 function resolveGuestUserId(party, socket) {
@@ -4670,16 +4688,15 @@ function buildLightState(party, isHost = false) {
 
   const light = {
     code: party.code,
+    visibility: party.visibility || 'private',
     participants: lightParticipants,
-    // ★ Task #55: toggle salle d'attente (bool, non sensible) → exposé à tous pour que l'UI
-    //   host reflète l'état. pendingGuests contient des emails (PII) → HOST SEULEMENT.
-    // ★ Task #69: gaté par le flag global waitingRoom. OFF ⇒ requiresApproval jamais exposé
-    //   (toujours false) ; waitingRoomEnabled=false ⇒ le client masque la carte / n'affiche
-    //   jamais la salle d'attente (safety belt sans fetch séparé, piggyback party:state).
+    // Waiting-room state is public, but pending guest PII is host-only.
     waitingRoomEnabled: featureEnabled('waitingRoom'),
     requiresApproval: featureEnabled('waitingRoom') && party.requiresApproval === true,
     ...(isHost ? { pendingGuests: (party.pendingGuests || []).map(g => ({
-      userId: String(g.userId), firstName: g.firstName || '', lastName: g.lastName || '', email: g.email || '', requestedAt: g.requestedAt
+      userId: g.userId ? String(g.userId) : '',
+      firstName: g.firstName || '', lastName: g.lastName || '',
+      email: g.email || '', requestedAt: g.requestedAt
     })) } : {}),
     // B2+B3 — boostedByUsers enrichi + plafonné à 8 dans le payload émis.
     // profileCache reconstruit depuis participants RAM à chaque buildLightState
@@ -4855,11 +4872,14 @@ io.on('connection', (socket) => {
   // ★ Bug E-fix-2 — Universal user identify: join room user:${userId}
   // Le client émet client:identify quand son userId est disponible (post-auth, post-reconnect, post-approve).
   // Résout notifs socket amis pour flows où joinUserRoom n'est pas appelé nativement (host, resume, etc.)
-  socket.on('client:identify', ({ userId } = {}) => {
-    if (userId) {
-      try { socket.join(`user:${userId}`); } catch (e) {}
-      console.log(`👤 identify socket ${socket.id} → user:${userId}`);
+  socket.on('client:identify', () => {
+    const verifiedUserId = socket.user?._id?.toString();
+    if (!verifiedUserId) {
+      console.warn(`⛔ identify rejected for unauthenticated socket ${socket.id}`);
+      return;
     }
+    joinUserRoom(socket, verifiedUserId);
+    console.log(`👤 identify socket ${socket.id} → verified user:${verifiedUserId}`);
   });
 
   // Auto-join host room: if ANY host: prefixed event is received,
@@ -4886,7 +4906,11 @@ io.on('connection', (socket) => {
         }
         // All other host:* events require valid hostSecret
         const payload = args[0];
-        if (!validateHostSecret(socket, payload)) return;
+        if (!validateHostSecret(socket, payload)) {
+          const maybeAck = args[args.length - 1];
+          if (typeof maybeAck === 'function') maybeAck({ ok: false, error: 'NOT_HOST' });
+          return;
+        }
         // ★ Task #67 — un host authentifié EST le host autoritaire. Après ré-hydratation RAM
         //   via action guest, party.hostSocketId est remis à null (cf. restore) : toute mutation
         //   (setApprovalMode, deletePhoto/deleteMessage, approveGuest) serait alors rejetée (NOT_HOST).
@@ -5251,6 +5275,8 @@ io.on('connection', (socket) => {
           restoredParty.genreVotes = dbParty.genreVotes || {};
           restoredParty.vibeScore = dbParty.vibeScore || 0;
           restoredParty.participants = dbParty.participants || [];
+          restoredParty.pendingGuests = dbParty.pendingGuests || [];
+          restoredParty.visibility = dbParty.visibility || 'private';
           restoredParty.guestVotes = dbParty.guestVotes || {};
           restoredParty.suggestions = dbParty.suggestions || [];
           restoredParty.hostProfile = data.profile || dbParty.hostProfile || null;
@@ -5389,7 +5415,7 @@ io.on('connection', (socket) => {
     // Guards against Render crash before first dirty-flush. Non-blocking fire-and-forget.
     const partyName = data.partyName || data.welcomeText || '';
     const isJustPlay = data.isJustPlay === true;
-    const visibility = data.visibility || 'friends';  // ★ V7: party visibility from iOS
+    const visibility = ['private', 'friends', 'public'].includes(data.visibility) ? data.visibility : 'private';
     const coverPhoto = (typeof data.coverPhoto === 'string' && data.coverPhoto) ? data.coverPhoto : null;  // ★ Task #60: base64 (schéma MVP)
     party.isJustPlay = isJustPlay;
     party.visibility = visibility;
@@ -6176,8 +6202,13 @@ io.on('connection', (socket) => {
   // GUEST EVENTS
   // ═══════════════════════════════════════════════════════════════════
 
-  socket.on('guest:join', async (data) => {
+  socket.on('guest:join', async (data, callback) => {
    try {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    console.warn(`[SECURITY] legacy guest:join rejected for socket ${socket.id}`);
+    socket.emit('guest:joinDeprecated', { message: 'Mets AhOuai à jour pour rejoindre cette soirée.' });
+    cb({ ok: false, error: 'LEGACY_JOIN_DISABLED' });
+    return;
     // ★ Chantier 5: deprecation warning — legacy clients should migrate to guest:requestJoin
     console.warn(`[DEPRECATED] guest:join called by socket ${socket.id}, should migrate to guest:requestJoin`);
     const code = (data.partyCode || '').toUpperCase();
@@ -6209,6 +6240,7 @@ io.on('connection', (socket) => {
           party.isPreParty = true;
           party.createdAt = dbParty.createdAt;
           party.participants = dbParty.participants || [];
+          party.sessionTokens = dbParty.sessionTokens || {};
           parties.set(code, party);
         } else {
           socket.emit('party:wrongCode', { message: 'Aucune soirée active. Le DJ doit lancer la soirée depuis l\'app.' });
@@ -6418,9 +6450,11 @@ io.on('connection', (socket) => {
   socket.on('guest:requestJoin', async (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const code = (data.code || data.partyCode || '').toUpperCase();
-    const emailRaw = (data.email || '').trim();
-    const firstName = (data.firstName || '').trim();
-    const lastName = (data.lastName || '').trim();
+    const verifiedSocketUser = socket.user || null;
+    const verifiedEmail = (verifiedSocketUser?.email || '').trim().toLowerCase();
+    const emailRaw = (verifiedEmail || data.email || '').trim().toLowerCase();
+    const firstName = (verifiedSocketUser?.profile?.firstName || data.firstName || '').trim();
+    const lastName = (verifiedSocketUser?.profile?.lastName || data.lastName || '').trim();
     const cguAccepted = data.cguAccepted === true;
 
     // ★ Validation
@@ -6456,10 +6490,14 @@ io.on('connection', (socket) => {
         party.hostProfile = dbParty.hostProfile || null;
         party.hostSocketId = null;
         party.participants = dbParty.participants || [];
+        party.sessionTokens = dbParty.sessionTokens || {};
         party.pendingGuests = dbParty.pendingGuests || [];
         party.preApprovedGuests = dbParty.preApprovedGuests || [];
         party.requiresApproval = dbParty.requiresApproval === true;   // ★ Task #55
         party.hostUserId = dbParty.hostUserId || null;
+        party.visibility = ['private', 'friends', 'public'].includes(dbParty.visibility)
+          ? dbParty.visibility
+          : 'private';
         parties.set(code, party);
       } catch (err) {
         console.error(`[${code}] ❌ guest:requestJoin DB error:`, err.message);
@@ -6467,52 +6505,83 @@ io.on('connection', (socket) => {
       }
     }
 
-    // ★ User.findOrCreateByEmail
+    // Resolve a user for persistence. Only socket.user represents a proven
+    // account identity. A payload email is unverified and MUST NOT resolve an
+    // existing account: create an isolated guest identity instead, otherwise
+    // knowing an email + a public party code would be enough to impersonate it.
     let user;
     try {
-      user = await User.findOrCreateByEmail({ email: emailRaw, firstName, lastName, cguVersion: CURRENT_CGU_VERSION });
+      if (verifiedSocketUser) {
+        user = verifiedSocketUser;
+      } else {
+        user = new User({
+          email: `guest+${randomUUID()}@session.ahouai.invalid`,
+          emailVerified: false,
+          profile: { firstName, lastName, emoji: '🎉' },
+          cguAcceptedAt: new Date(),
+          cguVersion: CURRENT_CGU_VERSION,
+          createdViaSprintB: true
+        });
+        await user.save();
+      }
     } catch (err) {
-      console.error(`[${code}] ❌ User.findOrCreateByEmail failed:`, err.message);
+      console.error(`[${code}] ❌ Guest identity creation failed:`, err.message);
       return cb({ ok: false, error: 'USER_CREATE_FAILED', message: 'Erreur lors de la création du compte.' });
     }
-    socket.user = user;
-
     const userId = user._id;
     const userIdStr = userId.toString();
+    const hasVerifiedIdentity = Boolean(verifiedSocketUser?._id);
 
     // ★ Check if already approved participant (reconnect scenario)
-    const existingParticipant = party.participants.find(p => p.userId === userIdStr || p.email === emailRaw.toLowerCase());
+    const existingParticipant = hasVerifiedIdentity
+      ? party.participants.find(p => String(p.userId || '') === userIdStr)
+      : null;
     if (existingParticipant) {
+      const reboundToken = existingParticipant.sessionToken || randomUUID();
       existingParticipant.id = socket.id;
       existingParticipant.connected = true;
+      existingParticipant.sessionToken = reboundToken;
+      party.sessionTokens[reboundToken] = userIdStr;
+      party.isDirty = true;
       // ★ V1 A+B — refresh photo/emoji depuis User.profile (peut avoir été édité via PATCH depuis)
       if (user.profile?.photoURL) existingParticipant.photo = user.profile.photoURL;
       if (user.profile?.emoji) existingParticipant.emoji = user.profile.emoji;
       if (user.profile?.firstName) existingParticipant.name = user.profile.firstName;
       socket.partyCode = code;
       socket.join(`guest:${code}`);
-      joinUserRoom(socket, userIdStr); // ★ Bug E-1
+      joinUserRoom(socket, userIdStr); // verified identity only in this branch
       socket.emit('party:state', buildLightState(party));
-      socket.emit('session:token', { sessionToken: existingParticipant.sessionToken || randomUUID(), partyCode: code, userId: userIdStr });
-      console.log(`🔄 [${code}] guest:requestJoin — already approved, rebinding: ${firstName} (${userIdStr})`);
+      socket.emit('session:token', { sessionToken: reboundToken, partyCode: code, userId: userIdStr });
+      Party.findOneAndUpdate(
+        { code, endedAt: null, 'participants.userId': userIdStr },
+        { $set: {
+          [`sessionTokens.${reboundToken}`]: userIdStr,
+          'participants.$.sessionToken': reboundToken,
+          'participants.$.connected': true
+        } },
+        { upsert: false }
+      ).catch(err => console.error(`[${code}] ⚠️ Rebind token persist failed:`, err.message));
+      console.log(`🔄 [${code}] guest:requestJoin — verified participant reconnected`);
       return cb({ ok: true, status: 'approved' });
     }
 
     // ★ Check pre-approved
-    // ★ FIX URGENT 03/09 : AUTO_APPROVE_GUESTS=true tant que l'UI iOS host de validation
-    //   n'est pas livree (Chantier 5 Etape 3 prevue 04/09 19h). Sans ca, les guests sont mis
-    //   en pending sans que le host puisse les approuver → bloques indefiniment ou refuses.
-    //   A DESACTIVER (retirer cette variable) apres livraison Etape 3 iOS.
-    const AUTO_APPROVE_GUESTS = (process.env.AUTO_APPROVE_GUESTS || 'true') === 'true';
-    // ★ Task #55: la décision du host prime. Si SA soirée exige l'approbation (toggle ON,
-    //   party.requiresApproval), l'env AUTO_APPROVE_GUESTS ne court-circuite plus. Défaut
-    //   requiresApproval=false → comportement actuel strictement préservé. Grandfathering :
-    //   les invités déjà dans participants sont rebindés plus haut (branche "already approved")
-    //   et n'atteignent jamais ce gate → un toggle mid-party n'affecte que les arrivants futurs.
-    // ★ Task #69 — le flag global waitingRoom prime. OFF ⇒ on IGNORE requiresApproval même si
-    //   true en Mongo (safety si le flag est re-désactivé après avoir été actif) ⇒ autoApprove.
+    // Production never trusts the historical auto-approval environment switch.
+    const AUTO_APPROVE_GUESTS = process.env.NODE_ENV !== 'production' &&
+      (process.env.AUTO_APPROVE_GUESTS || 'false') === 'true';
+    const visibility = ['private', 'friends', 'public'].includes(party.visibility) ? party.visibility : 'private';
+    let isHostFriend = false;
+    if (hasVerifiedIdentity && visibility === 'friends' && party.hostUserId) {
+      try {
+        const hostUser = await User.findById(party.hostUserId).select('friends.userId').lean();
+        isHostFriend = (hostUser?.friends || []).some(friend => String(friend?.userId || friend) === userIdStr);
+      } catch (err) {
+        console.error(`[${code}] friend access lookup failed:`, err.message);
+      }
+    }
     const requiresApproval = featureEnabled('waitingRoom') && party.requiresApproval === true;
-    const isPreApproved = (!requiresApproval && AUTO_APPROVE_GUESTS) || (party.preApprovedGuests || []).some(id => id.toString() === userIdStr);
+    const isPreApproved = (!requiresApproval && (AUTO_APPROVE_GUESTS || visibility === 'public' || isHostFriend)) ||
+      (hasVerifiedIdentity && (party.preApprovedGuests || []).some(id => id.toString() === userIdStr));
 
     if (isPreApproved) {
       const sessionToken = randomUUID();
@@ -6526,17 +6595,29 @@ io.on('connection', (socket) => {
         sessionToken, connected: true
       };
       party.participants.push(guest);
-      party.sessionTokens[sessionToken] = firstName;
+      party.sessionTokens[sessionToken] = userIdStr;
       party.isDirty = true;
       socket.partyCode = code;
       socket.join(`guest:${code}`);
-      joinUserRoom(socket, userIdStr); // ★ Bug E-1
+      if (hasVerifiedIdentity) joinUserRoom(socket, userIdStr);
       socket.emit('party:state', buildLightState(party));
       socket.emit('session:token', { sessionToken, partyCode: code, userId: userIdStr });
       io.to(`host:${code}`).emit('guest:joined', guest);
       io.to(`guest:${code}`).emit('participants:update', party.participants);
       io.to(`host:${code}`).emit('participants:update', party.participants); // ★ Task #67 — parité roster host (pré-approuvé)
-      console.log(`✅ [${code}] guest:requestJoin — PRE-APPROVED: ${firstName} ${lastName} (${userIdStr})`);
+      Party.findOneAndUpdate(
+        { code, endedAt: null, 'participants.userId': { $ne: userIdStr } },
+        {
+          $push: { participants: {
+            name: guest.name, emoji: guest.emoji, photo: guest.photo,
+            joinedAt: guest.joinedAt, userId: userIdStr, email: guest.email,
+            isHost: false, sessionToken
+          } },
+          $set: { [`sessionTokens.${sessionToken}`]: userIdStr }
+        },
+        { upsert: false }
+      ).catch(err => console.error(`[${code}] ⚠️ Pre-approved guest persist failed:`, err.message));
+      console.log(`✅ [${code}] guest:requestJoin — approved (${hasVerifiedIdentity ? 'verified' : 'anonymous'})`);
       return cb({ ok: true, status: 'approved' });
     }
 
@@ -6555,7 +6636,7 @@ io.on('connection', (socket) => {
         hostPhoto: hostProfile.photo || null,
         partyName: code
       });
-      console.log(`🔄 [${code}] guest:requestJoin — IDEMPOTENT re-request: ${firstName} (${userIdStr})`);
+      console.log(`🔄 [${code}] guest:requestJoin — idempotent pending request`);
       return cb({ ok: true, status: 'pending' });
     }
 
@@ -6588,7 +6669,7 @@ io.on('connection', (socket) => {
       { upsert: false }
     ).catch(err => console.error(`[${code}] ⚠️ Write-through (guest:requestJoin) failed:`, err.message));
 
-    console.log(`🚪 [${code}] guest:requestJoin — PENDING: ${firstName} ${lastName} <${emailRaw}> (${userIdStr})`);
+    console.log(`🚪 [${code}] guest:requestJoin — pending anonymous approval`);
     cb({ ok: true, status: 'pending' });
   });
 
@@ -6625,7 +6706,7 @@ io.on('connection', (socket) => {
       joinedAt: new Date().toISOString(), sessionToken, connected: true
     };
     party.participants.push(guest);
-    party.sessionTokens[sessionToken] = pendingEntry.firstName;
+    party.sessionTokens[sessionToken] = targetUserId;
     party.isDirty = true;
 
     if (pendingEntry.socketId) {
@@ -6633,7 +6714,7 @@ io.on('connection', (socket) => {
       if (guestSocket) {
         guestSocket.leave(`pending:${party.code}`);
         guestSocket.join(`guest:${party.code}`);
-        joinUserRoom(guestSocket, targetUserId); // ★ Bug E-1
+        if (guestSocket.user?._id?.toString() === targetUserId) joinUserRoom(guestSocket, targetUserId);
         guestSocket.partyCode = party.code;
         guestSocket.emit('guest:approved', { partyState: buildLightState(party) });
         guestSocket.emit('session:token', { sessionToken, partyCode: party.code, userId: targetUserId });
@@ -6641,11 +6722,13 @@ io.on('connection', (socket) => {
     }
     io.to(`guest:${party.code}`).emit('participants:update', party.participants);
     io.to(`host:${party.code}`).emit('participants:update', party.participants); // ★ Task #67 — parité roster host (admission)
+    socket.emit('party:state', buildLightState(party, true));
 
     Party.findOneAndUpdate(
       { code: party.code },
       { $pull: { pendingGuests: { userId: pendingEntry.userId } },
-        $push: { participants: { name: guest.name, emoji: guest.emoji, joinedAt: guest.joinedAt, userId: targetUserId, email: guest.email, isHost: false } } },
+        $push: { participants: { name: guest.name, emoji: guest.emoji, photo: guest.photo, joinedAt: guest.joinedAt, userId: targetUserId, email: guest.email, isHost: false, sessionToken } },
+        $set: { [`sessionTokens.${sessionToken}`]: targetUserId } },
       { upsert: false }
     ).catch(err => console.error(`[${party.code}] ⚠️ Write-through (host:approveGuest) failed:`, err.message));
 
@@ -6667,6 +6750,7 @@ io.on('connection', (socket) => {
     const pendingEntry = party.pendingGuests[pendingIdx];
     party.pendingGuests.splice(pendingIdx, 1);
     party.isDirty = true;
+    socket.emit('party:state', buildLightState(party, true));
 
     if (pendingEntry.socketId) {
       const guestSocket = io.sockets.sockets.get(pendingEntry.socketId);
@@ -6827,6 +6911,47 @@ io.on('connection', (socket) => {
     cb({ ok: true });
   });
 
+  socket.on('guest:updateProfile', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    const participant = requireApprovedGuest(party, socket, cb);
+    if (!participant) return;
+    if (!data?.sessionToken || data.sessionToken !== participant.sessionToken) {
+      return cb({ ok: false, error: 'INVALID_SESSION' });
+    }
+    const cleanName = String(data.name || participant.name || '').trim().slice(0, 60);
+    participant.name = cleanName || participant.name;
+    participant.firstName = participant.name;
+    participant.lastName = String(data.lastName || '').trim().slice(0, 80);
+    participant.alias = String(data.alias || '').trim().slice(0, 40);
+    participant.emoji = String(data.emoji || participant.emoji || '🎉').slice(0, 16);
+    participant.photo = typeof data.photo === 'string' ? data.photo : participant.photo;
+    participant.phone = String(data.phone || '').trim().slice(0, 40);
+    participant.instagram = String(data.instagram || '').trim().slice(0, 80);
+    participant.email = participant.email || String(data.email || '').trim().toLowerCase();
+    party.isDirty = true;
+    io.to(`guest:${party.code}`).emit('participants:update', party.participants);
+    io.to(`host:${party.code}`).emit('guest:updated', participant);
+    try {
+      await Party.findOneAndUpdate(
+        { code: party.code, 'participants.userId': participant.userId },
+        { $set: {
+          'participants.$.name': participant.name,
+          'participants.$.firstName': participant.firstName,
+          'participants.$.lastName': participant.lastName,
+          'participants.$.alias': participant.alias,
+          'participants.$.emoji': participant.emoji,
+          'participants.$.photo': participant.photo,
+          'participants.$.phone': participant.phone,
+          'participants.$.instagram': participant.instagram
+        } }
+      );
+    } catch (err) {
+      console.error(`[${party.code}] guest profile persist failed:`, err.message);
+    }
+    cb({ ok: true });
+  });
+
   // ═══════════════════════════════════════════════════════════════════
   // ★ CHANTIER 5 — HOST SET PRE-APPROVED GUESTS
   // ═══════════════════════════════════════════════════════════════════
@@ -6855,7 +6980,7 @@ io.on('connection', (socket) => {
   // GUEST RESUME (reconnection via session token)
   // ═══════════════════════════════════════════════════════════════════
 
-  socket.on('guest:resume', (payload, callback) => {
+  socket.on('guest:resume', async (payload, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const code = (payload?.partyCode || '').toUpperCase();
     const token = payload?.sessionToken;
@@ -6864,13 +6989,29 @@ io.on('connection', (socket) => {
 
     const party = parties.get(code);
     if (!party) { cb({ ok: false, reason: 'PARTY_NOT_FOUND' }); return; }
+    if (party.endedAt || party.lifecycle?.status === 'ended' || party.lifecycle?.status === 'archived') {
+      cb({ ok: false, reason: 'PARTY_ENDED' }); return;
+    }
 
-    const guestName = party.sessionTokens[token];
-    if (!guestName) { cb({ ok: false, reason: 'INVALID_TOKEN' }); return; }
+    const tokenIdentity = party.sessionTokens[token];
+    if (!tokenIdentity) { cb({ ok: false, reason: 'INVALID_TOKEN' }); return; }
 
-    // Find existing participant
-    const participant = party.participants.find(p => p.name === guestName);
+    // Exact bearer-to-participant binding only. Never fall back to a display name.
+    const participant = party.participants.find(p => p.sessionToken === token)
+      || party.participants.find(p => String(p.userId || '') === String(tokenIdentity) && p.sessionToken === token);
     if (!participant) { cb({ ok: false, reason: 'PARTICIPANT_GONE' }); return; }
+    const verifiedUserId = socket.user?._id?.toString();
+    if (verifiedUserId && String(participant.userId || '') !== verifiedUserId) {
+      cb({ ok: false, reason: 'IDENTITY_MISMATCH' }); return;
+    }
+    const guestName = participant.name;
+
+    // Rotate the bearer on every successful resume and revoke the old value.
+    const rotatedToken = randomUUID();
+    delete party.sessionTokens[token];
+    party.sessionTokens[rotatedToken] = String(participant.userId || '');
+    participant.sessionToken = rotatedToken;
+    party.isDirty = true;
 
     // Cancel disconnect timer
     if (party.disconnectTimers[guestName]) {
@@ -6883,12 +7024,13 @@ io.on('connection', (socket) => {
     participant.connected = true;
     socket.partyCode = code;
     socket.join(`guest:${code}`);
-    if (participant.userId) joinUserRoom(socket, participant.userId); // ★ Bug E-1
+    if (verifiedUserId) joinUserRoom(socket, verifiedUserId);
     cancelCleanup(code);
 
     // Send full state
     // Send lightweight state (no base64 photos)
     socket.emit('party:state', buildLightState(party));
+    socket.emit('session:token', { sessionToken: rotatedToken, partyCode: code, userId: participant.userId || null });
     io.to(`host:${code}`).emit('guest:joined', participant);
     io.to(`guest:${code}`).emit('participants:update', party.participants);
     io.to(`host:${code}`).emit('participants:update', party.participants); // ★ Task #67 — parité roster host (legacy join)
@@ -6897,7 +7039,8 @@ io.on('connection', (socket) => {
       ok: true,
       profile: { name: participant.name, emoji: participant.emoji, photo: participant.photo },
       partyCode: code,
-      userId: participant.userId || null
+      userId: participant.userId || null,
+      sessionToken: rotatedToken
     });
     console.log(`🔄 [${code}] Guest resumed: ${participant.emoji} ${participant.name}`);
 
@@ -6932,10 +7075,51 @@ io.on('connection', (socket) => {
       socket.emit('votes:hydrate', { myVotes });
     }
 
+    try {
+      await Party.findOneAndUpdate(
+        { code, endedAt: null, 'participants.userId': participant.userId },
+        {
+          $unset: { [`sessionTokens.${token}`]: '' },
+          $set: {
+            [`sessionTokens.${rotatedToken}`]: String(participant.userId || ''),
+            'participants.$.sessionToken': rotatedToken,
+            'participants.$.connected': true
+          }
+        }
+      );
+    } catch (err) {
+      console.error(`[${code}] resume token rotation persist failed:`, err.message);
+    }
+
+  });
+
+  socket.on('guest:logout', async (payload, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getParty(socket);
+    const token = payload?.sessionToken;
+    if (!party || !token) return cb({ ok: false, error: 'MISSING_SESSION' });
+    const participant = (party.participants || []).find(p => p.id === socket.id && p.sessionToken === token);
+    if (!participant) return cb({ ok: false, error: 'INVALID_SESSION' });
+    delete party.sessionTokens[token];
+    participant.sessionToken = null;
+    participant.connected = false;
+    party.isDirty = true;
+    socket.leave(`guest:${party.code}`);
+    socket.partyCode = null;
+    try {
+      await Party.findOneAndUpdate(
+        { code: party.code, 'participants.userId': participant.userId },
+        { $unset: { [`sessionTokens.${token}`]: '', 'participants.$.sessionToken': '' }, $set: { 'participants.$.connected': false } }
+      );
+    } catch (err) {
+      console.error(`[${party.code}] guest logout persist failed:`, err.message);
+    }
+    cb({ ok: true });
   });
 
   socket.on('guest:requestState', () => {
     const party = getParty(socket); if (!party) return;
+    if (!requireApprovedGuest(party, socket)) return;
     socket.emit('party:state', buildLightState(party));
   });
 
@@ -6945,9 +7129,36 @@ io.on('connection', (socket) => {
     console.log(`🔄 [${party.code}] Host requested state resync (full trackHistory)`);
   });
 
+  socket.on('host:updateVisibility', async (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    if (socket.id !== party.hostSocketId) return cb({ ok: false, error: 'NOT_HOST' });
+    const visibility = String(data?.visibility || '').toLowerCase();
+    if (!['private', 'friends', 'public'].includes(visibility)) return cb({ ok: false, error: 'INVALID_VISIBILITY' });
+    const previousVisibility = party.visibility || 'private';
+    party.visibility = visibility;
+    party.isDirty = true;
+    try {
+      const persisted = await Party.findOneAndUpdate(
+        { code: party.code, endedAt: null },
+        { $set: { visibility } },
+        { upsert: false, new: true }
+      );
+      if (!persisted) throw new Error('PARTY_NOT_FOUND');
+    } catch (err) {
+      party.visibility = previousVisibility;
+      console.error(`[${party.code}] visibility persist failed:`, err.message);
+      return cb({ ok: false, error: 'PERSIST_FAILED', visibility: previousVisibility });
+    }
+    io.to(`guest:${party.code}`).emit('party:state', buildLightState(party));
+    io.to(`host:${party.code}`).emit('party:state', buildLightState(party, true));
+    cb({ ok: true, visibility });
+  });
+
   socket.on('guest:vote', (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    if (!requireApprovedGuest(party, socket, cb)) return;
     
     // ★ Chantier 5: stable userId for vote persistence (was socket.id)
     const guestId = resolveGuestUserId(party, socket);
@@ -6997,6 +7208,7 @@ io.on('connection', (socket) => {
   socket.on('guest:genreVote', (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    if (!requireApprovedGuest(party, socket, cb)) return;
     
     // ★ P0.4: Server-side guestId
     // ★ Chantier 5: stable userId for genre vote persistence
@@ -7056,6 +7268,7 @@ io.on('connection', (socket) => {
   socket.on('guest:suggest', async (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    if (!requireApprovedGuest(party, socket, cb)) return;
     updateActivity(party);
     
     // ★ P0.4: Server-side guestId for logging
@@ -7229,6 +7442,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:boostSuggestion', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    if (!requireApprovedGuest(party, socket)) return;
     const suggestion = party.suggestions.find(s => s.id === data.suggestionId);
     if (!suggestion) return;
     if (!suggestion.boostedBy) suggestion.boostedBy = [];
@@ -7677,6 +7891,7 @@ io.on('connection', (socket) => {
   // Cancel a suggestion (guest or host cancels before it's played)
   socket.on('guest:cancelSuggestion', (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    if (!requireApprovedGuest(party, socket)) return;
     const idx = party.suggestions.findIndex(s =>
       (s.title || '').toLowerCase() === (data.title || '').toLowerCase() &&
       (s.guestName || '') === (data.guestName || '') &&
@@ -7705,6 +7920,7 @@ io.on('connection', (socket) => {
   socket.on('guest:photo', async (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    if (!requireApprovedGuest(party, socket, cb)) return;
     updateActivity(party);
     
     // ★ A3a — Idempotence guard
@@ -7805,6 +8021,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:deletePhoto', (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    if (!requireApprovedGuest(party, socket)) return;
     const { dataURL, guestName } = data || {};
     if (!dataURL) return;
     
@@ -7820,6 +8037,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:message', (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    if (!requireApprovedGuest(party, socket)) return;
     updateActivity(party);
     const msg = {
       id:          Date.now().toString(),
@@ -7842,6 +8060,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:deleteMessage', (data) => {
     const party = getMutableParty(socket); if (!party) return;
+    if (!requireApprovedGuest(party, socket)) return;
     const msgId = data && data.id;
     const msgText = data && data.message;
     const guestName = data && data.guestName;
@@ -7860,6 +8079,7 @@ io.on('connection', (socket) => {
   socket.on('guest:getMySuggestions', async (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    if (!requireApprovedGuest(party, socket, cb)) return;
     const guestId = resolveGuestUserId(party, socket);  // ★ Chantier 5: stable userId
     const guestName = data?.guestName;
     const email = data?.email;
@@ -7903,6 +8123,8 @@ io.on('connection', (socket) => {
   // those as voter keys to match in guestVotes.
   socket.on('guest:getMyFireVotes', async (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
+    if (!requireApprovedGuest(party, socket, cb)) return;
     const guestId = data?.guestId;
     const guestName = data?.guestName;
     const email = data?.email;
@@ -8300,30 +8522,41 @@ io.on('connection', (socket) => {
     cancelCleanup(party.code);
   });
 
-  socket.on('host:deletePhoto', (data) => {
-    const party = getMutableParty(socket); if (!party) return;
-    // ★ Task #56 — garde host : seul le socket hôte peut modérer (parité host:approveGuest/denyGuest).
-    //   Avant, tout socket de la room pouvait supprimer une photo. Refus silencieux + log (pas de crash).
-    if (socket.id !== party.hostSocketId) { console.warn(`🔒 [${party.code}] host:deletePhoto refusé — émetteur non-host (${socket.id})`); return; }
-    const idx = data && data.index;
-    if (typeof idx === 'number' && idx >= 0 && idx < party.photos.length) {
-      party.photos.splice(idx, 1);
-      io.to(`host:${party.code}`).emit('photos:update', party.photos);
-      io.to(`guest:${party.code}`).emit('photos:update', party.photos);
-    }
+  socket.on('host:deletePhoto', (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'NO_PARTY' });
+    if (socket.id !== party.hostSocketId) return cb({ ok: false, error: 'NOT_HOST' });
+    const photoId = data?.photoId ? String(data.photoId) : '';
+    const photoURL = data?.url ? String(data.url) : '';
+    const requestedIndex = Number.isInteger(data?.index) ? data.index : -1;
+    const idx = photoId
+      ? party.photos.findIndex(p => String(p.id || p._id || '') === photoId)
+      : photoURL
+        ? party.photos.findIndex(p => String(p.url || p.dataURL || '') === photoURL)
+        : requestedIndex;
+    if (idx < 0 || idx >= party.photos.length) return cb({ ok: false, error: 'PHOTO_NOT_FOUND' });
+    const [removed] = party.photos.splice(idx, 1);
+    party.isDirty = true;
+    const removedId = removed?.id || removed?._id;
+    if (removedId) Photo.findByIdAndUpdate(removedId, { $set: { deletedAt: new Date() } }).catch(err => console.error(`[${party.code}] photo moderation persist failed:`, err.message));
+    io.to(`host:${party.code}`).emit('photos:update', party.photos);
+    io.to(`guest:${party.code}`).emit('photos:update', party.photos);
+    cb({ ok: true, photoId: removedId ? String(removedId) : null });
   });
 
-  socket.on('host:deleteMessage', (data) => {
-    const party = getMutableParty(socket); if (!party) return;
-    // ★ Task #56 — garde host : seul le socket hôte peut modérer (parité host:approveGuest/denyGuest).
-    //   Avant, tout socket de la room pouvait supprimer un message. Refus silencieux + log (pas de crash).
-    if (socket.id !== party.hostSocketId) { console.warn(`🔒 [${party.code}] host:deleteMessage refusé — émetteur non-host (${socket.id})`); return; }
-    const msgId = data && data.id;
-    if (msgId && party.messages) {
-      party.messages = party.messages.filter(m => m.id !== msgId);
-      io.to(`host:${party.code}`).emit('messages:update', party.messages);
-      io.to(`guest:${party.code}`).emit('messages:update', party.messages);
-    }
+  socket.on('host:deleteMessage', (data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'NO_PARTY' });
+    if (socket.id !== party.hostSocketId) return cb({ ok: false, error: 'NOT_HOST' });
+    const msgId = data?.id ? String(data.id) : '';
+    if (!msgId || !Array.isArray(party.messages)) return cb({ ok: false, error: 'MESSAGE_NOT_FOUND' });
+    const previousLength = party.messages.length;
+    party.messages = party.messages.filter(m => String(m.id || '') !== msgId);
+    if (party.messages.length === previousLength) return cb({ ok: false, error: 'MESSAGE_NOT_FOUND' });
+    party.isDirty = true;
+    io.to(`host:${party.code}`).emit('messages:update', party.messages);
+    io.to(`guest:${party.code}`).emit('messages:update', party.messages);
+    cb({ ok: true, id: msgId });
   });
 
   // ═══════════════════════════════════════════════════════════════════

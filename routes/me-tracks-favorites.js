@@ -25,6 +25,7 @@
 import { Router } from 'express';
 import { verifyGuestAuth } from '../middleware/authGuest.js';
 import Party from '../models/Party.js';
+import { enrichArtwork } from '../services/deezerArtwork.js';
 
 const router = Router();
 
@@ -249,14 +250,14 @@ router.get('/tracks/favorites', verifyGuestAuth, async (req, res) => {
 
     // A1 — Pagination après dédupication
     const total   = allTracks.length;
-    const items   = allTracks.slice(offset, offset + limit).map(t => ({
+    const items   = await enrichArtwork(allTracks.slice(offset, offset + limit).map(t => ({
       id: t.id,
       title: t.title,
       artist: t.artist,
       deezerID: t.deezerID,
       artworkUrl: t.coverURL || null,
       count: t.count
-    }));
+    })));
     const hasMore = offset + items.length < total;
 
     console.log(`[me/tracks/favorites] user=${userName} limit=${limit} offset=${offset} → ${items.length}/${total} (hasMore=${hasMore}, took ${Date.now() - startAgg}ms)`);

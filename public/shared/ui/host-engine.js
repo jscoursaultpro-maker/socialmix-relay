@@ -94,7 +94,7 @@
   function appState() { try { return (typeof state !== 'undefined' && state) ? state : (window.state || null); } catch (e) { return window.state || null; } }
 
   // ── Token Supabase — réutilise getProfileJwt() de la SPA (vrai access_token SSO). ──
-  // Repli djbrain-lite si indisponible (ex. session sbauth de test = pas de token).
+  // Repli djbrain-lite si indisponible (ex. session invitée sans JWT Supabase).
   var _token = null;  // cache synchrone pour engine.resolve() (qui lit le token en sync)
   async function getToken() {
     try { if (typeof getProfileJwt === 'function') { var t = await getProfileJwt(); if (t) return t; } } catch (e) {}
@@ -340,9 +340,9 @@
     try {
       var st = appState();
       if (st) { st.partyCode = code; if ('code' in st) st.code = code; }
-      // Réutilise le setup complet du cockpit invité (câble la nav du bas AGIR/ON AIR/MOI/
-      // AFTERGLOW + votes + suggest + historique). enterCockpit ne connecte PAS de socket et
-      // n'émet PAS de guest:join → sûr en host. Sinon seul l'onglet ON AIR était actif.
+      // Réutilise le setup complet du cockpit invité (câble PUSH / ON AIR / MA LOGE /
+      // BEST OF / BACKSTAGE + votes + suggestions + historique). enterCockpit ne connecte
+      // pas un second socket et ne déclenche pas une seconde demande d'entrée.
       var ec = (typeof enterCockpit === 'function') ? enterCockpit : (window.enterCockpit || null);
       if (ec) { try { ec(); } catch (e) { if (typeof showScreen === 'function') showScreen('cockpit'); } }
       else if (typeof showScreen === 'function') { showScreen('cockpit'); }
@@ -362,7 +362,13 @@
     if (!s) { toast('Socket non connecté'); return { ok: false }; }
     var code = (opts.code || genCode()).toUpperCase();
     var hostSecret = randomString(32);
-    party = { code: code, hostSecret: hostSecret, provider: opts.provider || 'youtube', name: opts.name || null };
+    party = {
+      code: code,
+      hostSecret: hostSecret,
+      provider: opts.provider || 'youtube',
+      name: opts.name || null,
+      visibility: ['private','friends','public'].indexOf(opts.visibility) >= 0 ? opts.visibility : 'private'
+    };
     persistParty();   // P0 (#46) : survivre à un reload
 
     var profile = {
@@ -379,7 +385,8 @@
       partyName: opts.name || null,
       visibility: opts.visibility || null,
       coverPhoto: opts.coverPhoto || null,
-      isJustPlay: !!opts.justplay
+      isJustPlay: opts.isJustPlay === true || !!opts.justplay,
+      scheduledDate: opts.date || null
     });
     log('host:startParty émis (' + code + ', ' + party.provider + (opts.name ? ', « ' + opts.name + ' »' : '') + ')');
     bindSuggestionListener();   // auto ON → les suggestions entrent seules dans « À suivre »
@@ -662,7 +669,13 @@
   function getQueuedTrackId() { return (queuedPid && tracks[idx + 1]) ? String(tracks[idx + 1].trackId) : null; }
 
   // ── Gestion des suggestions / file (contrôles host) ────────────────────────
-  function emitHost(ev, payload) { var s = sock(); if (s && party) s.emit(ev, Object.assign({ hostSecret: party.hostSecret }, payload || {})); }
+  function emitHost(ev, payload, callback) {
+    var s = sock();
+    if (!s || !party) return false;
+    var body = Object.assign({ hostSecret: party.hostSecret }, payload || {});
+    if (typeof callback === 'function') s.emit(ev, body, callback); else s.emit(ev, body);
+    return true;
+  }
   // Retire un titre de la file locale (brain ou suggestion).
   function removeFromQueue(trackId) {
     var j = tracks.findIndex(function (t) { return String(t.trackId) === String(trackId); });
@@ -752,6 +765,7 @@
     removeFromQueue: removeFromQueue, dismissSuggestion: dismissSuggestion, noteSuggestionPlayed: noteSuggestionPlayed,
     addSuggestionToQueue: addSuggestionToQueue, ensureBuffer: ensureBuffer,
     approveGuest: approveGuest, denyGuest: denyGuest, setApprovalMode: setApprovalMode, requestHostState: requestHostState, claim: claim,
+    emitHost: emitHost,
     _debug: function () { return { party: party, idx: idx, tracks: tracks.length, isPlaying: isPlaying, auto: autoAdvance, engine: engine ? engine.id : null }; }
   };
   if (!booted) { booted = true; log('prêt (brique 2 — chemin YouTube)'); }

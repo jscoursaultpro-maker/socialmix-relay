@@ -3,7 +3,7 @@
  *
  * Tests immediate write-through persistence for all critical party mutations:
  *  1. startParty  → party in DB within 100ms
- *  2. guest:join  → participant in DB within 300ms
+ *  2. guest:requestJoin → participant in DB within 2s
  *  3. guest:suggest → suggestion in DB within 300ms
  *  4. host:trackPlayed → track in trackHistory in DB within 300ms
  *  5. photo:upload (mock) → photo entry in DB within 400ms
@@ -80,25 +80,24 @@ describe('write-through', async () => {
     assert.ok(doc.createdAt, 'createdAt should be set');
   });
 
-  // ── 2. guest:join → participant in DB within 2s ────────────────────────────
-  it('guest:join → participant persisted in DB within 2s', async () => {
+  // ── 2. guest:requestJoin → participant in DB within 2s ─────────────────────
+  it('guest:requestJoin → participant persisted in DB within 2s', async () => {
     guestSocket = createGuestSocket(serverCtx.url);
     await connected(guestSocket);
 
-    guestSocket.emit('guest:join', {
-      partyCode: CODE,   // server reads data.partyCode (not data.code)
-      name: 'TestGuest',
-      emoji: '🎉',
-      phone: '',
-      email: '',
-      instagram: '',
-    });
+    guestSocket.emit('guest:requestJoin', {
+      code: CODE,
+      firstName: 'TestGuest',
+      lastName: '',
+      email: 'write-through@example.com',
+      cguAccepted: true
+    }, () => {});
 
     // Server emits guest:joined to host:CODE room (not to the guest socket itself)
     const joinedEvt = await waitFor(hostSocket, 'guest:joined', 3000);
     assert.ok(joinedEvt, 'Expected guest:joined event on host socket');
 
-    // Guest write-through: server pushes participant to DB on guest:join
+    // Guest write-through: server pushes participant after approved requestJoin
     const doc = await waitForPartyCondition(
       CODE,
       d => (d.participants || []).some(p => !p.isHost && p.name === 'TestGuest'),
@@ -209,7 +208,7 @@ describe('write-through', async () => {
 
     const doc = await waitForPartyCondition(CODE, d => !!d.endedAt, 3000);
     assert.ok(doc.endedAt, 'endedAt should be set in DB after endParty (flushEndedParty writes immediately)');
-    // participants are preserved (set by startParty upsert + guest:join $push)
+    // participants are preserved (set by startParty upsert + approved requestJoin)
     assert.ok(Array.isArray(doc.participants), 'participants array should exist in DB');
   });
 });

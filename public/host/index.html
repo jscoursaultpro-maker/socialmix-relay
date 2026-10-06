@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/host/host.css?v=djbrain-0110c">
+  <link rel="stylesheet" href="/host/host.css?v=host-polish-1007a">
 
   <!-- Supabase SDK (chargé dynamiquement via /api/config/supabase) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -30,23 +30,27 @@
   <div id="screen-create" class="screen active">
 
     <div class="host-header">
-      <div class="logo">AhOuai</div>
+      <img class="brand-logo" src="/assets/brand/ahouai-logo.png" alt="AhOuai">
       <div class="user-chip" id="user-chip" style="display:none" onclick="HOST.signOut()">
         <div class="avatar" id="user-avatar">J</div>
         <span id="user-name">Prénom</span>
       </div>
     </div>
 
-    <div class="hero">
+    <div class="hero host-create-hero">
+      <div class="eyebrow">LE QG DE TA SOIRÉE</div>
       <h1>Ce soir,<br><span class="gradient">c'est chez toi.</span></h1>
-      <p class="subtitle">Crée ta soirée en moins de 30 secondes.</p>
+      <p class="subtitle">Connecte-toi, choisis ta musique et ouvre la porte à tes invités. Tout est prêt en moins de 30 secondes.</p>
+      <div class="host-promise" aria-hidden="true">
+        <span>① Connecte-toi</span><span>② Choisis ton son</span><span>③ Lance la soirée</span>
+      </div>
     </div>
 
     <!-- Auth gate (affiché si non connecté) — toutes les options (parité ahouai.com/login) -->
-    <div id="auth-gate" class="card" style="text-align:center">
-      <p style="color:var(--muted);font-size:14px;margin-bottom:20px;line-height:1.6;">
-        Connecte-toi pour créer ta soirée et piloter la musique depuis ce téléphone.
-      </p>
+    <div id="auth-gate" class="card auth-gate" style="text-align:center">
+      <div class="card-kicker">TON PASS HOST</div>
+      <h2>Entre avant que la soirée commence.</h2>
+      <p class="auth-intro">Ton compte protège ton cockpit, tes invités et tes souvenirs. Tu resteras connecté pendant toute la soirée.</p>
 
       <!-- Continuer avec Apple -->
       <button class="btn-apple" id="btn-apple-signin" onclick="HOST.signIn('apple')" aria-label="Continuer avec Apple">
@@ -140,6 +144,7 @@
           <div class="visibility-toggle">
             <button id="vis-private" class="active" onclick="HOST.setVisibility('private')">🔒 Privée</button>
             <button id="vis-friends" onclick="HOST.setVisibility('friends')">👥 Amis</button>
+            <button id="vis-public" onclick="HOST.setVisibility('public')">🌍 Publique</button>
           </div>
         </div>
       </div>
@@ -189,8 +194,12 @@
   ══════════════════════════════════════════════════════ -->
   <div id="screen-provider" class="screen">
     <div class="host-header">
-      <h1>Avec quoi joues-tu la musique ce soir ?</h1>
-      <p class="subtitle">Ton choix est mémorisé, tu pourras le changer plus tard.</p>
+      <img class="brand-logo" src="/assets/brand/ahouai-logo.png" alt="AhOuai">
+    </div>
+    <div class="hero provider-hero">
+      <div class="eyebrow">CHOISIS TA PLATINE</div>
+      <h1>Avec quoi joues-tu<br><span class="gradient">ce soir ?</span></h1>
+      <p class="subtitle">Ton choix est mémorisé. Tu pourras le changer plus tard.</p>
     </div>
     <div class="card">
       <div id="provider-list" class="provider-list"></div>
@@ -206,7 +215,7 @@
   ══════════════════════════════════════════════════════ -->
   <div id="screen-device" class="screen">
     <div class="host-header">
-      <div class="logo">AhOuai</div>
+      <img class="brand-logo" src="/assets/brand/ahouai-logo.png" alt="AhOuai">
       <button style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer" onclick="HOST.showScreen('screen-create')">←</button>
     </div>
     <div class="hero">
@@ -320,7 +329,7 @@
 <script src="/shared/supabase-cookie.js?v=djbrain-0110c"></script>
 <!-- ★ Afterglow/diaporama (chemin B) — overlay plein écran lançable depuis le host -->
 <script src="/shared/ui/diaporama-overlay.js?v=diapo-01"></script>
-<script type="module" src="/host/host.js?v=onairhost-01"></script>
+<script type="module" src="/host/host.js?v=host-flow-1007"></script>
 
 </body>
 </html>

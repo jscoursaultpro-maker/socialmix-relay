@@ -126,19 +126,19 @@ describe('Security P0 — STOP-SHIP fixes', () => {
       return; // Skip if party creation failed
     }
 
-    // Guest A joins
+    // Guest A joins through the moderated entry contract
     const guestA = ioClient(serverUrl);
     await new Promise((r, e) => { guestA.on('connect', r); guestA.on('connect_error', e); });
-    await new Promise(r => {
-      guestA.emit('guest:join', { code, name: 'Alice', emoji: '🅰️' }, r);
-    });
+    await new Promise(r => guestA.emit('guest:requestJoin', {
+      code, firstName: 'Alice', lastName: 'A', email: 'alice.security@example.com', cguAccepted: true
+    }, r));
 
-    // Guest B joins
+    // Guest B joins through the moderated entry contract
     const guestB = ioClient(serverUrl);
     await new Promise((r, e) => { guestB.on('connect', r); guestB.on('connect_error', e); });
-    await new Promise(r => {
-      guestB.emit('guest:join', { code, name: 'Bob', emoji: '🅱️' }, r);
-    });
+    await new Promise(r => guestB.emit('guest:requestJoin', {
+      code, firstName: 'Bob', lastName: 'B', email: 'bob.security@example.com', cguAccepted: true
+    }, r));
 
     // Guest B attempts to vote as Guest A (impersonation)
     const voteResult = await new Promise(r => {

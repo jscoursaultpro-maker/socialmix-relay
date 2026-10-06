@@ -64,6 +64,9 @@ export async function startServer() {
     NODE_ENV: 'test',
     // perf: skip 1640-track editorial seed (~8s per server boot)
     SKIP_EDITORIAL_SEED: 'true',
+    // Les scénarios historiques testent l'écriture immédiate, pas la modération.
+    // L'auto-approbation reste strictement limitée à NODE_ENV=test côté serveur.
+    AUTO_APPROVE_GUESTS: 'true',
     // Disable external services in tests
     SENTRY_DSN: '',
     CLOUDINARY_API_KEY: '',

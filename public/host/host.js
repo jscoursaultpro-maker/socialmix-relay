@@ -898,6 +898,14 @@ async function _createAndStartParty(partyName, fast) {
   // l'ancien écran now-playing /host/. La SPA guest crée la soirée (hostlaunch) et pilote le moteur.
   // Revert = supprimer ces 3 lignes (le flux /host/ d'origine reprend juste en dessous).
   const _prov = STATE.provider || 'youtube';
+  try {
+    sessionStorage.setItem('ahouai_host_draft', JSON.stringify({
+      name: partyName || '',
+      visibility: STATE.visibility || 'private',
+      date: document.getElementById('party-date')?.value || '',
+      isJustPlay: fast === true
+    }));
+  } catch (_) {}
   window.location.href = '/?sb=1&hostlaunch=1&provider=' + encodeURIComponent(_prov) + '&name=' + encodeURIComponent(partyName || '');
   return;
 
@@ -1261,6 +1269,7 @@ function setVisibility(v) {
   STATE.visibility = v;
   document.getElementById('vis-private').classList.toggle('active', v === 'private');
   document.getElementById('vis-friends').classList.toggle('active', v === 'friends');
+  document.getElementById('vis-public')?.classList.toggle('active', v === 'public');
 }
 
 function onCoverChange(event) {

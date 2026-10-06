@@ -156,7 +156,7 @@ function showToast(message, duration = 3000) {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'reconnect-toast';
-    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#00e0c4,#00b8a9);color:#0a0e1a;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:800;z-index:99999;opacity:0;transition:opacity 0.3s;pointer-events:none;';
+    toast.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 82px);left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#20e5d2,#5dd3ff 48%,#c957ff);color:#07101b;padding:12px 20px;border-radius:16px;font-size:14px;font-weight:900;z-index:99999;opacity:0;transition:opacity 0.3s;pointer-events:none;box-shadow:0 16px 36px rgba(0,0,0,.38);max-width:calc(100vw - 32px);text-align:center;';
     document.body.appendChild(toast);
   }
   toast.textContent = message;
@@ -196,7 +196,7 @@ function showFriendActionToast(message, targetUserId, duration = 6000) {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'friend-action-toast';
-    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#ff3b30,#ff6b35);color:#fff;padding:12px 22px;border-radius:14px;font-size:13px;font-weight:800;z-index:99999;opacity:0;transition:opacity 0.3s;cursor:pointer;box-shadow:0 6px 24px rgba(255,59,48,0.35);max-width:90vw;text-align:center;';
+    toast.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 82px);left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#ff3b30,#ff6b35);color:#fff;padding:12px 22px;border-radius:14px;font-size:13px;font-weight:800;z-index:99999;opacity:0;transition:opacity 0.3s;cursor:pointer;box-shadow:0 6px 24px rgba(255,59,48,0.35);max-width:90vw;text-align:center;';
     document.body.appendChild(toast);
   }
   toast.textContent = message;
@@ -233,7 +233,7 @@ function showSuggestionToast(message, status) {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'suggestion-toast';
-    toast.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%) scale(0.9);color:#fff;padding:12px 24px;border-radius:14px;font-size:14px;font-weight:700;z-index:99999;opacity:0;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;text-align:center;max-width:85vw;box-shadow:0 4px 20px rgba(0,0,0,0.4);';
+    toast.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 82px);left:50%;transform:translateX(-50%) scale(0.9);color:#fff;padding:12px 24px;border-radius:14px;font-size:14px;font-weight:700;z-index:99999;opacity:0;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;text-align:center;max-width:85vw;box-shadow:0 4px 20px rgba(0,0,0,0.4);';
     document.body.appendChild(toast);
   }
   toast.textContent = message;
@@ -639,14 +639,19 @@ async function setupLanding(activeCode) {
         const appURL = `ahouai://join?code=${code}`;
         const banner = document.createElement('div');
         banner.className = 'app-banner';
+        document.body.classList.add('has-app-banner');
         banner.innerHTML = `
           <div class="app-banner-content">
             <span class="app-banner-icon">📱</span>
             <span class="app-banner-text">Tu as l'app AhOuai ?</span>
             <a href="${appURL}" class="app-banner-open">OUVRIR</a>
-            <button class="app-banner-close" onclick="this.parentElement.parentElement.remove()">✕</button>
+            <button class="app-banner-close" aria-label="Fermer">✕</button>
           </div>
         `;
+        banner.querySelector('.app-banner-close')?.addEventListener('click', () => {
+          banner.remove();
+          document.body.classList.remove('has-app-banner');
+        });
         document.body.prepend(banner);
       }
     } else {
@@ -671,6 +676,7 @@ async function setupLanding(activeCode) {
 // ═══════════════════════════════════════════
 let _supabaseClient = null;
 let _sessionCallbackHandled = false;
+let _currentSupabaseJwt = null;
 
 async function initSupabaseSSO() {
   try {
@@ -780,6 +786,14 @@ async function handleSupabaseSession(session) {
   try {
     const jwt = session?.access_token;
     if (!jwt) { console.warn('[SSO] Pas de JWT dans session'); return; }
+    _currentSupabaseJwt = jwt;
+    if (socket) {
+      const socketNeedsVerifiedHandshake = socket.connected && socket.auth?.token !== jwt;
+      socket.auth = { ...(socket.auth || {}), token: jwt };
+      // Socket.IO n'applique l'auth qu'au handshake. Une session découverte après
+      // la connexion doit donc refaire ce handshake avant requestJoin/hostlaunch.
+      if (socketNeedsVerifiedHandshake) socket.disconnect().connect();
+    }
     console.log('[SSO] Session OK, fetch /api/me...');
     const meRes = await fetch('/api/me', { headers: { Authorization: `Bearer ${jwt}` } });
     if (!meRes.ok) {
@@ -867,6 +881,10 @@ async function handleSupabaseSession(session) {
         console.log('[SSO] hostlaunch après login → démarrage host web');
         startHostWeb();
       }
+    } else if (new URL(location.href).searchParams.get('hostchoice')) {
+      console.log('[SSO] identité host validée → choix du lecteur');
+      showScreen('choice');
+      _showProviderPick(new URL(location.href).searchParams.get('hostchoice') === 'justplay');
     } else {
       console.log('[SSO] Pas de code party, retour écran de choix');
       if (typeof showScreen === 'function') showScreen('choice');
@@ -1663,7 +1681,7 @@ function setupProfile() {
 
     // ★ Toujours re-emit join avec profil à jour (host trombi live)
     if (socket && socket.connected && state.partyCode) {
-      socket.emit('guest:join', {
+      socket.emit('guest:updateProfile', {
         name: state.guestName,
         lastName: state.guestLastName,
         alias: state.guestAlias,
@@ -1672,7 +1690,8 @@ function setupProfile() {
         phone: state.guestPhone,
         email: state.guestEmail,
         instagram: state.guestInsta,
-        partyCode: state.partyCode
+        partyCode: state.partyCode,
+        sessionToken: state.sessionToken
       });
     }
 
@@ -1782,10 +1801,19 @@ async function handleLogout() {
   const confirmed = confirm('Te déconnecter d\'AhOuai sur cet appareil ?');
   if (!confirmed) return;
   try {
+    if (socket && socket.connected && state.sessionToken) {
+      await new Promise(resolve => {
+        const timer = setTimeout(resolve, 1200);
+        socket.emit('guest:logout', { sessionToken: state.sessionToken }, () => {
+          clearTimeout(timer);
+          resolve();
+        });
+      });
+    }
     if (_supabaseClient) {
       await _supabaseClient.auth.signOut().catch(e => console.warn('[logout] supabase signOut fail:', e));
     }
-    // Efface aussi cookies partagés .ahouai.com (Sprint B sbauth-bypass) et Supabase (chunkés)
+    // Efface aussi les anciens marqueurs locaux et les cookies Supabase chunkés.
     try {
       document.cookie.split(';').forEach(c => {
         const name = c.split('=')[0].trim();
@@ -1924,6 +1952,7 @@ async function getAuthCredential() {
   }
   // ★ Task #45 — repli cookie sbauth SUPPRIMÉ (base64 non signé). Seul un JWT Supabase vérifié
   //   authentifie (session partagée .ahouai.com). NE PAS RÉTABLIR.
+  if (state.sessionToken) return { type: 'session', token: state.sessionToken };
   return null;
 }
 
@@ -2019,11 +2048,12 @@ async function persistProfileToUser() {
   // hors formulaire — le socket emit re-registre correctement via la dedup renforcée).
   try {
     if (socket && socket.connected && state.partyCode) {
-      socket.emit('guest:join', {
+      socket.emit('guest:updateProfile', {
         name: state.guestName, lastName: state.guestLastName, alias: state.guestAlias,
         emoji: state.guestEmoji, photo: state.guestPhoto,
         phone: state.guestPhone, email: state.guestEmail, instagram: state.guestInsta,
-        partyCode: state.partyCode
+        partyCode: state.partyCode,
+        sessionToken: state.sessionToken
       });
     }
   } catch(_) {}
@@ -2225,7 +2255,7 @@ function setupCodeScreen() {
           if (!socket || !socket.connected) {
             connectToRelay();
           } else {
-            socket.emit('guest:join', { name: state.guestName, lastName: state.guestLastName, alias: state.guestAlias, emoji: state.guestEmoji, photo: state.guestPhoto, phone: state.guestPhone, email: state.guestEmail, instagram: state.guestInsta, partyCode: state.partyCode });  // ★ fix Bug Benjamin #4
+            _emitRequestJoin(state.guestName, state.guestLastName, state.guestEmail);
           }
           return; // Stop here, wait for host
         }
@@ -2316,6 +2346,7 @@ function connectToRelay() {
   updateConnection('connecting', 'Connexion...');
 
   socket = io(url, {
+    auth: { token: _currentSupabaseJwt || undefined },
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionAttempts: Infinity,
@@ -2436,40 +2467,9 @@ function connectToRelay() {
   const JOIN_TIMEOUT_MS = 8000;
 
   function freshJoin() {
-    const consent = getConsent();
     _joinAttempts++;
     console.log(`[Join] freshJoin attempt ${_joinAttempts}/${MAX_JOIN_ATTEMPTS}`);
-    socket.emit('guest:join', {
-      guestId: state.guestId,
-      userId: state.userId || null,
-      name: state.guestName,
-      lastName: state.guestLastName,
-      alias: state.guestAlias,
-      emoji: state.guestEmoji,
-      photo: state.guestPhoto,
-      phone: state.guestPhone,
-      email: state.guestEmail,
-      instagram: state.guestInsta,
-      partyCode: state.partyCode,
-      consentVersion: consent?.version || '1.0',
-      consentTimestamp: consent?.timestamp || Date.now(),
-      consentAcceptedAt: consent?.acceptedAt || consent?.date || new Date().toISOString()
-    });
-
-    // Bug #72 watchdog — si session:token pas reçu dans 8s, retry ou fallback erreur.
-    if (_joinWatchdog) clearTimeout(_joinWatchdog);
-    _joinWatchdog = setTimeout(() => {
-      console.warn(`[Join] ⚠️ Watchdog fired: no session:token after ${JOIN_TIMEOUT_MS}ms (attempt ${_joinAttempts})`);
-      if (_joinAttempts < MAX_JOIN_ATTEMPTS && socket && socket.connected) {
-        console.log('[Join] 🔄 Retrying freshJoin...');
-        freshJoin();
-      } else {
-        console.error('[Join] ❌ Failed after ' + MAX_JOIN_ATTEMPTS + ' attempts — giving up');
-        showToast('⚠️ Impossible de rejoindre la soirée. Vérifie ta connexion et réessaye.', 8000);
-        if (typeof showScreen === 'function') showScreen('landing');
-        _joinAttempts = 0; // reset for next manual attempt
-      }
-    }, JOIN_TIMEOUT_MS);
+    _emitRequestJoin(state.guestName, state.guestLastName, state.guestEmail);
   }
 
   // Store session token + userId for reconnection and friends API
@@ -2510,6 +2510,8 @@ function connectToRelay() {
     // ★ Task #69 — flag global waitingRoom (safety belt guest) : mémorisé pour ne jamais
     //   afficher la salle d'attente quand la feature est OFF (le serveur ne l'émet pas non plus).
     if (ps && typeof ps.waitingRoomEnabled === 'boolean') state._waitingRoomEnabled = ps.waitingRoomEnabled;
+    if (['private', 'friends', 'public'].includes(ps.visibility)) state.visibility = ps.visibility;
+    if (Array.isArray(ps.pendingGuests)) state.pendingGuests = ps.pendingGuests.slice();
     if (ps.currentTrack) { state.currentTrack = ps.currentTrack; updateNowPlaying(ps.currentTrack); }
     // ★ Mes suggestions inline: load once after first state sync
     if (!_myDataLoaded && state.guestName) loadMyData();
@@ -2539,7 +2541,7 @@ function connectToRelay() {
           const key = src.substring(0, 100);
           if (!state.diapoPhotos.has(key)) {
             addDiapoPhoto(src, p.guestName);
-            state.allPhotos.push({ url: src, guestName: p.guestName || '', sentAt: p.sentAt || '' });
+            state.allPhotos.push({ id: p.id || p._id || '', url: src, guestName: p.guestName || '', sentAt: p.sentAt || '' });
           }
         });
         // ★ Task #106 Fix F — Rebuild state.myPhotos from server (section "Mes photos")
@@ -2584,14 +2586,14 @@ function connectToRelay() {
     // sont vides, afin qu'une reconnexion ou une suppression soit fidèle.
     if (Array.isArray(ps.photos)) {
       state.allPhotos = ps.photos
-        .map(p => ({ url: p?.url || p?.dataURL || '', guestName: p?.guestName || '', sentAt: p?.sentAt || '' }))
+        .map(p => ({ id: p?.id || p?._id || '', url: p?.url || p?.dataURL || '', guestName: p?.guestName || '', sentAt: p?.sentAt || '' }))
         .filter(p => p.url);
     }
     if (Array.isArray(ps.messages)) {
       // ★ Task #55 : conserver `id` au resync (la modération host supprime par id ; sans lui le ✕ host
       //   serait sans effet après chaque party:state). Neutre pour le guest (self-delete par id OU texte).
       state.liveMessages = ps.messages
-        .map(m => ({ id: m?.id, message: m?.message || m?.text || '', guestName: m?.guestName || 'Guest', sentAt: m?.sentAt || '' }))
+        .map(m => ({ id: m?.id || '', message: m?.message || m?.text || '', guestName: m?.guestName || 'Guest', sentAt: m?.sentAt || '' }))
         .filter(m => m.message);
     }
     if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
@@ -2996,6 +2998,7 @@ function connectToRelay() {
   socket.on('participants:update', (participants) => {
     updateTrombinoscope(participants);
     if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
+    if (document.getElementById('tab-backstage')?.classList.contains('active')) window.AhOuaiHostMode?.renderBackstage?.();
   });
 
   // Photo shared by another guest (for diapo)
@@ -3005,7 +3008,7 @@ function connectToRelay() {
     if (photoSrc) {
       addDiapoPhoto(photoSrc, photo.guestName);
       // ★ Task #101: track in allPhotos for diaporama
-      state.allPhotos.push({ url: photoSrc, guestName: photo.guestName || '', sentAt: photo.sentAt || new Date().toISOString() });
+      state.allPhotos.push({ id: photo.id || photo._id || '', url: photoSrc, guestName: photo.guestName || '', sentAt: photo.sentAt || new Date().toISOString() });
       updateDiapoButton();
       // If diaporama is open, update counter realtime
       updateDiapoCounter();
@@ -3015,6 +3018,7 @@ function connectToRelay() {
 
   socket.on('photos:update', (photos) => {
     state.allPhotos = (photos || []).map(photo => ({
+      id: photo?.id || photo?._id || '',
       url: photo?.url || photo?.dataURL || '',
       guestName: photo?.guestName || '',
       sentAt: photo?.sentAt || ''
@@ -3022,6 +3026,7 @@ function connectToRelay() {
     updateDiapoButton();
     updateDiapoCounter();
     if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
+    if (document.getElementById('tab-backstage')?.classList.contains('active')) window.AhOuaiHostMode?.renderBackstage?.();
     if ($('end-screen') && !$('end-screen').classList.contains('hidden')) {
       refreshAllPhotos();
     } else if ($('socialhub-screen') && !$('socialhub-screen').classList.contains('hidden')) {
@@ -3039,6 +3044,7 @@ function connectToRelay() {
     updateDiapoButton();
     updateDiapoCounter();
     if (typeof window.rerenderSouvenirsIfVisible === 'function') window.rerenderSouvenirsIfVisible();
+    if (document.getElementById('tab-backstage')?.classList.contains('active')) window.AhOuaiHostMode?.renderBackstage?.();
   });
 
   // ★ Task #104: receive messages from other guests for diaporama
@@ -4360,7 +4366,7 @@ async function boostSuggestion(suggId, title) {
         token = session?.access_token || null;
       } catch (e) { console.warn('[boost] getSession failed:', e); }
     }
-    // Fallback: use internal session UUID (sbauth-bypass guests)
+    // Fallback: use the server-issued, participant-bound session UUID.
     if (!token && state.sessionToken) {
       token = state.sessionToken;
       console.log('[boost] Using internal session UUID as auth fallback');
@@ -6723,7 +6729,6 @@ async function init() {
   const sbMarker = urlParamsObj.get('sb') === '1';
   // ★ Task #45 — ingestion ?sbauth= SUPPRIMÉE. Expire tout ancien cookie sbauth (1 an, base64 non signé).
   try { document.cookie = 'sbauth=; Domain=.ahouai.com; Path=/; Max-Age=0; Secure; SameSite=Lax'; } catch (_) {}
-
   // ★ Retour OAuth Spotify host (?code&state=host_auth) → reprendre le lancement host web.
   //   Le redirect Spotify perd nos query params → on relit le provider depuis sessionStorage.
   if (urlParamsObj.get('state') === 'host_auth' && urlParamsObj.get('code')) {
@@ -6879,6 +6884,9 @@ async function _hasSupabaseSession() {
 async function startHostWeb(opts) {
   opts = opts || {};
   const provider = opts.provider || (() => { try { return new URL(location.href).searchParams.get('provider'); } catch(e){ return null; } })() || 'youtube';
+  let hostDraft = {};
+  try { hostDraft = JSON.parse(sessionStorage.getItem('ahouai_host_draft') || '{}') || {}; } catch(e) {}
+  const urlName = (() => { try { return new URL(location.href).searchParams.get('name'); } catch(e){ return null; } })();
   // Persiste le provider : une éventuelle redirection OAuth (Spotify) perd les query params.
   try { sessionStorage.setItem('ahouai_host_provider', provider); } catch(e) {}
   // ★ Task #60 — métadonnées de création : persistées pour survivre à un hop OAuth (Spotify),
@@ -6974,14 +6982,24 @@ function _showProviderPick(justplay) {
   var m = document.getElementById('choice-main'); var p = document.getElementById('provider-pick');
   if (m) m.style.display = 'none'; if (p) p.style.display = 'flex';
 }
+
+async function _authenticateBeforeProvider(justplay) {
+  if (await _hasSupabaseSession()) {
+    _showProviderPick(justplay);
+    return;
+  }
+  const mode = justplay ? 'justplay' : 'create';
+  const returnUrl = new URL('/?hostchoice=' + mode, window.location.origin).href;
+  window.location.href = 'https://ahouai.com/login?redirect=' + encodeURIComponent(returnUrl);
+}
 function cancelProviderPick() {
   var m = document.getElementById('choice-main'); var p = document.getElementById('provider-pick');
   if (p) p.style.display = 'none'; if (m) m.style.display = 'flex';
 }
 function pickProvider(provider) { _goAuthedHost(provider || 'youtube', _choiceJustPlay); }
 
-function goCreateParty() { _showProviderPick(false); }
-function goJustPlay()    { _showProviderPick(true); }
+function goCreateParty() { _authenticateBeforeProvider(false); }
+function goJustPlay()    { _authenticateBeforeProvider(true); }
 function goJoinParty()   { showScreen('code'); }
 
 // ★ Task #60 — Écran « Détails de la soirée » (nom / visibilité / cover) avant lancement.
@@ -8033,7 +8051,8 @@ function showTab(tabName) {
     'agir': ['tab-agir'],
     'on-air': ['tab-soiree'],
     'moi': ['tab-hub'],
-    'story': ['tab-memories']
+    'story': ['tab-memories'],
+    'backstage': ['tab-backstage']
   };
   const targetIds = SPACE_TABS[normalizedName] || ['tab-' + tabName];
 
@@ -8063,6 +8082,9 @@ function showTab(tabName) {
     // on a stale first render after returning from the background.
     if (socket && socket.connected) socket.emit('guest:requestState');
     try { renderSouvenirs(); } catch (e) { console.warn('[souvenirs] render failed:', e); }
+  }
+  if (normalizedName === 'backstage' && window.AhOuaiHostMode?.renderBackstage) {
+    window.AhOuaiHostMode.renderBackstage();
   }
 }
 
@@ -8286,7 +8308,7 @@ function openV2Boosts() {
 // d'autres guests, avec bouton Booster. Ne double pas ÇA MONTE : celui-ci
 // n'affiche que les suggestions déjà boostées. Ici on affiche aussi celles
 // à 0 boost pour donner à l'invité un vrai catalogue à soutenir.
-let _myBoostOpen = false; // etat repli section "Mes suggestions" (ecran Booster)
+let _myBoostOpen = true; // mes suggestions d'abord, puis celles du crew
 function renderAgirBoostList() {
   const container = document.getElementById('agir-live-content');
   if (!container) return;
@@ -8996,7 +9018,7 @@ function renderSouvenirs() {
         ${delBtn}
       </div>
       `;
-    }).join('') || '<div class="story-empty-state">Les mots partagés dans AGIR apparaîtront ici.</div>';
+    }).join('') || '<div class="story-empty-state">Les mots partagés dans PUSH apparaîtront ici.</div>';
     // Section toujours affichée (permet posting même si 0 message)
     msgEl.style.display = '';
   }
