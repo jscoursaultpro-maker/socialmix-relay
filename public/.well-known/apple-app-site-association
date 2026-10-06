@@ -3,9 +3,10 @@
     "apps": [],
     "details": [
       {
-        "appIDs": ["<TEAM_ID>.<BUNDLE_ID>"],
+        "appIDs": ["DQDAY9MA9A.com.ahouai.app"],
         "components": [
-          { "/": "/join/*", "comment": "AhOuai party invites" }
+          { "/": "/", "?": { "code": "?*" }, "comment": "AhOuai party invites via WhatsApp links" },
+          { "/": "/join/*", "comment": "AhOuai party invites legacy path" }
         ]
       }
     ]
