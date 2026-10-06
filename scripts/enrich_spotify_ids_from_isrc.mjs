@@ -8,15 +8,20 @@ import querystring from 'querystring';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Read .env
+// Read .env (optionnel : absent sur Render, présent en local)
 const envPath = path.join(__dirname, '..', '.env');
-const env = Object.fromEntries(
-  fs.readFileSync(envPath, 'utf8').split('\n')
-    .filter(l => l.match(/^[A-Z]/) && l.includes('='))
-    .map(l => { const i = l.indexOf('='); return [l.substring(0, i).trim(), l.substring(i+1).replace(/^"|"$/g, '').trim()]; })
-);
+let env = {};
+try {
+  env = Object.fromEntries(
+    fs.readFileSync(envPath, 'utf8').split('\n')
+      .filter(l => l.match(/^[A-Z]/) && l.includes('='))
+      .map(l => { const i = l.indexOf('='); return [l.substring(0, i).trim(), l.substring(i+1).replace(/^"|"$/g, '').trim()]; })
+  );
+} catch (_) {
+  // .env absent (ex. Render Shell) — on retombe sur process.env
+}
 
-const MONGO_URI = process.env.MONGO_URI || env.MONGO_URI || env.MONGODB_URI;
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || env.MONGO_URI || env.MONGODB_URI;
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || env.SPOTIFY_CLIENT_SECRET;
 
