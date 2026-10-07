@@ -3961,7 +3961,14 @@ async function loadTrendingSuggestions(append = false) {
     const seen = new Set(explorerTracks.map(t => String(t.id)));
     for (let attempt = 0; attempt < (append ? 3 : 1); attempt++) {
       const response = await fetch(`/api/party/${encodeURIComponent(code)}/explore?limit=12`);
-      if (!response.ok) throw new Error('Explorer indisponible');
+      if (!response.ok) {
+        if (response.status === 403) throw new Error('Soirée indisponible');
+        const fallback = await fetch('/api/deezer/chart?limit=12');
+        if (!fallback.ok) throw new Error('Explorer indisponible');
+        const chart = await fallback.json();
+        batch = (chart.data || []).filter(t => t.id && !seen.has(String(t.id)));
+        break;
+      }
       const json = await response.json();
       batch = (json.data || []).filter(t => t.id && !seen.has(String(t.id)));
       if (batch.length) break;
@@ -7994,6 +8001,7 @@ function shareHistoryTrack(idx) {
 
 // ─── Mes données inline (socket-based, no auth required) ────────────
 let _myDataLoaded = false;
+let myDataError = null;
 let myTopsData = [];       // fire votes pool (max 30 from backend)
 let mySugsData = [];       // suggestions pool (max 50 from backend)
 let myTopsShown = 2;       // currently displayed count
@@ -8005,6 +8013,7 @@ const resuggestedTrackIds = new Set(); // ★ Bug 7 — tracks already re-sugges
 function loadMyData() {
   if (!socket || !socket.connected || !state.guestName || _myDataLoaded) return;
   _myDataLoaded = true;
+  myDataError = null;
 
   // 1. Fire votes (MES TITRES PRÉFÉRÉS)
   socket.emit('guest:getMyFireVotes', {
@@ -8012,7 +8021,8 @@ function loadMyData() {
     guestName: state.guestName,
     email: state.guestEmail || null
   }, (response) => {
-    if (!response?.ok || !response.fireVotes?.length) return;
+    if (!response?.ok) { myDataError = 'Tes Bangers n’ont pas pu être chargés. Réessaie après reconnexion.'; _myDataLoaded = false; if(v2SuggestionSource === 'bangers') renderV2Bangers(); return; }
+    if (!response.fireVotes?.length) return;
     myTopsData = response.fireVotes.filter(t => !isPlayedInCurrentParty(t.title));
     renderMyTops();
     if (v2SuggestionSource === 'bangers') renderV2Bangers();
@@ -8401,6 +8411,8 @@ function showV2Bangers() {
   const hint = document.getElementById('suggest-hint');
   if (results) results.style.display = 'none';
   if (hint) hint.style.display = 'none';
+  _myDataLoaded = false;
+  loadMyData();
   renderV2Bangers();
 }
 
@@ -8444,6 +8456,7 @@ function renderV2Bangers() {
   if (!library) return;
   library.hidden = false;
   const tracks = v2BangerTracks();
+  if (myDataError && !tracks.length) { library.replaceChildren(); const note=document.createElement('p');note.className='v2-bangers-empty-note';note.textContent=myDataError;library.append(note);return; }
 
   if (!tracks.length) {
     library.innerHTML = `
