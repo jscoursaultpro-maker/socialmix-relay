@@ -4919,6 +4919,11 @@ io.on('connection', (socket) => {
           const cb=args[args.length-1];if(typeof cb==='function')cb({ok:false,error:'PARTY_RESTRICTED'});
           return;
         }
+        const channel={'guest:photo':'photo','guest:message':'message','guest:suggest':'song'}[event];
+        if(participant&&channel&&(party.communityRestrictions||[]).some(x=>x.kind==='capability'&&x.userId===String(participant.userId)&&x.channel===channel)) {
+          const message='L’organisateur a suspendu cet accès pour cette soirée.';
+          socket.emit('community:warning',{id:randomUUID(),message});const cb=args[args.length-1];if(typeof cb==='function')cb({ok:false,error:'CAPABILITY_RESTRICTED',message});return;
+        }
         handler(...args);
       });
     }

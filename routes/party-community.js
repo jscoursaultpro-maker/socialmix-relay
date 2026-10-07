@@ -115,9 +115,32 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
     res.json({person:{userId:uid,name:person.name,photoURL:person.photo||null,departedAt:person.departedAt||null},
       incidents:(doc?.communityReports||[]).filter(x=>x.targetId===uid).map(x=>{
         const item=x.kind==='private_message'?null:resolveReportedContent(p,x.kind,x.contentId)?.item;
-        return {id:x.id,kind:x.kind,reason:x.reason,warningNumber:x.warningNumber,status:x.status,
+        return {id:x.id,kind:x.kind,reason:x.reason,warningNumber:x.warningNumber,status:x.status,contentId:x.contentId,
           excerpt:item?.message||item?.caption||item?.title||null,url:x.kind==='photo'?(item?.url||item?.dataURL||null):null};
-      }),restriction:activeRestriction(doc?.communityRestrictions,uid)?.kind||null});
+      }),blockedChannels:(doc?.communityRestrictions||[]).filter(x=>x.userId===uid&&x.kind==='capability').map(x=>x.channel),restriction:activeRestriction(doc?.communityRestrictions,uid)?.kind||null});
+  }));
+  router.post('/:code/community/content-remove',route(async(req,res)=>{
+    const {p}=await context(req,true);const {kind,contentId}=req.body;
+    if(!['photo','message'].includes(kind))throw new Error('Contenu invalide.');
+    const content=resolveReportedContent(p,kind,contentId);if(!content)throw new Error('Contenu introuvable.');
+    const deletedAt=new Date().toISOString(),field=kind==='photo'?'photos':'messages';
+    const id=String(content.item.id||content.item._id||content.item.publicId||content.item.url);
+    await PartyModel.updateOne({code:p.code},{$set:{[`${field}.$[item].deletedAt`]:deletedAt}},{arrayFilters:[{$or:[{'item.id':id},{'item.publicId':id},{'item.url':id},...(content.item._id?[{'item._id':content.item._id}]:[])]}]});
+    content.item.deletedAt=deletedAt;p[field]=p[field].filter(x=>x!==content.item);p.isDirty=true;
+    event(p,content.author,'community:warning',{id:randomUUID(),message:`L’organisateur a retiré ${kind==='photo'?'ta photo':'ton message'} de la soirée.`});
+    broadcast(p);res.json({ok:true});
+  }));
+  router.post('/:code/community/capability',route(async(req,res)=>{
+    const {p}=await context(req,true);const {userId,channel,blocked}=req.body;
+    if(!['photo','message','song'].includes(channel)||typeof blocked!=='boolean')throw new Error('Accès invalide.');
+    const target=p.participants.find(x=>String(x.userId)===String(userId)&&!x.isHost);if(!target)throw new Error('Invité introuvable.');
+    await serial(p.code,async()=>{
+      const doc=await PartyModel.findOne({code:p.code}).select('communityRestrictions').lean();
+      const records=(doc?.communityRestrictions||[]).filter(x=>!(x.userId===String(userId)&&x.kind==='capability'&&x.channel===channel));
+      if(blocked)records.push({userId:String(userId),kind:'capability',channel});
+      await PartyModel.updateOne({code:p.code},{$set:{communityRestrictions:records}});p.communityRestrictions=records;
+      event(p,target,'community:warning',{id:randomUUID(),message:`L’organisateur a ${blocked?'suspendu':'rétabli'} ton accès aux ${{photo:'photos',message:'messages',song:'suggestions'}[channel]} pour cette soirée.`});res.json({ok:true});
+    });
   }));
   router.post('/:code/community/report',route(async(req,res)=>{
     const {p,me}=await context(req);const {kind,contentId,reason}=req.body;
@@ -159,6 +182,7 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
   }));
   router.post('/:code/community/message',route(async(req,res)=>{
     const {p,me}=await context(req);const {targetId,text}=req.body;
+    if(p.communityRestrictions.some(x=>x.kind==='capability'&&x.userId===String(me.userId)&&x.channel==='message'))throw new Error('L’organisateur a suspendu ton accès aux messages.');
     const target=(p.participants||[]).find(x=>String(x.userId)===String(targetId)&&!x.departedAt&&x.connected!==false);
     if(!target||String(targetId)===String(me.userId)||typeof text!=='string'||!text.trim()||text.length>1000)throw new Error('Destinataire ou message invalide.');
     await serial(p.code,async()=>{
