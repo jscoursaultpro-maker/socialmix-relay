@@ -49,6 +49,14 @@ test('private inbox isolation, actual content ownership, host decisions and acce
     assert.ok(events.find(e=>e.event==='community:alert'&&e.room==='host:ABC123'));
     assert.equal((await request()).body.alerts.length,0);
     assert.equal((await request('',undefined,{'X-Host-Secret':'secret-host'})).body.alerts.length,1);
+    assert.equal((await request('/moderation/b')).status,403);
+    const dossier=await request('/moderation/b',undefined,{'X-Host-Secret':'secret-host'});
+    assert.equal(dossier.status,200);assert.equal(dossier.body.incidents.length,2);
+    assert.equal(dossier.body.incidents[0].reporterId,undefined);
+    const touch=await request('/touch/b');assert.equal(touch.status,200);
+    assert.equal(touch.body.incidents,undefined);assert.equal(touch.body.restriction,undefined);
+    const reportable=await request('/reportable');assert.equal(reportable.status,200);
+    assert.ok(reportable.body.items.every(x=>x.name==='Bob'));
     assert.equal((await request('/decision',{userId:'b',action:'temporary'},{'X-Host-Secret':'secret-host'})).status,200);
     assert.equal(doc.communityRestrictions[0].kind,'temporary');assert.ok(new Date(doc.communityRestrictions[0].until)>new Date(Date.now()+890000));
     assert.equal((await request('/message',{targetId:'a',text:'cannot send'},{'X-Guest-Session':'token-b'})).status,403);

@@ -62,14 +62,35 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
       messages:(doc?.privateMessages || []).filter(x=>x.senderId===String(me.userId)||x.targetId===String(me.userId))});
   }));
   router.get('/:code/community/touch/:userId',route(async(req,res)=>{
-    const {p}=await context(req);const uid=req.params.userId;
+    const {p,me}=await context(req);const uid=req.params.userId;
     const person=(p.participants||[]).find(x=>String(x.userId)===uid && !x.departedAt);
     if(!person)throw new Error('Cette personne n’est plus présente.');
     const author=x=>String(x.authorUserId || x.suggestedByUser?.userId || x.guestId || '')===uid;
     res.json({person:{userId:uid,name:person.name,photoURL:person.photo || null},
-      songs:(p.suggestions||[]).filter(author).map(x=>({id:x.id,title:x.title,artist:x.artist})),
+      songs:(p.suggestions||[]).filter(author).map(x=>({id:x.id,title:x.title,artist:x.artist,status:x.status,boostCount:x.boostCount||0,canBoost:['pending','queued','next'].includes(x.status)&&uid!==String(me.userId)&&!(x.boostedBy||[]).some(id=>[String(me.userId),me.id].includes(String(id)))})),
       messages:(p.messages||[]).filter(author).map(x=>({id:x.id,message:x.message})),
       photos:(p.photos||[]).filter(x=>author(x)&&!x.deletedAt).map(x=>({id:String(x.id||x._id||x.publicId||x.url),url:x.url||x.dataURL,caption:x.caption}))});
+  }));
+  router.get('/:code/community/reportable',route(async(req,res)=>{
+    const {p,me}=await context(req);const items=[];
+    for(const [kind,list] of [['song',p.suggestions],['message',p.messages],['photo',p.photos]])for(const item of list||[]){
+      const id=String(item.id||item._id||item.publicId||item.url||'');const content=resolveReportedContent(p,kind,id);
+      if(content&&String(content.author.userId)!==String(me.userId))items.push({id,kind,name:content.author.name,text:item.message||item.caption||item.title||'Photo partagée'});
+    }
+    res.json({items});
+  }));
+  // Moderation has its own host-only dossier; never expose private conversations.
+  router.get('/:code/community/moderation/:userId',route(async(req,res)=>{
+    const {p}=await context(req,true);const uid=req.params.userId;
+    const person=(p.participants||[]).find(x=>String(x.userId)===uid&&!x.isHost);
+    if(!person)throw new Error('Invité introuvable.');
+    const doc=await PartyModel.findOne({code:p.code}).select('communityReports communityRestrictions').lean();
+    res.json({person:{userId:uid,name:person.name,photoURL:person.photo||null,departedAt:person.departedAt||null},
+      incidents:(doc?.communityReports||[]).filter(x=>x.targetId===uid).map(x=>{
+        const item=x.kind==='private_message'?null:resolveReportedContent(p,x.kind,x.contentId)?.item;
+        return {id:x.id,kind:x.kind,reason:x.reason,warningNumber:x.warningNumber,status:x.status,
+          excerpt:item?.message||item?.caption||item?.title||null,url:x.kind==='photo'?(item?.url||item?.dataURL||null):null};
+      }),restriction:activeRestriction(doc?.communityRestrictions,uid)?.kind||null});
   }));
   router.post('/:code/community/report',route(async(req,res)=>{
     const {p,me}=await context(req);const {kind,contentId,reason}=req.body;
