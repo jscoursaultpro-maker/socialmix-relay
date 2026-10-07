@@ -2464,8 +2464,8 @@ function connectToRelay() {
         sessionToken: resumeData.sessionToken
       }, (response) => {
         if (response && response.ok) {
-          // ★ Task #13.3: ensure sessionToken stays in state after successful resume
-          if (resumeData.sessionToken) state.sessionToken = resumeData.sessionToken;
+          // Persist the rotated bearer; the request token has already been revoked.
+          if (response.sessionToken) state.sessionToken = response.sessionToken;
           // ★ Task #13.5: server userId is authoritative — override stale localStorage
           if (response.userId) {
             const oldId = state.userId;
@@ -2488,6 +2488,10 @@ function connectToRelay() {
             if (typeof renderCaMonte === 'function') renderCaMonte();
           }
         } else {
+          if (!response || response.reason === 'SERVER_ERROR') {
+            showToast('Reconnexion momentanément impossible. Réessaie dans quelques instants.');
+            return; // Keep identity and bearer on a transient failure.
+          }
           console.log('[Resume] ❌ Failed:', response?.reason, '— doing fresh join');
           clearResumeSession();
           freshJoin();
@@ -6976,7 +6980,7 @@ async function init() {
   
   if (explicitPartyCode && hasSession && hasProfile && state.partyCode && state.guestName) {
     enterCockpit();
-  } else if (explicitPartyCode && resumeSession && hasProfile) {
+  } else if (explicitPartyCode && resumeSession) {
     // Resume from session token (page reload, tab closed/reopened)
     state.partyCode = resumeSession.partyCode;
     state.guestName = resumeSession.guestName || state.guestName;
