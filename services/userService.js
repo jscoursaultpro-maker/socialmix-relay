@@ -104,6 +104,10 @@ export async function findOrCreateFromSupabase(payload) {
     // Bug #86 fix — Skip tout backfill firstName/lastName si user a édité son profil manuellement.
     // Flag profile.userEdited posé par PATCH /api/users/me (iOS AuthService.pushProfileToServer).
     if (!user.profile?.userEdited) {
+      const oauthName = meta.given_name || meta.first_name || meta.full_name || meta.name;
+      if (oauthName && (!currentFirst || /^(guest|anonymous)$/i.test(currentFirst.trim()))) {
+        updates['profile.firstName'] = extractFirstName(payload);
+      }
       if (structuredFirst && currentFirst.includes(' ')) {
         // Current firstName is a wrong-split full_name → replace with structured data
         updates['profile.firstName'] = structuredFirst.slice(0, 40);

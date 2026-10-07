@@ -33,7 +33,6 @@ async function lookupArtwork(track) {
     return result;
   } catch (error) {
     console.warn(`[DeezerArtwork] ${key}: ${error.message}`);
-    artworkCache.set(key, null);
     return null;
   }
 }
@@ -41,7 +40,7 @@ async function lookupArtwork(track) {
 export async function enrichArtwork(items) {
   return Promise.all(items.map(async item => {
     const current = item.artworkUrl || item.coverURL;
-    if (current) return item;
+    if (current) return { ...item, artworkUrl: current, coverURL: current };
     const found = await lookupArtwork(item);
     if (!found?.artworkUrl) return item;
     return {
