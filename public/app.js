@@ -1170,9 +1170,11 @@ function submitOnboarding() {
   }
 }
 
-function _emitRequestJoin(fn, ln, em) {
+async function _emitRequestJoin(fn, ln, em) {
+  const accessToken = await getProfileJwt();
   socket.emit('guest:requestJoin', {
     code: state.partyCode,
+    accessToken: accessToken || undefined,
     email: em,
     firstName: fn,
     lastName: ln,

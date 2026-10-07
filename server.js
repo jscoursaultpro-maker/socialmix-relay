@@ -6451,6 +6451,16 @@ io.on('connection', (socket) => {
   socket.on('guest:requestJoin', async (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const code = (data.code || data.partyCode || '').toUpperCase();
+    // Une connexion Web peut avoir été ouverte avant la restauration SSO.
+    // Vérifier le JWT de la demande avant de résoudre le profil et l’admission.
+    if (data.accessToken) {
+      try {
+        const claims = await verifySupabaseJWT(data.accessToken);
+        socket.user = await findOrCreateFromSupabase(claims);
+      } catch (_) {
+        return cb({ok:false,error:'AUTH_REQUIRED',message:'Ta connexion doit être renouvelée avant de demander à entrer.'});
+      }
+    }
     const verifiedSocketUser = socket.user || null;
     const verifiedEmail = (verifiedSocketUser?.email || '').trim().toLowerCase();
     const emailRaw = (verifiedEmail || data.email || '').trim().toLowerCase();
@@ -6539,6 +6549,16 @@ io.on('connection', (socket) => {
     const userId = user._id;
     const userIdStr = userId.toString();
     const hasVerifiedIdentity = Boolean(verifiedSocketUser?._id);
+    // Remplacer seulement la demande provisoire de CE socket, jamais un compte
+    // trouvé à partir d’un email non vérifié.
+    if (hasVerifiedIdentity) {
+      const provisional = party.pendingGuests.filter(g => g.socketId === socket.id && String(g.userId) !== userIdStr);
+      if (provisional.length) {
+        party.pendingGuests = party.pendingGuests.filter(g => !provisional.includes(g));
+        await Party.updateOne({code}, {$pull:{pendingGuests:{userId:{$in:provisional.map(g=>g.userId)}}}});
+        party.isDirty = true;
+      }
+    }
     let communityDoc;
     try { communityDoc = await Party.findOne({ code }).select('communityRestrictions communityReports').lean(); } catch { return cb({ok:false,error:'SERVER_ERROR'}); }
     party.communityRestrictions = communityDoc?.communityRestrictions || [];
@@ -6645,6 +6665,8 @@ io.on('connection', (socket) => {
       existingPending.socketId = socket.id;
       existingPending.firstName = firstName || existingPending.firstName;
       existingPending.lastName = lastName || existingPending.lastName;
+      existingPending.photoURL = user.profile?.photoURL || existingPending.photoURL || null;
+      if (party.hostSocketId) io.to(party.hostSocketId).emit('party:state', buildLightState(party, true));
       party.isDirty = true;
       socket.partyCode = code;
       socket.join(`pending:${code}`);
@@ -6679,6 +6701,7 @@ io.on('connection', (socket) => {
       io.to(party.hostSocketId).emit('host:pendingGuestRequest', {
         userId: userIdStr, firstName, lastName, email: emailRaw.toLowerCase(), photoURL: user.profile?.photoURL || null
       });
+      io.to(party.hostSocketId).emit('party:state', buildLightState(party, true));
     }
 
     // Write-through to MongoDB
