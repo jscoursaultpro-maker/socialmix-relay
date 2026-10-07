@@ -182,7 +182,7 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
   }));
   router.post('/:code/community/message',route(async(req,res)=>{
     const {p,me}=await context(req);const {targetId,text}=req.body;
-    if(p.communityRestrictions.some(x=>x.kind==='capability'&&x.userId===String(me.userId)&&x.channel==='message'))throw new Error('L’organisateur a suspendu ton accès aux messages.');
+    if((p.communityRestrictions||[]).some(x=>x.kind==='capability'&&x.userId===String(me.userId)&&x.channel==='message'))throw new Error('L’organisateur a suspendu ton accès aux messages.');
     const target=(p.participants||[]).find(x=>String(x.userId)===String(targetId)&&!x.departedAt&&x.connected!==false);
     if(!target||String(targetId)===String(me.userId)||typeof text!=='string'||!text.trim()||text.length>1000)throw new Error('Destinataire ou message invalide.');
     await serial(p.code,async()=>{

@@ -53,6 +53,12 @@ test('private inbox isolation, actual content ownership, host decisions and acce
     assert.equal((await request('/message',{targetId:'b',text:'Private hello'})).status,200);
     assert.equal((await request()).body.messages.length,1);
     assert.equal((await request('',undefined,{'X-Host-Secret':'secret-host'})).body.messages.length,0);
+    assert.equal((await request('/message',{targetId:'b',text:'Host hello'},{'X-Host-Secret':'secret-host'})).status,200);
+    assert.equal((await request('',undefined,{'X-Guest-Session':'token-b'})).body.messages.length,2);
+    assert.equal((await request()).body.messages.length,1, 'Alice cannot read host-to-Bob conversation');
+    assert.equal((await request('/message',{targetId:'h',text:'Reply to host'},{'X-Guest-Session':'token-b'})).status,200);
+    assert.equal((await request('',undefined,{'X-Host-Secret':'secret-host'})).body.messages.length,2);
+
     assert.equal((await request('/report',{kind:'message',contentId:'missing',reason:'inappropriate'})).status,400);
     assert.equal((await request('/report',{kind:'message',contentId:'m1',reason:'inappropriate'})).status,200);
     const privateWarning=events.find(e=>e.event==='community:warning');assert.equal(privateWarning.room,'sb');assert.equal(privateWarning.data.reporterId,undefined);
