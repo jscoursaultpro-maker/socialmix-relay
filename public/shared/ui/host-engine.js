@@ -361,7 +361,7 @@
     var st = appState();
     if (!s) { toast('Socket non connecté'); return { ok: false }; }
     var code = (opts.code || genCode()).toUpperCase();
-    var hostSecret = randomString(32);
+    var hostSecret = opts.hostSecret || randomString(32);
     party = {
       code: code,
       hostSecret: hostSecret,

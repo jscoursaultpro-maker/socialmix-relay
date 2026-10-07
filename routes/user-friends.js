@@ -280,9 +280,9 @@ router.delete('/:friendUserId', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const currentUser = await User.findById(req.currentUser._id)
-      .populate('friends.userId', 'profile.firstName profile.handle profile.emoji foundersRank')
-      .populate('pendingRequests.sent.userId', 'profile.firstName profile.handle profile.emoji foundersRank')
-      .populate('pendingRequests.received.userId', 'profile.firstName profile.handle profile.emoji foundersRank')
+      .populate('friends.userId', 'profile.firstName profile.handle profile.emoji profile.photoURL foundersRank')
+      .populate('pendingRequests.sent.userId', 'profile.firstName profile.handle profile.emoji profile.photoURL foundersRank')
+      .populate('pendingRequests.received.userId', 'profile.firstName profile.handle profile.emoji profile.photoURL foundersRank')
       .lean();
       
     // Collect all unique user IDs to fetch their intent
@@ -311,6 +311,7 @@ router.get('/', async (req, res) => {
           id: u._id,
           handle: u.profile?.handle || null,
           name: u.profile?.firstName || null,
+          photo: u.profile?.photoURL || null,
           emoji: u.profile?.emoji || null,
           isFounder: (u.foundersRank != null && u.foundersRank > 0),
           foundersRank: u.foundersRank || null,

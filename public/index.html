@@ -41,6 +41,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=20261007-five-univers">
     <link rel="stylesheet" href="/shared/ui/host-discovery.css?v=20261007-story">
+    <link rel="stylesheet" href="shared/ui/party-preparation.css">
 </head>
 <body>
 
@@ -127,40 +128,34 @@
 
     <!-- ═══ ★ Task #60 — DÉTAILS DE LA SOIRÉE (après « Je crée » + provider, host authentifié) ═══ -->
     <div id="create-details-screen" class="screen">
-        <div class="landing-container">
-            <div class="landing-glow"></div>
-            <div class="landing-logo">
-                <img class="landing-logo-img" src="assets/brand/ahouai-logo.png" alt="AhOuai">
-                <p class="logo-sub">TA SOIRÉE EN 2 TOUCHES</p>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:16px; width:100%; max-width:420px; margin:8px auto 0;">
-                <label class="cd-field">
-                    <span class="cd-label">Nom de la soirée <small>(optionnel)</small></span>
-                    <input type="text" id="cd-name" class="cd-input" maxlength="60" placeholder="Ex. L'anniv de Gabin" autocomplete="off">
-                </label>
-                <div class="cd-field">
-                    <span class="cd-label">Qui peut la voir ?</span>
-                    <div class="cd-vis" id="cd-visibility" data-value="friends">
-                        <button type="button" class="cd-vis-btn" data-vis="private">🔒 Privé</button>
-                        <button type="button" class="cd-vis-btn is-on" data-vis="friends">👥 Amis</button>
-                        <button type="button" class="cd-vis-btn" data-vis="public">🌍 Public</button>
+        <div class="host-create-shell">
+            <header class="host-create-nav"><img src="assets/brand/ahouai-logo.png" alt="AhOuai"><button type="button" onclick="showScreen('choice')">← Accueil</button></header>
+            <div class="host-create-grid">
+                <section class="host-create-editor">
+                    <p class="host-eyebrow">DES GENS. DES TITRES. DES SOUVENIRS.</p>
+                    <h1>Ce soir,<br>c’est <span>chez toi.</span></h1>
+                    <p class="host-create-lead">Tu invites. Chacun donne le ton.<br>AhOuai garde les moments qui comptent.</p>
+                    <label class="cd-field"><span class="cd-label">Donne un nom à votre moment</span><input type="text" id="cd-name" class="cd-input" maxlength="60" placeholder="Chez nous, ce soir ✨" autocomplete="off"></label>
+                    <div class="cd-field"><span class="cd-label">La photo qui donne envie <small>· optionnelle</small></span>
+                        <div class="cd-cover" id="cd-cover-wrap"><input type="file" id="cd-cover" accept="image/*" hidden>
+                            <img id="cd-cover-preview" class="cd-cover-preview" src="assets/brand/host-party-discovery.jpg" alt="Des amis réunis dans une ambiance turquoise, violet et rose">
+                            <button type="button" class="cd-cover-btn" onclick="document.getElementById('cd-cover').click()">📷 Choisir votre photo</button>
+                        </div>
                     </div>
-                </div>
-                <label class="cd-field">
-                    <span class="cd-label">Photo de couverture <small>(optionnel)</small></span>
-                    <div class="cd-cover" id="cd-cover-wrap">
-                        <input type="file" id="cd-cover" accept="image/*" style="display:none">
-                        <button type="button" class="cd-cover-btn" onclick="document.getElementById('cd-cover').click()">📷 Choisir une image</button>
-                        <img id="cd-cover-preview" class="cd-cover-preview" style="display:none" alt="">
-                    </div>
-                </div>
-                <button type="button" class="choice-card" id="cd-launch" onclick="submitCreateDetails()" style="justify-content:center">
-                    <span class="choice-ic">🚀</span>
-                    <span class="choice-txt"><strong>Lancer la soirée</strong></span>
-                </button>
-                <a href="#" onclick="event.preventDefault(); showScreen('choice');" style="text-align:center;color:#8390ad;font:500 13px Outfit,system-ui,sans-serif;text-decoration:none">← Retour</a>
+                    <div class="cd-field"><span class="cd-label">Qui peut rejoindre ?</span><div class="cd-vis" id="cd-visibility" data-value="friends">
+                        <button type="button" class="cd-vis-btn" data-vis="private">🔒 Privée</button><button type="button" class="cd-vis-btn is-on" data-vis="friends">👥 Amis</button><button type="button" class="cd-vis-btn" data-vis="public">🌍 Publique</button>
+                    </div><small class="host-create-hint">Privée : tu acceptes chaque demande. Amis : tes amis entrent directement.</small></div>
+                </section>
+                <aside class="host-create-controls">
+                    <p class="host-eyebrow">LA BANDE-SON COMMENCE ICI</p><h2>Un premier son.<br>Et tout se rapproche.</h2>
+                    <div class="host-provider-note"><span id="cd-provider-name">Votre musique</span><p>Ton service lance la musique. Tes amis proposent des titres, votent et partagent leurs photos.</p><button type="button" onclick="showScreen('choice'); _showProviderPick(false)">Changer de service →</button></div>
+                    <div class="cd-field"><span class="cd-label">Quand est-ce qu’on se retrouve ?</span><div class="cd-vis" id="cd-timing"><button type="button" class="cd-vis-btn is-on" data-timing="now">Ce soir · maintenant</button><button type="button" class="cd-vis-btn" data-timing="later">Pour plus tard</button></div></div>
+                    <div id="cd-schedule-fields" hidden><label class="cd-field"><span class="cd-label">Votre rendez-vous</span><input id="cd-date" type="datetime-local" class="cd-input"></label><label class="cd-field"><span class="cd-label">Un mot pour tes invités</span><textarea id="cd-message" class="cd-input" rows="3" maxlength="500" placeholder="On se retrouve, on partage nos sons, on crée des souvenirs."></textarea></label></div>
+                    <button type="button" class="host-launch-cta" id="cd-launch" onclick="submitCreateDetails()">Lancer la soirée ✨</button>
+                    <p id="cd-mode-hint" class="host-create-hint">Tes amis rejoignent par lien ou QR code, sans rien installer.</p>
+                    <div class="host-story-benefits"><p><strong>01 · Invite tes amis</strong><span>Un lien, votre rendez-vous.</span></p><p><strong>02 · Faites vivre le son</strong><span>Propositions, votes, coups de cœur.</span></p><p><strong>03 · Gardez votre histoire</strong><span>Photos et playlist dans AfterGlow.</span></p></div>
+                </aside>
             </div>
-            <p class="landing-footer">Pas besoin de télécharger · 100% navigateur</p>
         </div>
     </div>
     <style>
@@ -1447,5 +1442,6 @@
       </div>
     </dialog>
     <script src="/shared/ui/host-discovery.js?v=20261007-story"></script>
+    <script src="shared/ui/party-preparation.js"></script>
 </body>
 </html>

@@ -448,7 +448,7 @@ function showScreen(name) {
     next.scrollTop = 0;
   }
   currentScreen = name;
-  if (name === 'choice') renderChoiceSession();
+  if (name === 'choice') { renderChoiceSession(); if (window.loadScheduledParties) window.loadScheduledParties(); }
   if (name === 'hub') { renderMissions(); renderLeaderboard(); }
   
   // Show/hide scroll indicator only on profile screen
@@ -625,8 +625,7 @@ async function setupLanding(activeCode) {
           }
           
           $('pre-party-prepare-btn').addEventListener('click', () => {
-            if (hasConsent()) showScreen('profile');
-            else showScreen('consent');
+            showOnboarding(code);
           });
           
           // Check auto-refresh to transition to live party
@@ -639,7 +638,8 @@ async function setupLanding(activeCode) {
                  state.isPreParty = false;
                  // If user is already on pre-party screen or profile, they can just proceed
                  if (currentScreen === 'pre-party') {
-                   enterCockpit();
+                   if (state.prePartyRegistered) enterCockpitFromOnboarding();
+                   else showOnboarding(code);
                  }
                } else if (m.isPreParty) {
                  updatePrePartyTrombinoscope(m.guests, m.hostProfile);
@@ -1264,6 +1264,16 @@ function _emitRequestJoin(fn, ln, em) {
 
 // ── Enter cockpit from onboarding (new flow) ──
 function enterCockpitFromOnboarding() {
+  if (state.isPreParty) {
+    state.prePartyRegistered = true;
+    state.chantier5.screen = null;
+    saveProfile();
+    showScreen('pre-party');
+    const button = $('pre-party-prepare-btn');
+    if (button) { button.textContent = '✓ Ta place est confirmée'; button.disabled = true; }
+    showToast('Tu es inscrit(e). La soirée commencera quand l’organisateur la lancera.', 5000);
+    return;
+  }
   state.chantier5.screen = null;
   saveProfile();
   // Save CGU consent record
@@ -1278,7 +1288,7 @@ function enterCockpitFromOnboarding() {
 function showWaitingRoom(hostFirstName, hostPhoto, partyName) {
   // ★ Task #69 — safety belt : flag global waitingRoom OFF ⇒ ne jamais afficher la salle
   //   d'attente, même si un guest:pendingApproval arrivait (le serveur ne l'émet pas quand OFF).
-  if (state._waitingRoomEnabled === false) { console.warn('[C5] waitingRoom flag OFF — showWaitingRoom ignoré'); return; }
+  if (state._waitingRoomEnabled === false && !state.isPreParty) { console.warn('[C5] waitingRoom flag OFF — showWaitingRoom ignoré'); return; }
   state.chantier5.screen = 'waiting';
   state.chantier5.waitingSince = Date.now();
 
@@ -1530,6 +1540,7 @@ function bindChantier5SocketListeners(sock) {
   // Guest approved by host
   sock.on('guest:approved', (data) => {
     console.log('[C5] guest:approved received', data);
+    if (data?.partyState?.isPreParty) { state.isPreParty = true; enterCockpitFromOnboarding(); return; }
     if (state.chantier5.screen === 'waiting') {
       const partyName = data?.partyState?.partyName || state.partyCode;
       showWelcomeScreen(partyName, state.guestName);
@@ -7016,7 +7027,7 @@ async function startHostWeb(opts) {
       if (s && s.connected && window.AhOuaiHostEngine) {
         clearInterval(iv);
         try {
-          Promise.resolve(window.AhOuaiHostEngine.launchHost({ provider: provider, name: _meta.name, visibility: _meta.visibility, coverPhoto: _meta.coverPhoto, justplay: _meta.justplay }))
+          Promise.resolve(window.AhOuaiHostEngine.launchHost({ code: opts.code, hostSecret: opts.hostSecret, provider: provider, name: _meta.name, visibility: _meta.visibility, coverPhoto: _meta.coverPhoto, justplay: _meta.justplay }))
             .then((r) => { try { sessionStorage.removeItem('ahouai_host_create'); } catch(e){} _hostSelfJoin((r && r.code) || null); })
             .catch(e => console.warn('[host] launchHost:', e));
         } catch(e) { console.warn('[host] launchHost:', e); }
@@ -7119,11 +7130,13 @@ function _showCreateDetails(provider) {
       vis.setAttribute('data-value', 'friends');
       vis.querySelectorAll('.cd-vis-btn').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-vis') === 'friends'); });
     }
-    var pv = document.getElementById('cd-cover-preview'); if (pv) { pv.style.display = 'none'; pv.src = ''; }
+    var pv = document.getElementById('cd-cover-preview'); if (pv) { pv.style.display = 'block'; pv.src = 'assets/brand/host-party-discovery.jpg'; }
   } catch (e) {}
   showScreen('create-details');
+  if (window.setupPartyTiming) window.setupPartyTiming(provider);
 }
 function submitCreateDetails() {
+  if (window.isPartyPlanned && window.isPartyPlanned()) { window.scheduleCurrentParty(); return; }
   var name = '', visibility = 'friends';
   try { name = (document.getElementById('cd-name').value || '').trim(); } catch (e) {}
   try { visibility = document.getElementById('cd-visibility').getAttribute('data-value') || 'friends'; } catch (e) {}

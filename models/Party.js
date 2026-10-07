@@ -26,6 +26,11 @@ const PartySchema = new mongoose.Schema({
   }],
   // ★ Chantier 5: Pre-approved guests (auto-approve on requestJoin)
   preApprovedGuests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  scheduledInvitations: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    name: String, photoURL: String, emoji: String,
+    invitedAt: { type: Date, default: Date.now }
+  }],
   // ★ Task #55: Salle d'attente activable par soirée (toggle host). Défaut false =
   //   comportement actuel strictement préservé. Au schéma pour éviter le strip mongoose strict.
   requiresApproval: { type: Boolean, default: false },
@@ -127,6 +132,7 @@ const PartySchema = new mongoose.Schema({
 // PartySchema.index({ endedAt: 1 }, { expireAfterSeconds: 90 * 24 * 3600, ... });  // ← REMOVED
 PartySchema.index({ hostUserId: 1, createdAt: -1 });
 PartySchema.index({ hostUserId: 1, endedAt: -1 });
+PartySchema.index({ 'scheduledInvitations.userId': 1, isPreParty: 1 });
 PartySchema.index({ 'pendingGuests.userId': 1 }, { sparse: true });  // ★ Chantier 5: fast pending lookup
 PartySchema.index({ code: 1, 'participants.userId': 1 }); // ★ Guest fetch index
 PartySchema.index({ 'participants.userId': 1, createdAt: -1 }); // ★ Perf /activities index

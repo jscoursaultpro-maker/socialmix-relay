@@ -1,3 +1,4 @@
+import preparationRouter from './routes/party-preparation.js';
 import './instrument.js'; // ★ feat(sentry): MUST be first import — instruments Node builtins before any other module loads
 import express from 'express';
 import cors from 'cors';
@@ -1814,6 +1815,8 @@ app.post('/api/admin/auto-end-ghosts', adminAuth, async (req, res) => {
     // Find ghost parties: endedAt null AND inactive for > threshold
     const ghosts = await Party.find({
       endedAt: null,
+      isPreParty: { $ne: true },
+      "lifecycle.status": { $ne: "scheduled" },
       $or: [
         { 'lifecycle.lastActivityAt': { $lt: cutoff } },
         { 'lifecycle.lastActivityAt': null, createdAt: { $lt: cutoff } }
@@ -2999,28 +3002,7 @@ app.get('/api/deezer/track/:trackId', async (req, res) => {
   }
 });
 
-app.post('/api/party/schedule', express.json({limit: '5mb'}), async (req, res) => {
-  const { code, hostSecret, scheduledFor, welcomeText, coverPhoto, profile } = req.body;
-  if (!code || !hostSecret) return res.status(400).json({ error: 'Missing code or hostSecret' });
-  
-  try {
-    const newParty = {
-      code: code.toUpperCase(),
-      hostSecret,
-      scheduledFor,
-      welcomeText,
-      coverPhoto,
-      isPreParty: true,
-      hostProfile: profile
-    };
-    const savedParty = await Party.findOneAndUpdate({ code: newParty.code }, newParty, { upsert: true, new: true });
-    console.log(`[HTTP] 📅 Scheduled Pre-Party ${savedParty.code}`);
-    res.json({ success: true, party: { code: savedParty.code } });
-  } catch (e) {
-    console.error('[HTTP] ❌ Schedule error:', e);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+app.use('/api/party', preparationRouter({ parties, io, buildLightState }));
 
 // ─── POST /api/party/:code/suggestion/:suggId/boost ─────────────────────────
 // Permet à un guest de booster la suggestion d'un autre guest
@@ -3560,12 +3542,13 @@ app.get('/api/party/:code/meta', async (req, res) => {
   // MVP Pre-Party meta fields
   res.json({
     status: party.lifecycle ? party.lifecycle.status : 'live',
+    partyName: party.partyName || "Une soirée ensemble",
     coverPhoto: party.coverPhoto,
     welcomeText: party.welcomeText,
     scheduledFor: party.scheduledFor,
     isPreParty: party.isPreParty,
     guestsWaitingCount: party.participants ? party.participants.length : 0,
-    guests: party.participants || [],
+    guests: (party.participants || []).map(p => ({ name: p.name || p.firstName || "Invité", emoji: p.emoji || "🎉", photo: p.photo || null, isHost: p.isHost === true, userId: p.userId ? String(p.userId) : null })),
     hostProfile: party.hostProfile || null,
     hostName: party.hostProfile ? party.hostProfile.name : 'DJ'
   });
@@ -5276,6 +5259,10 @@ io.on('connection', (socket) => {
           restoredParty.vibeScore = dbParty.vibeScore || 0;
           restoredParty.participants = dbParty.participants || [];
           restoredParty.pendingGuests = dbParty.pendingGuests || [];
+          restoredParty.preApprovedGuests = dbParty.preApprovedGuests || [];
+          restoredParty.requiresApproval = dbParty.requiresApproval === true;
+          restoredParty.coverPhoto = dbParty.coverPhoto || null;
+          restoredParty.partyName = dbParty.partyName || null;
           restoredParty.visibility = dbParty.visibility || 'private';
           restoredParty.guestVotes = dbParty.guestVotes || {};
           restoredParty.suggestions = dbParty.suggestions || [];
@@ -6494,6 +6481,13 @@ io.on('connection', (socket) => {
         party.pendingGuests = dbParty.pendingGuests || [];
         party.preApprovedGuests = dbParty.preApprovedGuests || [];
         party.requiresApproval = dbParty.requiresApproval === true;   // ★ Task #55
+        party.isPreParty = dbParty.isPreParty === true;
+        party.scheduledFor = dbParty.scheduledFor;
+        party.welcomeText = dbParty.welcomeText;
+        party.coverPhoto = dbParty.coverPhoto;
+        party.partyName = dbParty.partyName;
+        party.scheduledInvitations = dbParty.scheduledInvitations || [];
+        if (party.isPreParty) party.lifecycle.status = 'scheduled';
         party.hostUserId = dbParty.hostUserId || null;
         party.visibility = ['private', 'friends', 'public'].includes(dbParty.visibility)
           ? dbParty.visibility
@@ -8944,7 +8938,7 @@ setInterval(() => {
 setInterval(async () => {
   const now = Date.now();
   for (const party of parties.values()) {
-    if (party.lifecycle && party.lifecycle.status === 'live') {
+    if (!party.isPreParty && party.lifecycle && party.lifecycle.status === 'live') {
       const lastActivity = new Date(party.lifecycle.lastActivityAt || party.createdAt).getTime();
       if (now - lastActivity > 12 * 60 * 60 * 1000) {
         party.lifecycle.status = 'ended';
@@ -8978,6 +8972,8 @@ setInterval(async () => {
     const result = await Party.updateMany(
       {
         endedAt: null,
+        isPreParty: { $ne: true },
+        "lifecycle.status": { $ne: "scheduled" },
         $or: [
           { 'lifecycle.lastActivityAt': { $lt: cutoff } },
           { 'lifecycle.lastActivityAt': null, createdAt: { $lt: cutoff } }
