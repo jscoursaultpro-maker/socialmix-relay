@@ -6341,3 +6341,7 @@ body.has-app-banner #toast {
 .v2-context-action-art { color: var(--action-neon); filter: drop-shadow(0 0 5px var(--action-neon)); }
 .v2-context-action-art svg { stroke-width: 2; }
 .v2-context-action strong { color: #fff; text-shadow: 0 1px 5px #0008; }
+
+#moi-action-bar + .community-inbox { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; box-sizing: border-box; margin: 0 0 16px; padding: 14px 18px; border: 1px solid #be78ee88; border-radius: 18px; color: white; background: linear-gradient(110deg,#13435488,#42205788); font-weight: 800; }
+#moi-action-bar + .community-inbox[hidden] { display: none; }
+.community-chat-badge { display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 50%; background: #ff4fac; color: white; font-size: 12px; box-shadow: 0 0 10px #ff4fac66; }
