@@ -1491,6 +1491,7 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   res.json({ ok: true, boostCount: sugg.boostCount, suggId });
 });
 
+app.use('/api/party', preparationRouter({ parties, io, buildLightState }));
 app.use('/api/party', partyJoinRouter);
 app.use('/api/party', partySettingsRouter);
 app.use('/api/party', partyPublicInfoRouter);
@@ -3002,7 +3003,6 @@ app.get('/api/deezer/track/:trackId', async (req, res) => {
   }
 });
 
-app.use('/api/party', preparationRouter({ parties, io, buildLightState }));
 
 // ─── POST /api/party/:code/suggestion/:suggId/boost ─────────────────────────
 // Permet à un guest de booster la suggestion d'un autre guest

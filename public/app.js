@@ -464,7 +464,7 @@ function showScreen(name) {
     renderCostumeEntries();
   }
 
-  // ★ Fix popstate — Push history state when navigating away from cockpit
+  // ★ Fix popstate — My Vibe history state when navigating away from cockpit
   // so browser back button returns to cockpit instead of leaving the app
   if (name !== 'cockpit' && name !== 'landing' && name !== 'profile') {
     if (window.history && window.history.pushState) {
@@ -9134,7 +9134,7 @@ function renderSouvenirs() {
         ${delBtn}
       </div>
       `;
-    }).join('') || '<div class="story-empty-state">Les mots partagés dans PUSH apparaîtront ici.</div>';
+    }).join('') || '<div class="story-empty-state">Les mots partagés dans MY VIBE apparaîtront ici.</div>';
     // Section toujours affichée (permet posting même si 0 message)
     msgEl.style.display = '';
   }

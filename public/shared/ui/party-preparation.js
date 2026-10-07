@@ -69,6 +69,7 @@
   async function loadList() {
     list.replaceChildren(node('p','Chargement…','preparation-empty'));
     try {
+      if (!Object.keys(secrets()).length && !(typeof getProfileJwt === 'function' && await getProfileJwt())) { list.replaceChildren(node('p','Connecte-toi pour retrouver tes soirées planifiées.','preparation-empty')); return; }
       const data = await api('scheduled/list','POST',{hostSecrets:Object.values(secrets())});
       list.replaceChildren();
       if (!data.parties.length && !data.invitations?.length) list.append(node('p','Le prochain moment commence par une invitation.','preparation-empty'));

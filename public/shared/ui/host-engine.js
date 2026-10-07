@@ -340,7 +340,7 @@
     try {
       var st = appState();
       if (st) { st.partyCode = code; if ('code' in st) st.code = code; }
-      // Réutilise le setup complet du cockpit invité (câble PUSH / ON AIR / MA LOGE /
+      // Réutilise le setup complet du cockpit invité (câble MY VIBE / ON AIR / MY TOUCH /
       // BEST OF / BACKSTAGE + votes + suggestions + historique). enterCockpit ne connecte
       // pas un second socket et ne déclenche pas une seconde demande d'entrée.
       var ec = (typeof enterCockpit === 'function') ? enterCockpit : (window.enterCockpit || null);
