@@ -40,6 +40,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=20261007-five-univers">
+    <link rel="stylesheet" href="/shared/ui/host-discovery.css?v=20261007-story">
 </head>
 <body>
 
@@ -70,8 +71,11 @@
             <div class="choice-orb choice-orb-a"></div><div class="choice-orb choice-orb-b"></div>
             <img class="choice-logo" src="assets/brand/ahouai-logo.png" alt="AhOuai">
             <p class="choice-kicker">TA SOIRÉE, TON CREW, VOTRE MUSIQUE</p>
-            <h1>Ce soir,<br><span>on fait quoi&nbsp;?</span></h1>
-            <p class="choice-lead">Crée, rejoins ou lance le son. AhOuai s’occupe du reste.</p>
+            <h1>Ce soir,<br><span>c’est chez toi.</span></h1>
+            <p class="choice-lead">Tu lances la musique. Tes invités proposent, réagissent et partagent les moments.</p>
+            <img class="host-story-image" src="/assets/brand/host-party-discovery.jpg" alt="Une soirée entre amis dans une ambiance violet et turquoise" width="640" height="853">
+            <button type="button" id="host-story-open" class="host-story-discover">Voir une soirée en action →</button>
+            <p class="host-story-caption">Tu pilotes. Ton crew participe. Les souvenirs restent.</p>
             <div class="choice-promise"><span>✦</span><p><strong>Tout le monde participe.</strong><br>Pas d’app à installer pour tes invités.</p></div>
           </section>
           <section class="choice-action-panel">
@@ -1430,5 +1434,18 @@
     <script src="/shared/ui/host-engine.js?v=hostengine-1007-parity"></script>
     <!-- ★ On Air host — ENCHAÎNEMENT AUTO + dramaturgie + À SUIVRE -->
     <script src="/shared/ui/host-cockpit.js?v=hostcockpit-15-g3dnd"></script>
+    <dialog id="host-story-dialog" class="host-story-dialog" aria-labelledby="host-story-title">
+      <div class="host-story-head"><img src="/assets/brand/ahouai-logo.png" alt="AhOuai"><button type="button" id="host-story-close" class="host-story-close" aria-label="Fermer la découverte">×</button></div>
+      <div class="host-story-layout">
+        <img src="/assets/brand/host-party-discovery.jpg" alt="La musique rassemble les amis">
+        <section class="host-story-copy" aria-live="polite">
+          <div id="host-story-step" class="host-story-step"></div>
+          <h2 id="host-story-title"></h2><p id="host-story-text"></p>
+          <div id="host-story-example" class="host-story-example"></div>
+          <div class="host-story-actions"><button type="button" id="host-story-next" class="host-story-discover"></button><button type="button" id="host-story-back" class="host-story-back">← Retour</button></div>
+        </section>
+      </div>
+    </dialog>
+    <script src="/shared/ui/host-discovery.js?v=20261007-story"></script>
 </body>
 </html>

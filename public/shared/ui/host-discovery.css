@@ -1,0 +1,21 @@
+.choice-brand-panel {background:radial-gradient(ellipse at 80% 15%,#612ba644,transparent 55%),#070b20}
+.choice-brand-panel h1 {font-size:clamp(42px,4.8vw,76px);line-height:1.02;letter-spacing:-.045em}
+.host-story-image {width:100%;max-width:540px;height:220px;object-fit:cover;object-position:center 35%;border-radius:24px;border:1px solid #b18aff55;box-shadow:0 0 36px #8230ce30;margin:22px 0 16px}
+.host-story-discover {align-self:flex-start;background:linear-gradient(105deg,#d918e8,#7926ff 60%,#635aff);border:1px solid #cea3ff;color:#fff;padding:16px 22px;border-radius:18px;box-shadow:0 0 23px #9529f74a;font:700 15px var(--font);cursor:pointer;min-height:48px}
+.host-story-caption {font:500 13px/1.5 var(--font);color:#c5bfdd;margin:12px 0 0}
+.host-story-dialog {box-sizing:border-box;width:min(920px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:0;border:1px solid #7860bb;background:#080d20;color:#f7f3ff;border-radius:28px;box-shadow:0 0 80px #7926ff33;overflow:auto}
+.host-story-dialog::backdrop {background:#020413d9;backdrop-filter:blur(8px)}
+.host-story-head {display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #ffffff16}
+.host-story-head img {width:130px;height:auto}
+.host-story-close {border:1px solid #665385;background:#19152e;color:#e9dcff;border-radius:50%;width:44px;height:44px;font-size:22px;cursor:pointer}
+.host-story-layout {display:grid;grid-template-columns:1fr 1fr;gap:28px;padding:28px}
+.host-story-layout>img {width:100%;height:380px;object-fit:cover;border-radius:20px}
+.host-story-copy {display:flex;flex-direction:column;justify-content:center}
+.host-story-step {color:#a9dfff;font:700 12px var(--font);letter-spacing:2px}
+.host-story-copy h2 {font:800 clamp(28px,3vw,40px)/1.12 var(--font-display);letter-spacing:-1px;margin:14px 0}
+.host-story-copy h2 span {color:#e884f5}
+.host-story-copy p {color:#c8c0dc;font:400 16px/1.6 var(--font)}
+.host-story-example {padding:16px;background:#1b1630;border:1px solid #6b498e;border-radius:16px;margin:12px 0 24px;font:500 14px/1.5 var(--font);color:#e3d2f5}
+.host-story-actions {display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.host-story-back {background:none;border:0;color:#cbbde5;min-height:44px;font:500 14px var(--font);cursor:pointer;padding:8px}
+@media(max-width:700px){.host-story-image{height:180px;margin-top:14px}.host-story-layout{grid-template-columns:1fr;padding:20px;gap:18px}.host-story-layout>img{height:180px}.host-story-copy h2{font-size:28px}.host-story-dialog{border-radius:22px}.choice-brand-panel h1{font-size:44px}.host-story-discover{width:100%;text-align:center}}
