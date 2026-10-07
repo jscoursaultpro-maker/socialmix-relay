@@ -448,6 +448,7 @@ function showScreen(name) {
     next.scrollTop = 0;
   }
   currentScreen = name;
+  if (name === 'choice') renderChoiceSession();
   if (name === 'hub') { renderMissions(); renderLeaderboard(); }
   
   // Show/hide scroll indicator only on profile screen
@@ -1844,7 +1845,7 @@ function bindProfileHubActions() {
   bindOnce('profile-logout', handleLogout);
 }
 
-async function handleLogout() {
+async function handleLogout(destination) {
   const confirmed = confirm('Te déconnecter d\'AhOuai sur cet appareil ?');
   if (!confirmed) return;
   try {
@@ -1884,7 +1885,11 @@ async function handleLogout() {
     try { sessionStorage.clear(); } catch {}
     if (socket && socket.connected) socket.disconnect();
     if (typeof showToast === 'function') showToast('👋 Déconnecté', 1500);
-    setTimeout(() => { window.location.href = 'https://ahouai.com'; }, 800);
+    setTimeout(() => {
+      window.location.href = destination === 'choice'
+        ? `${window.location.origin}${window.location.pathname}`
+        : 'https://ahouai.com';
+    }, 800);
   } catch (e) {
     console.error('[logout] fail:', e);
     alert('Erreur pendant la déconnexion. Réessaie.');
@@ -6933,6 +6938,49 @@ async function _hasSupabaseSession() {
     const { data } = await _supabaseClient.auth.getSession();
     return !!(data && data.session);
   } catch (e) { return false; }
+}
+
+async function renderChoiceSession() {
+  const box = $('choice-session');
+  const avatar = $('choice-session-avatar');
+  const name = $('choice-session-name');
+  const detail = $('choice-session-detail');
+  const action = $('choice-session-action');
+  if (!box || !avatar || !name || !detail || !action) return;
+  try {
+    if (!_supabaseClient && typeof initSupabaseSSO === 'function') await initSupabaseSSO();
+    const result = _supabaseClient ? await _supabaseClient.auth.getSession() : null;
+    const session = result?.data?.session;
+    const user = session?.user;
+    if (!user) {
+      avatar.textContent = '?';
+      name.textContent = 'Tu n’es pas connecté';
+      detail.textContent = 'Connecte-toi avant de créer ou lancer.';
+      action.textContent = 'SE CONNECTER';
+      action.onclick = () => {
+        const back = encodeURIComponent(`${window.location.origin}${window.location.pathname}`);
+        window.location.href = `https://ahouai.com/login?redirect=${back}`;
+      };
+      return;
+    }
+    const meta = user.user_metadata || {};
+    const displayName = meta.full_name || meta.name || [meta.first_name, meta.last_name].filter(Boolean).join(' ') || user.email || 'Compte AhOuai';
+    const photo = meta.avatar_url || meta.picture || '';
+    avatar.innerHTML = photo
+      ? `<img src="${escHtml(photo)}" alt="">`
+      : escHtml(String(displayName).trim().charAt(0).toUpperCase() || '✓');
+    name.textContent = `Connecté · ${displayName}`;
+    detail.textContent = user.email && user.email !== displayName ? user.email : 'Ton compte AhOuai est actif.';
+    action.textContent = 'SE DÉCONNECTER';
+    action.onclick = () => handleLogout('choice');
+  } catch (error) {
+    console.warn('[choice-session] état de connexion indisponible', error);
+    avatar.textContent = '!';
+    name.textContent = 'Connexion à vérifier';
+    detail.textContent = 'Tu peux continuer ou réessayer.';
+    action.textContent = 'RÉESSAYER';
+    action.onclick = renderChoiceSession;
+  }
 }
 
 // Démarre le host web EN PAGE : connecte le socket (requis par launchHost) puis lance.

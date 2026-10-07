@@ -33,14 +33,15 @@ router.post('/:code/request-join', requireGuestAuth, async (req, res) => {
     const userId = req.currentUser._id;
     const handle = req.currentUser.handle || req.currentUser.firstName || 'Guest';
     const avatarURL = req.currentUser.profilePictureURL || null;
+    const email = String(req.currentUser.email || '').toLowerCase();
+    const firstName = req.currentUser.firstName || handle;
+    const lastName = req.currentUser.lastName || '';
 
     const party = await Party.findOne({ code, endedAt: null });
     if (!party) return res.status(404).json({ error: 'PARTY_NOT_FOUND' });
     
-    // Check if visibility is private
-    if (party.visibility === 'private') {
-      return res.status(403).json({ error: 'PARTY_PRIVATE', message: 'This party is private and does not accept join requests' });
-    }
+    // Une soirée privée n'est pas une soirée fermée : elle impose justement
+    // l'accord du host. La confidentialité est assurée par la salle d'attente.
 
     // Check if user is already a participant
     if (party.participants && party.participants.some(p => p.userId && p.userId.toString() === userId.toString())) {
@@ -48,8 +49,9 @@ router.post('/:code/request-join', requireGuestAuth, async (req, res) => {
     }
 
     // Check if a request already exists
-    if (party.joinRequests && party.joinRequests.some(req => req.userId && req.userId.toString() === userId.toString())) {
-      return res.status(400).json({ error: 'REQUEST_PENDING', message: 'Join request already sent' });
+    if ((party.joinRequests && party.joinRequests.some(req => req.userId && req.userId.toString() === userId.toString())) ||
+        (party.pendingGuests && party.pendingGuests.some(req => req.userId && req.userId.toString() === userId.toString()))) {
+      return res.status(200).json({ status: 'pending', alreadyPending: true });
     }
 
     const newRequest = {
@@ -62,12 +64,24 @@ router.post('/:code/request-join', requireGuestAuth, async (req, res) => {
 
     if (!party.joinRequests) party.joinRequests = [];
     party.joinRequests.push(newRequest);
+    if (!party.pendingGuests) party.pendingGuests = [];
+    party.pendingGuests.push({
+      userId,
+      email: email || `${userId}@pending.ahouai.local`,
+      firstName,
+      lastName,
+      requestedAt: newRequest.requestedAt,
+      socketId: null
+    });
     await party.save();
 
     // Emit socket to host
     const io = req.app.get('io');
     if (io) {
       io.to(`host:${code}`).emit('party:joinRequestReceived', newRequest);
+      io.to(`host:${code}`).emit('host:pendingGuestRequest', {
+        userId: userId.toString(), firstName, lastName, email, avatarURL
+      });
     }
 
     // TODO: send APNS push notification when configured
