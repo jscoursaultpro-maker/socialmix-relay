@@ -46,6 +46,22 @@
     for (const quality of [.75,.55,.35,.2]) { const result = canvas.toDataURL('image/jpeg',quality); if(result.length < 665000) return result; }
     throw new Error('Choisis une photo plus légère.');
   }
+  window.cropPartyCover = async dataURL => {
+    const img=new Image(); img.src=dataURL; await img.decode();
+    return new Promise(resolve=>{
+      const modal=node('dialog',null,'cover-crop-dialog');
+      modal.append(node('h2','La bonne photo, le bon cadre'),node('p','Zoome et ajuste le cadrage de ta couverture.'));
+      const canvas=node('canvas');canvas.width=960;canvas.height=600;modal.append(canvas);
+      const values={zoom:1,x:.5,y:.5};
+      function draw(){const scale=Math.max(960/img.width,600/img.height)*values.zoom;const w=img.width*scale,h=img.height*scale;canvas.getContext('2d').drawImage(img,(960-w)*values.x,(600-h)*values.y,w,h);}
+      for(const [key,title,min,max,step] of [['zoom','Zoom',1,3,.01],['x','Position horizontale',0,1,.01],['y','Position verticale',0,1,.01]]){
+        const label=node('label',title),input=node('input');input.type='range';input.min=min;input.max=max;input.step=step;input.value=values[key];input.oninput=()=>{values[key]=Number(input.value);draw();};label.append(input);modal.append(label);
+      }
+      let finished=false;function finish(value){if(finished)return;finished=true;modal.close();modal.remove();resolve(value);}
+      modal.addEventListener('cancel',event=>{event.preventDefault();finish(null);});
+      const actions=node('div',null,'preparation-actions');actions.append(button('Annuler',()=>finish(null)),button('Utiliser ce cadrage',()=>finish(canvas.toDataURL('image/jpeg',.8))));modal.append(actions);document.body.append(modal);modal.showModal();draw();
+    });
+  };
   window.scheduleCurrentParty = async () => {
     if (busy) return;
     const date = new Date(byId('cd-date').value);
@@ -140,7 +156,7 @@
     const message=field('Un mot pour tes invités',node('textarea'));message.value=p.welcomeText || '';message.maxLength=500;
     const file=field('Changer la photo',node('input'));file.type='file';file.accept='image/*';let cover=p.coverPhoto;
     let processingPhoto=false;
-    file.onchange=async()=>{const selected=file.files[0];if(!selected)return;if(selected.size>15*1024*1024){file.value='';return notify('Choisis une photo de moins de 15 Mo.');}try{processingPhoto=true;const reader=new FileReader();reader.onerror=()=>{processingPhoto=false;notify("Impossible de lire cette photo.");};reader.onload=async()=>{try{cover=await compressedCover(reader.result);}catch(e){notify(e);}finally{processingPhoto=false;}};reader.readAsDataURL(selected);}catch(e){notify(e);}};
+    file.onchange=async()=>{const selected=file.files[0];if(!selected)return;if(selected.size>15*1024*1024){file.value='';return notify('Choisis une photo de moins de 15 Mo.');}try{processingPhoto=true;const reader=new FileReader();reader.onerror=()=>{processingPhoto=false;notify("Impossible de lire cette photo.");};reader.onload=async()=>{try{const cropped=await window.cropPartyCover(reader.result);if(cropped)cover=await compressedCover(cropped);}catch(e){notify(e);}finally{processingPhoto=false;}};reader.readAsDataURL(selected);}catch(e){notify(e);}};
     dialog.append(form);const actions=node('div',null,'preparation-actions');actions.append(button('Annuler',renderParty),button('Enregistrer',()=>{if(processingPhoto)return notify('La photo est en cours de préparation.');const d=new Date(date.value);if(!Number.isFinite(d.getTime())||d<=new Date())return notify('Choisis une date à venir.');mutate('',{partyName:name.value,scheduledFor:d.toISOString(),welcomeText:message.value,coverPhoto:cover},'PATCH');}));dialog.append(actions);
   }
   window.loadScheduledParties = loadList;

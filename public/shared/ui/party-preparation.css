@@ -24,3 +24,5 @@
 .community-messages{max-height:35dvh;overflow-y:auto;display:grid;gap:8px;margin-top:18px}.community-messages p{padding:14px;border-radius:16px;background:rgba(86,102,172,.14);white-space:pre-wrap;overflow-wrap:anywhere}.community-messages button{margin-left:12px;font-size:11px;padding:5px 9px;min-height:32px}
 .community-inbox{margin:14px 16px}.community-inbox[hidden]{display:none}
 @media(max-width:600px){.community-dialog{padding:20px;max-height:92dvh;border-radius:22px}.community-dialog .preparation-person{flex-wrap:wrap}}
+
+.cover-crop-dialog{width:min(90vw,540px);max-height:90dvh;overflow:auto;padding:24px;border:1px solid #7753b0;border-radius:24px;background:#10152d;color:white}.cover-crop-dialog::backdrop{background:#040816dd}.cover-crop-dialog canvas{width:100%;height:auto;border-radius:16px}.cover-crop-dialog label{display:block;margin:18px 0}.cover-crop-dialog input{display:block;width:100%;accent-color:#21d9d1}.cover-crop-dialog button{min-height:44px;padding:12px;border-radius:12px;background:#6844c7;color:white;border:0}

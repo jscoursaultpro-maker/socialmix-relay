@@ -6202,7 +6202,7 @@ body.kb-open .bottom-nav {
 /* Le bandeau d'ouverture de l'app réserve sa place : aucun header/toast ne se chevauche. */
 body.has-app-banner #cockpit-screen,
 body.has-app-banner #landing-screen,
-body.has-app-banner #pre-party {
+body.has-app-banner #pre-party-screen {
   padding-top: 72px;
 }
 
@@ -6299,3 +6299,14 @@ body.has-app-banner #toast {
 .party-qr-action-primary{border-color:transparent;background:linear-gradient(115deg,#81d8dc,#b6a5e8 55%,#e95c9b);color:#071124;box-shadow:0 8px 28px rgba(182,165,232,.2);}
 .party-qr-close{width:100%;margin-top:8px;color:rgba(235,233,246,.56);}
 @media(max-width:380px){.party-qr-card{padding:22px 17px 16px}.party-qr-render{width:204px;height:204px}.party-qr-render :is(canvas,img){width:180px!important;height:180px!important}.party-qr-actions{grid-template-columns:1fr}}
+
+/* Invitation Guest : une vraie entrée dans la soirée. */
+#pre-party-screen { background: radial-gradient(ellipse at top left,#0b3542 0,transparent 55%),radial-gradient(ellipse at top right,#271638 0,transparent 60%),#080e20; }
+#pre-party-screen .landing-container { width:100%; max-width:540px; height:auto; min-height:100dvh; padding:30px 24px 48px; justify-content:flex-start; box-sizing:border-box; }
+.pre-party-wordmark { width:170px; height:auto; margin:0 auto 20px; }
+.pre-party-eyebrow { color:#59e4eb; font-size:10px; letter-spacing:2px; margin-bottom:12px; }
+#pre-party-name { font-size:clamp(28px,7vw,40px); line-height:1.12; margin:0 0 16px; }
+#pre-party-screen #pre-party-host { letter-spacing:0; color:#cba6ff; }
+#pre-party-screen #pre-party-cover-container { max-width:100%!important; aspect-ratio:16/10!important; }
+#pre-party-screen #pre-party-prepare-btn { background:linear-gradient(110deg,#21d9d1,#8050ff,#ff3b9d)!important; color:white!important; }
+#pre-party-countdown { font-size:clamp(20px,6vw,32px)!important; }

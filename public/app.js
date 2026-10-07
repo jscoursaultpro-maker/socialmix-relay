@@ -612,46 +612,10 @@ async function setupLanding(activeCode) {
         if (meta.isPreParty) {
           state.isPreParty = true;
           
-          $('pre-party-host').textContent = `AVEC ${meta.hostName || 'DJ'}`;
-          if (meta.welcomeText) {
-            $('pre-party-text').textContent = `"${meta.welcomeText}"`;
-          }
-          if (meta.coverPhoto) {
-            $('pre-party-cover').src = meta.coverPhoto;
-            $('pre-party-cover-container').style.display = 'block';
-          }
-          
-          if (meta.scheduledFor) {
-            startCountdown(meta.scheduledFor);
-          }
+          renderPrePartyInvitation(meta);
+          watchPreParty(code);
+          $('pre-party-prepare-btn').onclick = () => showOnboarding(code);
 
-          if (meta.guests) {
-            updatePrePartyTrombinoscope(meta.guests, meta.hostProfile);
-          }
-          
-          $('pre-party-prepare-btn').addEventListener('click', () => {
-            showOnboarding(code);
-          });
-          
-          // Check auto-refresh to transition to live party
-          setInterval(async () => {
-             const r = await fetch(`/api/party/${code}/meta`);
-             if (r.ok) {
-               const m = await r.json();
-               if (!m.isPreParty && state.isPreParty) {
-                 // The party just started!
-                 state.isPreParty = false;
-                 // If user is already on pre-party screen or profile, they can just proceed
-                 if (currentScreen === 'pre-party') {
-                   if (state.prePartyRegistered) enterCockpitFromOnboarding();
-                   else showOnboarding(code);
-                 }
-               } else if (m.isPreParty) {
-                 updatePrePartyTrombinoscope(m.guests, m.hostProfile);
-               }
-             }
-          }, 15000); // Check every 15s
-          
           showScreen('pre-party');
           return true;
         }
@@ -2319,15 +2283,8 @@ function setupCodeScreen() {
         const meta = await res.json();
         if (meta.isPreParty) {
           state.isPreParty = true;
-          $('pre-party-host').textContent = `AVEC ${meta.hostName || 'DJ'}`;
-          if (meta.welcomeText) $('pre-party-text').textContent = `"${meta.welcomeText}"`;
-          if (meta.coverPhoto) {
-            $('pre-party-cover').src = meta.coverPhoto;
-            $('pre-party-cover-container').style.display = 'block';
-          }
-          if (meta.scheduledFor) startCountdown(meta.scheduledFor);
-          if (meta.guests) updatePrePartyTrombinoscope(meta.guests, meta.hostProfile);
-          
+          renderPrePartyInvitation(meta);
+          watchPreParty(code);
           showScreen('pre-party');
           if (!socket || !socket.connected) {
             connectToRelay();
@@ -7277,8 +7234,14 @@ document.addEventListener('change', function (ev) {
   var f = ev.target.files && ev.target.files[0]; if (!f) return;
   if (f.size > 3 * 1024 * 1024) { try { showToast('Image trop lourde (max 3 Mo)', 3000); } catch (e) {} ev.target.value = ''; return; }
   var rd = new FileReader();
-  rd.onload = function (e) {
-    _createCoverB64 = (e.target && e.target.result) || null;
+  rd.onload = async function (e) {
+    const raw = (e.target && e.target.result) || null;
+    if (!raw) return;
+    try {
+      const cropped = window.cropPartyCover ? await window.cropPartyCover(raw) : raw;
+      if (!cropped) return;
+      _createCoverB64 = cropped;
+    } catch (_) { showToast("Impossible de préparer cette photo.", 4000); return; }
     var pv = document.getElementById('cd-cover-preview');
     if (pv && _createCoverB64) { pv.src = _createCoverB64; pv.style.display = 'block'; }
   };
@@ -7287,35 +7250,59 @@ document.addEventListener('change', function (ev) {
 
 document.addEventListener('DOMContentLoaded', init);
 
-function startCountdown(dateString) {
-  const target = new Date(dateString).getTime();
-  const el = document.getElementById('pre-party-countdown');
-  
-  if (!el || isNaN(target)) return;
-  
-  function update() {
-    const now = Date.now();
-    const diff = target - now;
-    
-    if (diff <= 0) {
-      el.textContent = "00:00:00";
-      return;
-    }
-    
-    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const s = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    el.textContent = 
-      String(h).padStart(2, '0') + ':' + 
-      String(m).padStart(2, '0') + ':' + 
-      String(s).padStart(2, '0');
-  }
-  
-  update();
-  setInterval(update, 1000);
+var prePartyCountdownTimer = null;
+var prePartyRefreshTimer = null;
+function renderPrePartyInvitation(meta) {
+  $('pre-party-name').textContent = meta.partyName || 'On se retrouve bientôt.';
+  const name = meta.hostProfile?.name || meta.hostName;
+  $('pre-party-host').textContent = name && name !== 'DJ' ? `Une invitation de ${name}` : 'Une soirée à partager ensemble';
+  $('pre-party-text').textContent = meta.welcomeText || 'On se retrouve, on partage nos sons, on crée des souvenirs.';
+  $('pre-party-cover').src = meta.coverPhoto || '/assets/brand/host-party-discovery.jpg';
+  $('pre-party-cover').alt = meta.partyName || 'Votre prochaine soirée';
+  $('pre-party-cover-container').style.display = 'block';
+  startCountdown(meta.scheduledFor);
+  updatePrePartyTrombinoscope(meta.guests || [], meta.hostProfile);
+  if (!meta.guests?.length && !meta.hostProfile) $('pre-party-trombi').textContent = 'Les premières inscriptions apparaîtront ici.';
 }
-
+function watchPreParty(code) {
+  clearInterval(prePartyRefreshTimer);
+  let fetching = false;
+  prePartyRefreshTimer = setInterval(async () => {
+    if (fetching || document.hidden || !state.isPreParty || state.partyCode !== code) return;
+    fetching = true;
+    try {
+      const response = await fetch(`/api/party/${encodeURIComponent(code)}/meta`, {cache:'no-store'});
+      if (!response.ok) return;
+      const meta = await response.json();
+      if (meta.isPreParty) renderPrePartyInvitation(meta);
+      else if (meta.status === 'live' || meta.status === 'active') {
+        state.isPreParty = false;
+        clearInterval(prePartyRefreshTimer); clearInterval(prePartyCountdownTimer);
+        if (currentScreen === 'pre-party') {
+          // Repasser par l’admission normale : une inscription n’est pas une autorisation d’entrée.
+          showToast('La soirée est ouverte. Retrouve tes amis !', 4000);
+          showOnboarding(code);
+        }
+      }
+    } catch (_) { /* Conserver l’invitation et réessayer après une coupure réseau. */ }
+    finally { fetching = false; }
+  }, 5000);
+}
+function startCountdown(dateString) {
+  clearInterval(prePartyCountdownTimer);
+  const target = dateString ? new Date(dateString).getTime() : NaN;
+  const el = $('pre-party-countdown'), label = $('pre-party-countdown-label');
+  if (!el) return;
+  function update() {
+    if (!Number.isFinite(target)) { label.textContent='RENDEZ-VOUS'; el.textContent='Date à confirmer'; return; }
+    const diff = target - Date.now();
+    if (diff <= 0) { label.textContent='ON SE RETROUVE BIENTÔT'; el.textContent='En attendant l’ouverture par l’hôte'; return; }
+    label.textContent='RENDEZ-VOUS DANS';
+    const seconds=Math.ceil(diff/1000), days=Math.floor(seconds/86400);
+    el.textContent=(days ? `${days} j · ` : '') + [Math.floor(seconds%86400/3600),Math.floor(seconds%3600/60),seconds%60].map(v=>String(v).padStart(2,'0')).join(':');
+  }
+  update(); prePartyCountdownTimer=setInterval(update,1000);
+}
 
 // ═══════════════════════════════════════════
 // END OF PARTY HELPERS
