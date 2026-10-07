@@ -17,17 +17,19 @@
   async function action(path,body,after){if(busy)return;busy=true;dialog.querySelectorAll('button').forEach(b=>b.disabled=true);try{const d=await api(path,'POST',body);if(d.message?.text)toast('Message envoyé.');else if(typeof d.message==='string')toast(d.message);if(after)await after();}catch(e){toast(e);}finally{busy=false;dialog.querySelectorAll('button').forEach(b=>b.disabled=false);}}
   function section(title,items,renderer){dialog.append(node('h2',title));if(!items.length)dialog.append(node('p','Les premiers moments apparaîtront ici.'));items.forEach(renderer);}
   function report(kind,id){const row=node('div');row.className='preparation-actions';row.append(button('Signaler ce contenu',()=>{header('Respecter l’ambiance');dialog.append(node('p','Le premier signalement envoie un avertissement privé. Une récidive alerte l’organisateur. Ton identité n’est pas communiquée à l’invité.'));[['inappropriate','Contenu inapproprié'],['harassment','Harcèlement'],['privacy','Photo ou message sans accord']].forEach(([reason,label])=>dialog.append(button(label,()=>action('/report',{kind,contentId:id,reason},()=>{dialog.close();}))));}));dialog.append(row);}
-  window.openParticipantTouch=async userId=>{try{
-    current=await api(`/touch/${encodeURIComponent(userId)}`);const p=current.person;header(`La Touch de ${p.name}`);
-    if(p.photoURL){const image=node('img');image.src=p.photoURL;image.alt=p.name;image.className='community-profile-photo';dialog.append(image);}
-    dialog.append(node('p','Ses sons. Ses mots. Les moments qu’il ou elle partage avec vous.'));
-    dialog.append(button('Envoyer un message',()=>openConversation(p)));
-    dialog.append(node('p',`Titres : ${current.songs.length} · Mots : ${current.messages.length} · Photos : ${current.photos.length}`));
-    section('Ses titres',current.songs,x=>{dialog.append(node('p',`${x.title} · ${x.artist} · ${x.boostCount||0} boosts · ${x.status==='played'?'Joué':['pending','queued','next'].includes(x.status)?'À venir':'Proposé'}`));if(x.canBoost)dialog.append(button('Booster sa proposition',async()=>{await boostSuggestion(x.id,x.title);await window.openParticipantTouch(userId);}));});
-    section('Ses mots',current.messages,x=>{dialog.append(node('p',x.message));});
-    section('Ses photos',current.photos,x=>{const img=node('img');img.src=x.url;img.alt=x.caption||'Moment partagé';img.className='preparation-cover';dialog.append(img);});
-    if(!dialog.open)dialog.showModal();
-  }catch(e){toast(e);}};
+  function renderTouch(mount,t,reload){const own=t.isOwn;const p=t.person;const title=(mine,theirs)=>own?mine:theirs;
+    if(mount!==dialog)mount.append(node('h2',own?'My Touch':`My Touch de ${p.name}`));
+    if(p.photoURL){const img=node('img');img.src=p.photoURL;img.alt=p.name;img.className='community-profile-photo';mount.append(img);}
+    if(!own)mount.append(button('Envoyer un message privé',()=>{header(`Message à ${p.name}`);if(!dialog.open)dialog.showModal();openConversation(p);}));
+    const section=(label,items,render)=>{mount.append(node('h3',label));if(!items.length)mount.append(node('p','Les premiers moments apparaîtront ici.'));items.forEach(render);};
+    section(title('Mes favoris · mes feux','Ses favoris · ses feux'),t.favorites||[],x=>mount.append(node('p',`🔥 ${x.title} · ${x.artist} · ${x.fireCount} feux dans la soirée`)));
+    section(title('Mes suggestions','Ses suggestions'),t.songs,x=>{mount.append(node('p',`${x.title} · ${x.artist} · ${x.boostCount||0} boosts · ${{played:'Joué',pending:'En attente',queued:'Dans la file',next:'À suivre',rejected:'Non retenu',skipped:'Passé'}[x.status]||'Proposé'}`));if(x.canBoost)mount.append(button('Booster sa proposition',async()=>{await boostSuggestion(x.id,x.title);await reload();}));});
+    const like=(kind,x)=>button(`${x.liked?'♥ Aimé':'♡ J’aime'} · ${x.likeCount||0}`,()=>action('/like',{kind,contentId:x.id,liked:!x.liked},reload));
+    section(title('Mes mots','Ses mots'),t.messages,x=>{mount.append(node('p',x.message));if(!own)mount.append(like('message',x));else mount.append(node('p',`♥ ${x.likeCount||0}`));});
+    section(title('Mes photos','Ses photos'),t.photos,x=>{const img=node('img');img.src=x.url;img.alt=x.caption||'Moment partagé';img.className='preparation-cover';mount.append(img);if(!own)mount.append(like('photo',x));else mount.append(node('p',`♥ ${x.likeCount||0}`));});
+  }
+  window.openParticipantTouch=async userId=>{try{current=await api(`/touch/${encodeURIComponent(userId)}`);header(current.isOwn?'My Touch':`My Touch de ${current.person.name}`);renderTouch(dialog,current,()=>window.openParticipantTouch(userId));if(!dialog.open)dialog.showModal();}catch(e){toast(e);}};
+  window.mountOwnMyTouch=async mount=>{try{const me=await api();const t=await api(`/touch/${encodeURIComponent(me.me)}`);if(!mount.isConnected)return;mount.replaceChildren();renderTouch(mount,t,()=>window.mountOwnMyTouch(mount));}catch(e){mount.replaceChildren(node('p',e.message));}};
   async function openConversation(p){header(`Message à ${p.name}`);dialog.append(node('p','Seuls vous deux pouvez lire cet échange.'));
     const messages=node('div');messages.className='community-messages';dialog.append(messages);const input=node('textarea');input.maxLength=1000;input.placeholder='Ton message…';input.setAttribute('aria-label','Ton message');dialog.append(input);
     const refresh=async()=>{if(!dialog.open)return;try{const d=await api();messages.replaceChildren();d.messages.filter(m=>(m.senderId===d.me&&m.targetId===p.userId)||(m.targetId===d.me&&m.senderId===p.userId)).forEach(m=>{const row=node('p',`${m.senderId===d.me?'Toi':p.name} · ${m.text}`);messages.append(row);if(m.senderId!==d.me)row.append(button('Signaler',()=>{header('Signaler ce message privé');[['inappropriate','Inapproprié'],['harassment','Harcèlement']].forEach(([reason,label])=>dialog.append(button(label,()=>action('/report',{kind:'private_message',contentId:m.id,reason},()=>openConversation(p))))); }));});}catch(e){clearInterval(poll);toast(e);}};

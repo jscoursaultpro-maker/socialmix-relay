@@ -21,10 +21,12 @@ test('one warning per distinct content, escalation, rate limits and scoped expir
 test('private inbox isolation, actual content ownership, host decisions and access revocation',async()=>{
   const alice={userId:'a',id:'sa',name:'Alice',sessionToken:'token-a',connected:true};
   const bob={userId:'b',id:'sb',name:'Bob',sessionToken:'token-b',connected:true};
-  const p={code:'ABC123',hostSecret:'secret-host',participants:[alice,bob,{userId:'h',id:'sh',name:'Host',isHost:true}],messages:[{id:'m1',authorUserId:'b',message:'word'},{id:'m2',authorUserId:'b',message:'second'}],photos:[],suggestions:[]};
-  const doc={communityReports:[],communityRestrictions:[],privateMessages:[]}; const events=[];
+  const p={code:'ABC123',hostSecret:'secret-host',participants:[alice,bob,{userId:'h',id:'sh',name:'Host',isHost:true}],messages:[{id:'m1',authorUserId:'b',message:'word'},{id:'m2',authorUserId:'b',message:'second'}],photos:[],suggestions:[{id:"s1",guestId:"b",title:"Song",artist:"Artist",status:"queued"}],guestVotes:{sb:{Song:"fire"}},trackHistory:[{title:"Song",artist:"Artist"}]};
+  const doc={communityLikes:[],communityReports:[],communityRestrictions:[],privateMessages:[]}; const events=[];
   const PartyModel={findOne(){return{select(){return this},async lean(){return structuredClone(doc)}}},async updateOne(q,u){
     for(const [key,value] of Object.entries(u.$push||{}))doc[key].push(structuredClone(value));
+    if(u.$addToSet?.communityLikes&&!doc.communityLikes.some(x=>JSON.stringify(x)===JSON.stringify(u.$addToSet.communityLikes)))doc.communityLikes.push(u.$addToSet.communityLikes);
+    if(u.$pull?.communityLikes)doc.communityLikes=doc.communityLikes.filter(x=>JSON.stringify(x)!==JSON.stringify(u.$pull.communityLikes));
     if(u.$set?.communityRestrictions)doc.communityRestrictions=structuredClone(u.$set.communityRestrictions);
     if(u.$set?.['communityReports.$[r].status'])doc.communityReports.forEach(r=>r.status='reviewed');
     if(u.$pull?.communityRestrictions)doc.communityRestrictions=doc.communityRestrictions.filter(x=>x.userId!==u.$pull.communityRestrictions.userId);
@@ -38,6 +40,16 @@ test('private inbox isolation, actual content ownership, host decisions and acce
     assert.equal((await request('',undefined,{})).status,403);
     assert.equal((await request('',undefined,{Authorization:'Bearer invalid'})).status,401);
     assert.equal((await request('/decision',{userId:'b',action:'permanent'})).status,403);
+    assert.equal((await request('/like',{kind:'message',contentId:'missing',liked:true})).status,400);
+    assert.equal((await request('/like',{kind:'message',contentId:'m1',liked:true})).status,200);
+    await request('/like',{kind:'message',contentId:'m1',liked:true});
+    let profile=(await request('/touch/b')).body;
+    assert.equal(profile.messages[0].likeCount,1);assert.equal(profile.messages[0].liked,true);
+    assert.equal(profile.favorites[0].title,'Song');assert.equal(profile.songs[0].status,'queued');assert.equal(profile.songs[0].canBoost,true);
+    assert.equal((await request('/touch/a')).body.isOwn,true);
+    assert.equal((await request('/touch/b',undefined,{'X-Guest-Session':'token-b'})).body.songs[0].canBoost,false);
+    await request('/like',{kind:'message',contentId:'m1',liked:false});assert.equal((await request('/touch/b')).body.messages[0].likeCount,0);
+
     assert.equal((await request('/message',{targetId:'b',text:'Private hello'})).status,200);
     assert.equal((await request()).body.messages.length,1);
     assert.equal((await request('',undefined,{'X-Host-Secret':'secret-host'})).body.messages.length,0);

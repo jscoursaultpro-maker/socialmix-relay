@@ -63,13 +63,33 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
   }));
   router.get('/:code/community/touch/:userId',route(async(req,res)=>{
     const {p,me}=await context(req);const uid=req.params.userId;
-    const person=(p.participants||[]).find(x=>String(x.userId)===uid && !x.departedAt);
+    const person=(p.participants||[]).find(x=>String(x.userId)===uid&&!x.departedAt);
     if(!person)throw new Error('Cette personne n’est plus présente.');
-    const author=x=>String(x.authorUserId || x.suggestedByUser?.userId || x.guestId || '')===uid;
-    res.json({person:{userId:uid,name:person.name,photoURL:person.photo || null},
-      songs:(p.suggestions||[]).filter(author).map(x=>({id:x.id,title:x.title,artist:x.artist,status:x.status,boostCount:x.boostCount||0,canBoost:['pending','queued','next'].includes(x.status)&&uid!==String(me.userId)&&!(x.boostedBy||[]).some(id=>[String(me.userId),me.id].includes(String(id)))})),
-      messages:(p.messages||[]).filter(author).map(x=>({id:x.id,message:x.message})),
-      photos:(p.photos||[]).filter(x=>author(x)&&!x.deletedAt).map(x=>({id:String(x.id||x._id||x.publicId||x.url),url:x.url||x.dataURL,caption:x.caption}))});
+    const identity=new Set([uid,person.id].filter(Boolean).map(String));if(person.isHost)identity.add('host');
+    const author=x=>identity.has(String(x.authorUserId||x.suggestedByUser?.userId||x.guestId||''));
+    const doc=await PartyModel.findOne({code:p.code}).select('communityLikes').lean();
+    const likes=doc?.communityLikes||[];
+    const reaction=(kind,id)=>{const rows=likes.filter(x=>x.kind===kind&&x.contentId===String(id));return {likeCount:rows.length,liked:rows.some(x=>x.userId===String(me.userId))}};
+    const votes=Object.assign({},...Array.from(identity).map(id=>p.guestVotes?.[id]||{}));
+    const tracks=[...(p.trackHistory||[]),p.currentTrack].filter(Boolean);
+    const favorites=Object.entries(votes).filter(([title,vote])=>vote==='fire').map(([title])=>{
+      const track=tracks.find(x=>x.title===title||String(x.id)===title)||{};
+      return {id:String(track.id||title),title:track.title||title,artist:track.artist||'',fireCount:Object.values(p.guestVotes||{}).filter(v=>v[title]==='fire').length};
+    });
+    res.json({isOwn:uid===String(me.userId),person:{userId:uid,name:person.name,photoURL:person.photo||null},favorites,
+      songs:(p.suggestions||[]).filter(author).map(x=>({id:x.id,title:x.title,artist:x.artist,status:x.status||'pending',boostCount:x.boostCount||0,canBoost:['pending','queued','next'].includes(x.status)&&uid!==String(me.userId)&&!(x.boostedBy||[]).some(id=>[String(me.userId),me.id].includes(String(id)))})),
+      messages:(p.messages||[]).filter(author).map(x=>({id:x.id,message:x.message,...reaction('message',x.id)})),
+      photos:(p.photos||[]).filter(x=>author(x)&&!x.deletedAt).map(x=>{const id=String(x.id||x._id||x.publicId||x.url);return {id,url:x.url||x.dataURL,caption:x.caption,...reaction('photo',id)}})});
+  }));
+  router.post('/:code/community/like',route(async(req,res)=>{
+    const {p,me}=await context(req);const {kind,contentId,liked}=req.body;
+    if(!['photo','message'].includes(kind)||typeof liked!=='boolean')throw new Error('Réaction invalide.');
+    const list=kind==='photo'?p.photos:p.messages;
+    const item=(list||[]).find(x=>!x.deletedAt&&String(x.id||x._id||x.publicId||x.url)===String(contentId));
+    if(!item)throw new Error('Ce contenu n’est plus disponible.');
+    const reaction={kind,contentId:String(contentId),userId:String(me.userId)};
+    await PartyModel.updateOne({code:p.code},liked?{$addToSet:{communityLikes:reaction}}:{$pull:{communityLikes:reaction}});
+    res.json({ok:true,liked});
   }));
   router.get('/:code/community/reportable',route(async(req,res)=>{
     const {p,me}=await context(req);const items=[];
