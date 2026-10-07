@@ -85,19 +85,19 @@ async function getSpotifyToken() {
   });
 }
 
-function requestSpotifySearch(isrc, token) {
+function requestSpotifySearchRaw(query, token) {
   return new Promise((resolve, reject) => {
-    const query = querystring.escape(`isrc:${isrc}`);
+    const encoded = querystring.escape(query);
     const options = {
       hostname: 'api.spotify.com',
-      path: `/v1/search?type=track&q=${query}&limit=1`,
+      path: `/v1/search?type=track&q=${encoded}&limit=5`,
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
         'User-Agent': 'AhOuai/1.0 (contact@ahouai.com)'
       }
     };
-    
+
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
@@ -108,6 +108,58 @@ function requestSpotifySearch(isrc, token) {
     req.on('error', reject);
     req.end();
   });
+}
+
+function requestSpotifySearch(isrc, token) {
+  return requestSpotifySearchRaw(`isrc:${isrc}`, token);
+}
+
+// Normalize title for comparison: lowercase, strip common suffixes like "(Remastered)", "- Live", "(2024 Remaster)"
+function normalizeForMatch(s) {
+  if (!s) return '';
+  return s.toLowerCase()
+    .replace(/\s*[\(\[].*?[\)\]]\s*/g, ' ')          // remove (...) and [...]
+    .replace(/\s*-\s*(remaster|live|radio edit|mix|version|single|album version).*/i, ' ')
+    .replace(/[^a-z0-9àâäéèêëïîôöùûüÿç ]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function searchSpotifyByTitleArtist(title, artist, token) {
+  if (!title || !artist) return null;
+  // Build a precise fielded query first
+  const q = `track:"${title.replace(/"/g, '')}" artist:"${artist.replace(/"/g, '')}"`;
+  const retry429 = [10000, 30000, 60000];
+  let attempt429 = 0;
+  while (true) {
+    const result = await requestSpotifySearchRaw(q, token);
+    if (result.statusCode === 200) {
+      const items = result.data.tracks?.items || [];
+      if (!items.length) return null;
+      // Confidence check: match on normalized title + artist
+      const normTitle = normalizeForMatch(title);
+      const normArtist = normalizeForMatch(artist);
+      for (const it of items) {
+        const itTitle = normalizeForMatch(it.name);
+        const itArtists = (it.artists || []).map(a => normalizeForMatch(a.name));
+        const titleOk = itTitle === normTitle || itTitle.includes(normTitle) || normTitle.includes(itTitle);
+        const artistOk = itArtists.some(a => a === normArtist || a.includes(normArtist) || normArtist.includes(a));
+        if (titleOk && artistOk) return it;
+      }
+      return null;  // some results but none matched confidently
+    }
+    if (result.statusCode === 429 && attempt429 < retry429.length) {
+      const wait = retry429[attempt429];
+      console.warn(`⚠️ 429 on fallback search! Retry in ${wait/1000}s...`);
+      await sleep(wait);
+      attempt429++;
+      continue;
+    }
+    if (result.statusCode === 401 || result.statusCode === 403) {
+      throw new Error(`🚨 CRITICAL: ${result.statusCode} on fallback. ABORTING.`);
+    }
+    return null;
+  }
 }
 
 async function searchSpotifyByISRC(isrc) {
@@ -176,12 +228,16 @@ async function searchSpotifyByISRC(isrc) {
       $or: [
         { 'providers.spotify.trackId': { $exists: false } },
         { 'providers.spotify.trackId': null }
-      ]
+      ],
+      // Exclure les tracks déjà tentées et marquées notFound
+      'providers.spotify.notFound': { $ne: true }
     }).limit(LIMIT).lean();
 
     console.log(`Total tracks to process this session: ${tracks.length}`);
     const startTime = Date.now();
     let updated = 0;
+    let updatedViaISRC = 0;
+    let updatedViaFallback = 0;
     let notFound = 0;
     let errors = 0;
 
@@ -190,48 +246,84 @@ async function searchSpotifyByISRC(isrc) {
       if (i > 0) {
         await extremeRateLimit();
       }
-      
+
       console.log(`[${i+1}/${tracks.length}] Searching ISRC ${t.isrc} for "${t.title}"...`);
-      
+
       try {
         const data = await searchSpotifyByISRC(t.isrc);
         if (!data) {
           errors++;
           continue;
         }
-        
+
+        let spotifyId = null;
+        let spotifyUri = null;
+        let foundVia = null;
+
         const items = data.tracks?.items;
         if (items && items.length > 0) {
           const trackData = items[0];
-          const spotifyId = trackData.id;
-          const spotifyUri = trackData.uri;
-          
+          spotifyId = trackData.id;
+          spotifyUri = trackData.uri;
+          foundVia = 'isrc';
+        }
+
+        // Fallback title+artist si ISRC n'a rien donné (seul extra appel API)
+        if (!spotifyId && t.title && t.artist) {
+          await extremeRateLimit();  // rate limit avant le 2e appel
+          console.log(`  🔍 Fallback: search by title+artist...`);
+          const token = await getSpotifyToken();
+          const match = await searchSpotifyByTitleArtist(t.title, t.artist, token);
+          if (match) {
+            spotifyId = match.id;
+            spotifyUri = match.uri;
+            foundVia = 'title_artist';
+          }
+        }
+
+        if (spotifyId) {
           if (DRY_RUN) {
-            console.log(`  ✅ [DRY-RUN] Found Spotify ID: ${spotifyId}`);
-            updated++;
+            console.log(`  ✅ [DRY-RUN] Found Spotify ID: ${spotifyId} (via ${foundVia})`);
           } else {
             await Track.updateOne(
               { _id: t._id },
-              { $set: { 
+              { $set: {
                 'providers.spotify.trackId': spotifyId,
                 'providers.spotify.uri': spotifyUri,
+                'providers.spotify.resolvedVia': foundVia,
                 'providersResolvedAt': new Date()
+              },
+              // Au cas où un run précédent avait marqué notFound (données obsolètes)
+              $unset: {
+                'providers.spotify.notFound': '',
+                'providers.spotify.notFoundAt': ''
               }}
             );
-            console.log(`  ✅ Updated DB with Spotify ID: ${spotifyId}`);
-            updated++;
+            console.log(`  ✅ Updated DB: ${spotifyId} (via ${foundVia})`);
           }
+          updated++;
+          if (foundVia === 'isrc') updatedViaISRC++;
+          else updatedViaFallback++;
         } else {
-          console.log(`  ❌ Not found on Spotify.`);
+          console.log(`  ❌ Not found on Spotify (ISRC + title/artist).`);
           notFound++;
+          if (!DRY_RUN) {
+            await Track.updateOne(
+              { _id: t._id },
+              { $set: {
+                'providers.spotify.notFound': true,
+                'providers.spotify.notFoundAt': new Date()
+              }}
+            );
+          }
         }
-        
+
       } catch (err) {
         console.error(`\n🚨 FATAL ERROR: ${err.message}`);
         console.log(`Aborting session to protect the account.`);
         process.exit(1);
       }
-      
+
       if ((i + 1) % 50 === 0 && (i + 1) < tracks.length) {
         console.log(`\n⏳ PAUSE OBLIGATOIRE DE 10 MINUTES après 50 requêtes...`);
         await sleep(10 * 60 * 1000);
@@ -242,8 +334,8 @@ async function searchSpotifyByISRC(isrc) {
     const totalSpotify = await Track.countDocuments({ 'providers.spotify.trackId': { $exists: true } });
 
     console.log(`\n--- SESSION REPORT ---`);
-    console.log(`✅ Spotify IDs found  : ${updated}`);
-    console.log(`❌ Not found on Spot  : ${notFound}`);
+    console.log(`✅ Spotify IDs found  : ${updated}  (ISRC: ${updatedViaISRC}, title+artist: ${updatedViaFallback})`);
+    console.log(`❌ Not found on Spot  : ${notFound}  (marquées notFound, ne reviendront plus)`);
     console.log(`⚠️ Errors / Skipped   : ${errors}`);
     console.log(`⏱️ Duration           : ${durationSeconds}s`);
     console.log(`📊 Global Spotify IDs : ${totalSpotify} tracks have an ID in DB.`);
