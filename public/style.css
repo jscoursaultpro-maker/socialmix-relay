@@ -6331,3 +6331,13 @@ body.has-app-banner #toast {
 .moi-touch-overview .touch-song-row:last-child { margin-bottom: 0; }
 .moi-touch-overview .touch-count { flex-shrink: 0; }
 .moi-overview > .moi-panel { box-sizing: border-box; min-width: 0; border-radius: 24px; padding: 16px; }
+
+/* Neon shortcuts carry the same energy as the My Vibe discovery cards. */
+.v2-context-action { --action-neon: #9b83ff; color: #fff; border-color: var(--action-neon); background: radial-gradient(ellipse at 50% 10%,color-mix(in srgb,var(--action-neon) 32%,transparent),transparent 75%),linear-gradient(150deg,#211946,#10152d); box-shadow: inset 0 1px 0 #ffffff26,inset 0 0 22px color-mix(in srgb,var(--action-neon) 15%,transparent),0 0 12px color-mix(in srgb,var(--action-neon) 18%,transparent); }
+.v2-context-action.v2-action-suggest { --action-neon: #9180ff; color: #fff; }
+.v2-context-action.v2-action-boost { --action-neon: #ff568f; color: #fff; background: radial-gradient(ellipse at 50% 10%,#ff568f55,transparent 75%),linear-gradient(150deg,#571832,#221024); }
+.v2-context-action.v2-action-share { --action-neon: #35e8f1; color: #fff; background: radial-gradient(ellipse at 50% 10%,#35e8f155,transparent 75%),linear-gradient(150deg,#074f66,#0b2238); }
+.v2-context-action.v2-action-trends { --action-neon: #df63ff; color: #fff; background: radial-gradient(ellipse at 50% 10%,#df63ff55,transparent 75%),linear-gradient(150deg,#482063,#231232); }
+.v2-context-action-art { color: var(--action-neon); filter: drop-shadow(0 0 5px var(--action-neon)); }
+.v2-context-action-art svg { stroke-width: 2; }
+.v2-context-action strong { color: #fff; text-shadow: 0 1px 5px #0008; }
