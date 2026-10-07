@@ -1328,17 +1328,18 @@
 
     <!-- ═══ QR CODE MODAL ═══ -->
     <div id="qr-modal" class="modal-overlay hidden" onclick="this.classList.add('hidden')">
-        <div class="modal-card" onclick="event.stopPropagation()">
-            <div class="modal-emoji">📱</div>
-            <h3 class="modal-title">Partager la Soirée</h3>
-            <p class="modal-text" style="margin-bottom: 16px;">Fais scanner ce QR Code à tes amis pour qu'ils rejoignent directement la soirée !</p>
-            <div style="background:white; padding:16px; border-radius:12px; display:inline-block; margin:0 auto;">
-                <img id="qr-code-img" src="" alt="QR Code" style="width:180px; height:180px; display:block;">
+        <div class="modal-card party-qr-card" onclick="event.stopPropagation()">
+            <img class="party-qr-logo" src="/assets/brand/ahouai-logo.png" alt="AhOuai">
+            <div class="party-qr-eyebrow">REJOINS LE MOMENT</div>
+            <h3 class="modal-title">La soirée est ici.</h3>
+            <p class="modal-text">Scanne pour voter, proposer un son et partager tes photos.</p>
+            <div id="qr-code-render" class="party-qr-render" aria-label="QR code de la soirée"></div>
+            <div class="party-qr-code" id="qr-code-text"></div>
+            <div class="party-qr-actions">
+                <button class="party-qr-action" onclick="copyPartyLink()"><span>🔗</span> Copier le lien</button>
+                <button class="party-qr-action party-qr-action-primary" onclick="copyPartyQR()"><span>▦</span> Copier le QR</button>
             </div>
-            <div style="font-size:24px; font-weight:900; letter-spacing:4px; color:#00e0c4; margin-top:16px;" id="qr-code-text"></div>
-            <button class="cta-btn" onclick="document.getElementById('qr-modal').classList.add('hidden')" style="margin-top:20px;">
-                <span>✅</span> FERMER
-            </button>
+            <button class="modal-stay-btn party-qr-close" onclick="document.getElementById('qr-modal').classList.add('hidden')">FERMER</button>
         </div>
     </div>
 

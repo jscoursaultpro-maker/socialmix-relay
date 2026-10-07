@@ -24,7 +24,7 @@ import {
 } from '../helpers/mongo.js';
 
 // ─── Test constants ────────────────────────────────────────────────────────────
-const CODE       = 'T_LIFE01';
+const CODE       = 'QALIFE01';
 const SECRET_A   = 'test-secret-lifecycle-a';
 const SECRET_B   = 'test-secret-lifecycle-b';
 const PROFILE    = { name: 'Test Host', emoji: '🧪', phone: '', email: '', instagram: '' };

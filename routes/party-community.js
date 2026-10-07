@@ -66,7 +66,7 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
     const person=(p.participants||[]).find(x=>String(x.userId)===uid&&!x.departedAt);
     if(!person)throw new Error('Cette personne n’est plus présente.');
     const identity=new Set([uid,person.id].filter(Boolean).map(String));if(person.isHost)identity.add('host');
-    const author=x=>identity.has(String(x.authorUserId||x.suggestedByUser?.userId||x.guestId||''));
+    const author=x=>identity.has(String(x.authorUserId||x.suggestedByUser?.userId||x.requestedBy?.guestId||x.guestId||''));
     const doc=await PartyModel.findOne({code:p.code}).select('communityLikes').lean();
     const likes=doc?.communityLikes||[];
     const reaction=(kind,id)=>{const rows=likes.filter(x=>x.kind===kind&&x.contentId===String(id));return {likeCount:rows.length,liked:rows.some(x=>x.userId===String(me.userId))}};
@@ -76,9 +76,15 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
       const track=tracks.find(x=>x.title===title||String(x.id)===title)||{};
       return {id:String(track.id||title),title:track.title||title,artist:track.artist||'',fireCount:Object.values(p.guestVotes||{}).filter(v=>v[title]==='fire').length};
     });
-    res.json({isOwn:uid===String(me.userId),person:{userId:uid,name:person.name,photoURL:person.photo||null},favorites,
-      songs:(p.suggestions||[]).filter(author).map(x=>({id:x.id,title:x.title,artist:x.artist,status:x.status||'pending',boostCount:x.boostCount||0,canBoost:['pending','queued','next'].includes(x.status)&&uid!==String(me.userId)&&!(x.boostedBy||[]).some(id=>[String(me.userId),me.id].includes(String(id)))})),
-      messages:(p.messages||[]).filter(author).map(x=>({id:x.id,message:x.message,...reaction('message',x.id)})),
+    const suggestions=(p.suggestions||[]).filter(author);
+    const played=tracks.filter(x=>author(x)&&!suggestions.some(s=>s.title===x.title&&s.artist===x.artist));
+    const leaderboard=p.leaderboard||[];
+    let rankIndex=leaderboard.findIndex(x=>identity.has(String(x.userId||x.participantId||x.id)));
+    if(rankIndex<0&&person.name&&p.participants.filter(x=>x.name===person.name).length===1)rankIndex=leaderboard.findIndex(x=>x.name===person.name);
+    const ranking={position:rankIndex<0?null:rankIndex+1,points:rankIndex<0?0:Number(leaderboard[rankIndex].points||leaderboard[rankIndex].score||0)};
+    res.json({ranking,isOwn:uid===String(me.userId),person:{userId:uid,name:person.name,photoURL:person.photo||null},favorites,
+      songs:[...suggestions,...played.map((x,i)=>({...x,id:String(x.id||`played-${i}`),status:'played'}))].map(x=>({id:x.id,title:x.title,artist:x.artist,status:x.status||'pending',boostCount:x.boostCount||0,canBoost:['pending','queued','next'].includes(x.status)&&uid!==String(me.userId)&&!(x.boostedBy||[]).some(id=>[String(me.userId),me.id].includes(String(id)))})),
+      messages:(p.messages||[]).filter(x=>author(x)&&!x.deletedAt).map(x=>({id:x.id,message:x.message,...reaction('message',x.id)})),
       photos:(p.photos||[]).filter(x=>author(x)&&!x.deletedAt).map(x=>{const id=String(x.id||x._id||x.publicId||x.url);return {id,url:x.url||x.dataURL,caption:x.caption,...reaction('photo',id)}})});
   }));
   router.post('/:code/community/like',route(async(req,res)=>{

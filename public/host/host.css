@@ -740,16 +740,15 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="email"]:focus, i
   transition: var(--transition);
 }
 .share-btn:hover { background: rgba(0,212,200,0.18); }
+.share-btn-primary { border-color:transparent;background:linear-gradient(115deg,#81d8dc,#b6a5e8 55%,#e95c9b);color:#071124; }
 
 /* ── QR code ─────────────────────────────────────────────────────────────── */
-.qr-container {
-  text-align: center;
-  padding: 16px;
-}
-.qr-container img {
-  border-radius: 12px;
-  max-width: 160px;
-}
+.host-qr-card { margin-top:14px;padding:20px;text-align:center;border:1px solid rgba(129,216,220,.32);border-radius:22px;background:radial-gradient(circle at 0 0,rgba(74,231,229,.13),transparent 38%),linear-gradient(145deg,rgba(17,23,37,.96),rgba(15,17,36,.96)); }
+.host-qr-logo { width:126px;height:auto;filter:drop-shadow(0 7px 17px rgba(205,50,209,.25)); }
+.host-qr-kicker { margin-top:7px;color:#81d8dc;font-size:10px;font-weight:850;letter-spacing:.2em; }
+.qr-container { text-align:center;width:204px;min-height:204px;margin:14px auto 0;padding:12px;border-radius:18px;background:white;box-shadow:0 14px 34px rgba(0,0,0,.35); }
+.qr-container :is(img,canvas) { display:block!important;width:180px!important;height:180px!important;border-radius:7px; }
+.host-qr-actions { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px; }
 
 /* ── Screen device picker ────────────────────────────────────────────────── */
 .device-list { display: flex; flex-direction: column; gap: 8px; }

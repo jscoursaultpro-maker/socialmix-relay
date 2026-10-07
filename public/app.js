@@ -433,6 +433,11 @@ function clearPartyContext() {
   state.sessionToken = null;
   state.suggestions = [];
   state.trackHistory = [];
+  state.leaderboard = [];
+  state.participantScores = {};
+  _myDataLoaded = false;
+  myTopsData = [];
+  mySugsData = [];
   state.chantier5.screen = null;
   if (state.chantier5.waitingTimer) clearTimeout(state.chantier5.waitingTimer);
 }
@@ -1214,6 +1219,7 @@ function _emitRequestJoin(fn, ln, em) {
     }
     const btn = $('ob-submit');
     if (!res || !res.ok) {
+      if (window._ahouaiHostLaunching) window._ahouaiHostSelfJoined = null;
       // Restore button
       if (btn) { btn.disabled = false; btn.innerHTML = '<span>🎉</span> CONTINUER'; }
       // Handle errors
@@ -1248,6 +1254,14 @@ function _emitRequestJoin(fn, ln, em) {
     }
 
     // Success
+    if (window._ahouaiHostLaunching) {
+      _myDataLoaded = false;
+      setTimeout(() => {
+        loadMyData();
+        renderGuestSuggestions();
+        renderLeaderboard();
+      }, 250);
+    }
     if (res.status === 'approved') {
       // Auto-approved (pre-approved or no waiting room)
       console.log('[C5] Auto-approved → entering cockpit');
@@ -2588,6 +2602,14 @@ function connectToRelay() {
       state.participants = ps.participants;
       updateTrombinoscope(ps.participants);
     }
+    // Le snapshot est une source de vérité à la reconnexion. Sans cette
+    // hydratation, le Web Host restait à 0 jusqu'au prochain gain de points.
+    if (Array.isArray(ps.leaderboard)) {
+      state.leaderboard = ps.leaderboard;
+      const me = ps.leaderboard.find(p => p.id === state.guestId || p.id === state.userId || p.name === state.guestName);
+      if (me) state.missionPoints = Number(me.points || 0);
+      renderLeaderboard();
+    }
     if (ps.photos && ps.photos.length) {
       // ★ Task #103 Gap B fix: Cloudinary photos have .url (not .dataURL).
       // buildLightState strips dataURL > 500 chars, so after reconnect
@@ -2726,6 +2748,16 @@ function connectToRelay() {
 
   // Party ended — show end screen with hub as final page
   socket.on('party:ended', (data) => {
+    const endedAsHost = document.body.classList.contains('ah-host-mode') ||
+      !!(window.AhOuaiHostEngine?.isActive?.());
+    if (endedAsHost) {
+      clearPartyContext();
+      try { sessionStorage.removeItem('ahouai_host_party'); } catch (_) {}
+      try { history.replaceState({}, '', '/'); } catch (_) {}
+      showScreen('choice');
+      showToast('Soirée terminée · Afterglow en préparation', 2600);
+      return;
+    }
     const reason = (data && data.reason) || '🎉 La soirée est terminée !';
     const scores = (data && data.scores) || {};
     const photos = (data && data.photos) || [];
@@ -2873,6 +2905,17 @@ function connectToRelay() {
   // Live score updates
   socket.on('scores:update', (scores) => {
     state.participantScores = scores;
+    // Compatibilité live : certains serveurs/anciens clients émettent d'abord
+    // scores:update. On reconstruit alors le classement sans attendre un second event.
+    const rows = Object.entries(scores || {}).map(([key, value]) => ({
+      id: value?.participantId || (key === 'host' ? 'host' : key),
+      name: value?.name || (key === 'host' ? state.guestName || 'Hôte' : key),
+      points: Number(value?.score || value?.points || 0)
+    })).sort((a, b) => b.points - a.points);
+    if (rows.length) {
+      state.leaderboard = rows;
+      renderLeaderboard();
+    }
   });
 
   // ★ fix(Task #65) — Validation error handler (email manquant/invalide)
@@ -6673,14 +6716,57 @@ function quitParty() {
 function showPartyQR() {
   if (!state.partyCode) return;
   const qrModal = $('qr-modal');
-  const qrImg = $('qr-code-img');
+  const qrRender = $('qr-code-render');
   const qrText = $('qr-code-text');
-  
-  if (qrModal && qrImg && qrText) {
-    const partyUrl = `${inviteOrigin()}/?code=${state.partyCode}`;
-    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(partyUrl)}`;
+
+  if (qrModal && qrRender && qrText) {
+    const partyUrl = partyInviteUrl();
+    qrRender.innerHTML = '';
+    if (typeof QRCode !== 'undefined') {
+      new QRCode(qrRender, {
+        text: partyUrl, width: 200, height: 200,
+        colorDark: '#071124', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } else {
+      const fallback = document.createElement('img');
+      fallback.alt = 'QR code de la soirée';
+      fallback.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(partyUrl)}`;
+      qrRender.appendChild(fallback);
+    }
     qrText.textContent = state.partyCode;
     qrModal.classList.remove('hidden');
+  }
+}
+
+function partyInviteUrl() {
+  return `${inviteOrigin()}/?code=${state.partyCode}`;
+}
+
+async function copyPartyLink() {
+  if (!state.partyCode) return;
+  try {
+    await navigator.clipboard.writeText(partyInviteUrl());
+    showToast?.('Lien copié ✨', 2200);
+  } catch (_) {
+    showToast?.('Impossible de copier le lien', 3200);
+  }
+}
+
+async function copyPartyQR() {
+  const render = $('qr-code-render');
+  const canvas = render?.querySelector('canvas');
+  if (!canvas || typeof ClipboardItem === 'undefined' || !navigator.clipboard?.write) {
+    await copyPartyLink();
+    showToast?.('Lien copié · ton navigateur ne copie pas les images', 3200);
+    return;
+  }
+  try {
+    const blob = await new Promise((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('QR vide')), 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    showToast?.('QR copié ✨', 2200);
+  } catch (_) {
+    await copyPartyLink();
   }
 }
 
@@ -7050,17 +7136,49 @@ function _hostLog(m, lvl) {
   try { if (window.AhOuaiHostEngine && typeof window.AhOuaiHostEngine.log === 'function') window.AhOuaiHostEngine.log(m, lvl); } catch(e) {}
   try { console.log('[host]', m); } catch(e) {}
 }
-function _hostSelfJoin(code) {
+async function _hydrateHostGuestIdentity() {
+  if (state.guestName && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.guestEmail || '')) return true;
+  try {
+    const response = await fetch('/api/me/legacy', { credentials: 'include' });
+    if (response.ok) {
+      const user = await response.json();
+      state.userId = user.userId || state.userId;
+      state.guestName = user.firstName || user.name || state.guestName;
+      state.guestLastName = user.lastName || state.guestLastName || '';
+      state.guestEmail = user.email || state.guestEmail;
+      state.guestEmoji = user.emoji || state.guestEmoji || '🎧';
+      state.guestPhoto = user.photo || state.guestPhoto || null;
+    }
+  } catch (_) {}
+  if ((!state.guestName || !state.guestEmail) && _supabaseClient) {
+    try {
+      const { data } = await _supabaseClient.auth.getSession();
+      const user = data?.session?.user;
+      const meta = user?.user_metadata || {};
+      state.userId = user?.id || state.userId;
+      state.guestName = meta.first_name || meta.given_name || (meta.full_name || meta.name || '').split(' ')[0] || state.guestName;
+      state.guestLastName = meta.last_name || meta.family_name || (meta.full_name || meta.name || '').split(' ').slice(1).join(' ') || state.guestLastName || '';
+      state.guestEmail = user?.email || state.guestEmail;
+      state.guestPhoto = meta.avatar_url || meta.picture || state.guestPhoto || null;
+    } catch (_) {}
+  }
+  if (state.guestName && state.guestEmail) saveProfile();
+  return !!state.guestName && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.guestEmail || '');
+}
+
+async function _hostSelfJoin(code) {
   try {
     code = (code || state.partyCode || '').toString().toUpperCase();
     if (!code) { _hostLog('self-join: pas de code', 'warn'); return; }
     state.partyCode = code;
+    await _hydrateHostGuestIdentity();
     const em = (state.guestEmail || '').trim();
     const fn = (state.guestName || '').trim();
     const ln = (state.guestLastName || '').trim();
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
     if (!emailOk || !fn) {
       _hostLog('self-join IMPOSSIBLE — identité incomplète (email=' + (emailOk ? 'ok' : 'KO') + ' prénom=' + (fn ? 'ok' : 'KO') + ')', 'warn');
+      window._ahouaiHostSelfJoined = null;
       return;
     }
     if (window._ahouaiHostSelfJoined === code) { _hostLog('self-join déjà fait (' + code + ')'); return; }
@@ -7451,8 +7569,7 @@ function renderMoiOverview() {
 
   container.innerHTML = `
     <section class="moi-identity-card"><div class="moi-avatar">${portrait}</div><div class="moi-identity-copy"><strong>${escHtml(state.guestName || 'Moi')}</strong><small>MA SOIRÉE</small><div><b>★ ${points}</b><span>points</span><i></i><b class="moi-rank">♜ ${rank ? '#' + rank : '—'}</b><span>${rank ? 'ce soir' : 'classement'}</span></div></div></section>
-    <section class="moi-panel" id="my-touch-contributions"></section><section class="moi-panel"><h2>♫ MES TITRES CE SOIR</h2><div class="moi-track-filters"><button class="${moiTrackFilter === 'pending' ? 'is-active' : ''}" onclick="setMoiTrackFilter('pending')"><b>${pending}</b>En attente</button><button class="${moiTrackFilter === 'played' ? 'is-active' : ''}" onclick="setMoiTrackFilter('played')"><b>${played.length}</b>Joués</button><button class="${moiTrackFilter === 'support' ? 'is-active' : ''}" onclick="setMoiTrackFilter('support')"><b>${supportable}</b>À soutenir</button></div><div class="moi-track-list">${trackRows}</div></section>
-    <section class="moi-panel moi-circle-panel"><div class="moi-social-title"><span>♟</span><div><small>ICI ET MAINTENANT</small><h2>MES AMIS CE SOIR</h2></div></div><div class="moi-circle-chips">${circlePeople.length ? circlePeople.map(person => `<button type="button" class="moi-circle-chip is-${person.circleState}" onclick="${person.circleState === 'request' ? `openMyFriendsScreen('${escHtml(person.userId)}')` : person.circleState === 'friend' ? `openUniversModal('${escHtml(person.userId)}')` : `sendFriendRequest('${escHtml(person.userId)}','${escHtml(person.name || 'cet invité').replace(/'/g, "\\'")}')`}">${person.photo ? `<img src="${escHtml(person.photo)}" alt="">` : `<span>${escHtml(person.emoji || '✨')}</span>`}<b>${escHtml(person.name || 'Invité')}</b><small>${person.circleState === 'friend' ? 'AMI PRÉSENT' : person.circleState === 'request' ? 'À RÉPONDRE' : '+ RENCONTRE'}</small></button>`).join('') : '<p class="moi-empty">Tes amis de ce soir se font au fil des premières rencontres.</p>'}</div><button type="button" class="moi-circle-open" onclick="openMyFriendsScreen()">VOIR MES AMIS →</button></section>
+    <section class="moi-panel" id="my-touch-contributions"></section><section class="moi-panel moi-circle-panel"><div class="moi-social-title"><span>♟</span><div><small>ICI ET MAINTENANT</small><h2>MES AMIS CE SOIR</h2></div></div><div class="moi-circle-chips">${circlePeople.length ? circlePeople.map(person => `<button type="button" class="moi-circle-chip is-${person.circleState}" onclick="${person.circleState === 'request' ? `openMyFriendsScreen('${escHtml(person.userId)}')` : person.circleState === 'friend' ? `openUniversModal('${escHtml(person.userId)}')` : `sendFriendRequest('${escHtml(person.userId)}','${escHtml(person.name || 'cet invité').replace(/'/g, "\\'")}')`}">${person.photo ? `<img src="${escHtml(person.photo)}" alt="">` : `<span>${escHtml(person.emoji || '✨')}</span>`}<b>${escHtml(person.name || 'Invité')}</b><small>${person.circleState === 'friend' ? 'AMI PRÉSENT' : person.circleState === 'request' ? 'À RÉPONDRE' : '+ RENCONTRE'}</small></button>`).join('') : '<p class="moi-empty">Tes amis de ce soir se font au fil des premières rencontres.</p>'}</div><button type="button" class="moi-circle-open" onclick="openMyFriendsScreen()">VOIR MES AMIS →</button></section>
     <section class="moi-panel moi-univers-panel"><div class="moi-social-title"><span>✦</span><div><small>CE QUI VOUS RELIE</small><h2>MES UNIVERS</h2></div></div><p class="moi-univers-intro">Les amis de ton univers présents ce soir.</p><div class="moi-univers-preview">${universeFriends.length ? universeFriends.map(friend => _universDirectoryCard(friend, true)).join('') : '<button type="button" class="moi-univers-empty" onclick="openMyUniversScreen()"><span>✦</span><b>PERSONNE DE TES UNIVERS CE SOIR</b><small>Retrouve-les tous dans ton profil →</small></button>'}</div><button type="button" class="moi-circle-open" onclick="openMyUniversScreen()">VOIR TOUS MES UNIVERS →</button></section>
     <section class="moi-panel moi-ranking-panel"><h2>🏆 CLASSEMENT</h2><div class="moi-leader-list">${leaderboardRows}</div>${leaderboard.length > 3 ? `<button type="button" class="moi-leader-more" onclick="toggleMoiLeaderboard()">${moiLeaderboardExpanded ? 'Réduire ↑' : 'Voir le classement →'}</button>` : ''}</section>`;
   window.mountOwnMyTouch?.(container.querySelector('#my-touch-contributions'));
@@ -7478,10 +7595,9 @@ let diapoControlsTimer = null;
 const DIAPO_CONTROLS_HIDE_MS = 5000;
 const DIAPO_DURATION_MS = 6000;
 const DIAPO_CTA_MESSAGES = [
-  'Rejoins cette soirée maintenant !',
-  'Télécharge AhOuai pour ne rien manquer',
-  'Scanne le QR pour voter et partager 📸',
-  'Prends une photo et apparais ici !'
+  'Rejoins le moment',
+  'Scanne pour voter et partager',
+  'Partage ta photo'
 ];
 
 /**

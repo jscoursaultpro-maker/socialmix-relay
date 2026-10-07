@@ -49,3 +49,42 @@ Ce document distingue code intégré, livraison et validation fonctionnelle. Un 
 - [ ] Décider du retrait du sélecteur A/B et du badge Beta après validation ; encore présents.
 
 Aucun parcours Host ou Guest n'est déclaré entièrement achevé avant les validations ouvertes ci-dessus.
+
+## Réconciliation du handoff fourni par Jean-Sé
+
+Le handoff décrit un état antérieur. L'intégration entrée/auth dans le dépôt Xcode est déjà faite (9275532 et évolutions suivantes). Ne pas réappliquer ios-entry-auth.patch aveuglément. Les builds complets du scheme AhOuai ont réussi depuis le problème de dépendances du checkout isolé.
+
+Le catalogue d'assets réel contient AhOuaiWordmark.imageset et AppIcon.appiconset/icon_1024.png. Le nom icon_1024-brand.png du handoff ne doit pas être imposé : vérifier le contenu et Contents.json plutôt que le seul nom.
+
+- [ ] Comparer au vrai Relay les changements du checkout /Users/Jean-Sebastien/Documents/Codex/ahouai-final-round/relay-server : 65a5dd9 (rôle guest et diaporama), c6cc4e0 (QR), e792468 (Bangers/propositions/scores Host). Ces SHA ne figurent pas dans l'historique récent du vrai Relay ; certains comportements peuvent déjà avoir été repris autrement. Intégrer uniquement les différences utiles sans écraser les nouveaux parcours.
+- [ ] Comparer les premiers commits iOS du handoff avec le vrai dépôt : persistance suggestions, scores Int, déduplication, file 6 titres et Voir plus, placement Enchaînement automatique / À suivre, QR et diaporama. Confirmer comportement par comportement, pas uniquement par SHA.
+- [ ] Tester un Host et au moins deux Guests : suggestion Envoyée après changement d'onglet et reconnexion, Mes suggestions avant crew, boosts persistants, scores directs, classement après reconnexion, aucun doublon.
+- [ ] Tester le titre promu par Host comme prochain morceau ; file de 6 titres puis Voir plus ; Terminer depuis facette B ferme réellement la soirée et renvoie les invités à l'accueil.
+- [ ] Tester copie et partage du lien/QR sur toutes les facettes et présence du CTA quitter diaporama en portrait/paysage.
+- [ ] Tester démarrage Web Host YouTube et Spotify sur le vrai dépôt actuel, propositions/Bangers et scores en bout en bout.
+- [ ] Tester visibilité privée/amis/publique, sortie de salle d'attente, absence de requestJoin fantôme et état connecté/déconnecté.
+- [ ] Tester persistance des suggestions après redémarrage serveur.
+- [ ] Vérifier pochettes Bangers ET First Taste sur toutes les facettes.
+- [ ] QA visuelle iPhone connexion, accueil, choix, création, My Vibe, On Air, My Touch, Best Of, Backstage Host, QR, diaporama : contraste, texte, safe areas, petits écrans, troncatures ; 4 onglets Guest, 5 Host.
+- [ ] Après livraison : vérifier version réellement servie et logs Render ; ne pas confondre push réussi avec déploiement terminé.
+
+### Nouveau point à cadrer : GET /api/sitemap
+- [ ] Définir Hosts publics/indexables, soirées exposables, correspondance base62/code, limites/pagination et protection des soirées privées.
+- [ ] Développer et tester l'endpoint une fois ces règles établies. Il n'est pas livré et ne fait pas partie des corrections déjà réalisées.
+
+La consigne de non-déploiement contenue dans l'ancien handoff décrit son état de validation d'alors. Les autorisations explicites ultérieures de Jean-Sé de pousser ce qui est prêt restent le contexte de livraison ; cette lecture du handoff n'a déclenché aucun push ni déploiement.
+
+## Exécution autonome — avancement complémentaire
+
+- [x] My Touch personnel : sections favoris feu, titres joués, titres en attente, messages publiés, photos publiées et classement ajoutées au Web et au cockpit iOS partagé Host/Guest.
+- [x] Titres joués retirés de la file retrouvés depuis l'historique ; contenu supprimé exclu ; propre proposition jamais boostable dans le rendu personnel.
+- [x] Réconciliation des trois commits Relay : changements manquants de scores/identité Host, QR et diaporama récupérés sans remplacer les nouveaux parcours.
+- [x] Réconciliation iOS : file progressive de 6 titres, placement enchaînement, diaporama brandé, QR brandé et copie du QR récupérés ; participants dédupliqués par userId ou session, jamais par seul prénom.
+- [x] Suite native Node rendue exécutable sans Vitest ; correction du trim avant suppression du suffixe de nom.
+- [x] 35 tests unitaires passent ; deux tests de démarrage Web Host passent.
+- [x] 53 tests d'intégration isolés MongoMemoryServer passent : auth, RGPD, suppression compte, lifecycle, collision, isolation Host, provider IDs, boosts et write-through.
+- [x] Fixtures de test actualisées : codes valides, authentification des suppressions, secret JWT éphémère indépendant, nettoyage du serveur de test.
+- [x] GitHub accepte de nouveau les pushes : les anciens commits Relay bloqués ont été envoyés.
+- [ ] Confirmer le déploiement des changements complémentaires après leur commit/push et le dernier build iOS.
+
+Restent non validés : expérience réelle avec plusieurs appareils, sessions Apple/Google et réseau physique, lecture Spotify/Apple/YouTube réelle, comparaison visuelle exhaustive des écrans et photos, maintien après redémarrage complet du service. Les tests locaux ne remplacent pas ces validations. La visite du My Touch d'autrui, les favoris historiques et sitemap restent volontairement différés.

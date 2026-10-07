@@ -33,8 +33,8 @@ export function normalizeNameForDisplay(raw) {
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/\s+/g, ' ')
-    .replace(/-\d+$/, '')
-    .trim();
+    .trim()
+    .replace(/-\d+$/, '');
 }
 
 /**

@@ -28,7 +28,7 @@ import {
 } from '../helpers/mongo.js';
 
 // ─── Test constants ────────────────────────────────────────────────────────────
-const CODE       = 'T_WRITE4';
+const CODE       = 'QAWRITE4';
 const SECRET     = 'test-secret-writethrough';
 const HOST_PROFILE = { name: 'Write Host', emoji: '✍️', phone: '', email: '', instagram: '' };
 

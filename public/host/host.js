@@ -93,7 +93,7 @@ const STATE = {
 
 window.HOST = {
   signIn, signInEmail, signOut, setVisibility, onCoverChange, onEngineCardClick,
-  launchParty, justPlay, next, prev, togglePlay, share, retryDevices,
+  launchParty, justPlay, next, prev, togglePlay, share, copyLink, copyQR, retryDevices,
   onFirstNameInput, initWebPlayer, showScreen,
   chooseProvider, changeProvider   // ★ Lot 1 : écran choix du lecteur
 };
@@ -1240,11 +1240,12 @@ async function togglePlay() {
 function _renderQR(code) {
   const container = document.getElementById('qr-container');
   container.innerHTML = '';
-  const url = `${window.location.origin}/join?code=${code}`;
+  const url = _partyInviteUrl(code);
   try {
     new QRCode(container, {
-      text: url, width: 140, height: 140,
-      colorDark: '#00d4c8', colorLight: '#0a0a0f'
+      text: url, width: 180, height: 180,
+      colorDark: '#071124', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
     });
   } catch (_) {
     container.innerHTML = `<a href="${url}" style="color:var(--cyan);word-break:break-all">${url}</a>`;
@@ -1254,12 +1255,41 @@ function _renderQR(code) {
 async function share() {
   const code = STATE.party?.code;
   if (!code) return;
-  const url = `${window.location.origin}/join?code=${code}`;
+  const url = _partyInviteUrl(code);
   if (navigator.share) {
-    await navigator.share({ title: 'Rejoins la soirée !', url }).catch(() => {});
+    await navigator.share({ title: 'Rejoins le moment AhOuai', url }).catch(() => {});
   } else {
-    await navigator.clipboard.writeText(url).catch(() => {});
-    _showToast('Lien copié !', 'success');
+    await copyLink();
+  }
+}
+
+function _partyInviteUrl(code = STATE.party?.code) {
+  return `https://join.ahouai.com/?code=${encodeURIComponent(code || '')}`;
+}
+
+async function copyLink() {
+  if (!STATE.party?.code) return;
+  try {
+    await navigator.clipboard.writeText(_partyInviteUrl());
+    _showToast('Lien copié ✨', 'success');
+  } catch (_) {
+    _showToast('Impossible de copier le lien', 'error');
+  }
+}
+
+async function copyQR() {
+  const canvas = document.querySelector('#qr-container canvas');
+  if (!canvas || typeof ClipboardItem === 'undefined' || !navigator.clipboard?.write) {
+    await copyLink();
+    _showToast('Lien copié · copie du QR indisponible ici', 'success');
+    return;
+  }
+  try {
+    const blob = await new Promise((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('QR vide')), 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    _showToast('QR copié ✨', 'success');
+  } catch (_) {
+    await copyLink();
   }
 }
 

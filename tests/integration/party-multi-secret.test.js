@@ -25,7 +25,7 @@ import {
 } from '../helpers/mongo.js';
 
 // ─── Test constants ────────────────────────────────────────────────────────────
-const CODES   = ['T_MSA', 'T_MSB', 'T_MSC'];
+const CODES   = ['QAMSA0', 'QAMSB0', 'QAMSC0'];
 const SECRETS = [
   'test-secret-multi-A',
   'test-secret-multi-B',

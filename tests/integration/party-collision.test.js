@@ -24,7 +24,7 @@ import {
 } from '../helpers/mongo.js';
 
 // ─── Test constants ────────────────────────────────────────────────────────────
-const CODE     = 'T_COLL02';
+const CODE     = 'QACOLL02';
 const SECRET_A = 'test-secret-collision-hostA';
 const SECRET_B = 'test-secret-collision-hostB';
 const PROFILE_A = { name: 'Host Alice', emoji: '🎵', phone: '', email: '', instagram: '' };

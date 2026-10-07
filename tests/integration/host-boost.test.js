@@ -18,7 +18,7 @@ import {
   cleanupParties
 } from '../helpers/mongo.js';
 
-const CODE       = 'T_BOOST1';
+const CODE       = 'QABOOST1';
 const SECRET     = 'test-secret-boost';
 const PROFILE    = { name: 'Test Host', emoji: '🎧' };
 

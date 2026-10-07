@@ -11,6 +11,7 @@
  */
 import { spawn } from 'node:child_process';
 import net from 'node:net';
+import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { MongoMemoryServer } from 'mongodb-memory-server';
@@ -62,6 +63,7 @@ export async function startServer() {
     MONGODB_URI: mongoUri,
     MONGODB_URI_TEST: mongoUri,
     NODE_ENV: 'test',
+    JWT_SECRET: randomBytes(32).toString('hex'),
     // perf: skip 1640-track editorial seed (~8s per server boot)
     SKIP_EDITORIAL_SEED: 'true',
     // Les scénarios historiques testent l'écriture immédiate, pas la modération.

@@ -310,8 +310,14 @@
         </div>
         <button class="share-btn" onclick="HOST.share()">🔗 Partager</button>
       </div>
-      <div style="margin-top:12px">
+      <div class="host-qr-card">
+        <img class="host-qr-logo" src="/assets/brand/ahouai-logo.png" alt="AhOuai">
+        <div class="host-qr-kicker">REJOINS LE MOMENT</div>
         <div id="qr-container" class="qr-container"></div>
+        <div class="host-qr-actions">
+          <button class="share-btn" onclick="HOST.copyLink()">🔗 Copier le lien</button>
+          <button class="share-btn share-btn-primary" onclick="HOST.copyQR()">▦ Copier le QR</button>
+        </div>
       </div>
     </div>
 

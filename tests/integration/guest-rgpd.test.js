@@ -22,7 +22,7 @@ import {
   connectTestDB, disconnectTestDB, cleanupParties
 } from '../helpers/mongo.js';
 
-const CODE   = 'T_RGPD1';
+const CODE   = 'QARGP1';
 const SECRET = 'test-secret-rgpd';
 
 describe('guest-rgpd — email required + legal routes + droit oubli', async () => {
@@ -45,7 +45,7 @@ describe('guest-rgpd — email required + legal routes + droit oubli', async () 
     if (hostSocket) hostSocket.disconnect();
     await cleanupParties(CODE);
     await disconnectTestDB();
-    if (serverCtx?.proc) serverCtx.proc.kill();
+    await serverCtx?.kill();
   });
 
   // ── 1. L'ancien événement ne peut plus contourner la salle d'attente ─────
@@ -126,7 +126,7 @@ describe('guest-rgpd — email required + legal routes + droit oubli', async () 
 
     const res = await fetch(`${serverCtx.url}/api/guest/data`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test:' + Buffer.from(JSON.stringify({sub:'cccccccc-0000-4000-8000-000000000003',email:'delete.me@example.com',aud:'authenticated'})).toString('base64') },
       body: JSON.stringify({ email: 'delete.me@example.com', partyCode: CODE })
     });
     assert.equal(res.status, 200);
@@ -138,7 +138,7 @@ describe('guest-rgpd — email required + legal routes + droit oubli', async () 
   it('DELETE /api/guest/data sans email → 400', async () => {
     const res = await fetch(`${serverCtx.url}/api/guest/data`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test:' + Buffer.from(JSON.stringify({sub:'cccccccc-0000-4000-8000-000000000003',email:'delete.me@example.com',aud:'authenticated'})).toString('base64') },
       body: JSON.stringify({ partyCode: CODE })
     });
     assert.equal(res.status, 400);
