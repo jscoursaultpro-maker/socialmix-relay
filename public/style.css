@@ -6317,3 +6317,17 @@ body.has-app-banner #toast {
 #qr-modal{z-index:10000;padding:16px;overflow-y:auto}
 .party-qr-card{max-height:calc(100dvh - 32px);overflow-y:auto;box-sizing:border-box}
 @media(max-height:740px){.party-qr-card{padding:18px}.party-qr-logo{width:120px;margin-bottom:10px}.party-qr-card .modal-title{font-size:25px}.party-qr-render{width:184px;height:184px;padding:12px}.party-qr-render :is(canvas,img){width:160px!important;height:160px!important}}
+
+/* One personal Touch card: identity followed by aligned contribution panels. */
+.moi-touch-overview { box-sizing: border-box; min-width: 0; padding: 16px; border: 1px solid rgba(20,214,235,.36); border-radius: 24px; background: radial-gradient(circle at 95% 5%,rgba(216,55,227,.12),transparent 35%),linear-gradient(145deg,rgba(5,37,56,.88),rgba(10,15,35,.96)); }
+.moi-touch-overview .moi-identity-card { padding: 0 0 16px; margin: 0 0 16px; border: 0; border-bottom: 1px solid rgba(150,188,230,.18); border-radius: 0; background: none; box-shadow: none; }
+.moi-touch-overview #my-touch-contributions { min-width: 0; }
+.moi-touch-overview .touch-collapse { box-sizing: border-box; width: 100%; padding: 0; margin: 0 0 12px; border-radius: 20px; }
+.moi-touch-overview .touch-collapse summary { min-width: 0; gap: 10px; padding: 16px; }
+.moi-touch-overview .touch-collapse summary > span:first-child { min-width: 0; flex: 1; }
+.moi-touch-overview .touch-collapse summary strong { font-size: 13px; line-height: 1.35; letter-spacing: .06em; }
+.moi-touch-overview .touch-collapse-body { padding: 0 12px 12px; }
+.moi-touch-overview .touch-song-row { margin: 0 0 8px; }
+.moi-touch-overview .touch-song-row:last-child { margin-bottom: 0; }
+.moi-touch-overview .touch-count { flex-shrink: 0; }
+.moi-overview > .moi-panel { box-sizing: border-box; min-width: 0; border-radius: 24px; padding: 16px; }
