@@ -4696,7 +4696,7 @@ function buildLightState(party, isHost = false) {
     ...(isHost ? { pendingGuests: (party.pendingGuests || []).map(g => ({
       userId: g.userId ? String(g.userId) : '',
       firstName: g.firstName || '', lastName: g.lastName || '',
-      email: g.email || '', requestedAt: g.requestedAt
+      email: g.email || '', photoURL: g.photoURL || null, requestedAt: g.requestedAt
     })) } : {}),
     // B2+B3 — boostedByUsers enrichi + plafonné à 8 dans le payload émis.
     // profileCache reconstruit depuis participants RAM à chaque buildLightState
@@ -6643,6 +6643,7 @@ io.on('connection', (socket) => {
     // ★ New pending guest
     party.pendingGuests.push({
       userId, email: emailRaw.toLowerCase(), firstName, lastName,
+      photoURL: user.profile?.photoURL || null,
       requestedAt: new Date(), socketId: socket.id
     });
     party.isDirty = true;
@@ -6658,14 +6659,14 @@ io.on('connection', (socket) => {
 
     if (party.hostSocketId) {
       io.to(party.hostSocketId).emit('host:pendingGuestRequest', {
-        userId: userIdStr, firstName, lastName, email: emailRaw.toLowerCase()
+        userId: userIdStr, firstName, lastName, email: emailRaw.toLowerCase(), photoURL: user.profile?.photoURL || null
       });
     }
 
     // Write-through to MongoDB
     Party.findOneAndUpdate(
       { code },
-      { $push: { pendingGuests: { userId, email: emailRaw.toLowerCase(), firstName, lastName, requestedAt: new Date(), socketId: socket.id } } },
+      { $push: { pendingGuests: { userId, email: emailRaw.toLowerCase(), firstName, lastName, photoURL: user.profile?.photoURL || null, requestedAt: new Date(), socketId: socket.id } } },
       { upsert: false }
     ).catch(err => console.error(`[${code}] ⚠️ Write-through (guest:requestJoin) failed:`, err.message));
 

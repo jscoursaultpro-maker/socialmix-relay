@@ -21,6 +21,7 @@ const PartySchema = new mongoose.Schema({
     firstName:    { type: String, default: '' },
     lastName:     { type: String, default: '' },
     requestedAt:  { type: Date, default: Date.now },
+    photoURL:    { type: String, default: null },
     socketId:     { type: String, default: null }
   }],
   // ★ Chantier 5: Pre-approved guests (auto-approve on requestJoin)
