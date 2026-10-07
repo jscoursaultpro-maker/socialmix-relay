@@ -88,3 +88,13 @@ La consigne de non-déploiement contenue dans l'ancien handoff décrit son état
 - [ ] Confirmer le déploiement des changements complémentaires après leur commit/push et le dernier build iOS.
 
 Restent non validés : expérience réelle avec plusieurs appareils, sessions Apple/Google et réseau physique, lecture Spotify/Apple/YouTube réelle, comparaison visuelle exhaustive des écrans et photos, maintien après redémarrage complet du service. Les tests locaux ne remplacent pas ces validations. La visite du My Touch d'autrui, les favoris historiques et sitemap restent volontairement différés.
+
+## Livraison confirmée après exécution
+
+- [x] Web da04338 poussé ; fichiers community et host-mode servis en production identiques aux fichiers locaux.
+- [x] iOS 53ca2e3 poussé sur feat/cockpit-b-moderation-photos-messages ; build scheme AhOuai réussi, sans remplacer les évolutions de la branche.
+- [x] Correctif de scores du handoff aa7ae6e récupéré après comparaison : conversion Int/NSNumber/String, hydratation du leaderboard depuis party:state, déduplication stable des invités.
+- [x] Navigation et montage Backstage protégés côté Guest, y compris avant initialisation JS.
+- [x] Ancien libellé mon cercle retiré des dernières surfaces Afterglow iOS ; badge technique v2 retiré de la personnalisation.
+
+Les cases de validation réelle ouvertes plus haut restent ouvertes même si les correctifs correspondants existent. Les décisions encore différées restent : visite de My Touch d'autrui, favoris inter-soirées, indexation sitemap, retrait du sélecteur A/B et Beta avant validation visuelle. Les sessions et services musicaux réels nécessitent des comptes autorisés connectés ; aucune fausse validation n'est déclarée.
