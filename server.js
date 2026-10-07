@@ -6673,6 +6673,38 @@ io.on('connection', (socket) => {
     cb({ ok: true, status: 'pending' });
   });
 
+  // Le guest peut quitter proprement la salle d'attente sans se déconnecter de son compte.
+  socket.on('guest:cancelJoin', async (_data, callback) => {
+    const cb = typeof callback === 'function' ? callback : () => {};
+    const party = getMutableParty(socket);
+    if (!party) return cb({ ok: true, removed: false });
+
+    const verifiedUserId = socket.user?._id?.toString() || '';
+    const pendingIdx = party.pendingGuests.findIndex(entry =>
+      entry.socketId === socket.id || (verifiedUserId && entry.userId?.toString() === verifiedUserId)
+    );
+    if (pendingIdx === -1) return cb({ ok: true, removed: false });
+
+    const [pendingEntry] = party.pendingGuests.splice(pendingIdx, 1);
+    party.isDirty = true;
+    socket.leave(`pending:${party.code}`);
+    socket.partyCode = null;
+
+    try {
+      await Party.findOneAndUpdate(
+        { code: party.code },
+        { $pull: { pendingGuests: { userId: pendingEntry.userId } } },
+        { upsert: false }
+      );
+    } catch (err) {
+      console.error(`[${party.code}] cancel pending persist failed:`, err.message);
+    }
+
+    io.to(`host:${party.code}`).emit('party:state', buildLightState(party, true));
+    console.log(`↩️ [${party.code}] guest:cancelJoin — ${pendingEntry.firstName || verifiedUserId || socket.id}`);
+    cb({ ok: true, removed: true });
+  });
+
   // ═══════════════════════════════════════════════════════════════════
   // ★ CHANTIER 5 — HOST APPROVE / DENY / PRE-APPROVE
   // ═══════════════════════════════════════════════════════════════════

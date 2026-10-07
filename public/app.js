@@ -413,6 +413,30 @@ function clearResumeSession() {
   state.userId = null;
 }
 
+// Oublie uniquement le contexte d'une soirée. Le profil et la session AhOuai restent connectés.
+function clearPartyContext() {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem('ahouai_pending_party');
+    const savedStr = localStorage.getItem(STORAGE_KEY);
+    if (savedStr) {
+      const saved = JSON.parse(savedStr);
+      saved.partyCode = '';
+      saved.suggestions = [];
+      saved.trackHistory = [];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    }
+  } catch (e) {
+    console.warn('[party-context] nettoyage local impossible', e);
+  }
+  state.partyCode = '';
+  state.sessionToken = null;
+  state.suggestions = [];
+  state.trackHistory = [];
+  state.chantier5.screen = null;
+  if (state.chantier5.waitingTimer) clearTimeout(state.chantier5.waitingTimer);
+}
+
 // ─── Screen Navigation ──────────────────────────────
 function showScreen(name) {
   const previous = document.querySelector('.screen.active');
@@ -1292,6 +1316,29 @@ function showWaitingRoom(hostFirstName, hostPhoto, partyName) {
 
 // ── Waiting room screen setup ──
 function setupWaitingRoomScreen() {
+  const backMenuBtn = $('wr-back-menu-btn');
+  if (backMenuBtn) {
+    backMenuBtn.addEventListener('click', () => {
+      const finish = () => {
+        clearPartyContext();
+        try { history.replaceState({}, '', window.location.pathname); } catch (_) {}
+        showScreen('choice');
+        showToast('Demande annulée · retour au menu', 2200);
+      };
+      if (socket && socket.connected) {
+        socket.emit('guest:cancelJoin', {}, () => finish());
+        setTimeout(() => {
+          if (state.chantier5.screen === 'waiting') finish();
+        }, 1200);
+      } else {
+        finish();
+      }
+    });
+  }
+
+  const logoutBtn = $('wr-logout-btn');
+  if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+
   const updateBtn = $('wr-update-btn');
   if (updateBtn) {
     updateBtn.addEventListener('click', () => {
@@ -6713,19 +6760,27 @@ async function init() {
   const hasProfile = loadProfile();
   const hasSession = loadSession();
   const params = getURLParams();
-  
+
+  const urlParamsObj = new URLSearchParams(window.location.search);
+  const urlCodeIsPartyCode = typeof params.code === 'string' && /^[A-Z0-9]{4,8}$/i.test(params.code.trim());
+  const partyParamIsCode = typeof params.party === 'string' && /^[A-Z0-9]{4,8}$/i.test(params.party.trim());
+  const explicitPartyCode = partyParamIsCode ? params.party.trim().toUpperCase() : (urlCodeIsPartyCode ? params.code.trim().toUpperCase() : '');
+  const isHostFlow = urlParamsObj.get('hostlaunch') === '1' || urlParamsObj.get('hostchoice') || urlParamsObj.get('state') === 'host_auth';
+
+  // La racine nue n'est jamais une intention de rejoindre. Elle doit rester un menu,
+  // même si une ancienne soirée est encore stockée dans ce navigateur.
+  if (!explicitPartyCode && !isHostFlow) clearPartyContext();
+
   // Apply URL params
   if (params.name) state.guestName = params.name;
   if (params.emoji) state.guestEmoji = params.emoji;
-  if (params.code) state.partyCode = params.code.toUpperCase();
+  if (explicitPartyCode) state.partyCode = explicitPartyCode;
   // ★ Fix v33 SSO — support param "party" (utilisé au retour OAuth pour éviter collision avec "code" OAuth PKCE)
-  if (!params.code && params.party) {
-    params.code = params.party;
-    state.partyCode = params.party.toUpperCase();
+  if (!urlCodeIsPartyCode && partyParamIsCode) {
+    params.code = explicitPartyCode;
   }
   
   // ★ Legacy cockpit skip: detect Sprint B redirection
-  const urlParamsObj = new URLSearchParams(window.location.search);
   const sbMarker = urlParamsObj.get('sb') === '1';
   // ★ Task #45 — ingestion ?sbauth= SUPPRIMÉE. Expire tout ancien cookie sbauth (1 an, base64 non signé).
   try { document.cookie = 'sbauth=; Domain=.ahouai.com; Path=/; Max-Age=0; Secure; SameSite=Lax'; } catch (_) {}
@@ -6830,8 +6885,8 @@ async function init() {
   }
 
   // Auto-rejoin if session + profile exist
-  const resumeSession = loadResumeSession();
-  const activeCode = state.partyCode || (resumeSession ? resumeSession.partyCode : null);
+  const resumeSession = explicitPartyCode ? loadResumeSession() : null;
+  const activeCode = explicitPartyCode || null;
 
   const isPreParty = await setupLanding(activeCode);
   if (isPreParty) return; // Halt normal sequence, pre-party screen handles it
@@ -6841,9 +6896,9 @@ async function init() {
     clearResumeSession();
   }
   
-  if (hasSession && hasProfile && state.partyCode && state.guestName) {
+  if (explicitPartyCode && hasSession && hasProfile && state.partyCode && state.guestName) {
     enterCockpit();
-  } else if (resumeSession && hasProfile) {
+  } else if (explicitPartyCode && resumeSession && hasProfile) {
     // Resume from session token (page reload, tab closed/reopened)
     state.partyCode = resumeSession.partyCode;
     state.guestName = resumeSession.guestName || state.guestName;

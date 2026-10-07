@@ -2409,6 +2409,36 @@ body.founder-program-open { overflow: hidden; }
   z-index: 1;
 }
 
+.c5-waiting-actions {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 360px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.c5-waiting-action {
+  min-height: 46px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.68);
+  font: 800 13px/1 Outfit, system-ui, sans-serif;
+  cursor: pointer;
+}
+.c5-waiting-action-primary {
+  border-color: rgba(45, 226, 208, 0.5);
+  background: rgba(45, 226, 208, 0.1);
+  color: #42ead9;
+}
+.c5-waiting-action:hover,
+.c5-waiting-action:focus-visible {
+  border-color: rgba(45, 226, 208, 0.72);
+  color: #fff;
+}
+
 /* CTA card (revealed after 60s) */
 .c5-cta-card {
   position: relative;
