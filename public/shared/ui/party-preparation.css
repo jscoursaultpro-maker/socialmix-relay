@@ -8,3 +8,19 @@
 @media(max-width:700px){#create-details-screen{padding:16px}.host-create-grid{grid-template-columns:1fr;padding:22px;gap:22px}.host-create-controls{padding:20px}.host-create-editor h1{font-size:42px}.host-create-nav{margin-bottom:18px}.host-create-editor .cd-cover-preview{height:190px}.preparation-dialog{padding:20px}.preparation-cover{height:180px}}
 
 #create-details-screen [hidden]{display:none!important}
+
+/* Touch and private conversations share the AhOuai invitation identity. */
+.community-dialog{margin:auto;max-height:88dvh;width:min(680px,92vw);padding:28px;border:1px solid rgba(90,237,227,.45);border-radius:28px;background:radial-gradient(ellipse at top right,rgba(138,54,221,.22),transparent 60%),#080e23;color:#f8f7ff;box-shadow:0 24px 90px rgba(0,0,0,.55)}
+.community-dialog::backdrop{background:rgba(1,5,16,.78);backdrop-filter:blur(8px)}
+.community-dialog h1{font:800 clamp(25px,4vw,34px) Outfit,sans-serif;margin:18px 0 12px;line-height:1.15}
+.community-dialog h2{font:800 16px Outfit,sans-serif;letter-spacing:.04em;margin:26px 0 12px;color:#54e5dc}
+.community-dialog p{line-height:1.6;color:#b7c3db;margin:10px 0}
+.community-dialog button,.community-inbox{padding:12px 18px;border-radius:15px;border:1px solid rgba(101,226,226,.3);background:linear-gradient(125deg,rgba(16,163,167,.2),rgba(131,57,211,.26));color:#fff;font:700 13px Outfit,sans-serif;cursor:pointer;min-height:44px}
+.community-dialog button:disabled{opacity:.45;cursor:wait}.community-dialog button:hover{border-color:#5be9df}
+.community-dialog .community-close{float:right;background:transparent;border-color:rgba(255,255,255,.12);font-size:12px}
+.community-dialog .community-logo{display:block;width:140px;height:auto;margin-bottom:16px}
+.community-dialog .community-profile-photo{width:86px;height:86px;border-radius:50%;object-fit:cover;border:2px solid #54e5dc;margin:10px 0}
+.community-dialog textarea{display:block;width:100%;min-height:110px;margin:18px 0;padding:16px;background:rgba(2,7,19,.75);border:1px solid rgba(133,133,219,.4);border-radius:18px;color:#fff;font:16px Outfit,sans-serif;resize:vertical;box-sizing:border-box}
+.community-messages{max-height:35dvh;overflow-y:auto;display:grid;gap:8px;margin-top:18px}.community-messages p{padding:14px;border-radius:16px;background:rgba(86,102,172,.14);white-space:pre-wrap;overflow-wrap:anywhere}.community-messages button{margin-left:12px;font-size:11px;padding:5px 9px;min-height:32px}
+.community-inbox{margin:14px 16px}.community-inbox[hidden]{display:none}
+@media(max-width:600px){.community-dialog{padding:20px;max-height:92dvh;border-radius:22px}.community-dialog .preparation-person{flex-wrap:wrap}}

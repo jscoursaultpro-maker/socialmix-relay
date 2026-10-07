@@ -47,6 +47,9 @@ const PartySchema = new mongoose.Schema({
   participantScores:{ type: mongoose.Schema.Types.Mixed, default: {} },
   guestGenreVotes:  { type: mongoose.Schema.Types.Mixed, default: {} },
   guestGenreVoteExpiry: { type: mongoose.Schema.Types.Mixed, default: {} },  // ★ fix(schema-audit): per-guest genre vote TTL timestamps (strict:true was stripping this)
+  communityReports: { type: [mongoose.Schema.Types.Mixed], default: [], select: false },
+  communityRestrictions: { type: [mongoose.Schema.Types.Mixed], default: [], select: false },
+  privateMessages: { type: [mongoose.Schema.Types.Mixed], default: [], select: false },
   sessionTokens:    { type: mongoose.Schema.Types.Mixed, default: {} },
   playedKeys:       { type: [String], default: [] },   // ★ Phase 3: ISRC + fallbackHash of played tracks (anti-replay)
   scheduledFor:     { type: Date, default: null },     // ★ MVP Pre-Party

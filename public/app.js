@@ -2418,6 +2418,7 @@ function connectToRelay() {
 
   // ★ Chantier 5: bind onboarding/waiting/welcome/denied socket listeners
   bindChantier5SocketListeners(socket);
+  window.bindCommunitySocket?.(socket);
 
   socket.on('connect', () => {
     state.connected = true;
@@ -4987,7 +4988,9 @@ function showTrombiContact(idx) {
   } else {
     photoEl.innerHTML = u.emoji;
   }
-  nameEl.textContent = u.name;
+  nameEl.textContent = `La Touch de ${u.name}`;
+  lb.querySelector('.touch-open')?.remove();
+  if(u.userId && !u.isSelf){const touch=document.createElement('button');touch.className='touch-open';touch.textContent='Découvrir sa Touch · Envoyer un message';touch.onclick=()=>{lb.classList.add('hidden');window.openParticipantTouch?.(u.userId);};nameEl.after(touch);}
   
   // Inject Founder Badge if any
   let founderBadgeContainer = document.getElementById('trombi-founder-badge');

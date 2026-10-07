@@ -226,6 +226,7 @@
     mount.querySelectorAll('[data-approve]').forEach(function(btn){ btn.addEventListener('click', function(){ decidePendingGuest(btn.dataset.approve, true); }); });
     mount.querySelectorAll('[data-deny]').forEach(function(btn){ btn.addEventListener('click', function(){ decidePendingGuest(btn.dataset.deny, false); }); });
     mount.querySelectorAll('[data-visibility]').forEach(function(btn){ btn.addEventListener('click', function(){ updateVisibility(btn.dataset.visibility); }); });
+    window.mountCommunityBackstage?.(mount);
     var end = mount.querySelector('#bs-end-party'); if (end) end.addEventListener('click', function(){
       if (!window.confirm('Terminer la soirée maintenant ?')) return;
       var e=window.AhOuaiHostEngine;

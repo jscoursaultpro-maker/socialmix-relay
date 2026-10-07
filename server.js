@@ -8,6 +8,7 @@ import { networkInterfaces } from 'os';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
+import communityRouter, { activeRestriction, communityAccessGuard } from './routes/party-community.js';
 import { createPartyState, isValidPartyCode } from './partyState.js';
 import { connectDB, restoreParties, startFlushLoop, stopFlushLoop, flushEndedParty } from './db.js';
 import crypto, { randomUUID } from 'crypto';
@@ -1367,6 +1368,7 @@ app.use('/api/host/parties', partyMergeRouter);
 // This handler is a shim that forwards to the same logic as legacy L2543.
 // Keeping the original in place too is safe: only the first registered
 // route wins in Express. If ever the original is removed, this stays.
+app.use('/api/party', communityAccessGuard({ parties }));
 app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   const code   = (req.params.code || '').toUpperCase();
   const suggId = req.params.suggId;
@@ -1491,6 +1493,7 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   res.json({ ok: true, boostCount: sugg.boostCount, suggId });
 });
 
+app.use('/api/party', communityRouter({ parties, io, buildLightState }));
 app.use('/api/party', preparationRouter({ parties, io, buildLightState }));
 app.use('/api/party', partyJoinRouter);
 app.use('/api/party', partySettingsRouter);
@@ -4531,7 +4534,7 @@ function getMutableParty(socket) {
 function getApprovedGuest(party, socket) {
   if (!party || !socket) return null;
   return (party.participants || []).find(participant =>
-    !participant.isHost && participant.id === socket.id && participant.connected !== false
+    !participant.isHost && !participant.departedAt && !activeRestriction(party.communityRestrictions, participant.userId) && participant.id === socket.id && participant.connected !== false
   ) || null;
 }
 
@@ -4624,7 +4627,7 @@ function stripSecret(obj) {
 function buildLightState(party, isHost = false) {
   // Lightweight participants
   // ★ Bug E-fix-1 — Injecter host si absent des participants (edge case) + fallback userId host
-  const rawParticipants = party.participants || [];
+  const rawParticipants = (party.participants || []).filter(p => !p.departedAt && !activeRestriction(party.communityRestrictions,p.userId));
   const hasHost = rawParticipants.some(p => p.isHost);
   const enriched = hasHost ? rawParticipants : [
     {
@@ -4905,6 +4908,17 @@ io.on('connection', (socket) => {
             if (socket.partyCode && !socket.rooms.has(`host:${socket.partyCode}`)) socket.join(`host:${socket.partyCode}`);
           }
         } catch (_) {}
+        handler(...args);
+      });
+    }
+    if (/^(guest:|costume:|mission:)/.test(event) && !['guest:join','guest:requestJoin','guest:resume','guest:logout','guest:cancelJoin','guest:updatePendingInfo'].includes(event)) {
+      return origOn(event, (...args) => {
+        const party=getParty(socket);
+        const participant=party?.participants?.find(p=>p.id===socket.id&&!p.isHost);
+        if(participant && (participant.departedAt || activeRestriction(party.communityRestrictions,participant.userId))) {
+          const cb=args[args.length-1];if(typeof cb==='function')cb({ok:false,error:'PARTY_RESTRICTED'});
+          return;
+        }
         handler(...args);
       });
     }
@@ -6525,6 +6539,12 @@ io.on('connection', (socket) => {
     const userId = user._id;
     const userIdStr = userId.toString();
     const hasVerifiedIdentity = Boolean(verifiedSocketUser?._id);
+    let communityDoc;
+    try { communityDoc = await Party.findOne({ code }).select('communityRestrictions communityReports').lean(); } catch { return cb({ok:false,error:'SERVER_ERROR'}); }
+    party.communityRestrictions = communityDoc?.communityRestrictions || [];
+    const restriction = activeRestriction(party.communityRestrictions, userIdStr);
+    if (restriction) return cb({ok:false,error:'PARTY_RESTRICTED',message:restriction.kind==='temporary'?'Ton accès est suspendu pendant 15 minutes.':'Tu as été exclu de cette soirée.'});
+
 
     // ★ Check if already approved participant (reconnect scenario)
     const existingParticipant = hasVerifiedIdentity
@@ -6534,6 +6554,7 @@ io.on('connection', (socket) => {
       const reboundToken = existingParticipant.sessionToken || randomUUID();
       existingParticipant.id = socket.id;
       existingParticipant.connected = true;
+      existingParticipant.departedAt = null;
       existingParticipant.sessionToken = reboundToken;
       party.sessionTokens[reboundToken] = userIdStr;
       party.isDirty = true;
@@ -6546,12 +6567,15 @@ io.on('connection', (socket) => {
       joinUserRoom(socket, userIdStr); // verified identity only in this branch
       socket.emit('party:state', buildLightState(party));
       socket.emit('session:token', { sessionToken: reboundToken, partyCode: code, userId: userIdStr });
+      const warning=(communityDoc?.communityReports||[]).filter(r=>r.targetId===userIdStr).at(-1);
+      if(warning)socket.emit('community:warning',{id:warning.id,warningNumber:warning.warningNumber,kind:warning.kind,message:'Un contenu que tu as partagé a été signalé. Veille à respecter les autres invités.'});
       Party.findOneAndUpdate(
         { code, endedAt: null, 'participants.userId': userIdStr },
         { $set: {
           [`sessionTokens.${reboundToken}`]: userIdStr,
           'participants.$.sessionToken': reboundToken,
-          'participants.$.connected': true
+          'participants.$.connected': true,
+          'participants.$.departedAt': null
         } },
         { upsert: false }
       ).catch(err => console.error(`[${code}] ⚠️ Rebind token persist failed:`, err.message));
@@ -7031,6 +7055,14 @@ io.on('connection', (socket) => {
     if (verifiedUserId && String(participant.userId || '') !== verifiedUserId) {
       cb({ ok: false, reason: 'IDENTITY_MISMATCH' }); return;
     }
+    let communityDoc;
+    try { communityDoc = await Party.findOne({code}).select('communityRestrictions communityReports').lean(); } catch { return cb({ok:false,reason:'SERVER_ERROR'}); }
+    party.communityRestrictions = communityDoc?.communityRestrictions || [];
+    const restriction = activeRestriction(party.communityRestrictions, participant.userId);
+    if(restriction) return cb({ok:false,reason:'PARTY_RESTRICTED',until:restriction.until});
+    participant.departedAt = null;
+    const warning=(communityDoc?.communityReports||[]).filter(r=>r.targetId===String(participant.userId)).at(-1);
+    if(warning)socket.emit('community:warning',{id:warning.id,warningNumber:warning.warningNumber,kind:warning.kind,message:'Un contenu que tu as partagé a été signalé. Veille à respecter les autres invités.'});
     const guestName = participant.name;
 
     // Rotate the bearer on every successful resume and revoke the old value.
@@ -7110,7 +7142,8 @@ io.on('connection', (socket) => {
           $set: {
             [`sessionTokens.${rotatedToken}`]: String(participant.userId || ''),
             'participants.$.sessionToken': rotatedToken,
-            'participants.$.connected': true
+            'participants.$.connected': true,
+            'participants.$.departedAt': null
           }
         }
       );
