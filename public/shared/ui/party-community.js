@@ -22,14 +22,14 @@
     if(p.photoURL&&(!own||mount===dialog)){const img=node('img');img.src=p.photoURL;img.alt=p.name;img.className='community-profile-photo';mount.append(img);}
     if(!own)mount.append(button('Envoyer un message privé',()=>{header(`Message à ${p.name}`);if(!dialog.open)dialog.showModal();openConversation(p);}));
     const section=(label,items,render)=>{const parent=mount,card=node('details');card.className='touch-collapse';const summary=node('summary'),heading=node('strong',label),count=node('span',String(items.length));count.className='touch-count';const rate=label.includes('favoris')?'+10 pts / vote':label.includes('attente')?'+5 pts / proposition':label.includes('messages')?'+10 pts / message':label.includes('photos')?'+20 pts / photo':label==='Mon classement'?'Ton impact dans la soirée':'Titres passés à l’antenne';const text=node('span');text.append(heading,node('small',rate));summary.append(text,count);card.append(summary);const body=node('div');body.className='touch-collapse-body';card.append(body);parent.append(card);mount=body;if(!items.length)mount.append(node('p','Tes premiers moments apparaîtront ici.'));items.forEach(render);mount=parent;};
-    section(title('Mes favoris · mes feux','Ses favoris · ses feux'),t.favorites||[],x=>mount.append(node('p',`🔥 ${x.title} · ${x.artist} · ${x.fireCount} feux dans la soirée`)));
     const songRow=x=>{
       const row=node('article');row.className='touch-song-row';
       const cover=node('div');cover.className='touch-song-cover';
       if(x.coverURL){const img=node('img');img.src=x.coverURL;img.alt='';img.onerror=()=>{cover.replaceChildren(node('span','♫'));};cover.append(img);}else cover.append(node('span','♫'));
-      const text=node('div');text.className='touch-song-info';text.append(node('strong',x.title),node('small',x.artist),node('span',`${x.boostCount||0} boosts · ${{played:'Joué',pending:'En attente',queued:'Dans la file',next:'À suivre',rejected:'Non retenu',skipped:'Passé'}[x.status]||'Proposé'}`));row.append(cover,text);mount.append(row);
+      const text=node('div');text.className='touch-song-info';text.append(node('strong',x.title),node('small',x.artist),node('span',`${x.fireCount ? `🔥 ${x.fireCount} · ` : ''}${x.boostCount != null ? `${x.boostCount} boosts · ` : ''}${{played:'Joué',pending:'En attente',queued:'Dans la file',next:'À suivre',rejected:'Non retenu',skipped:'Passé'}[x.status]||'Favori'}`));row.append(cover,text);mount.append(row);
       if(!own&&x.canBoost)row.append(button('Booster',async()=>{await boostSuggestion(x.id,x.title);await reload();}));
     };
+    section(title('Mes favoris · mes feux','Ses favoris · ses feux'),t.favorites||[],songRow);
     section(title('Mes titres joués','Ses titres joués'),t.songs.filter(x=>x.status==='played'),songRow);
     section(title('Mes titres en attente','Ses titres en attente'),t.songs.filter(x=>['pending','queued','next'].includes(x.status)),songRow);
     const other=t.songs.filter(x=>!['played','pending','queued','next'].includes(x.status));if(other.length)section('Autres suggestions',other,songRow);
