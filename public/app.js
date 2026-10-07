@@ -3944,40 +3944,47 @@ setInterval(() => {
   }
 }, 60000);
 
-function loadTrendingSuggestions() {
+let explorerTracks = [];
+let explorerRequestId = 0;
+async function loadTrendingSuggestions(append = false) {
   const container = $('suggest-results');
-  container.innerHTML = '<div style="text-align:center;padding:10px;font-size:11px;color:rgba(255,255,255,0.4);">🌟 Chargement des suggestions...</div>';
-  const hint = $('suggest-hint');
-  if (hint) hint.style.display = 'none';
-  
-  // Use party explore endpoint (random picks from curated DB) instead of static Deezer chart
+  const requestId = ++explorerRequestId;
   const code = state.partyCode || '';
-  fetch(`/api/party/${encodeURIComponent(code)}/explore?limit=12`)
-    .then(r => r.json())
-    .then(json => {
-      const tracks = (json.data || []).filter(t => t.id); // filter out tracks without deezerID
-      if (tracks.length === 0) {
-        // Fallback to Deezer chart if explore returns nothing
-        fetch('/api/deezer/chart?limit=8')
-          .then(r => r.json())
-          .then(j => renderSuggestResults(j.data || []))
-          .catch(() => {
-            container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:#ff6b6b;">❌ Impossible de charger</div>';
-          });
-        return;
-      }
-      renderSuggestResults(tracks);
-    })
-    .catch(err => {
-      console.error('[Suggest] Explore error:', err);
-      // Fallback to Deezer chart
-      fetch('/api/deezer/chart?limit=8')
-        .then(r => r.json())
-        .then(j => renderSuggestResults(j.data || []))
-        .catch(() => {
-          container.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:#ff6b6b;">❌ Impossible de charger</div>';
-        });
-    });
+  if (!append) { explorerTracks = []; container.innerHTML = '<p class="v2-bangers-empty-note">Tes prochaines idées arrivent…</p>'; }
+  const hint = $('suggest-hint'); if (hint) hint.style.display = 'none';
+  const previousButton = container.querySelector('[data-explorer-more]');
+  if (previousButton) { previousButton.disabled = true; previousButton.textContent = 'Chargement…'; }
+  try {
+    let batch = [];
+    const seen = new Set(explorerTracks.map(t => String(t.id)));
+    for (let attempt = 0; attempt < (append ? 3 : 1); attempt++) {
+      const response = await fetch(`/api/party/${encodeURIComponent(code)}/explore?limit=12`);
+      if (!response.ok) throw new Error('Explorer indisponible');
+      const json = await response.json();
+      batch = (json.data || []).filter(t => t.id && !seen.has(String(t.id)));
+      if (batch.length) break;
+    }
+    if (!append && !batch.length) {
+      const response = await fetch('/api/deezer/chart?limit=12');
+      if (!response.ok) throw new Error('Explorer indisponible');
+      batch = (await response.json()).data || [];
+    }
+    if (requestId !== explorerRequestId || state.partyCode !== code || v2SuggestionSource !== 'explore') return;
+    const merged = new Map(explorerTracks.map(t => [String(t.id), t]));
+    batch.forEach(t => { if (t.id) merged.set(String(t.id), t); });
+    explorerTracks = [...merged.values()];
+    renderSuggestResults(explorerTracks);
+    const more = document.createElement('button');
+    more.type = 'button'; more.className = 'artist-mode-cta'; more.dataset.explorerMore = 'true';
+    more.textContent = '✨ Plus de titres'; more.onclick = () => loadTrendingSuggestions(true);
+    container.append(more);
+    if (append && !batch.length) showToast('Pas de nouvelle idée pour le moment. Tu peux réessayer.', 3500);
+  } catch (_) {
+    if (requestId !== explorerRequestId) return;
+    if (!append) container.textContent = 'Impossible de charger les titres. Touche Explorer pour réessayer.';
+    else if (previousButton) { previousButton.disabled = false; previousButton.textContent = 'Réessayer · Plus de titres'; }
+    showToast('Les titres n’ont pas pu être chargés. Réessaie.', 3500);
+  }
 }
 
 

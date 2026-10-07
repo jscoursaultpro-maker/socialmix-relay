@@ -6292,7 +6292,7 @@ body.has-app-banner #toast {
 .party-qr-card .modal-title{margin-bottom:7px;font-size:30px;letter-spacing:-.04em;}
 .party-qr-card .modal-text{max-width:330px;margin:0 auto 17px;color:rgba(235,233,246,.72);line-height:1.4;}
 .party-qr-render{display:grid;width:224px;height:224px;margin:0 auto;padding:12px;place-items:center;border-radius:22px;background:#fff;box-shadow:0 14px 42px rgba(0,0,0,.36),0 0 0 1px rgba(255,255,255,.16);}
-.party-qr-render :is(canvas,img){display:block!important;width:200px!important;height:200px!important;border-radius:8px;}
+.party-qr-render :is(canvas,img){width:200px!important;height:200px!important;border-radius:8px;}
 .party-qr-code{margin-top:14px;color:#f3f0ec;font:900 25px/1 var(--font-display);letter-spacing:.2em;text-indent:.2em;}
 .party-qr-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px;}
 .party-qr-action{min-height:50px;padding:10px;border:1px solid rgba(129,216,220,.35);border-radius:15px;background:rgba(255,255,255,.045);color:#f3f0ec;font:800 13px/1.1 var(--font-display);cursor:pointer;}
@@ -6310,3 +6310,10 @@ body.has-app-banner #toast {
 #pre-party-screen #pre-party-cover-container { max-width:100%!important; aspect-ratio:16/10!important; }
 #pre-party-screen #pre-party-prepare-btn { background:linear-gradient(110deg,#21d9d1,#8050ff,#ff3b9d)!important; color:white!important; }
 #pre-party-countdown { font-size:clamp(20px,6vw,32px)!important; }
+
+/* qrcode.js produit un canvas ET une image : ne jamais les afficher ensemble. */
+.party-qr-render:has(canvas) img{display:none!important}
+.party-qr-render canvas{display:block!important}
+#qr-modal{z-index:10000;padding:16px;overflow-y:auto}
+.party-qr-card{max-height:calc(100dvh - 32px);overflow-y:auto;box-sizing:border-box}
+@media(max-height:740px){.party-qr-card{padding:18px}.party-qr-logo{width:120px;margin-bottom:10px}.party-qr-card .modal-title{font-size:25px}.party-qr-render{width:184px;height:184px;padding:12px}.party-qr-render :is(canvas,img){width:160px!important;height:160px!important}}
