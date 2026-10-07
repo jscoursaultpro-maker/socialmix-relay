@@ -1,0 +1,179 @@
+{
+  "_meta": {
+    "file": "2026-10-07-votefeu",
+    "generated_at": "2026-10-07T13:30:00Z",
+    "source": "pool_vote_feu_sans_phase",
+    "note": "Tracks ayant reçu au moins 1 vote 'feu' en soirée mais écartées du pool DJ Brain (phase=null). Pas de deezer_verification systématique — Claude s'appuie sur sa connaissance + ISRC/providers déjà en BDD. Promotion vers qualityLevel=complete via doctrine Premium V2."
+  },
+  "tracks": [
+    {
+      "_id": "6a4029c0d90af5274759c97b",
+      "title": "Movin' To The Sun",
+      "artist": "HUGEL, Imael Angel & Ultra Naté",
+      "bpm_bdd": 126,
+      "genre_bdd": "Electro",
+      "feu_count": 2,
+      "providers_known": []
+    },
+    {
+      "_id": "6a944d29446e55b0109d5a06",
+      "title": "American Pie (L'Tric Remix)",
+      "artist": "Don Mclean",
+      "bpm_bdd": 0,
+      "genre_bdd": "Electro",
+      "feu_count": 1,
+      "providers_known": ["deezer"],
+      "isrc": "USUM72208202"
+    },
+    {
+      "_id": "6ac00a0d14d9991af0f112ff",
+      "title": "Namaste Senorita",
+      "artist": "UN*DEUX",
+      "bpm_bdd": 0,
+      "genre_bdd": "Unknown",
+      "feu_count": 1,
+      "providers_known": ["spotify"],
+      "isrc": "DGA0P2400761"
+    },
+    {
+      "_id": "6a9c7fc4a144dc002589b0cf",
+      "title": "Mad Love",
+      "artist": "Sean Paul, David Guetta & Becky G",
+      "bpm_bdd": 97,
+      "genre_bdd": "Electro",
+      "feu_count": 1,
+      "providers_known": ["deezer"],
+      "isrc": "GBUM71800437"
+    },
+    {
+      "_id": "6a9c7f61a144dc002589b041",
+      "title": "Coño",
+      "artist": "Jason Derulo, Puri & Jhorrmountain",
+      "bpm_bdd": 99,
+      "genre_bdd": "Electro",
+      "feu_count": 1,
+      "providers_known": ["deezer"]
+    },
+    {
+      "_id": "6a9c7ec9a144dc002589af56",
+      "title": "Same Man (DERON Rework)",
+      "artist": "DERON & DJ Delicious",
+      "bpm_bdd": 123,
+      "genre_bdd": "Electro",
+      "feu_count": 1,
+      "providers_known": ["deezer", "spotify"],
+      "isrc": "CH7812551590"
+    },
+    {
+      "_id": "6a9c78bba144dc002589a7d4",
+      "title": "B-Side",
+      "artist": "Khruangbin & Leon Bridges",
+      "bpm_bdd": 104,
+      "genre_bdd": "Electro",
+      "feu_count": 1,
+      "providers_known": ["deezer"],
+      "isrc": "USJ5G2125402"
+    },
+    {
+      "_id": "6a987d62446e55b010a197d4",
+      "title": "Trapped (Radio-Edit)",
+      "artist": "Kolter",
+      "bpm_bdd": 129,
+      "genre_bdd": "Electro",
+      "feu_count": 1,
+      "providers_known": ["deezer", "spotify"],
+      "isrc": "DEH742609062"
+    },
+    {
+      "_id": "6a96ad4e446e55b0109f9b6a",
+      "title": "Morenita",
+      "artist": "Felipe Allenn & MORENITA",
+      "bpm_bdd": 122,
+      "genre_bdd": "Latin House",
+      "feu_count": 1,
+      "providers_known": ["deezer"]
+    },
+    {
+      "_id": "6a945291446e55b0109d5c98",
+      "title": "What I Want Is You",
+      "artist": "Bob Sinclar & Fireball",
+      "bpm_bdd": 0,
+      "genre_bdd": "Electro",
+      "feu_count": 1,
+      "providers_known": ["deezer", "spotify"],
+      "isrc": "FR4E42647310"
+    },
+    {
+      "_id": "6a23fe99ea5dec16b311e370",
+      "title": "Golden (Sing-Along)",
+      "artist": "HUNTR/X, EJAE, AUDREY NUNA, REI AMI & KPop Demon Hunters Cast",
+      "bpm_bdd": 123,
+      "genre_bdd": "Electro",
+      "feu_count": 1,
+      "providers_known": ["youtube"]
+    },
+    {
+      "_id": "6a8853cfcbdff7847496e01f",
+      "title": "Toledo",
+      "artist": "GROSSOMODDO, Brøder & Bletter",
+      "bpm_bdd": 124,
+      "genre_bdd": "House",
+      "feu_count": 1,
+      "providers_known": ["deezer"]
+    },
+    {
+      "_id": "6a6245ed0ecc3ba504e8d976",
+      "title": "Falling Apart",
+      "artist": "Edward Maya, Alex Skrindo & Mokita",
+      "bpm_bdd": 120,
+      "genre_bdd": "House",
+      "feu_count": 1,
+      "providers_known": ["deezer"]
+    },
+    {
+      "_id": "6a595851ab166fef3abb04ea",
+      "title": "Si Vas Al Mar",
+      "artist": "Sinego & Xinobi",
+      "bpm_bdd": 118,
+      "genre_bdd": "House",
+      "feu_count": 1,
+      "providers_known": ["deezer"]
+    },
+    {
+      "_id": "6a3cfecfd90af52747567258",
+      "title": "I Adore You (feat. Daecolm) [Mixed]",
+      "artist": "Topic, HUGEL & Arash",
+      "bpm_bdd": 120,
+      "genre_bdd": "House",
+      "feu_count": 1,
+      "providers_known": []
+    },
+    {
+      "_id": "6a3c31d6d90af52747561153",
+      "title": "The Final Countdown 2025",
+      "artist": "David Guetta, Hypaton & Europe",
+      "bpm_bdd": 128,
+      "genre_bdd": "House",
+      "feu_count": 1,
+      "providers_known": []
+    },
+    {
+      "_id": "6a35cf80eaf607dcb6682120",
+      "title": "Un beso de improviso",
+      "artist": "Ana Mena & Rocco Hunt",
+      "bpm_bdd": 128,
+      "genre_bdd": "Pop Latino",
+      "feu_count": 1,
+      "providers_known": []
+    },
+    {
+      "_id": "6a34934beaf607dcb6678910",
+      "title": "Baddy On The Floor",
+      "artist": "Jamie xx & Honey Dijon",
+      "bpm_bdd": 124,
+      "genre_bdd": "House",
+      "feu_count": 1,
+      "providers_known": []
+    }
+  ]
+}
