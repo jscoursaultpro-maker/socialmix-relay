@@ -6272,3 +6272,6 @@ body.has-app-banner #toast {
   display:grid;width:58px;height:58px;flex:0 0 58px;place-items:center;border-radius:18px;
   background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);font-size:31px;
 }
+
+/* Host navigation must remain hidden even before host-mode initializes. */
+#backstage-nav-btn[hidden], #tab-backstage[hidden] { display: none !important; }

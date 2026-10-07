@@ -8163,7 +8163,8 @@ function showTab(tabName) {
     'memories': 'story',
     'hub': 'moi'
   };
-  const normalizedName = LEGACY_MAP[tabName] || tabName;
+  const requestedName = LEGACY_MAP[tabName] || tabName;
+  const normalizedName = requestedName === "backstage" && !window.AhOuaiHostMode?.isHostMode?.() ? "moi" : requestedName;
 
   // V2 mapping: space name → tab-content IDs to activate.
   // Existing IDs are intentionally retained so current renderers keep working.

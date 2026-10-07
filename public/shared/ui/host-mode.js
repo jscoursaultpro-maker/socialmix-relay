@@ -18,8 +18,8 @@
   var waitingRoomSocket = null;
 
   function isHostMode() {
-    if (DEV_FORCE) return true;
-    try { if (window.AhOuaiHostEngine && window.AhOuaiHostEngine.isActive && window.AhOuaiHostEngine.isActive()) return true; } catch (e) {}
+    if (DEV_FORCE && ['localhost','127.0.0.1'].includes(location.hostname)) return true;
+    try { if (window.AhOuaiHostEngine && window.AhOuaiHostEngine.isActive && window.AhOuaiHostEngine.isActive()) { var party=window.AhOuaiHostEngine._debug?.().party; if(party?.code && typeof state !== 'undefined' && party.code===state.partyCode) return true; } } catch (e) {}
     try {
       var s = (typeof state !== 'undefined' && state) ? state : null;
       if (!s || !s.userId || !Array.isArray(s.participants)) return false;
@@ -141,6 +141,8 @@
     document.body.classList.toggle('ah-host-mode', host);
     var backstageNav = document.getElementById('backstage-nav-btn');
     if (backstageNav) backstageNav.hidden = !host;
+    var backstageTab = document.getElementById("tab-backstage");
+    if (backstageTab) backstageTab.hidden = !host;
     if (!host && document.getElementById('tab-backstage')?.classList.contains('active') && typeof showTab === 'function') showTab('on-air');
     if (host !== lastHost) {
       lastHost = host;
