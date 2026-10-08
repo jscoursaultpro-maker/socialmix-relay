@@ -8376,10 +8376,11 @@ io.on('connection', (socket) => {
 
   socket.on('host:message', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    const msg = { id: Date.now().toString(), guestName: data.guestName || 'DJ', message: data.message || '', guestEmoji: data.guestEmoji || '🎧', sentAt: new Date().toISOString() };
+    const msg = { authorUserId: String(party.hostUserId || 'host'), isHost: true, id: Date.now().toString(), guestName: data.guestName || 'DJ', message: data.message || '', guestEmoji: data.guestEmoji || '🎧', sentAt: new Date().toISOString() };
     // Store in party state for resync
     if (!party.messages) party.messages = [];
     party.messages.push(msg);
+    party.isDirty = true;
     io.to(`guest:${party.code}`).emit('guest:message', msg);
     addPoints(party, 'host', data.guestName || 'DJ', 10, 'message');
   });
