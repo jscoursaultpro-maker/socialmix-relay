@@ -407,19 +407,23 @@
     },
     "6aa1b0489c7c780f0814357b": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6aa1af249c7c780f08143416": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6aa1aa739c7c780f08142ff6": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6aa1a7239c7c780f08142b2b": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6aa189fc9c7c780f08140a13": {
       "inbox": "2026-10-02-b.json",
@@ -427,11 +431,13 @@
     },
     "6a9f1db59c7c780f080fd729": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9f19c09c7c780f080fd0a4": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9ef2bba144dc00258d9b79": {
       "inbox": "2026-10-02-b.json",
@@ -443,11 +449,13 @@
     },
     "6a9da0f0a144dc00258b59c0": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9da03ca144dc00258b58ce": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9d9625a144dc00258b4d03": {
       "inbox": "2026-10-02-b.json",
@@ -455,11 +463,13 @@
     },
     "6a9d88d6a144dc00258b3d17": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9d8612a144dc00258b39db": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9d7c08a144dc00258b2e96": {
       "inbox": "2026-10-02-b.json",
@@ -467,11 +477,13 @@
     },
     "6a9d7647a144dc00258b2be7": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9d74a7a144dc00258b2b38": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9d71d1a144dc00258b29fe": {
       "inbox": "2026-10-02-b.json",
@@ -487,11 +499,13 @@
     },
     "6a9d51dda144dc00258b0445": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c944ba144dc002589cad1": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c90cda144dc002589c711": {
       "inbox": "2026-10-02-b.json",
@@ -523,7 +537,8 @@
     },
     "6a9c8772a144dc002589bb43": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c856da144dc002589b820": {
       "inbox": "2026-10-02-b.json",
@@ -535,7 +550,8 @@
     },
     "6a9c8390a144dc002589b542": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c82a2a144dc002589b449": {
       "inbox": "2026-10-02-b.json",
@@ -543,11 +559,13 @@
     },
     "6a9c820ba144dc002589b398": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c8195a144dc002589b301": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c7ec9a144dc002589af56": {
       "inbox": "2026-10-02-b.json",
@@ -560,7 +578,8 @@
     },
     "6a9c7ca9a144dc002589ac84": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c7bf4a144dc002589ab94": {
       "inbox": "2026-10-02-b.json",
@@ -584,7 +603,8 @@
     },
     "6a9c58fea144dc002589812c": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c4332a144dc00258961f0": {
       "inbox": "2026-10-02-b.json",
@@ -592,7 +612,8 @@
     },
     "6a9c42bca144dc0025896189": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c4004a144dc0025895e64": {
       "inbox": "2026-10-02-b.json",
@@ -604,7 +625,8 @@
     },
     "6a9c39faa144dc0025895741": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c3506a144dc00258950e3": {
       "inbox": "2026-10-02-b.json",
@@ -612,11 +634,13 @@
     },
     "6a9c2cd7a144dc00258947f2": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c27f9a144dc00258942b0": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c25f0a144dc0025894128": {
       "inbox": "2026-10-02-b.json",
@@ -624,7 +648,8 @@
     },
     "6a9c2504a144dc0025894053": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c234ea144dc0025893e64": {
       "inbox": "2026-10-02-b.json",
@@ -632,7 +657,8 @@
     },
     "6a9c22e5a144dc0025893df0": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c20f3a144dc0025893bed": {
       "inbox": "2026-10-02-b.json",
@@ -644,11 +670,13 @@
     },
     "6a9c1ad7a144dc002589305f": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c1a6da144dc0025892fec": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9c185fa144dc0025892d3b": {
       "inbox": "2026-10-02-b.json",
@@ -692,7 +720,8 @@
     },
     "6a9adf63446e55b010a3817f": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9ada35446e55b010a37971": {
       "inbox": "2026-10-02-b.json",
@@ -712,19 +741,23 @@
     },
     "6a9aaf97446e55b010a35331": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9a81a3446e55b010a31a2b": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9a80fd446e55b010a319d2": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9a7eca446e55b010a31833": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a99ab33446e55b010a285f3": {
       "inbox": "2026-10-02-b.json",
@@ -736,7 +769,8 @@
     },
     "6a9973e7446e55b010a26074": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a987d62446e55b010a197d4": {
       "inbox": "2026-10-02-b.json",
@@ -749,7 +783,8 @@
     },
     "6a96b29d446e55b0109f9e94": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a96ad4e446e55b0109f9b6a": {
       "inbox": "2026-10-02-b.json",
@@ -758,11 +793,13 @@
     },
     "6a95e4ab446e55b0109e4c14": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a95e200446e55b0109e4ad4": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a95d901446e55b0109e46f8": {
       "inbox": "2026-10-02-b.json",
@@ -774,7 +811,8 @@
     },
     "6a95d1db446e55b0109e438d": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a955597446e55b0109df1ec": {
       "inbox": "2026-10-02-b.json",
@@ -786,11 +824,13 @@
     },
     "6a95476d446e55b0109de798": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a954611446e55b0109de6b7": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a944f77446e55b0109d5b11": {
       "inbox": "2026-10-02-b.json",
@@ -798,7 +838,8 @@
     },
     "6a944e2f446e55b0109d5a72": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a944e0e446e55b0109d5a68": {
       "inbox": "2026-10-02-b.json",
@@ -810,19 +851,23 @@
     },
     "6a944964446e55b0109d5883": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9448d7446e55b0109d5855": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9446c1446e55b0109d577d": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9444b0446e55b0109d5670": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a94435c446e55b0109d55ea": {
       "inbox": "2026-10-02-b.json",
@@ -830,19 +875,23 @@
     },
     "6a944187446e55b0109d5532": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a944101446e55b0109d54f5": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a943e17446e55b0109d53c8": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a943d92446e55b0109d539f": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a943b39446e55b0109d528e": {
       "inbox": "2026-10-02-b.json",
@@ -858,7 +907,8 @@
     },
     "6a940c08446e55b0109d36b5": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a9403e6446e55b0109d27b8": {
       "inbox": "2026-10-02-b.json",
@@ -866,15 +916,18 @@
     },
     "6a93fc55446e55b0109d23bf": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a91cc9529babfe4d39d5a6f": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a91cb0b29babfe4d39d59d0": {
       "inbox": "2026-10-02-b.json",
-      "exportedAt": "2026-10-02T16:36:43.287Z"
+      "exportedAt": "2026-10-02T16:36:43.287Z",
+      "status": "awaiting_review"
     },
     "6a8eec1a29babfe4d39ac0de": {
       "inbox": "2026-10-02-b.json",
@@ -1984,49 +2037,70 @@
       "applied": 0,
       "deferred": 65,
       "invalid": 0,
-      "at": "2026-10-07T20:22:58.529Z"
+      "at": "2026-10-08T11:51:39.488Z"
     },
     "2026-10-02-c": {
       "status": "partial",
       "applied": 0,
       "deferred": 2,
       "invalid": 0,
-      "at": "2026-10-07T20:22:58.532Z"
+      "at": "2026-10-08T11:51:39.491Z"
     },
     "2026-10-02-d": {
       "status": "partial",
       "applied": 0,
       "deferred": 7,
       "invalid": 0,
-      "at": "2026-10-07T20:22:58.534Z"
+      "at": "2026-10-08T11:51:39.492Z"
     },
     "2026-10-02-e": {
       "status": "partial",
       "applied": 0,
       "deferred": 7,
       "invalid": 0,
-      "at": "2026-10-07T20:22:58.535Z"
+      "at": "2026-10-08T11:51:39.493Z"
     },
     "2026-10-02-g": {
       "status": "partial",
       "applied": 0,
       "deferred": 5,
       "invalid": 0,
-      "at": "2026-10-07T20:22:58.536Z"
+      "at": "2026-10-08T11:51:39.494Z"
     },
     "2026-10-03-a": {
       "status": "partial",
       "applied": 0,
       "deferred": 49,
       "invalid": 0,
-      "at": "2026-10-07T20:22:58.539Z"
+      "at": "2026-10-08T11:51:39.496Z"
     },
     "2026-10-07-votefeu": {
       "status": "partial",
-      "applied": 10,
+      "applied": 0,
       "deferred": 7,
-      "invalid": 1,
-      "at": "2026-10-07T20:22:58.540Z"
+      "invalid": 0,
+      "at": "2026-10-08T11:51:44.280Z"
+    },
+    "2026-10-07-batch50a": {
+      "status": "partial",
+      "applied": 0,
+      "deferred": 22,
+      "invalid": 0,
+      "at": "2026-10-08T11:51:39.497Z"
+    },
+    "2026-10-08-batch14c": {
+      "status": "partial",
+      "applied": 0,
+      "deferred": 8,
+      "invalid": 0,
+      "at": "2026-10-08T11:51:44.424Z"
+    },
+    "2026-10-08-batch50b": {
+      "status": "partial",
+      "applied": 0,
+      "deferred": 23,
+      "invalid": 0,
+      "at": "2026-10-08T11:51:45.285Z"
     }
   }
 }
