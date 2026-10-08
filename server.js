@@ -6492,7 +6492,9 @@ io.on('connection', (socket) => {
     const verifiedSocketUser = socket.user || null;
     const verifiedEmail = (verifiedSocketUser?.email || '').trim().toLowerCase();
     const emailRaw = (verifiedEmail || data.email || '').trim().toLowerCase();
-    const firstName = (verifiedSocketUser?.profile?.firstName || data.firstName || '').trim();
+    const providedName = String(data.firstName || '').trim();
+    const profileName = String(verifiedSocketUser?.profile?.firstName || '').trim();
+    const firstName = providedName && !/^(guest|invité)$/i.test(providedName) ? providedName : profileName;
     const lastName = (verifiedSocketUser?.profile?.lastName || data.lastName || '').trim();
     const cguAccepted = data.cguAccepted === true;
 
@@ -6787,19 +6789,19 @@ io.on('connection', (socket) => {
     const targetUserId = (data.userId || '').toString();
     if (!targetUserId) return cb({ ok: false, error: 'MISSING_USERID' });
 
-    const pendingIdx = party.pendingGuests.findIndex(g => g.userId.toString() === targetUserId);
+    const pendingIdx = party.pendingGuests.findIndex(g => String(g.userId || '') === targetUserId);
     if (pendingIdx === -1) return cb({ ok: false, error: 'NOT_FOUND', message: 'Guest non trouvé dans la salle d\'attente.' });
 
     const pendingEntry = party.pendingGuests[pendingIdx];
+    const targetSocket = io.sockets.sockets.get(pendingEntry.socketId);
+    if (!targetSocket || targetSocket.connected === false) {
+      return cb({ ok: false, error: 'GUEST_OFFLINE', message: 'Cet invité n’est plus connecté. Demande-lui de rouvrir la soirée, puis réessaie.' });
+    }
+    // The request already carries the profile photo. Admission must never wait
+    // for an optional profile lookup (which can exceed the client's ACK timeout).
+    const approvedPhoto = pendingEntry.photoURL || null;
     party.pendingGuests.splice(pendingIdx, 1);
-
     const sessionToken = randomUUID();
-    // ★ Bug Cercle — récupérer photo depuis User.profile.photoURL pour ne pas perdre l'avatar
-    let approvedPhoto = null;
-    try {
-      const approvedUser = await User.findById(targetUserId).select('profile.photoURL').lean();
-      approvedPhoto = approvedUser?.profile?.photoURL || null;
-    } catch (_) { /* silent — photo optionnelle */ }
     const guest = {
       id: pendingEntry.socketId, userId: targetUserId, name: pendingEntry.firstName,
       emoji: '🎉', photo: approvedPhoto,
@@ -6818,7 +6820,7 @@ io.on('connection', (socket) => {
         guestSocket.join(`guest:${party.code}`);
         if (guestSocket.user?._id?.toString() === targetUserId) joinUserRoom(guestSocket, targetUserId);
         guestSocket.partyCode = party.code;
-        guestSocket.emit('guest:approved', { partyState: buildLightState(party) });
+        guestSocket.emit('guest:approved', { partyState: buildLightState(party), guestName: guest.name });
         guestSocket.emit('session:token', { sessionToken, partyCode: party.code, userId: targetUserId });
       }
     }
@@ -6846,7 +6848,7 @@ io.on('connection', (socket) => {
     const targetUserId = (data.userId || '').toString();
     if (!targetUserId) return cb({ ok: false, error: 'MISSING_USERID' });
 
-    const pendingIdx = party.pendingGuests.findIndex(g => g.userId.toString() === targetUserId);
+    const pendingIdx = party.pendingGuests.findIndex(g => String(g.userId || '') === targetUserId);
     if (pendingIdx === -1) return cb({ ok: false, error: 'NOT_FOUND' });
 
     const pendingEntry = party.pendingGuests[pendingIdx];

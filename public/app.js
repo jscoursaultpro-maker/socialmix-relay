@@ -1004,7 +1004,8 @@ function submitWelcomeBack() {
   state.guestEmail = saved.email;
 
   let ackReceived = false;
-  const doEmit = () => {
+  const doEmit = async () => {
+    const accessToken = await getProfileJwt();
     console.log('[WelcomeBack] emit guest:requestJoin code=', state.partyCode, 'email=', saved.email);
     // ★ Bug welcome-back safety — timeout 10s si serveur ne répond pas (évite loading infini)
     const timeoutId = setTimeout(() => {
@@ -1016,6 +1017,7 @@ function submitWelcomeBack() {
       showOnboardingForm();
     }, 10000);
     socket.emit('guest:requestJoin', {
+      accessToken: accessToken || undefined,
       code: state.partyCode,
       email: saved.email,
       firstName: saved.firstName,
@@ -1518,7 +1520,8 @@ function setupDeniedScreen() {
 function bindChantier5SocketListeners(sock) {
   // Guest approved by host
   sock.on('guest:approved', (data) => {
-    console.log('[C5] guest:approved received', data);
+    if (data?.guestName) state.guestName = data.guestName;
+    console.log('[C5] guest:approved received');
     if (data?.partyState?.isPreParty) { state.isPreParty = true; enterCockpitFromOnboarding(); return; }
     if (state.chantier5.screen === 'waiting') {
       const partyName = data?.partyState?.partyName || state.partyCode;
