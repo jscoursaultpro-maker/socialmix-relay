@@ -5,7 +5,12 @@
     "doctrine_version": "PREMIUM_V2",
     "curator": "claude_batch_auto_v3_vote_feu",
     "date": "2026-10-07",
-    "counts": {"total": 18, "high": 11, "medium": 5, "low": 2}
+    "counts": {
+      "total": 18,
+      "high": 11,
+      "medium": 5,
+      "low": 2
+    }
   },
   "classifications": [
     {
@@ -14,7 +19,10 @@
       "artist": "HUGEL, Imael Angel & Ultra Naté",
       "genreBDD": "House",
       "uiCategoryPrimary": "House",
-      "uiCategoriesSecondary": ["Deep House", "Électro"],
+      "uiCategoriesSecondary": [
+        "Deep House",
+        "Électro"
+      ],
       "phase": "groove",
       "phaseAlternate": "party",
       "energy": 8,
@@ -32,7 +40,13 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["groove", "deep-house", "vocal", "peak-time", "banger-crowd"],
+      "tags": [
+        "groove",
+        "deep-house",
+        "vocal",
+        "peak-time",
+        "banger-crowd"
+      ],
       "partyMoment": "peak",
       "cooldownDays": 14,
       "suggestable": true,
@@ -47,7 +61,10 @@
       "artist": "Don Mclean",
       "genreBDD": "House",
       "uiCategoryPrimary": "House",
-      "uiCategoriesSecondary": ["Électro", "Disco"],
+      "uiCategoriesSecondary": [
+        "Électro",
+        "Disco"
+      ],
       "phase": "closing",
       "phaseAlternate": "party",
       "energy": 8,
@@ -65,7 +82,13 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["closing", "sing-along", "memory-lane", "remix", "banger-crowd"],
+      "tags": [
+        "closing",
+        "sing-along",
+        "memory-lane",
+        "remix",
+        "banger-crowd"
+      ],
       "partyMoment": "closing",
       "cooldownDays": 14,
       "suggestable": true,
@@ -80,7 +103,10 @@
       "artist": "UN*DEUX",
       "genreBDD": "Latin",
       "uiCategoryPrimary": "Latin",
-      "uiCategoriesSecondary": ["House", "Afro"],
+      "uiCategoriesSecondary": [
+        "House",
+        "Afro"
+      ],
       "phase": "takeoff",
       "phaseAlternate": "groove",
       "energy": 7,
@@ -98,7 +124,12 @@
       "language": "ES",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["latin-house", "world-fusion", "warm-up", "underground"],
+      "tags": [
+        "latin-house",
+        "world-fusion",
+        "warm-up",
+        "underground"
+      ],
       "partyMoment": "warm-up",
       "cooldownDays": 21,
       "suggestable": true,
@@ -113,7 +144,10 @@
       "artist": "Sean Paul, David Guetta & Becky G",
       "genreBDD": "Latin",
       "uiCategoryPrimary": "Latin",
-      "uiCategoriesSecondary": ["Pop", "Dance"],
+      "uiCategoriesSecondary": [
+        "Pop",
+        "Dance"
+      ],
       "phase": "party",
       "phaseAlternate": "groove",
       "energy": 8,
@@ -131,7 +165,13 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["reggaeton-pop", "sing-along", "party", "crossover-hit", "caliente"],
+      "tags": [
+        "reggaeton-pop",
+        "sing-along",
+        "party",
+        "crossover-hit",
+        "caliente"
+      ],
       "partyMoment": "peak",
       "cooldownDays": 14,
       "suggestable": true,
@@ -146,7 +186,10 @@
       "artist": "Jason Derulo, Puri & Jhorrmountain",
       "genreBDD": "Latin",
       "uiCategoryPrimary": "Latin",
-      "uiCategoriesSecondary": ["Pop", "Dance"],
+      "uiCategoriesSecondary": [
+        "Pop",
+        "Dance"
+      ],
       "phase": "party",
       "phaseAlternate": "groove",
       "energy": 8,
@@ -164,7 +207,13 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["reggaeton", "viral-tiktok", "party", "sing-along", "caliente"],
+      "tags": [
+        "reggaeton",
+        "viral-tiktok",
+        "party",
+        "sing-along",
+        "caliente"
+      ],
       "partyMoment": "peak",
       "cooldownDays": 14,
       "suggestable": true,
@@ -179,12 +228,15 @@
       "artist": "DERON & DJ Delicious",
       "genreBDD": "House",
       "uiCategoryPrimary": "House",
-      "uiCategoriesSecondary": ["Deep House", "Électro"],
+      "uiCategoriesSecondary": [
+        "Deep House",
+        "Électro"
+      ],
       "phase": "groove",
       "phaseAlternate": "takeoff",
       "energy": 7,
       "bpm": 123,
-      "danceability": 0.80,
+      "danceability": 0.8,
       "isBanger": false,
       "isSingalong": false,
       "isEmotional": false,
@@ -197,7 +249,12 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["deep-house", "groove", "rework", "swiss"],
+      "tags": [
+        "deep-house",
+        "groove",
+        "rework",
+        "swiss"
+      ],
       "partyMoment": "all",
       "cooldownDays": 21,
       "suggestable": true,
@@ -212,12 +269,14 @@
       "artist": "Khruangbin & Leon Bridges",
       "genreBDD": "R&B",
       "uiCategoryPrimary": "Chill",
-      "uiCategoriesSecondary": ["R&B", "Urban Groove"],
+      "uiCategoriesSecondary": [
+        "Urban Groove"
+      ],
       "phase": "arrival",
       "phaseAlternate": "ambiance",
       "energy": 5,
       "bpm": 104,
-      "danceability": 0.60,
+      "danceability": 0.6,
       "isBanger": false,
       "isSingalong": false,
       "isEmotional": true,
@@ -230,7 +289,13 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["chill", "psyche-soul", "warm-up", "apero", "indie"],
+      "tags": [
+        "chill",
+        "psyche-soul",
+        "warm-up",
+        "apero",
+        "indie"
+      ],
       "partyMoment": "warm-up",
       "cooldownDays": 21,
       "suggestable": true,
@@ -245,7 +310,10 @@
       "artist": "Kolter",
       "genreBDD": "House",
       "uiCategoryPrimary": "Tech House",
-      "uiCategoriesSecondary": ["House", "Électro"],
+      "uiCategoriesSecondary": [
+        "House",
+        "Électro"
+      ],
       "phase": "party",
       "phaseAlternate": "groove",
       "energy": 8,
@@ -263,7 +331,11 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["tech-house", "peak-time", "underground"],
+      "tags": [
+        "tech-house",
+        "peak-time",
+        "underground"
+      ],
       "partyMoment": "peak",
       "cooldownDays": 21,
       "suggestable": true,
@@ -278,7 +350,10 @@
       "artist": "Felipe Allenn & MORENITA",
       "genreBDD": "Latin",
       "uiCategoryPrimary": "Latin",
-      "uiCategoriesSecondary": ["House", "Afro"],
+      "uiCategoriesSecondary": [
+        "House",
+        "Afro"
+      ],
       "phase": "takeoff",
       "phaseAlternate": "groove",
       "energy": 7,
@@ -296,7 +371,11 @@
       "language": "ES",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["latin-house", "warm-up", "brasil"],
+      "tags": [
+        "latin-house",
+        "warm-up",
+        "brasil"
+      ],
       "partyMoment": "warm-up",
       "cooldownDays": 21,
       "suggestable": true,
@@ -311,7 +390,10 @@
       "artist": "Bob Sinclar & Fireball",
       "genreBDD": "House",
       "uiCategoryPrimary": "House",
-      "uiCategoriesSecondary": ["Dance", "Électro"],
+      "uiCategoriesSecondary": [
+        "Dance",
+        "Électro"
+      ],
       "phase": "groove",
       "phaseAlternate": "party",
       "energy": 7,
@@ -329,7 +411,12 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["french-touch", "house", "vocal", "sing-along"],
+      "tags": [
+        "french-touch",
+        "house",
+        "vocal",
+        "sing-along"
+      ],
       "partyMoment": "peak",
       "cooldownDays": 14,
       "suggestable": true,
@@ -344,12 +431,15 @@
       "artist": "HUNTR/X, EJAE, AUDREY NUNA, REI AMI & KPop Demon Hunters Cast",
       "genreBDD": "Pop",
       "uiCategoryPrimary": "Pop",
-      "uiCategoriesSecondary": ["Dance", "Électro"],
+      "uiCategoriesSecondary": [
+        "Dance",
+        "Électro"
+      ],
       "phase": "closing",
       "phaseAlternate": "party",
       "energy": 8,
       "bpm": 123,
-      "danceability": 0.80,
+      "danceability": 0.8,
       "isBanger": true,
       "isSingalong": true,
       "isEmotional": false,
@@ -362,7 +452,14 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["kpop", "anime-ost", "singalong", "viral-tiktok", "closing", "crowd-chant"],
+      "tags": [
+        "kpop",
+        "anime-ost",
+        "singalong",
+        "viral-tiktok",
+        "closing",
+        "crowd-chant"
+      ],
       "partyMoment": "closing",
       "cooldownDays": 14,
       "suggestable": true,
@@ -377,7 +474,10 @@
       "artist": "GROSSOMODDO, Brøder & Bletter",
       "genreBDD": "House",
       "uiCategoryPrimary": "House",
-      "uiCategoriesSecondary": ["Tech House", "Électro"],
+      "uiCategoriesSecondary": [
+        "Tech House",
+        "Électro"
+      ],
       "phase": "groove",
       "phaseAlternate": "party",
       "energy": 7,
@@ -395,7 +495,11 @@
       "language": "instrumental",
       "hasLyrics": false,
       "explicit": false,
-      "tags": ["house", "groove", "underground"],
+      "tags": [
+        "house",
+        "groove",
+        "underground"
+      ],
       "partyMoment": "all",
       "cooldownDays": 21,
       "suggestable": true,
@@ -410,7 +514,10 @@
       "artist": "Edward Maya, Alex Skrindo & Mokita",
       "genreBDD": "House",
       "uiCategoryPrimary": "Melodic House",
-      "uiCategoriesSecondary": ["House", "Dance"],
+      "uiCategoriesSecondary": [
+        "House",
+        "Dance"
+      ],
       "phase": "groove",
       "phaseAlternate": "party",
       "energy": 7,
@@ -428,7 +535,12 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["melodic-house", "sing-along", "emotional", "groove"],
+      "tags": [
+        "melodic-house",
+        "sing-along",
+        "emotional",
+        "groove"
+      ],
       "partyMoment": "all",
       "cooldownDays": 21,
       "suggestable": true,
@@ -443,7 +555,10 @@
       "artist": "Sinego & Xinobi",
       "genreBDD": "Afro",
       "uiCategoryPrimary": "Afro House",
-      "uiCategoriesSecondary": ["Deep House", "Latin"],
+      "uiCategoriesSecondary": [
+        "Deep House",
+        "Latin"
+      ],
       "phase": "ambiance",
       "phaseAlternate": "takeoff",
       "energy": 6,
@@ -461,7 +576,13 @@
       "language": "ES",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["afro-house", "deep-house", "latin", "warm-up", "world"],
+      "tags": [
+        "afro-house",
+        "deep-house",
+        "latin",
+        "warm-up",
+        "world"
+      ],
       "partyMoment": "warm-up",
       "cooldownDays": 21,
       "suggestable": true,
@@ -476,7 +597,10 @@
       "artist": "Topic, HUGEL & Arash",
       "genreBDD": "House",
       "uiCategoryPrimary": "Dance",
-      "uiCategoriesSecondary": ["House", "Pop"],
+      "uiCategoriesSecondary": [
+        "House",
+        "Pop"
+      ],
       "phase": "groove",
       "phaseAlternate": "party",
       "energy": 7,
@@ -494,7 +618,12 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["dance-pop", "sing-along", "vocal-house", "collab"],
+      "tags": [
+        "dance-pop",
+        "sing-along",
+        "vocal-house",
+        "collab"
+      ],
       "partyMoment": "peak",
       "cooldownDays": 14,
       "suggestable": true,
@@ -509,12 +638,15 @@
       "artist": "David Guetta, Hypaton & Europe",
       "genreBDD": "Electro",
       "uiCategoryPrimary": "Dance",
-      "uiCategoriesSecondary": ["Électro", "Pop"],
+      "uiCategoriesSecondary": [
+        "Électro",
+        "Pop"
+      ],
       "phase": "party",
       "phaseAlternate": "closing",
       "energy": 9,
       "bpm": 128,
-      "danceability": 0.90,
+      "danceability": 0.9,
       "isBanger": true,
       "isSingalong": true,
       "isEmotional": false,
@@ -527,7 +659,14 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["anthem", "80s-remix", "sing-along", "peak-time", "crowd-chant", "guetta"],
+      "tags": [
+        "anthem",
+        "80s-remix",
+        "sing-along",
+        "peak-time",
+        "crowd-chant",
+        "guetta"
+      ],
       "partyMoment": "peak",
       "cooldownDays": 14,
       "suggestable": true,
@@ -542,7 +681,10 @@
       "artist": "Ana Mena & Rocco Hunt",
       "genreBDD": "Latin",
       "uiCategoryPrimary": "Latin",
-      "uiCategoriesSecondary": ["Pop", "Dance"],
+      "uiCategoriesSecondary": [
+        "Pop",
+        "Dance"
+      ],
       "phase": "party",
       "phaseAlternate": "groove",
       "energy": 8,
@@ -560,7 +702,13 @@
       "language": "ES",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["pop-latino", "summer-2024", "italia", "sing-along", "caliente"],
+      "tags": [
+        "pop-latino",
+        "summer-2024",
+        "italia",
+        "sing-along",
+        "caliente"
+      ],
       "partyMoment": "peak",
       "cooldownDays": 14,
       "suggestable": true,
@@ -575,7 +723,10 @@
       "artist": "Jamie xx & Honey Dijon",
       "genreBDD": "House",
       "uiCategoryPrimary": "House",
-      "uiCategoriesSecondary": ["Disco", "Deep House"],
+      "uiCategoriesSecondary": [
+        "Disco",
+        "Deep House"
+      ],
       "phase": "groove",
       "phaseAlternate": "party",
       "energy": 8,
@@ -593,7 +744,13 @@
       "language": "EN",
       "hasLyrics": true,
       "explicit": false,
-      "tags": ["house-disco", "jamie-xx", "honey-dijon", "groove", "indie-dance"],
+      "tags": [
+        "house-disco",
+        "jamie-xx",
+        "honey-dijon",
+        "groove",
+        "indie-dance"
+      ],
       "partyMoment": "peak",
       "cooldownDays": 14,
       "suggestable": true,
