@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "file": "2026-10-08-batch14c",
+    "generated_at": "2026-10-07T23:57:00Z",
+    "source": "lot 2026-10-02-b positions 104-121 (14 tracks restantes)",
+    "note": "Clôture complète du lot 2026-10-02-b (121 tracks total)."
+  },
+  "tracks": [
+    {"_id": "6a94435c446e55b0109d55ea", "title": "Can't Get You out of My Head", "artist": "Sunset Chasers, Tanlines & Kai Sol"},
+    {"_id": "6a944187446e55b0109d5532", "title": "Who We Are", "artist": "ERIICE & Jonas Dufrasne"},
+    {"_id": "6a944101446e55b0109d54f5", "title": "Stars Align", "artist": "summer sax, Breezy & Saxify"},
+    {"_id": "6a943e17446e55b0109d53c8", "title": "You're On My Mind", "artist": "Dallien, Aizu & Danny CLLS"},
+    {"_id": "6a943d92446e55b0109d539f", "title": "SUPERSTAR", "artist": "Russi & Palm Monkey"},
+    {"_id": "6a943b39446e55b0109d528e", "title": "Cola", "artist": "CamelPhat & Elderbrook"},
+    {"_id": "6a943a15446e55b0109d51cf", "title": "Andalucia", "artist": "HUGEL & GROSSOMODDO"},
+    {"_id": "6a9421bd446e55b0109d475d", "title": "Hands Up", "artist": "Sara Landry & Alt8"},
+    {"_id": "6a940c08446e55b0109d36b5", "title": "Fantasy", "artist": "CHRIS STASSY & KUČKA"},
+    {"_id": "6a9403e6446e55b0109d27b8", "title": "Fio Maravilha", "artist": "Bon Entendeur & Nicoletta"},
+    {"_id": "6a93fc55446e55b0109d23bf", "title": "Más Cerca", "artist": "Evan Cole & A-Yo"},
+    {"_id": "6a91cc9529babfe4d39d5a6f", "title": "Summer", "artist": "Emily Dawn, Skye & Sunset Chasers"},
+    {"_id": "6a91cb0b29babfe4d39d59d0", "title": "DEFINE", "artist": "Russi & Gianluca Dimeo"},
+    {"_id": "6a8eec1a29babfe4d39ac0de", "title": "Satisfaction (Uk Radio Edit)", "artist": "Benny Benassi"}
+  ]
+}
