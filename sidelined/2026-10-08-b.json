@@ -1,0 +1,46 @@
+{
+  "_meta": {
+    "file": "2026-10-08-b",
+    "created_at": "2026-10-08T06:55:42.985Z",
+    "mode": "stock",
+    "total": 4,
+    "sidelined": 1,
+    "doctrine": "scripts/curation/DOCTRINE_PREMIUM_V2.md",
+    "instructions": "scripts/curation/CLAUDE_CURATION_PROMPT.md",
+    "output_expected": "outbox/2026-10-08-b.json"
+  },
+  "tracks": [
+    {
+      "_id": "6ac609728bda4179c9e6cd75",
+      "title": "Paris de Mont Rouge sur toutes les principales apps",
+      "artist": "musique avec ce lien 🎧",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 28111,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-07T08:57:22.457Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "not_found",
+        "via": "deezer_search",
+        "candidates": []
+      }
+    }
+  ]
+}
