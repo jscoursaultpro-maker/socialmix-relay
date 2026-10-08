@@ -20,7 +20,7 @@
  *
  * PROVISOIRE :
  *   - sélection titres via djbrain-lite (contrat stable [{trackId,title,artist,spotifyUri,durationMs}])
- *   - sera remplacé par DJ Brain serveur
+ *   - sera remplacé par AhOuai serveur
  */
 
 import { createEngine, PROVIDERS } from '/shared/player-engine.js';
@@ -986,7 +986,7 @@ async function _createAndStartParty(partyName, fast) {
   await _loadAndPlayFirst(code);
 }
 
-// ★ Lot A : DJ Brain Cloud — charge les prochains titres (phase + énergie dérivées côté serveur
+// ★ Lot A : AhOuai Cloud — charge les prochains titres (phase + énergie dérivées côté serveur
 // depuis l'état de soirée), provider-aware, avec repli automatique sur djbrain-lite si indisponible.
 async function _fetchNext(code, count = 5) {
   const token = STATE.user?.supabaseToken;
@@ -1008,7 +1008,7 @@ async function _fetchNext(code, count = 5) {
 }
 
 async function _loadAndPlayFirst(code) {
-  _log('Appel DJ Brain…');
+  _log('Appel AhOuai…');
   try {
     const data = await _fetchNext(code, 5);
     STATE.tracks         = data.tracks || [];
@@ -1056,7 +1056,7 @@ async function _queueNextTrack() {
   const next = STATE.tracks[STATE.currentIdx + 1];
   if (!next) {
     // Plus de titres en réserve → recharger
-    _log('Queue vide — rechargement DJ Brain…', 'warn');
+    _log('Queue vide — rechargement AhOuai…', 'warn');
     try {
       const code = STATE.party?.code;
       const data = await _fetchNext(code, 5);
@@ -1108,12 +1108,12 @@ function _handleQueuedTransition() {
   // Charger plus si réserve < 2
   const remaining = STATE.tracks.length - STATE.currentIdx;
   if (remaining < 2) {
-    _log('Réserve < 2 — rechargement DJ Brain');
+    _log('Réserve < 2 — rechargement AhOuai');
     _fetchNext(STATE.party?.code, 5)
       .then(d => {
         const fresh = (d.tracks || []).filter(t => !STATE.tracks.some(e => e.trackId === t.trackId));
         STATE.tracks = [...STATE.tracks, ...fresh];
-        _log(`DJ Brain: +${fresh.length} titres chargés`);
+        _log(`AhOuai: +${fresh.length} titres chargés`);
       })
       .catch(() => {});
   }

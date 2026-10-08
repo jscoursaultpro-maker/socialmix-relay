@@ -310,9 +310,9 @@ L'interface d'administration d'AhOuai n'est utilisée que par l'Éditeur et n'ut
 
 ## 11. Décisions automatisées et profilage
 
-### 11.1. Algorithme « DJ Brain »
+### 11.1. Algorithme « AhOuai »
 
-AhOuai intègre un algorithme de recommandation musicale nommé **« DJ Brain »**, qui suggère automatiquement les prochains morceaux en fonction de plusieurs paramètres :
+AhOuai intègre un algorithme de recommandation musicale nommé **« AhOuai »**, qui suggère automatiquement les prochains morceaux en fonction de plusieurs paramètres :
 
 - Historique des morceaux joués dans la soirée en cours
 - Votes émis par les invités

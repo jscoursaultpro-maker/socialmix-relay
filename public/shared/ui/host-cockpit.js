@@ -180,7 +180,7 @@
         e.endParty();   // serveur → party:ended → l'hôte (room invité) bascule sur le récap
       });
     })();
-    // Frise cliquable — override manuel de phase (le DJ Brain repart de la phase choisie).
+    // Frise cliquable — override manuel de phase (AhOuai repart de la phase choisie).
     (function () {
       var frise = w.querySelector('#hc-frise'); if (!frise) return;
       frise.addEventListener('click', function (ev) {
@@ -378,7 +378,7 @@
     var q = document.getElementById('hc-q'); if (!q) return;
     var e = eng(); var up = (e && e.getUpcoming) ? e.getUpcoming() : [];
     var nEl = document.getElementById('hc-q-n'); if (nEl) nEl.textContent = up.length;
-    if (!up.length) { q.innerHTML = '<div class="hc-empty">La file se remplit avec le DJ Brain…</div>'; return; }
+    if (!up.length) { q.innerHTML = '<div class="hc-empty">La file se remplit avec AhOuai…</div>'; return; }
     var sm = suggMap();
     // ★ G3 — titre déjà pré-chargé (tête de file engagée) → marqueur « prochain ».
     var qid = (e && e.getQueuedTrackId) ? e.getQueuedTrackId() : null;
@@ -524,7 +524,7 @@
       }
     }
     if (auto) {
-      // Auto ON → c'est le DJ Brain qui décide QUAND passer les suggestions (scoring
+      // Auto ON → c'est AhOuai qui décide QUAND passer les suggestions (scoring
       // phase/énergie, côté serveur). On ne force rien dans la file : elles remontent
       // via /api/djbrain/next au bon moment. Carte masquée.
       var card = document.getElementById('hc-sugg-card'); if (card) card.style.display = 'none';

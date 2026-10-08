@@ -10,7 +10,7 @@
  * Non destructif : rien ne tourne tant que l'utilisateur n'a pas lancé une soirée en host.
  *
  * Flux : launchHost() → host:startParty (rejoint la room host:CODE) → createEngine('youtube')
- *        → DJ Brain (/api/djbrain/next, repli djbrain-lite) → engine.play(T1) → host:trackUpdate
+ *        → AhOuai (/api/djbrain/next, repli djbrain-lite) → engine.play(T1) → host:trackUpdate
  *        → queueNext(T2) → à la fin du titre, le moteur enchaîne et on ré-émet trackUpdate.
  *
  * Exposé : window.AhOuaiHostEngine { launchHost, play, pause, togglePlay, next, repeat,
@@ -43,7 +43,7 @@
   var stallTries = 0;            // tentatives de récupération pour le titre courant
   var skipping = false;          // garde anti-réentrance pendant un saut de titre injouable
   var pendingStart = null;       // Apple : {code} en attente du geste ▶ pour authorize()+1er titre
-  var lastBrainPhase = null;     // phase calculée par le DJ Brain cloud (poussée au serveur = parité iOS)
+  var lastBrainPhase = null;     // phase calculée par AhOuai cloud (poussée au serveur = parité iOS)
   var phaseOverride = 'auto';    // décision hôte : 'auto' (cascade) ou une phase tenue (hold)
 
   var _dbg = null;      // corps scrollable des logs (là où log() ajoute les lignes)
@@ -176,7 +176,7 @@
 
   function toast(m) { try { if (typeof showToast === 'function') return showToast(m, 2200); } catch (e) {} log(m); }
 
-  // ── DJ Brain ────────────────────────────────────────────────────────────────
+  // ── AhOuai ────────────────────────────────────────────────────────────────
   async function fetchNext(code, count) {
     count = count || 5;
     var token = await getToken();
@@ -299,12 +299,12 @@
       // Spotify / Apple : rien n'est pré-chargé → jouer explicitement le prochain titre jouable.
       await advanceToPlayable(idx + 1, 'auto');
     }
-    await ensureBuffer(3);   // garde la file alimentée par le DJ Brain (continuité)
+    await ensureBuffer(3);   // garde la file alimentée par AhOuai (continuité)
   }
 
   // ── Avance jusqu'au premier titre réellement jouable (robustesse soirée live) ──
   // Saute les titres injouables (resolve null, retirés, embed interdit), recharge la file
-  // via le DJ Brain si épuisée, et se protège des boucles (max 8 essais).
+  // via AhOuai si épuisée, et se protège des boucles (max 8 essais).
   async function advanceToPlayable(startIdx, reason) {
     if (skipping) return;        // un saut est déjà en cours
     skipping = true;
@@ -501,13 +501,13 @@
   }
 
   // ── Override manuel de phase (frise cliquable) ────────────────────────────
-  //   Émet host:phaseUpdate → le serveur repositionne currentPhase + baseAutoStage (le DJ Brain
+  //   Émet host:phaseUpdate → le serveur repositionne currentPhase + baseAutoStage (AhOuai
   //   cloud saute à la phase choisie et progresse depuis elle). Puis on recharge la file à venir
   //   pour qu'« À suivre » reflète tout de suite la nouvelle phase. Garde le titre courant.
   function setPhase(stage) {
     var s = sock();
     if (!s || !party || !stage) return false;
-    // ★ Parité iOS : un clic frise = l'hôte PREND sa décision et la TIENT (hold). Le DJ Brain
+    // ★ Parité iOS : un clic frise = l'hôte PREND sa décision et la TIENT (hold). Le AhOuai
     //   cloud garde cette phase (override) jusqu'à ce que l'hôte repasse en AUTO (setAuto).
     try { s.emit('host:phaseUpdate', { phase: stage, hostSecret: party.hostSecret, hold: true }); }
     catch (e) { log('setPhase: ' + e.message, 'warn'); return false; }
@@ -527,7 +527,7 @@
   }
 
   // ── Retour à l'enchaînement AUTO des phases (relâche la décision de l'hôte) ──
-  //   La cascade temporelle du DJ Brain cloud reprend depuis la dernière phase (baseAutoStage).
+  //   La cascade temporelle du AhOuai cloud reprend depuis la dernière phase (baseAutoStage).
   function setAuto() {
     var s = sock();
     if (!s || !party) return false;
@@ -718,7 +718,7 @@
       try {
         if (!party || !sugg || !sugg.title) return;
         if (!autoAdvance) return;   // auto OFF → carte manuelle, on ne touche pas à la file
-        var t = addSuggestionToQueue(sugg, 'end');   // place en fin de file (le DJ Brain réordonne au refill)
+        var t = addSuggestionToQueue(sugg, 'end');   // place en fin de file (AhOuai réordonne au refill)
         if (t) {
           log('suggestion auto-ajoutée (' + (sugg.guestName || 'invité') + ') : ' + sugg.title, 'info');
           try { if (window.AhOuaiHostCockpit && window.AhOuaiHostCockpit.renderQueue) window.AhOuaiHostCockpit.renderQueue(); } catch (e) {}
@@ -746,7 +746,7 @@
     return t;
   }
 
-  // ★ Continuité : garde toujours au moins `min` titres d'avance (recharge via le DJ Brain).
+  // ★ Continuité : garde toujours au moins `min` titres d'avance (recharge via AhOuai).
   async function ensureBuffer(min) {
     min = min || 3;
     if (!party || !engine) return;
@@ -754,7 +754,7 @@
     try {
       var d = await fetchNext(party.code, 5);
       var fresh = (d.tracks || []).filter(function (t) { return !tracks.some(function (e) { return String(e.trackId) === String(t.trackId) || normKey(e.title) === normKey(t.title); }); });
-      if (fresh.length) { tracks = tracks.concat(fresh); log('buffer complété (+' + fresh.length + ' via DJ Brain)'); }
+      if (fresh.length) { tracks = tracks.concat(fresh); log('buffer complété (+' + fresh.length + ' via AhOuai)'); }
     } catch (e) { log('ensureBuffer: ' + e.message, 'warn'); }
   }
 

@@ -7,7 +7,7 @@
 
 ## Préambule
 
-Bienvenue sur AhOuai. Ces Conditions Générales d'Utilisation (ci-après « CGU ») régissent votre utilisation de l'application mobile AhOuai (ci-après « l'Application » ou « le Service ») éditée par Jean-Sébastien Coursault, personne physique, ci-après désigné « l'Éditeur ».
+Bienvenue sur AhOuai. Ces Conditions Générales d'Utilisation (ci-après « CGU ») régissent votre utilisation de l'application mobiAhOuai (ci-après « l'Application » ou « le Service ») éditée par Jean-Sébastien Coursault, personne physique, ci-après désigné « l'Éditeur ».
 
 En téléchargeant, installant ou utilisant l'Application, vous reconnaissez avoir pris connaissance des présentes CGU et vous engagez à les respecter sans réserve. Si vous n'acceptez pas ces CGU, vous ne devez pas utiliser l'Application.
 
@@ -56,7 +56,7 @@ AhOuai est une application mobile iOS de « DJ sociale » permettant à un hôte
 ### 3.2. Fonctionnalités principales
 
 - Sélection musicale par l'hôte via services de streaming (Apple Music, Spotify, Deezer)
-- Recommandations automatiques par l'algorithme « DJ Brain » d'AhOuai
+- Recommandations automatiques par l'algorithme « AhOuai » d'AhOuai
 - Votes des invités sur les morceaux joués (Bof, Cool, Feu)
 - Suggestions musicales par les invités
 - Messages et post-its en temps réel entre invités et hôte

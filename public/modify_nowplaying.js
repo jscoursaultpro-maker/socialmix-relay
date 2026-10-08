@@ -22,11 +22,11 @@ const replacement = `  $('np-genre').textContent = (track.genre || '—').toUppe
       suggesterText.textContent = 'Mis le feu par';
     } else if (state.mode === 'appMix') { // appMix = Jukebox mode
       suggesterEl.style.display = 'inline-flex';
-      suggesterName.textContent = 'DJ Brain';
+      suggesterName.textContent = 'AhOuai';
       suggesterIcon.textContent = '🤖';
       suggesterText.textContent = 'Mixé par le';
     } else {
-      // In DJ Live mode, don't show DJ Brain
+      // In DJ Live mode, don't show AhOuai
       suggesterEl.style.display = 'none';
     }
   }

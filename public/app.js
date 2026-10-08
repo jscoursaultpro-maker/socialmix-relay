@@ -3371,11 +3371,11 @@ function updateNowPlaying(track) {
       suggesterText.textContent = 'Choix';
     } else if (state.mode === 'appMix') { // appMix = Jukebox mode
       suggesterEl.style.display = 'inline-flex';
-      suggesterName.textContent = 'DJ Brain';
+      suggesterName.textContent = 'AhOuai';
       suggesterIcon.textContent = '🤖';
       suggesterText.textContent = 'Mixé par le';
     } else {
-      // In DJ Live mode, don't show DJ Brain
+      // In DJ Live mode, don't show AhOuai
       suggesterEl.style.display = 'none';
     }
   }
@@ -3890,7 +3890,7 @@ const PHASE_MESSAGES = {
     { maxMin: Infinity, text: "On atteint le pic 🎉 Envoie une demande d'amis à qui te fait vibrer" }
   ],
   closing: [
-    { maxMin: 10,       text: "C'est l'heure des Memories 🎬 Balance le titre culte qui va marquer la soirée — le DJ Brain va tout donner pour le caser !" },
+    { maxMin: 10,       text: "C'est l'heure des Memories 🎬 Balance le titre culte qui va marquer la soirée — AhOuai va tout donner pour le caser !" },
     { maxMin: 30,       text: "Le moment se grave 🎞️ Suggère ton hymne, ton coup de cœur, ton titre culte — une remontée d'énergie est encore possible 🔥" },
     { maxMin: Infinity, text: "Ce moment restera 📸 Ta dernière suggestion, ta dernière photo — puis retrouve la playlist + tes amis dans l'app AhOuai 📱" }
   ]
@@ -4816,7 +4816,7 @@ function updateHistory() {
           } else if (track.source === 'host_jukebox_manual') {
              return `<div style="margin-top:2px;font-size:10px;color:#ffb300;font-weight:700;">🎚️ Choix Jukebox</div>`;
           } else {
-             return `<div style="margin-top:2px;font-size:10px;color:rgba(187,134,252,0.8);font-weight:600;">🤖 DJ Brain</div>`;
+             return `<div style="margin-top:2px;font-size:10px;color:rgba(187,134,252,0.8);font-weight:600;">🤖 AhOuai</div>`;
           }
         })()}
         ${voteBadges ? `<div style="margin-top:2px;">${voteBadges}</div>` : ''}

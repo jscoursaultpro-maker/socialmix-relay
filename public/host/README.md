@@ -52,13 +52,13 @@ ngrok http 3069
 
 | Composant | Statut | Remplacement prévu |
 |---|---|---|
-| `djbrain-lite.js` | ⚠️ **PROVISOIRE** | DJ Brain serveur complet |
+| `djbrain-lite.js` | ⚠️ **PROVISOIRE** | AhOuai serveur complet |
 | Sélection phase | Filtre `arrival` statique | Phases dynamiques par ambiance |
 | Code soirée | Généré côté client | Généré côté serveur avec unicité garantie |
 | Upload cover | FileReader local (pas Cloudinary) | Upload Cloudinary (pattern guest) |
 
 > **Contrat stable djbrain-lite** : `[{trackId, title, artist, spotifyUri, durationMs}]`
-> — l'API peut être remplacée par le DJ Brain serveur sans changer host.js.
+> — l'API peut être remplacée par AhOuai serveur sans changer host.js.
 
 ## Protocole de test manuel
 
