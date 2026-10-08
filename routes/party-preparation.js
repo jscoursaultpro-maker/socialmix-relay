@@ -33,7 +33,7 @@ export default function preparationRouter({ parties, io, buildLightState, PartyM
     try { await fn(req, res); }
     catch (e) { res.status(e.status || 500).json({ error: e.message || 'Erreur serveur' }); }
   };
-  async function owned(req) {
+  async function owned(req, allowLive = false) {
     const code = String(req.params.code || '').toUpperCase();
     const p = await PartyModel.findOne({ code, endedAt: null });
     if (!p) throw Object.assign(new Error('Cette soirée est introuvable.'), { status: 404 });
@@ -42,7 +42,7 @@ export default function preparationRouter({ parties, io, buildLightState, PartyM
     if (!(user && String(p.hostUserId) === String(user._id)) && !(secret && secret === p.hostSecret)) {
       throw Object.assign(new Error('Seul l’organisateur peut préparer cette soirée.'), { status: 403 });
     }
-    if (!p.isPreParty) throw Object.assign(new Error('Cette soirée a déjà commencé.'), { status: 409 });
+    if (!allowLive && !p.isPreParty) throw Object.assign(new Error('Cette soirée a déjà commencé.'), { status: 409 });
     return p;
   }
   function sync(p) {
@@ -91,6 +91,15 @@ export default function preparationRouter({ parties, io, buildLightState, PartyM
     const invitations = user ? await PartyModel.find({ 'scheduledInvitations.userId': user._id, hostUserId: { $ne: user._id }, isPreParty: true, endedAt: null, code: { $not: /_archived_/ }, 'lifecycle.status': { $nin: ['archived', 'ended', 'merged'] } }).sort({ scheduledFor: 1 }).limit(100).lean() : [];
     res.json({ parties: list.map(preparationSummary), invitations: invitations.map(p => ({ ...preparationSummary(p), pendingCount: undefined })) });
   }));
+  router.get('/invitations', route(async (req, res) => {
+    const user = await identity(req);
+    if (!user) return res.status(401).json({ error: 'Connecte ton compte pour retrouver tes invitations.' });
+    const invitations = await PartyModel.find({ 'scheduledInvitations.userId': user._id,
+      hostUserId: { $ne: user._id }, endedAt: null, code: { $not: /_archived_/ },
+      'lifecycle.status': { $nin: ['archived', 'ended', 'merged'] }
+    }).sort({ scheduledFor: 1 }).limit(100).lean();
+    res.json({ invitations: invitations.map(preparationSummary) });
+  }));
   router.get('/:code/preparation', route(async (req, res) => {
     const p = await owned(req);
     const registered = new Set((p.participants || []).map(x => String(x.userId)));
@@ -105,13 +114,13 @@ export default function preparationRouter({ parties, io, buildLightState, PartyM
     await p.save(); sync(p); res.json(preparationSummary(p));
   }));
   router.post('/:code/preparation/friends', route(async (req, res) => {
-    const p = await owned(req);
+    const p = await owned(req, true);
     if (!p.hostUserId) return res.status(409).json({ error: 'Connecte ton compte pour inviter tes amis.' });
     const ids = [...new Set(Array.isArray(req.body.userIds) ? req.body.userIds : [])].filter(x => /^[a-f0-9]{24}$/i.test(x)).slice(0, 100);
     if (!ids.length) return res.status(400).json({ error: 'Sélectionne au moins un ami.' });
     const owner = String(p.hostUserId);
     const relations = await FriendshipModel.find({ status: 'accepted', $or: [{ userA: owner, userB: { $in: ids } }, { userB: owner, userA: { $in: ids } }] }).lean();
-    const allowed = new Set(relations.map(x => x.userA === owner ? x.userB : x.userA));
+    const allowed = new Set(relations.map(x => String(x.userA) === owner ? String(x.userB) : String(x.userA)));
     const hostUser = await UserModel.findById(p.hostUserId).select('friends.userId').lean();
     for (const friend of hostUser?.friends || []) allowed.add(String(friend.userId));
     if (ids.some(x => !allowed.has(x))) return res.status(403).json({ error: 'Tu peux ajouter uniquement tes amis confirmés.' });
@@ -122,7 +131,14 @@ export default function preparationRouter({ parties, io, buildLightState, PartyM
         name: user.profile?.firstName || 'Ami', photoURL: user.profile?.photoURL || null, emoji: user.profile?.emoji || '🎉' });
       if (!p.preApprovedGuests.some(x => String(x) === id)) p.preApprovedGuests.push(id);
     }
-    await p.save(); sync(p); res.json({ ok: true });
+    await p.save();
+    const live = parties.get(p.code);
+    if (live) {
+      live.scheduledInvitations = p.scheduledInvitations;
+      live.preApprovedGuests = p.preApprovedGuests;
+      live.isDirty = true;
+    }
+    res.json({ ok: true });
   }));
   router.post('/:code/preparation/requests/:userId', route(async (req, res) => {
     const p = await owned(req);

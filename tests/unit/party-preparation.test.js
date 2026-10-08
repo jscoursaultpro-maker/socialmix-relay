@@ -13,12 +13,12 @@ test('preparation ownership, invitation and registration lifecycle',async()=>{
   const PartyModel={
     create:async data=>{if(docs.has(data.code))throw Object.assign(new Error('duplicate'),{code:11000});const p=doc(data);docs.set(p.code,p);return p;},
     findOne:async({code})=>docs.get(code)||null,
-    find:()=>({sort:()=>({limit:()=>({lean:async()=>[...docs.values()].filter(p=>p.isPreParty)})})})
+    find:query=>({sort:()=>({limit:()=>({lean:async()=>[...docs.values()].filter(p=> query['scheduledInvitations.userId'] ? p.scheduledInvitations.some(x=>x.userId===query['scheduledInvitations.userId']) && p.hostUserId!==query['scheduledInvitations.userId'] : p.isPreParty)})})})
   };
   const UserModel={findById:()=>({select:()=>({lean:async()=>({friends:[{userId:friendID}]})})}),find:()=>({select:()=>({lean:async()=>[{_id:friendID,profile:{firstName:'Léa',photoURL:'https://example.com/lea.jpg'}}]})})};
   const FriendshipModel={find:()=>({lean:async()=>[]})};
   const io={sockets:{sockets:new Map()},to:()=>({emit:(...args)=>events.push(args)})};
-  const app=express();app.use('/api/party',preparationRouter({parties:ram,io,PartyModel,UserModel,FriendshipModel,authenticate:async token=>{if(token!=='host')throw new Error('invalid');return {_id:hostID,profile:{firstName:'Jean-Sébastien'}};}}));
+  const app=express();app.use('/api/party',preparationRouter({parties:ram,io,PartyModel,UserModel,FriendshipModel,authenticate:async token=>{if(!['host','friend'].includes(token))throw new Error('invalid');return {_id:token==='friend'?friendID:hostID,profile:{firstName:'Jean-Sébastien'}};}}));
   const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.on('listening',resolve));
   const base=`http://127.0.0.1:${server.address().port}/api/party`;
   const call=async(path,method='GET',body,auth='host',withSecret=false)=>{
@@ -47,5 +47,14 @@ test('preparation ownership, invitation and registration lifecycle',async()=>{
     assert.equal((await call(`/ABC123/preparation/requests/${friendID}`,'POST',{action:'accept'})).status,404);
     assert.equal((await call('/ABC123/preparation','PATCH',{...create,partyName:'Nouveau nom'})).status,200);assert.equal(p.partyName,'Nouveau nom');assert.equal(p.isPreParty,true);
     p.isPreParty=false;assert.equal((await call('/ABC123/preparation')).status,409);
+    ram.get(p.code).participants = [{ userId: 'live-person' }];
+    assert.equal((await call('/ABC123/preparation/friends','POST',{userIds:[friendID]})).status,200);
+    assert.equal(ram.get(p.code).participants[0].userId,'live-person','inviting preserves live participants');
+    assert.equal((await call('/invitations','GET',null,null)).status,401);
+    assert.equal((await call('/invitations','GET',null,'host')).data.invitations.length,0);
+    const received=await call('/invitations','GET',null,'friend');
+    assert.equal(received.status,200);assert.equal(received.data.invitations[0].code,'ABC123');
+    assert.equal((await call('/ABC123/preparation/friends','POST',{userIds:[friendID]},'friend')).status,403);
+
   } finally {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });
