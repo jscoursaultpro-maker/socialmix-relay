@@ -226,11 +226,24 @@ if (isMain) {
       if (DRY) {
         console.log(`  [DRY] ${c.artist} — ${c.title} → ${c.phase}/${c.phaseAlternate} e${c.energy} ${bpmNote} (${c.confidence})`);
       } else {
-        await backups.insertOne({ trackId: track._id, file, at: new Date(), classifiedBy: CLASSIFIED_BY, before });
-        await track.save();
-        state.imported[id] = { file, at: new Date().toISOString(), confidence: c.confidence };
-        delete state.pending[id];
-        console.log(`  ✅ ${c.artist} — ${c.title} → ${c.phase} e${c.energy} ${bpmNote} (${c.confidence})`);
+        try {
+          await backups.insertOne({ trackId: track._id, file, at: new Date(), classifiedBy: CLASSIFIED_BY, before });
+          await track.save();
+          state.imported[id] = { file, at: new Date().toISOString(), confidence: c.confidence };
+          delete state.pending[id];
+          console.log(`  ✅ ${c.artist} — ${c.title} → ${c.phase} e${c.energy} ${bpmNote} (${c.confidence})`);
+        } catch (err) {
+          // Ne pas crasher le batch sur une erreur ponctuelle (ex: duplicate ISRC)
+          // On loggue + on continue avec les autres tracks.
+          if (err?.code === 11000) {
+            console.warn(`  ⚠️  SKIP ${c.artist} — ${c.title} : duplicate key ${JSON.stringify(err.keyValue || {})}`);
+            report.skipped.push({ _id: id, title: c.title, reason: `duplicate key: ${JSON.stringify(err.keyValue || {})}` });
+          } else {
+            console.error(`  ❌ ERREUR ${c.artist} — ${c.title} : ${err.message}`);
+            report.skipped.push({ _id: id, title: c.title, reason: `save error: ${err.message}` });
+          }
+          continue;
+        }
       }
       report.applied.push({ ...summarize(c), bpmNote });
     }
