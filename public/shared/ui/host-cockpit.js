@@ -393,7 +393,7 @@
       return '<div class="hc-row" data-id="' + esc(t.trackId) + '" data-idx="' + i + '">' +
         '<div class="hc-drag" aria-label="Glisser pour réordonner" title="Glisser pour réordonner">⠿</div>' +
         '<div class="hc-rank">' + (i + 1) + '</div>' +
-        '<div class="hc-cover">' + ((t.coverURL || t.artworkUrl || t.coverUrl) ? '<img src="' + esc(t.coverURL || t.artworkUrl || t.coverUrl) + '" alt="" loading="lazy">' : '♫') + '</div>' +
+        '<div class="hc-cover">' + ((t.coverArtURL || t.artworkURL || t.coverURL || t.artworkUrl || t.coverUrl || t.cover) ? '<img src="' + esc(t.coverArtURL || t.artworkURL || t.coverURL || t.artworkUrl || t.coverUrl || t.cover) + '" alt="" loading="lazy">' : '♫') + '</div>' +
         '<div class="hc-ti"><div class="tt">' + esc(t.title) + '</div><div class="ar">' + esc(t.artist || '') + '</div>' + nextBadge + sugLine + '</div>' +
         '<div class="hc-acts">' +
           '<button class="hc-mini" data-act="up"' + dataAttr + ' aria-label="Monter">↑</button>' +
