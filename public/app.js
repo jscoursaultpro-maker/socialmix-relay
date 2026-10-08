@@ -2377,12 +2377,12 @@ function connectToRelay() {
   //   rebind + requestJoin → enterCockpit → connectToRelay → … boucle de reconnexion (socket qui
   //   change toutes les ~1 s) jusqu'au RATE_LIMIT, et guest:suggest/host:trackUpdate tombaient sur
   //   un socket non lié ([no_party]). Si déjà connecté → réutiliser le socket courant.
-  if (socket && socket.connected) { return; }
+  if (socket) { if (!socket.connected) socket.connect(); return; }
   const url = window.location.origin;
   updateConnection('connecting', 'Connexion...');
 
   socket = io(url, {
-    auth: { token: _currentSupabaseJwt || undefined },
+    auth: async callback => { callback({ token: await getProfileJwt() || undefined }); },
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionAttempts: Infinity,
@@ -4157,7 +4157,7 @@ function renderSuggestResults(tracks) {
 }
 
 function sendSuggestion(deezerID, title, artist, coverURL, duration) {
-  if (!socket || !socket.connected) return;
+  if (!socket || !socket.connected) { showToast('Connexion à la soirée en cours. Réessaie dès que le statut affiche Connecté.', 5000); connectToRelay(); return; }
   
   const btn = $(`suggest-send-${deezerID}`);
   if (btn) {
@@ -4180,7 +4180,10 @@ function sendSuggestion(deezerID, title, artist, coverURL, duration) {
     guestId: state.guestId
   }, (ack) => {
     // ★ A4 — Z11 dedup: feedback utilisateur sur refus serveur
-    if (!ack) return; // timeout/déconnecté = silence
+    if (!ack || !ack.ok) {
+      if (btn) { btn.innerHTML = '📩 PROPOSER'; btn.style.pointerEvents = ''; }
+      if (!ack) { showToast('La soirée n’a pas confirmé la proposition. Réessaie.', 5000); return; }
+    }
     if (ack.ok) {
       showToast('✅ Suggestion envoyée au DJ !', 3000);
     } else if (ack.error === 'already_played') {
@@ -7116,7 +7119,8 @@ function _hostLog(m, lvl) {
 async function _hydrateHostGuestIdentity() {
   if (state.guestName && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.guestEmail || '')) return true;
   try {
-    const response = await fetch('/api/me/legacy', { credentials: 'include' });
+    const token = await getProfileJwt();
+    const response = await fetch('/api/me/legacy', { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (response.ok) {
       const user = await response.json();
       state.userId = user.userId || state.userId;
