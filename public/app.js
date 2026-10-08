@@ -2495,9 +2495,15 @@ function connectToRelay() {
             showToast('Reconnexion momentanément impossible. Réessaie dans quelques instants.');
             return; // Keep identity and bearer on a transient failure.
           }
-          console.log('[Resume] ❌ Failed:', response?.reason, '— doing fresh join');
-          clearResumeSession();
-          freshJoin();
+          // Failed resume is not a new admission. Preserve the bearer and identity:
+          // a fresh anonymous join here creates duplicates and another waiting request.
+          console.warn('[Resume] Failed:', response.reason);
+          const reason = response.reason;
+          showToast(reason === 'PARTY_ENDED'
+            ? 'Cette soirée est terminée.'
+            : reason === 'PARTY_RESTRICTED'
+              ? 'Ton accès à cette soirée est suspendu.'
+              : 'Impossible de reprendre ta participation. Reconnecte ton compte pour retrouver ton accès.');
         }
       });
     } else {
