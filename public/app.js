@@ -2562,7 +2562,7 @@ function connectToRelay() {
     if (ps.genreVotes) { state.genreVotes = ps.genreVotes; updateGenreChart(); }
     if (ps.trackHistory) { state.trackHistory = ps.trackHistory; updateHistory(); }
     if (ps.mode) { state.mode = ps.mode; updateDJMode(); }
-    // Afterglow relies on exactly the same live presence data as the trombinoscope.
+    // Best Of relies on exactly the same live presence data as the trombinoscope.
     // Keep it even when the visual trombi does not need to repaint.
     if (Array.isArray(ps.participants)) {
       state.participants = ps.participants;
@@ -2721,7 +2721,7 @@ function connectToRelay() {
       try { sessionStorage.removeItem('ahouai_host_party'); } catch (_) {}
       try { history.replaceState({}, '', '/'); } catch (_) {}
       showScreen('choice');
-      showToast('Soirée terminée · Afterglow en préparation', 2600);
+      showToast('Soirée terminée · Best Of en préparation', 2600);
       return;
     }
     const reason = (data && data.reason) || '🎉 La soirée est terminée !';
@@ -4938,7 +4938,7 @@ function populateTrombinoscope() {
 
 function updateTrombinoscope(participants) {
   const key = participants.map(p => p.name).sort().join(',');
-  // The Afterglow needs the canonical live list even when visual avatars
+  // The Best Of needs the canonical live list even when visual avatars
   // have not changed (for instance after a refresh or an action update).
   state.participants = participants;
   if (state._lastTrombiKey === key) return;
@@ -8369,7 +8369,7 @@ function showTab(tabName) {
 
   // ★ CP3 — render STORY on tab open
   if (normalizedName === 'story' && typeof renderSouvenirs === 'function') {
-    // Ask the relay for a fresh full light-state: Afterglow must never depend
+    // Ask the relay for a fresh full light-state: Best Of must never depend
     // on a stale first render after returning from the background.
     if (socket && socket.connected) socket.emit('guest:requestState');
     try { renderSouvenirs(); } catch (e) { console.warn('[souvenirs] render failed:', e); }
@@ -9132,7 +9132,7 @@ function _souvResolveNames(ids) {
 
 function renderSouvenirs() {
   // `state` is the app's lexical state object. It is deliberately not a
-  // window global: using window.state here made Afterglow render as empty.
+  // window global: using window.state here made Best Of render as empty.
   const myId = state.userId || state.guestId || '';
   const trackHistory = state.trackHistory || [];
   // Les flux live utilisent allPhotos/liveMessages, les anciennes soirées

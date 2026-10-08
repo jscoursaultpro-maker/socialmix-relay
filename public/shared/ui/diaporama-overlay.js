@@ -1,6 +1,6 @@
 /**
  * public/shared/ui/diaporama-overlay.js
- * ★ AhOuai — Afterglow/diaporama amené dans l'app host (chemin B : le host récupère les
+ * ★ AhOuai — Best Of/diaporama amené dans l'app host (chemin B : le host récupère les
  *   environnements du guest). Overlay plein écran lançable d'un bouton, pensé pour la recopie
  *   AirPlay sur une TV : il affiche l'écran AhOuai (pochette, titre, phase, QR, souvenirs),
  *   JAMAIS le lecteur YouTube. Réutilise la surface d'affichage déjà déployée (/host/display)

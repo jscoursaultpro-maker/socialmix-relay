@@ -158,7 +158,7 @@
         '<div class="hc-next-h">🎚️ À suivre <span class="n" id="hc-q-n">0</span></div>' +
         '<div class="hc-q" id="hc-q"></div>' +
       '</div>' +
-      // Terminer la soirée → AfterGlow (confirmation en 2 temps, pas de modale navigateur).
+      // Terminer la soirée → Best Of (confirmation en 2 temps, pas de modale navigateur).
       '<div class="hc-card" style="text-align:center">' +
         '<button id="hc-end" style="width:100%;padding:13px;border:1px solid rgba(255,77,128,.5);border-radius:12px;background:rgba(255,77,128,.12);color:#ff6b9d;font:800 15px Outfit,sans-serif;cursor:pointer">Terminer la soirée</button>' +
       '</div>';

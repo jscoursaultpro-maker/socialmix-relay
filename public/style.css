@@ -5775,7 +5775,7 @@ body.founder-program-open { overflow: hidden; }
   #tab-backstage .v2-space-heading h1 { font-size: 32px; }
 }
 
-/* ═══ UNIFIED PAGE HEADERS — ON AIR · MOI · AFTERGLOW ═══ */
+/* ═══ UNIFIED PAGE HEADERS — ON AIR · MOI · Best Of ═══ */
 /* Layout colonne centré : icône au-dessus + h1 blanc + baseline */
 
 #tab-soiree .v2-space-heading,
@@ -5841,7 +5841,7 @@ body.founder-program-open { overflow: hidden; }
   stroke: #c084fc;
   filter: drop-shadow(0 0 4px #c084fc) drop-shadow(0 0 12px #9333ea80);
 }
-/* AfterGlow → rose */
+/* Best Of → rose */
 #tab-memories .v2-space-icon svg {
   width: 100%; height: 100%;
   stroke: #fb7185;

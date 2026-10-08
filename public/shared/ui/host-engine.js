@@ -557,9 +557,9 @@
   // 'auto' si la cascade pilote ; sinon la phase tenue par l'hôte.
   function getPhaseMode() { return (phaseOverride && phaseOverride !== 'auto') ? phaseOverride : 'auto'; }
 
-  // ── Terminer la soirée → bascule AfterGlow pour tous ──────────────────────
+  // ── Terminer la soirée → bascule Best Of pour tous ──────────────────────
   //   Émet host:endParty : le serveur clôt la soirée et diffuse party:ended à la room invité.
-  //   L'hôte (membre de la room invité via self-join) reçoit party:ended → écran récap/AfterGlow.
+  //   L'hôte (membre de la room invité via self-join) reçoit party:ended → écran récap/Best Of.
   function endParty() {
     var s = sock();
     if (!s || !party || !party.code) { log('endParty: pas de soirée active', 'warn'); return false; }
