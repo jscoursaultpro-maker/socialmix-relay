@@ -7,9 +7,11 @@
   async function api(path='',method='GET',body) {
     const s=typeof state!=='undefined'?state:{};const code=s.partyCode;
     if(!code)throw new Error('Rejoins une soirée pour continuer.');
-    const headers={'Content-Type':'application/json'};const jwt=await getProfileJwt();if(jwt)headers.Authorization=`Bearer ${jwt}`;
-    if(s.sessionToken)headers['X-Guest-Session']=s.sessionToken;
-    const host=window.AhOuaiHostEngine?._debug?.().party;if(host?.code===code)headers['X-Host-Secret']=host.hostSecret;
+    const headers={'Content-Type':'application/json'};
+    const host=window.AhOuaiHostEngine?._debug?.().party;
+    if(host?.code===code&&host.hostSecret)headers['X-Host-Secret']=host.hostSecret;
+    else if(s.sessionToken)headers['X-Guest-Session']=s.sessionToken;
+    else {const jwt=await getProfileJwt();if(jwt)headers.Authorization=`Bearer ${jwt}`;}
     const response=await fetch(`/api/party/${encodeURIComponent(code)}/community${path}`,{method,headers,body:body?JSON.stringify(body):undefined});
     const data=await response.json();if(!response.ok)throw new Error(data.error||'Action impossible.');return data;
   }
@@ -17,6 +19,15 @@
   async function action(path,body,after){if(busy)return;busy=true;dialog.querySelectorAll('button').forEach(b=>b.disabled=true);try{const d=await api(path,'POST',body);if(d.message?.text)toast('Message envoyé.');else if(typeof d.message==='string')toast(d.message);if(after)await after();}catch(e){toast(e);}finally{busy=false;dialog.querySelectorAll('button').forEach(b=>b.disabled=false);}}
   function section(title,items,renderer){dialog.append(node('h2',title));if(!items.length)dialog.append(node('p','Les premiers moments apparaîtront ici.'));items.forEach(renderer);}
   function report(kind,id){const row=node('div');row.className='preparation-actions';row.append(button('Signaler ce contenu',()=>{header('Respecter l’ambiance');dialog.append(node('p','Le premier signalement envoie un avertissement privé. Une récidive alerte l’organisateur. Ton identité n’est pas communiquée à l’invité.'));[['inappropriate','Contenu inapproprié'],['harassment','Harcèlement'],['privacy','Photo ou message sans accord']].forEach(([reason,label])=>dialog.append(button(label,()=>action('/report',{kind,contentId:id,reason},()=>{dialog.close();}))));}));dialog.append(row);}
+  async function boostTouchSong(song,reload){
+    const host=window.AhOuaiHostEngine?._debug?.().party;
+    if(host?.code===state.partyCode){
+      const token=await getProfileJwt();if(!token)throw new Error('Reconnecte ton compte pour booster.');
+      const response=await fetch(`/api/party/${encodeURIComponent(host.code)}/suggest/${encodeURIComponent(song.id)}/boost`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({suggestionTitle:song.title})});
+      const data=await response.json();if(!response.ok)throw new Error(data.error||'Boost indisponible.');toast('Proposition boostée.');
+    }else await boostSuggestion(song.id,song.title);
+    await reload();
+  }
   function renderTouch(mount,t,reload){const own=t.isOwn;const p=t.person;const title=(mine,theirs)=>own?mine:theirs;
     if(mount!==dialog&&!own)mount.append(node('h2',own?'My Touch':`My Touch de ${p.name}`));
     if(p.photoURL&&(!own||mount===dialog)){const img=node('img');img.src=p.photoURL;img.alt=p.name;img.className='community-profile-photo';mount.append(img);}
@@ -27,7 +38,7 @@
       const cover=node('div');cover.className='touch-song-cover';
       if(x.coverURL){const img=node('img');img.src=x.coverURL;img.alt='';img.onerror=()=>{cover.replaceChildren(node('span','♫'));};cover.append(img);}else cover.append(node('span','♫'));
       const text=node('div');text.className='touch-song-info';text.append(node('strong',x.title),node('small',x.artist),node('span',`${x.fireCount ? `🔥 ${x.fireCount} · ` : ''}${x.boostCount != null ? `${x.boostCount} boosts · ` : ''}${{played:'Joué',pending:'En attente',queued:'Dans la file',next:'À suivre',rejected:'Non retenu',skipped:'Passé'}[x.status]||'Favori'}`));row.append(cover,text);mount.append(row);
-      if(!own&&x.canBoost)row.append(button('Booster',async()=>{await boostSuggestion(x.id,x.title);await reload();}));
+      if(!own&&x.canBoost)row.append(button('Booster',async()=>{try{await boostTouchSong(x,reload);}catch(e){toast(e);}}));
     };
     section(title('Mes favoris · mes feux','Ses favoris · ses feux'),t.favorites||[],songRow);
     section(title('Mes titres joués','Ses titres joués'),t.songs.filter(x=>x.status==='played'),songRow);

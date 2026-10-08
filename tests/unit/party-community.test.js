@@ -48,6 +48,15 @@ test('private inbox isolation, actual content ownership, host decisions and acce
     assert.equal(profile.ranking.position,1);assert.equal(profile.ranking.points,12);assert.ok(profile.songs.some(x=>x.title==='Earlier'&&x.status==='played'));assert.equal(profile.favorites[0].title,'Song');assert.equal(profile.songs[0].status,'queued');assert.equal(profile.songs[0].canBoost,true);
     assert.equal((await request('/touch/a')).body.isOwn,true);
     assert.equal((await request('/touch/b',undefined,{'X-Guest-Session':'token-b'})).body.songs[0].canBoost,false);
+    const hostTouch=await request('/touch/h',undefined,{'X-Host-Secret':'secret-host'});
+    assert.equal(hostTouch.status,200);assert.equal(hostTouch.body.isOwn,true);
+    const hostVisiting=await request('/touch/b',undefined,{'X-Host-Secret':'secret-host'});
+    assert.equal(hostVisiting.status,200);assert.equal(hostVisiting.body.isOwn,false);
+    assert.equal(hostVisiting.body.songs[0].canBoost,true);
+    assert.equal((await request('/like',{kind:'message',contentId:'m1',liked:true},{'X-Host-Secret':'secret-host'})).status,200);
+    assert.equal((await request('/touch/b',undefined,{'X-Host-Secret':'secret-host'})).body.messages[0].liked,true);
+    await request('/like',{kind:'message',contentId:'m1',liked:false},{'X-Host-Secret':'secret-host'});
+
     await request('/like',{kind:'message',contentId:'m1',liked:false});assert.equal((await request('/touch/b')).body.messages[0].likeCount,0);
 
     assert.equal((await request('/message',{targetId:'b',text:'Private hello'})).status,200);
