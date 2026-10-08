@@ -30,9 +30,21 @@ test('reconnect resumes the server binding even with a party already in memory',
   const start=source.indexOf('  function resume() {');
   const end=source.indexOf('  // ── Task #67',start);
   const sent=[];
-  const ctx={party:{code:'LOCAL1',hostSecret:'local-secret'},loadPersistedParty:()=>({code:'LOCAL1',hostSecret:'local-secret',provider:'youtube'}),sock:()=>({once(){},emit:(...args)=>sent.push(args)}),window:{},appState:()=>({guestName:'QA'}),log(){}};
+  const ctx={tracks:[{title:'Live queue'}],idx:0,autoAdvance:true,party:{code:'LOCAL1',hostSecret:'local-secret'},loadPersistedParty:()=>({code:'LOCAL1',hostSecret:'local-secret',provider:'youtube',tracks:[{title:'Old queue'}]}),sock:()=>({once(){},emit:(...args)=>sent.push(args)}),window:{},appState:()=>({guestName:'QA'}),log(){}};
   vm.createContext(ctx);vm.runInContext(source.slice(start,end),ctx);
   assert.equal(ctx.resume(),true);
   assert.equal(sent[0][0],'host:resumeParty');
   assert.equal(sent[0][1].hostSecret,'local-secret');
+  assert.equal(ctx.tracks[0].title,'Live queue');
+});
+
+test('reload restores queue order, artwork, suggestion attribution and auto setting',()=>{
+  const start=source.indexOf('  function resume() {'),end=source.indexOf('  // ── Task #67',start);
+  const saved={code:'LOCAL2',hostSecret:'local-secret',tracks:[{trackId:'current',title:'Current'},{trackId:'next',title:'Next',coverArtURL:'https://example.test/cover.jpg',_guestName:'QA',_suggested:true}],index:0,autoAdvance:false};
+  const ctx={tracks:[],idx:0,autoAdvance:true,party:null,loadPersistedParty:()=>saved,sock:()=>({once(){},emit(){}}),window:{},appState:()=>({guestName:'QA'}),log(){}};
+  vm.createContext(ctx);vm.runInContext(source.slice(start,end),ctx);ctx.resume();
+  assert.equal(ctx.tracks[ctx.idx+1].title,'Next');
+  assert.equal(ctx.tracks[1].coverArtURL,saved.tracks[1].coverArtURL);
+  assert.equal(ctx.tracks[1]._guestName,'QA');
+  assert.equal(ctx.autoAdvance,false);
 });

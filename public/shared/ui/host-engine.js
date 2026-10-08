@@ -28,7 +28,7 @@
   //   fermeture — scope suffisant pour un refresh accidentel, pas de hostSecret qui traîne).
   var HOST_PARTY_KEY = 'ahouai_host_party';
   function persistParty() {
-    try { if (party && party.code) sessionStorage.setItem(HOST_PARTY_KEY, JSON.stringify({ code: party.code, hostSecret: party.hostSecret, provider: party.provider, name: party.name || null })); } catch (e) {}
+    try { if (party && party.code) sessionStorage.setItem(HOST_PARTY_KEY, JSON.stringify({ code: party.code, hostSecret: party.hostSecret, provider: party.provider, name: party.name || null, tracks: tracks, index: idx, autoAdvance: autoAdvance })); } catch (e) {}
   }
   function clearPersistedParty() { try { sessionStorage.removeItem(HOST_PARTY_KEY); } catch (e) {} }
   function loadPersistedParty() {
@@ -36,6 +36,7 @@
   }
   var tracks = [];
   var idx = 0;
+  window.addEventListener('pagehide', persistParty);
   var queuedPid = null;
   var playingPid = null;         // providerId du titre RÉELLEMENT en cours (garde anti double-avance)
   var booted = false;
@@ -449,6 +450,12 @@
     var s = sock();
     if (!s) return false;
     party = { code: p.code, hostSecret: p.hostSecret, provider: p.provider || 'youtube', name: p.name || null };
+    // Restore only on a fresh page; a socket reconnect must retain its live queue.
+    if (!tracks.length && Array.isArray(p.tracks) && p.tracks.length) {
+      tracks = p.tracks;
+      idx = Math.max(0, Math.min(Number.isInteger(p.index) ? p.index : 0, tracks.length - 1));
+      autoAdvance = p.autoAdvance !== false;
+    }
     window._ahouaiHostLaunching = true;          // réactive le flux host (rebind/self-join)
     var st = appState();
     var profile = {
@@ -461,6 +468,7 @@
       log('party:resumed (' + (d && d.code) + ') — main hôte récupérée après reload', 'info');
       try { focusSpaOnParty(party.code); } catch (e) {}
       try { ensureEngine(party.provider); } catch (e) {}   // réarme le ▶, pas d'autoplay
+      bindSuggestionListener();
       try { claim(); } catch (e) {}   // ★ Task #67 — réaffirme hostSocketId après reload
     });
     s.once('party:error', function (e) {
@@ -629,6 +637,7 @@
 
   // ── À SUIVRE (file des prochains titres, ajustable) ─────────────────────────
   function getUpcoming() {
+    persistParty();
     return tracks.slice(idx + 1).map(function (t) {
       return { trackId: String(t.trackId), title: t.title, artist: t.artist, coverArtURL: t.coverArtURL || null, _score: t._score, phase: t.phase };
     });
