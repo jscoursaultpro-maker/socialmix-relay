@@ -94,7 +94,24 @@
       '#' + WRAP_ID + ' .hc-drag:active{cursor:grabbing}',
       '#' + WRAP_ID + ' .hc-row.dragging{opacity:.92;border-color:rgba(34,227,201,.5);background:rgba(34,227,201,.08);box-shadow:0 8px 24px rgba(0,0,0,.45)}',
       '#' + WRAP_ID + ' .hc-q.hc-dragging{cursor:grabbing}',
-      '#' + WRAP_ID + ' .hc-next-badge{display:inline-flex;align-items:center;gap:4px;font:800 10px Outfit,sans-serif;color:#06121d;background:#22e3c9;border-radius:999px;padding:2px 7px;margin-top:3px}'
+      '#' + WRAP_ID + ' .hc-next-badge{display:inline-flex;align-items:center;gap:4px;font:800 10px Outfit,sans-serif;color:#06121d;background:#22e3c9;border-radius:999px;padding:2px 7px;margin-top:3px}',
+      '#' + WRAP_ID + ' .hc-cover{width:48px;height:48px;flex:0 0 48px;border-radius:10px;overflow:hidden;background:rgba(154,110,255,.18);display:flex;align-items:center;justify-content:center;color:#bd94ff}',
+      '#' + WRAP_ID + ' .hc-cover img{width:100%;height:100%;object-fit:cover}',
+      '#' + WRAP_ID + ' .hc-now-mobile{display:none}',
+      '@media(max-width:600px){' +
+        '#' + WRAP_ID + ' #hc-q .hc-row{display:grid;grid-template-columns:18px 48px minmax(0,1fr);gap:8px;padding:12px}' +
+        '#' + WRAP_ID + ' #hc-q .hc-drag{width:18px;grid-column:1;grid-row:1 / span 2}' +
+        '#' + WRAP_ID + ' #hc-q .hc-rank{display:none}' +
+        '#' + WRAP_ID + ' #hc-q .hc-cover{grid-column:2;grid-row:1}' +
+        '#' + WRAP_ID + ' #hc-q .hc-ti{grid-column:3;grid-row:1}' +
+        '#' + WRAP_ID + ' #hc-q .hc-ti .tt{white-space:normal;overflow-wrap:anywhere;line-height:1.3}' +
+        '#' + WRAP_ID + ' #hc-q .hc-acts{grid-column:2 / -1;grid-row:2;justify-content:flex-end}' +
+        '#' + WRAP_ID + ' #hc-q .hc-mini{display:none}' +
+        '#' + WRAP_ID + ' #hc-q .hc-del{width:44px;height:44px}' +
+        '#' + WRAP_ID + ' #hc-q .hc-now{height:44px;min-width:64px}' +
+        '#' + WRAP_ID + ' .hc-now-desktop{display:none}' +
+        '#' + WRAP_ID + ' .hc-now-mobile{display:inline}' +
+      '}'
     ].join('');
     var el = document.createElement('style'); el.id = STYLE_ID; el.textContent = c; document.head.appendChild(el);
   }
@@ -376,12 +393,13 @@
       return '<div class="hc-row" data-id="' + esc(t.trackId) + '" data-idx="' + i + '">' +
         '<div class="hc-drag" aria-label="Glisser pour réordonner" title="Glisser pour réordonner">⠿</div>' +
         '<div class="hc-rank">' + (i + 1) + '</div>' +
+        '<div class="hc-cover">' + ((t.coverURL || t.artworkUrl || t.coverUrl) ? '<img src="' + esc(t.coverURL || t.artworkUrl || t.coverUrl) + '" alt="" loading="lazy">' : '♫') + '</div>' +
         '<div class="hc-ti"><div class="tt">' + esc(t.title) + '</div><div class="ar">' + esc(t.artist || '') + '</div>' + nextBadge + sugLine + '</div>' +
         '<div class="hc-acts">' +
           '<button class="hc-mini" data-act="up"' + dataAttr + ' aria-label="Monter">↑</button>' +
           '<button class="hc-mini" data-act="down"' + dataAttr + ' aria-label="Descendre">↓</button>' +
           '<button class="hc-del" data-act="del"' + dataAttr + ' aria-label="Supprimer">✕</button>' +
-          '<button class="hc-now" data-act="now"' + dataAttr + '>Maintenant</button>' +
+          '<button class="hc-now" data-act="now"' + dataAttr + ' aria-label="Jouer maintenant"><span class="hc-now-desktop">Maintenant</span><span class="hc-now-mobile">Now</span></button>' +
         '</div>' +
       '</div>';
     }).join('');
