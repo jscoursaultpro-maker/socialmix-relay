@@ -54,6 +54,53 @@ const CURATED_FIELDS = [
   'suggestable', 'confidence', 'confidence_notes', 'genre', 'classifiedBy', 'classifiedAt', 'doctrineVersion', 'qualityLevel'
 ];
 
+// ─── Patch A (2026-10-08) — Auto-fix enums ambigus ────────────────────
+// Quand Claude renvoie une valeur plausible mais hors de l'enum stricte, on
+// remappe silencieusement vers la valeur canonique au lieu d'invalider la
+// classification. Évite les hotfixes manuels récurrents (ex: "R&B" est valide
+// en genreBDD mais pas en uiCategory → on remappe vers "Urban Groove").
+// Chaque remapping est journalisé dans report.auto_fixed pour traçabilité.
+const UI_CATEGORY_AUTO_FIX = {
+  'R&B': 'Urban Groove', 'RnB': 'Urban Groove', 'R and B': 'Urban Groove',
+  'Variété': 'COCOVARIET', 'Variété FR': 'COCOVARIET', 'Variete': 'COCOVARIET', 'Variete FR': 'COCOVARIET',
+  'Hip-Hop': 'Rap', 'Hip Hop': 'Rap', 'HipHop': 'Rap',
+  'Electro': 'Électro', 'Electronic': 'Électro', 'Electronique': 'Électro',
+};
+const GENRE_BDD_AUTO_FIX = {
+  'Rap': 'Hip-Hop', 'HipHop': 'Hip-Hop', 'Hip Hop': 'Hip-Hop',
+  'Variété': 'COCOVARIET', 'Variété FR': 'COCOVARIET', 'Variete': 'COCOVARIET', 'Variete FR': 'COCOVARIET',
+  'Électro': 'Electro', 'Electronic': 'Electro', 'Electronique': 'Electro',
+  'Urban Groove': 'R&B', 'RnB': 'R&B', 'R and B': 'R&B',
+};
+
+/**
+ * Applique les auto-fixes d'enums en place (mutate la classification).
+ * Retourne la liste des remappings appliqués pour log.
+ */
+export function autoFixEnums(c) {
+  const fixes = [];
+  if (c.uiCategoryPrimary && UI_CATEGORY_AUTO_FIX[c.uiCategoryPrimary] && !UI_CATEGORIES.includes(c.uiCategoryPrimary)) {
+    fixes.push(`uiCategoryPrimary: "${c.uiCategoryPrimary}" → "${UI_CATEGORY_AUTO_FIX[c.uiCategoryPrimary]}"`);
+    c.uiCategoryPrimary = UI_CATEGORY_AUTO_FIX[c.uiCategoryPrimary];
+  }
+  if (Array.isArray(c.uiCategoriesSecondary)) {
+    c.uiCategoriesSecondary = c.uiCategoriesSecondary.map(s => {
+      if (s && UI_CATEGORY_AUTO_FIX[s] && !UI_CATEGORIES.includes(s)) {
+        fixes.push(`uiCategoriesSecondary: "${s}" → "${UI_CATEGORY_AUTO_FIX[s]}"`);
+        return UI_CATEGORY_AUTO_FIX[s];
+      }
+      return s;
+    });
+    // Dédoublonnage + suppression de la primaire si elle a atterri dans secondary
+    c.uiCategoriesSecondary = [...new Set(c.uiCategoriesSecondary)].filter(s => s !== c.uiCategoryPrimary);
+  }
+  if (c.genreBDD && GENRE_BDD_AUTO_FIX[c.genreBDD] && !GENRES_BDD.includes(c.genreBDD)) {
+    fixes.push(`genreBDD: "${c.genreBDD}" → "${GENRE_BDD_AUTO_FIX[c.genreBDD]}"`);
+    c.genreBDD = GENRE_BDD_AUTO_FIX[c.genreBDD];
+  }
+  return fixes;
+}
+
 // ─── Validation d'une classification ──────────────────────────────────
 const ADJACENT = {
   arrival: ['ambiance', 'closing'], ambiance: ['arrival', 'takeoff'], takeoff: ['ambiance', 'groove'],
@@ -143,11 +190,16 @@ if (isMain) {
     const inboxById = new Map((inbox?.tracks || []).map(t => [t._id, t]));
 
     console.log(`\n--- ${file} : ${list.length} classifications`);
-    const report = { file, at: new Date().toISOString(), min_confidence: MIN_CONF, dry_run: DRY, applied: [], deferred: [], invalid: [], skipped: [], rejected: null };
+    const report = { file, at: new Date().toISOString(), min_confidence: MIN_CONF, dry_run: DRY, applied: [], deferred: [], invalid: [], skipped: [], auto_fixed: [], rejected: null };
 
-    // 1) validation
+    // 1) auto-fix enums ambigus (Patch A) + validation
     const valid = [];
     for (const c of list) {
+      const fixes = autoFixEnums(c);
+      if (fixes.length) {
+        report.auto_fixed.push({ _id: c._id, title: c.title, artist: c.artist, fixes });
+        console.log(`  🔧 AUTO-FIX ${c.artist} — ${c.title} : ${fixes.join(' ; ')}`);
+      }
       const errs = validateClassification(c);
       if (!inboxById.has(String(c._id))) errs.push('_id absent de l\'inbox correspondante (track non exportée)');
       if (errs.length) report.invalid.push({ _id: c._id, title: c.title, artist: c.artist, errors: errs });
@@ -225,6 +277,7 @@ if (isMain) {
 
       if (DRY) {
         console.log(`  [DRY] ${c.artist} — ${c.title} → ${c.phase}/${c.phaseAlternate} e${c.energy} ${bpmNote} (${c.confidence})`);
+        report.applied.push({ ...summarize(c), bpmNote });
       } else {
         try {
           await backups.insertOne({ trackId: track._id, file, at: new Date(), classifiedBy: CLASSIFIED_BY, before });
@@ -232,10 +285,60 @@ if (isMain) {
           state.imported[id] = { file, at: new Date().toISOString(), confidence: c.confidence };
           delete state.pending[id];
           console.log(`  ✅ ${c.artist} — ${c.title} → ${c.phase} e${c.energy} ${bpmNote} (${c.confidence})`);
+          report.applied.push({ ...summarize(c), bpmNote });
         } catch (err) {
-          // Ne pas crasher le batch sur une erreur ponctuelle (ex: duplicate ISRC)
-          // On loggue + on continue avec les autres tracks.
-          if (err?.code === 11000) {
+          // Ne pas crasher le batch sur une erreur ponctuelle.
+          // Patch B (2026-10-08) — Sur duplicate ISRC, tenter un auto-merge
+          // intelligent : si la track `existing` qui bloque est de qualité
+          // basse (empty/partielle) et non-platine (isVerified=false), on y
+          // applique la curation à la place. Les champs comportementaux
+          // (votes, suggestions, HPH, etc.) restent intacts : Mongoose
+          // n'écrit que les paths modifiés.
+          if (err?.code === 11000 && err.keyValue?.isrc) {
+            const dupIsrc = err.keyValue.isrc;
+            try {
+              const existing = await Track.findOne({ isrc: dupIsrc });
+              if (existing && String(existing._id) !== id && !existing.isVerified
+                  && ['empty', 'partielle', undefined, null].includes(existing.qualityLevel)) {
+                // Appliquer la même curation sur `existing`
+                const existingBefore = {};
+                for (const f of CURATED_FIELDS) existingBefore[f] = existing[f] === undefined ? undefined : JSON.parse(JSON.stringify(existing[f]));
+                existing.genre = c.genreBDD;
+                for (const f of ['uiCategoryPrimary', 'uiCategoriesSecondary', 'phase', 'phaseAlternate', 'energy', 'danceability',
+                  'isBanger', 'isSingalong', 'isEmotional', 'isCaliente', 'isHardcore', 'isFiller', 'era', 'releaseYear', 'mood',
+                  'language', 'hasLyrics', 'explicit', 'tags', 'partyMoment', 'cooldownDays', 'notes', 'suggestable', 'confidence', 'confidence_notes']) {
+                  existing[f] = c[f];
+                }
+                // BPM : même règles que track principale
+                if (hasBpmCorrection && c.confidence === 'high') {
+                  existing.bpm = c.bpm; existing.bpmSource = 'claude_half_time_correction'; existing.bpm_confidence = 'manual';
+                } else if (!(existing.bpm > 0 && existing.bpm_confidence === 'deezer_api')) {
+                  if (dzBpm && dzBpm >= 60 && dzBpm <= 220) {
+                    existing.bpm = Math.round(dzBpm); existing.bpmSource = 'deezer_api_v3_curation'; existing.bpm_confidence = 'deezer_api';
+                  } else {
+                    existing.bpm = c.bpm; existing.bpmSource = 'claude_auto_v3'; existing.bpm_confidence = 'estimated';
+                  }
+                }
+                existing.classifiedBy = CLASSIFIED_BY;
+                existing.classifiedAt = new Date();
+                existing.doctrineVersion = DOCTRINE_VERSION;
+                existing.lastReviewedAt = new Date();
+                await backups.insertOne({ trackId: existing._id, file, at: new Date(), classifiedBy: CLASSIFIED_BY, before: existingBefore, mergedFrom: track._id, reason: 'duplicate_isrc_auto_merge' });
+                await existing.save();
+                state.imported[id] = { file, at: new Date().toISOString(), confidence: c.confidence, mergedInto: String(existing._id) };
+                delete state.pending[id];
+                console.log(`  🔀 MERGE ${c.artist} — ${c.title} → curation appliquée sur ${existing._id} (duplicate isrc ${dupIsrc})`);
+                report.applied.push({ ...summarize(c), bpmNote, mergedInto: String(existing._id), reason: `auto-merged into ${existing._id} (duplicate isrc)` });
+                continue;
+              }
+              // existing introuvable, ou isVerified, ou qualityLevel haut → skip classique
+              console.warn(`  ⚠️  SKIP ${c.artist} — ${c.title} : duplicate isrc ${dupIsrc} (existing non éligible au merge)`);
+              report.skipped.push({ _id: id, title: c.title, reason: `duplicate isrc ${dupIsrc}, existing ${existing?._id || 'inconnu'} non éligible au merge (qualityLevel=${existing?.qualityLevel}, isVerified=${existing?.isVerified})` });
+            } catch (mergeErr) {
+              console.warn(`  ⚠️  SKIP ${c.artist} — ${c.title} : duplicate isrc + échec merge : ${mergeErr.message}`);
+              report.skipped.push({ _id: id, title: c.title, reason: `duplicate isrc + merge failed: ${mergeErr.message}` });
+            }
+          } else if (err?.code === 11000) {
             console.warn(`  ⚠️  SKIP ${c.artist} — ${c.title} : duplicate key ${JSON.stringify(err.keyValue || {})}`);
             report.skipped.push({ _id: id, title: c.title, reason: `duplicate key: ${JSON.stringify(err.keyValue || {})}` });
           } else {
@@ -245,13 +348,14 @@ if (isMain) {
           continue;
         }
       }
-      report.applied.push({ ...summarize(c), bpmNote });
     }
 
     const remaining = report.deferred.length;
     state.files[fileKey] = { status: DRY ? 'dry_run' : (remaining ? 'partial' : 'done'), applied: report.applied.length, deferred: remaining, invalid: report.invalid.length, at: report.at };
     writeReport(report);
-    console.log(`→ ${file} : appliquées ${report.applied.length} | en attente ${remaining} | invalides ${report.invalid.length} | skip ${report.skipped.length}`);
+    const mergedCount = report.applied.filter(a => a.mergedInto).length;
+    const autoFixCount = report.auto_fixed?.length || 0;
+    console.log(`→ ${file} : appliquées ${report.applied.length} (dont ${mergedCount} auto-mergées) | auto-fix enums ${autoFixCount} | en attente ${remaining} | invalides ${report.invalid.length} | skip ${report.skipped.length}`);
   }
 
   if (!DRY) writeJson(path.join(DATA_DIR, 'state.json'), state);
@@ -280,6 +384,7 @@ function writeReport(r) {
   if (r.deferred.length) { lines.push(`## À relire (${r.deferred.length}) — non appliquées, seuil ${r.min_confidence}`); lines.push(''); table(r.deferred); }
   if (r.applied.length) { lines.push(`## Appliquées (${r.applied.length})`); lines.push(''); table(r.applied); }
   if (r.invalid.length) { lines.push(`## Invalides (${r.invalid.length})`); lines.push(''); for (const x of r.invalid) lines.push(`- ${x.artist} — ${x.title} (${x._id}) : ${x.errors.join(' ; ')}`); lines.push(''); }
+  if (r.auto_fixed && r.auto_fixed.length) { lines.push(`## Auto-fix enums (${r.auto_fixed.length})`); lines.push(''); for (const x of r.auto_fixed) lines.push(`- ${x.artist} — ${x.title} : ${x.fixes.join(' ; ')}`); lines.push(''); }
   if (r.skipped.length) { lines.push(`## Ignorées (${r.skipped.length})`); lines.push(''); for (const x of r.skipped) lines.push(`- ${x.title} (${x._id}) : ${x.reason}`); lines.push(''); }
   writeMd(path.join(DATA_DIR, 'review', `${r.file.replace(/\.json$/, '')}.md`), lines.join('\n'));
 }
