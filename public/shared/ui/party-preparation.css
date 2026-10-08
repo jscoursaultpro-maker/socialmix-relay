@@ -32,3 +32,50 @@
 .touch-song-row{display:flex;align-items:center;gap:12px;padding:14px;border-radius:22px;margin:10px 0;border:1px solid #ffffff12;background:#ffffff07}.touch-song-cover{width:64px;height:64px;flex:none;background:#7343bb22;color:#b88aff;border-radius:14px;overflow:hidden;display:grid;place-items:center;font-size:25px}.touch-song-cover img{width:100%;height:100%;object-fit:cover}.touch-song-info{min-width:0;flex:1}.touch-song-info strong{display:block;font-size:16px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:white}.touch-song-info small{display:block;font-size:13px;margin:5px 0;color:#b5aec9}.touch-song-info span{display:block;font-size:12px;color:#3cdbd0}.community-profile-photo{width:64px;height:64px;object-fit:cover;border-radius:50%}
 
 .community-chat-person{margin:14px 0;padding:16px;border:1px solid #46d6d755;border-radius:22px;background:linear-gradient(120deg,#12334588,#27183c88)}.community-chat-identity{display:flex;align-items:center;gap:12px;margin-bottom:14px}.community-chat-identity img,.community-chat-avatar{width:52px;height:52px;border:2px solid #d65aea;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:#312344}.community-chat-actions{display:flex;flex-wrap:wrap;gap:8px}.community-chat-actions button{margin:0;font-size:12px;padding:10px 12px}.community-chat-identity strong{color:white;font-size:18px}
+
+/* Mobile host creation: readable fields and touch targets without nested frames. */
+@media(max-width:700px){
+  #create-details-screen{justify-content:flex-start;overflow-y:auto;padding: max(16px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));}
+  #create-details-screen .host-create-grid{padding:20px;gap:24px;min-width:0;}
+  #create-details-screen .host-create-editor,#create-details-screen .host-create-controls{min-width:0;}
+  #create-details-screen .host-create-controls{padding:20px 0 0;border:0;border-top:1px solid #564d9366;border-radius:0;background:transparent;}
+  #create-details-screen input.cd-input,#create-details-screen textarea.cd-input{font-size:16px;min-width:0;max-width:100%;}
+  #create-details-screen .cd-vis-btn{min-height:48px;white-space:normal;}
+  #create-details-screen .cd-cover-btn{min-height:44px;max-width:calc(100% - 24px);}
+  #create-details-screen .host-create-nav button,#create-details-screen .host-provider-note button{min-height:44px;}
+  #create-details-screen .host-story-benefits{display:grid;gap:12px;}
+  #create-details-screen .host-story-benefits p{margin:0;}
+  .preparation-person{flex-wrap:wrap;}
+  .preparation-person strong{min-width:0;overflow-wrap:anywhere;}
+}
+@media(max-width:380px){
+  #create-details-screen{padding-left:12px;padding-right:12px;}
+  #create-details-screen .host-create-grid{padding:16px;border-radius:22px;}
+  #create-details-screen .host-create-nav img{width:125px;}
+  #create-details-screen .host-create-editor h1{font-size:38px;}
+  #create-details-screen .cd-vis{gap:6px;}
+  #create-details-screen .cd-vis-btn{font-size:12px;}
+  .choice-session{grid-template-columns:40px minmax(0,1fr);}
+  .choice-session-action{grid-column:1/-1;min-height:44px;}
+}
+
+/* Planned parties belong below the gateway, never beside its mobile column. */
+#choice-screen{flex-direction:column;}
+#choice-screen .choice-shell{flex-shrink:0;}
+#choice-screen>.preparation-home{box-sizing:border-box;width:min(100%,1100px);margin:24px auto;padding:0 24px 32px;}
+#choice-screen>.preparation-home>button{min-height:44px;border:1px solid #54d9d777;border-radius:14px;padding:12px 18px;background:linear-gradient(110deg,#103344,#291344);color:#fff;font:700 14px Outfit,sans-serif;}
+@media(max-width:700px){#choice-screen>.preparation-home{padding:0 18px 24px;}}
+@media(max-width:820px){
+  #choice-screen.is-provider-step .host-story-image,#choice-screen.is-provider-step .host-story-discover,#choice-screen.is-provider-step .choice-lead,#choice-screen.is-provider-step .choice-kicker{display:none;}
+  #choice-screen.is-provider-step .choice-brand-panel{padding:24px 22px 20px;}
+  #choice-screen.is-provider-step .choice-logo{width:145px;margin-bottom:16px;}
+  #choice-screen.is-provider-step .choice-brand-panel h1{font-size:34px;margin:0;}
+}
+
+.touch-song-info strong{text-transform:none;letter-spacing:0;}
+.community-chat-identity strong{min-width:0;overflow-wrap:anywhere;}
+@media(max-width:700px){
+  body.ah-host-mode .soiree-hero-top:has(.hm-host-video){flex-direction:column;align-items:stretch;}
+  body.ah-host-mode .soiree-artwork-zone.hm-host-video{align-self:center;}
+  body.ah-host-mode .soiree-hero-top:has(.hm-host-video) .soiree-track-info{width:100%;}
+}

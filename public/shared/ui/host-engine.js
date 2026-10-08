@@ -697,11 +697,11 @@
   // ★ Task #55 — Salle d'attente (modération des entrées). Réutilise le socket partagé ;
   //   le serveur authentifie par socket.id === party.hostSocketId (comme host:approveGuest).
   //   Refus = host:denyGuest existant (le client guest écoute déjà guest:denied). Zéro doublon.
-  function approveGuest(userId, cb) { var s = sock(); if (s) s.emit('host:approveGuest', { userId: String(userId) }, cb || function () {}); }
-  function denyGuest(userId, cb) { var s = sock(); if (s) s.emit('host:denyGuest', { userId: String(userId) }, cb || function () {}); }
-  function setApprovalMode(enabled, cb) { var s = sock(); if (s) s.emit('host:setApprovalMode', { enabled: !!enabled }, cb || function () {}); }
+  function approveGuest(userId, cb) { return emitHost('host:approveGuest', { userId: String(userId) }, cb || function () {}); }
+  function denyGuest(userId, cb) { return emitHost('host:denyGuest', { userId: String(userId) }, cb || function () {}); }
+  function setApprovalMode(enabled, cb) { return emitHost('host:setApprovalMode', { enabled: !!enabled }, cb || function () {}); }
   // Redemande l'état host complet (buildLightState isHost=true → pendingGuests + requiresApproval).
-  function requestHostState() { var s = sock(); if (s) s.emit('host:requestState', {}); }
+  function requestHostState() { return emitHost('host:requestState', {}); }
 
   function normKey(s) { return String(s == null ? '' : s).toLowerCase().replace(/\(.*?\)|\[.*?\]/g, '').replace(/[^a-z0-9]/g, '').trim(); }
 

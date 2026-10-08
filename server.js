@@ -4547,6 +4547,15 @@ function requireApprovedGuest(party, socket, callback) {
   return null;
 }
 
+// Shared live actions are also available to the authenticated host socket.
+function requireApprovedParticipant(party, socket, callback) {
+  if (party?.hostSocketId === socket?.id) {
+    const host = (party.participants || []).find(p => p.isHost && p.id === socket.id && p.connected !== false);
+    if (host) return host;
+  }
+  return requireApprovedGuest(party, socket, callback);
+}
+
 // ★ Chantier 5: resolve stable userId for a guest socket
 // Priority: socket.user._id (from auth/requestJoin) > participant.userId > socket.id
 function resolveGuestUserId(party, socket) {
@@ -5008,7 +5017,10 @@ io.on('connection', (socket) => {
       socket.join(`host:${code}`);
       cancelCleanup(code);
       const hostIdx = ramParty.participants.findIndex(p => p.isHost);
-      if (hostIdx >= 0) { ramParty.participants[hostIdx].id = socket.id; ramParty.participants[hostIdx].connected = true; }
+      if (hostIdx >= 0) { ramParty.participants[hostIdx].id = socket.id; ramParty.participants[hostIdx].connected = true; delete ramParty.participants[hostIdx].departedAt; }
+      else ramParty.participants.unshift({ id: socket.id, name: hostName, emoji: hostEmoji, userId: socket.user?._id?.toString() || ramParty.hostUserId?.toString() || null, partyCode: code, joinedAt: new Date().toISOString(), isHost: true, connected: true });
+      if (ramParty.lifecycle) { ramParty.lifecycle.hostConnected = true; ramParty.lifecycle.hostDisconnectedAt = null; }
+      if (hostDisconnectTimers.has(code)) { clearTimeout(hostDisconnectTimers.get(code)); hostDisconnectTimers.delete(code); }
       socket.emit('party:resumed', { code, state: buildLightState(ramParty, true) });
       io.to(`guest:${code}`).emit('participants:update', ramParty.participants);
       const gc = ramParty.participants.filter(p => !p.isHost).length;
@@ -7246,7 +7258,7 @@ io.on('connection', (socket) => {
   socket.on('guest:vote', (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
-    if (!requireApprovedGuest(party, socket, cb)) return;
+    if (!requireApprovedParticipant(party, socket, cb)) return;
     
     // ★ Chantier 5: stable userId for vote persistence (was socket.id)
     const guestId = resolveGuestUserId(party, socket);
@@ -7296,7 +7308,7 @@ io.on('connection', (socket) => {
   socket.on('guest:genreVote', (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
-    if (!requireApprovedGuest(party, socket, cb)) return;
+    if (!requireApprovedParticipant(party, socket, cb)) return;
     
     // ★ P0.4: Server-side guestId
     // ★ Chantier 5: stable userId for genre vote persistence
@@ -7356,7 +7368,7 @@ io.on('connection', (socket) => {
   socket.on('guest:suggest', async (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
-    if (!requireApprovedGuest(party, socket, cb)) return;
+    if (!requireApprovedParticipant(party, socket, cb)) return;
     updateActivity(party);
     
     // ★ P0.4: Server-side guestId for logging
@@ -7530,7 +7542,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:boostSuggestion', async (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    if (!requireApprovedGuest(party, socket)) return;
+    if (!requireApprovedParticipant(party, socket)) return;
     const suggestion = party.suggestions.find(s => s.id === data.suggestionId);
     if (!suggestion) return;
     if (!suggestion.boostedBy) suggestion.boostedBy = [];
@@ -7979,7 +7991,7 @@ io.on('connection', (socket) => {
   // Cancel a suggestion (guest or host cancels before it's played)
   socket.on('guest:cancelSuggestion', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    if (!requireApprovedGuest(party, socket)) return;
+    if (!requireApprovedParticipant(party, socket)) return;
     const idx = party.suggestions.findIndex(s =>
       (s.title || '').toLowerCase() === (data.title || '').toLowerCase() &&
       (s.guestName || '') === (data.guestName || '') &&
@@ -8008,7 +8020,7 @@ io.on('connection', (socket) => {
   socket.on('guest:photo', async (data, callback) => {
     const cb = typeof callback === 'function' ? callback : () => {};
     const party = getMutableParty(socket); if (!party) return cb({ ok: false, error: 'no_party' });
-    if (!requireApprovedGuest(party, socket, cb)) return;
+    if (!requireApprovedParticipant(party, socket, cb)) return;
     updateActivity(party);
     
     // ★ A3a — Idempotence guard
@@ -8109,7 +8121,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:deletePhoto', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    if (!requireApprovedGuest(party, socket)) return;
+    if (!requireApprovedParticipant(party, socket)) return;
     const { dataURL, guestName } = data || {};
     if (!dataURL) return;
     
@@ -8125,7 +8137,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:message', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    if (!requireApprovedGuest(party, socket)) return;
+    if (!requireApprovedParticipant(party, socket)) return;
     updateActivity(party);
     const msg = {
       id:          Date.now().toString(),
@@ -8148,7 +8160,7 @@ io.on('connection', (socket) => {
 
   socket.on('guest:deleteMessage', (data) => {
     const party = getMutableParty(socket); if (!party) return;
-    if (!requireApprovedGuest(party, socket)) return;
+    if (!requireApprovedParticipant(party, socket)) return;
     const msgId = data && data.id;
     const msgText = data && data.message;
     const guestName = data && data.guestName;

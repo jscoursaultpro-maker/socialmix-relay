@@ -782,8 +782,7 @@ async function handleSupabaseSession(session) {
     if (!jwt) { console.warn('[SSO] Pas de JWT dans session'); return; }
     _currentSupabaseJwt = jwt;
     if (socket) {
-      const socketNeedsVerifiedHandshake = socket.connected && socket.auth?.token !== jwt;
-      socket.auth = { ...(socket.auth || {}), token: jwt };
+      const socketNeedsVerifiedHandshake = socket.connected && socket._profileHandshakeToken !== jwt;
       // Socket.IO n'applique l'auth qu'au handshake. Une session découverte après
       // la connexion doit donc refaire ce handshake avant requestJoin/hostlaunch.
       if (socketNeedsVerifiedHandshake) socket.disconnect().connect();
@@ -2382,7 +2381,11 @@ function connectToRelay() {
   updateConnection('connecting', 'Connexion...');
 
   socket = io(url, {
-    auth: async callback => { callback({ token: await getProfileJwt() || undefined }); },
+    auth: async callback => {
+      const token = await getProfileJwt() || undefined;
+      if (socket) socket._profileHandshakeToken = token;
+      callback({ token });
+    },
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionAttempts: Infinity,
@@ -6854,7 +6857,9 @@ async function init() {
 
   // La racine nue n'est jamais une intention de rejoindre. Elle doit rester un menu,
   // même si une ancienne soirée est encore stockée dans ce navigateur.
-  if (!explicitPartyCode && !isHostFlow) clearPartyContext();
+  const persistedHost = !explicitPartyCode && !isHostFlow && urlParamsObj.get('new') !== '1'
+    ? window.AhOuaiHostEngine?.hasPersistedParty?.() : null;
+  if (!explicitPartyCode && !isHostFlow && !persistedHost) clearPartyContext();
 
   // Apply URL params
   if (params.name) state.guestName = params.name;
@@ -6971,6 +6976,12 @@ async function init() {
 
   // Auto-rejoin if session + profile exist
   const resumeSession = explicitPartyCode ? loadResumeSession() : null;
+  if (persistedHost) {
+    state.partyCode = persistedHost.code;
+    showScreen('cockpit');
+    connectToRelay();
+    return;
+  }
   const activeCode = explicitPartyCode || null;
 
   const isPreParty = await setupLanding(activeCode);
@@ -7197,6 +7208,8 @@ function _showProviderPick(justplay) {
   _choiceJustPlay = !!justplay;
   var m = document.getElementById('choice-main'); var p = document.getElementById('provider-pick');
   if (m) m.style.display = 'none'; if (p) p.style.display = 'flex';
+  document.getElementById('choice-screen')?.classList.add('is-provider-step');
+  document.getElementById('choice-screen')?.scrollTo({top:0});
 }
 
 async function _authenticateBeforeProvider(justplay) {
@@ -7211,6 +7224,7 @@ async function _authenticateBeforeProvider(justplay) {
 function cancelProviderPick() {
   var m = document.getElementById('choice-main'); var p = document.getElementById('provider-pick');
   if (p) p.style.display = 'none'; if (m) m.style.display = 'flex';
+  document.getElementById('choice-screen')?.classList.remove('is-provider-step');
 }
 function pickProvider(provider) { _goAuthedHost(provider || 'youtube', _choiceJustPlay); }
 
@@ -8018,7 +8032,33 @@ const MY_SUGS_MAX = 15;    // hard cap for suggestions
 let isHistoryCollapsed = true; // ★ Bug 8 — history collapse
 const resuggestedTrackIds = new Set(); // ★ Bug 7 — tracks already re-suggested this session
 
-function loadMyData() {
+async function loadMyData() {
+  const hostCode = window.AhOuaiHostEngine?.getCode?.();
+  if (hostCode && hostCode === state.partyCode) {
+    if (_myDataLoaded) return;
+    _myDataLoaded = true;
+    myDataError = null;
+    try {
+      const jwt = await getProfileJwt();
+      if (!jwt) throw new Error('Session du compte indisponible');
+      const headers = { Authorization: `Bearer ${jwt}` };
+      const responses = await Promise.all([
+        fetch(`/api/me/tracks/favorites?limit=50&excludeCode=${encodeURIComponent(hostCode)}`, { headers }),
+        fetch('/api/me/suggestions/past?limit=50', { headers })
+      ]);
+      if (responses.some(r => !r.ok)) throw new Error('Historique indisponible');
+      const [favorites, suggestions] = await Promise.all(responses.map(r => r.json()));
+      myTopsData = (favorites.items || []).map(t => ({ ...t, coverURL: t.artworkUrl, myFireCount: t.count || 0 })).filter(t => !isPlayedInCurrentParty(t.title));
+      mySugsData = (suggestions.items || []).map(t => ({ ...t, coverURL: t.artworkUrl })).filter(t => !isPlayedInCurrentParty(t.title)).slice(0, MY_SUGS_MAX);
+      renderMyTops();
+      renderMySugs();
+    } catch (error) {
+      _myDataLoaded = false;
+      myDataError = 'Tes Bangers n’ont pas pu être chargés. Réessaie après reconnexion.';
+    }
+    if (v2SuggestionSource === 'bangers') renderV2Bangers();
+    return;
+  }
   if (!socket || !socket.connected || !state.guestName || _myDataLoaded) return;
   _myDataLoaded = true;
   myDataError = null;
@@ -8824,12 +8864,12 @@ window.hostDeletePhoto = function(url) {
   const arr = state.allPhotos || [];
   const idx = arr.findIndex(x => x && ((x.url || x.dataUrl || x.dataURL) === url));
   if (idx < 0) return;
-  socket.emit('host:deletePhoto', { index: idx });
+  window.AhOuaiHostEngine?.emitHost?.('host:deletePhoto', { index: idx });
 };
 window.hostDeleteMessage = function(id) {
   if (!id || !socket || !socket.connected) return;
   if (!confirm("Retirer ce message de la soirée ?")) return;
-  socket.emit('host:deleteMessage', { id: String(id) });
+  window.AhOuaiHostEngine?.emitHost?.('host:deleteMessage', { id: String(id) });
 };
 
 // ★ AGIR Partager : rendu "Mes photos" + "Mes mots" + empty state
