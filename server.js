@@ -5743,9 +5743,20 @@ io.on('connection', (socket) => {
         console.log(`[${party.code}] 🔄 trackHistory dedup — skip "${trackDoc.title}" (identique au dernier "${_lastTitle}")`);
       }
       // ★ fix(bug-70): Option B — credit the suggester, not the host, when a track is played.
-      // DJ Brain auto = 0 pts to anyone. Guest suggestion = +15 to suggester (aggregation by name).
+      // Automatic selection = 0; a played suggestion earns 20 once.
       if (requestedBy.source === 'suggestion' && requestedBy.guestId) {
-        addPoints(party, requestedBy.guestId, requestedBy.guestName || 'Guest', 15, 'track jouée (suggestion): ' + track.title);
+        const playedSuggestion = party.suggestions.find(s =>
+          (s.title || '').toLowerCase() === (track.title || '').toLowerCase() &&
+          s.guestName === requestedBy.guestName);
+        if (playedSuggestion && !playedSuggestion.scoredAt) {
+          playedSuggestion.scoredAt = new Date().toISOString();
+          playedSuggestion.playedAt = playedSuggestion.playedAt || playedSuggestion.scoredAt;
+          playedSuggestion.status = 'played';
+          addPoints(party, requestedBy.guestId, requestedBy.guestName || 'Guest', 20, 'track jouée (suggestion): ' + track.title);
+          Party.findOneAndUpdate({ code: party.code, 'suggestions.id': playedSuggestion.id },
+            { $set: { 'suggestions.$.status': 'played', 'suggestions.$.scoredAt': playedSuggestion.scoredAt, 'suggestions.$.playedAt': playedSuggestion.playedAt } }
+          ).catch(err => console.error('Played suggestion persistence failed:', err.message));
+        }
       }
 
       // ★ Fresh Rotation — record playback for this host
@@ -7871,7 +7882,7 @@ io.on('connection', (socket) => {
         artist: match.artist || '',
         guestName: data.guestName,
         status: 'played',
-        message: `🎉 Bien joué ! "${match.title || match.query}" a été jouée ! +10 pts`
+        message: `🎉 Bien joué ! "${match.title || match.query}" a été jouée ! +20 pts`
       });
       // Write-through: persist scoredAt to MongoDB atomically — prevents re-fire on server restart
       Party.findOneAndUpdate(
@@ -7890,10 +7901,10 @@ io.on('connection', (socket) => {
     }
 
     // Credit points only if match found (and not duplicate — guard above returns early)
-    if (data.guestName) {
+    if (match && data.guestName) {
       const guestId = data.guestId || data.guestName;
       if (guestId !== 'host') {
-        addPoints(party, guestId, data.guestName, 10, `suggestion played: ${data.trackTitle || 'Unknown'}`);
+        addPoints(party, guestId, data.guestName, 20, `suggestion played: ${data.trackTitle || 'Unknown'}`);
       }
       addPoints(party, 'host', 'DJ', 5, `handled suggestion: ${data.trackTitle || 'Unknown'}`);
     }
