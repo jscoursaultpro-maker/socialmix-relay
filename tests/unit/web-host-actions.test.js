@@ -25,3 +25,14 @@ test('shared actions accept the bound host and reject unapproved or spoofed part
   party.hostSocketId='different-socket';assert.equal(ctx.requireApprovedParticipant(party,socket),null);
   party.participants=[];assert.equal(ctx.requireApprovedParticipant(party,{id:'pending',emit(){}}),null);
 });
+
+test('reconnect resumes the server binding even with a party already in memory',()=>{
+  const start=source.indexOf('  function resume() {');
+  const end=source.indexOf('  // ── Task #67',start);
+  const sent=[];
+  const ctx={party:{code:'LOCAL1',hostSecret:'local-secret'},loadPersistedParty:()=>({code:'LOCAL1',hostSecret:'local-secret',provider:'youtube'}),sock:()=>({once(){},emit:(...args)=>sent.push(args)}),window:{},appState:()=>({guestName:'QA'}),log(){}};
+  vm.createContext(ctx);vm.runInContext(source.slice(start,end),ctx);
+  assert.equal(ctx.resume(),true);
+  assert.equal(sent[0][0],'host:resumeParty');
+  assert.equal(sent[0][1].hostSecret,'local-secret');
+});

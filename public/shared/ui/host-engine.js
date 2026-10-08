@@ -442,7 +442,8 @@
   //   Appelé une seule fois par le handler 'connect' de app.js, uniquement si une
   //   soirée hôte a été persistée dans cet onglet (un invité n'a jamais cette clé).
   function resume() {
-    if (party && party.code) return true;       // déjà actif
+    // A fresh socket has lost its server-side binding even when this page still
+    // holds the party. Always resume it after a reconnect, just as after reload.
     var p = loadPersistedParty();
     if (!p) return false;
     var s = sock();
