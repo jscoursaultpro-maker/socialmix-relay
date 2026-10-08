@@ -71,12 +71,12 @@
           <section class="choice-brand-panel">
             <div class="choice-orb choice-orb-a"></div><div class="choice-orb choice-orb-b"></div>
             <img class="choice-logo" src="assets/brand/ahouai-logo.png" alt="AhOuai">
-            <p class="choice-kicker">TA SOIRÉE, TON CREW, VOTRE MUSIQUE</p>
+            <p class="choice-kicker">TA SOIRÉE, TES AMIS, VOTRE MUSIQUE</p>
             <h1>Ce soir,<br><span>c’est chez toi.</span></h1>
             <p class="choice-lead">Tu lances la musique. Tes invités proposent, réagissent et partagent les moments.</p>
             <img class="host-story-image" src="/assets/brand/host-party-discovery.jpg" alt="Une soirée entre amis dans une ambiance violet et turquoise" width="640" height="853">
             <button type="button" id="host-story-open" class="host-story-discover">Voir une soirée en action →</button>
-            <p class="host-story-caption">Tu pilotes. Ton crew participe. Les souvenirs restent.</p>
+            <p class="host-story-caption">Tu pilotes. Tes amis participent. Les souvenirs restent.</p>
             <div class="choice-promise"><span>✦</span><p><strong>Tout le monde participe.</strong><br>Pas d’app à installer pour tes invités.</p></div>
           </section>
           <section class="choice-action-panel">
@@ -89,12 +89,12 @@
                 <p class="choice-step">CHOISIS TON ENTRÉE</p>
                 <button type="button" class="choice-card" onclick="goCreateParty()">
                     <span class="choice-ic choice-ic-host">↗</span>
-                    <span class="choice-txt"><strong>Je crée une soirée</strong><small>Connecte-toi, choisis ton lecteur et invite ton crew.</small></span>
+                    <span class="choice-txt"><strong>Je crée une soirée</strong><small>Connecte-toi, choisis ton lecteur et invite tes amis.</small></span>
                     <span class="choice-arrow">→</span>
                 </button>
                 <button type="button" class="choice-card" onclick="goJoinParty()">
                     <span class="choice-ic choice-ic-guest">✦</span>
-                    <span class="choice-txt"><strong>Je rejoins le crew</strong><small>Entre ton code et passe par la porte d’entrée.</small></span>
+                    <span class="choice-txt"><strong>Je rejoins une soirée</strong><small>Entre ton code et passe par la porte d’entrée.</small></span>
                     <span class="choice-arrow">→</span>
                 </button>
                 <button type="button" class="choice-card" onclick="goJustPlay()">
@@ -441,7 +441,7 @@
             <header class="profile-page-heading">
                 <span>✦ ESPACE PERSONNEL</span>
                 <h2>MON PROFIL</h2>
-                <p>Ton identité, tes liens, ton crew.</p>
+                <p>Ton identité, tes liens, tes amis.</p>
             </header>
 
             <section class="profile-hero-card">
@@ -452,7 +452,7 @@
                     </div>
                     <div class="profile-hero-copy">
                         <strong id="profile-display-name">Mon profil AhOuai</strong>
-                        <span id="profile-completion">Complète ton profil pour être reconnu par le crew.</span>
+                        <span id="profile-completion">Complète ton profil pour être reconnu par tes amis.</span>
                     </div>
                 </div>
                 <div class="photo-actions">
@@ -504,12 +504,12 @@
                         👥
                         <span id="profile-friends-cta-badge" class="profile-menu-badge hidden" aria-label="Demandes d'amis en attente">0</span>
                     </span>
-                    <span class="profile-menu-copy"><b>Mes amis</b><small id="profile-friends-cta-count">Retrouve ton crew AhOuai</small></span>
+                    <span class="profile-menu-copy"><b>Mes amis</b><small id="profile-friends-cta-count">Retrouve tes amis AhOuai</small></span>
                     <span class="profile-menu-arrow">›</span>
                 </button>
                 <button type="button" class="profile-menu-row" onclick="if(typeof openMyUniversScreen==='function') openMyUniversScreen();">
                     <span class="profile-menu-icon is-violet">✦</span>
-                    <span class="profile-menu-copy"><b>Mes univers</b><small>Tout ce qui te relie à ton crew</small></span>
+                    <span class="profile-menu-copy"><b>Mes univers</b><small>Tout ce qui te relie à tes amis</small></span>
                     <span class="profile-menu-arrow">›</span>
                 </button>
                 <button id="profile-public-btn" class="profile-menu-row">
@@ -700,7 +700,7 @@
             <button id="my-friends-back" class="back-btn" onclick="if(typeof showScreen==='function') showScreen(state.previousScreen==='profile'?'profile':'cockpit')">‹ RETOUR</button>
             <header class="cercle-heading"><span>✦ LE MOMENT CONTINUE</span><h2>MES AMIS</h2><p>Les personnes croisées deviennent une histoire.</p></header>
             <section class="cercle-pulse" aria-label="Résumé du cercle">
-                <div><strong id="mf-pulse-friends">0</strong><span>dans ton Crew</span></div>
+                <div><strong id="mf-pulse-friends">0</strong><span>dans tes amis</span></div>
                 <i></i>
                 <div><strong id="mf-pulse-shared">0</strong><span>présents ce soir</span></div>
                 <i></i>
@@ -708,7 +708,7 @@
             </section>
             <nav class="cercle-tabs" aria-label="Mes amis">
                 <button class="is-active" data-cercle-tab="pending">À RÉPONDRE <b id="mf-pending-count">0</b></button>
-                <button data-cercle-tab="friends">MON CREW <b id="mf-friends-count">0</b></button>
+                <button data-cercle-tab="friends">MES AMIS <b id="mf-friends-count">0</b></button>
                 <button data-cercle-tab="recent">RENCONTRÉS <b id="mf-recent-count">0</b></button>
             </nav>
             <section id="mf-pending-section" class="cercle-pane is-active" data-cercle-pane="pending"><div id="mf-pending-list" class="cercle-list"></div></section>
@@ -1146,7 +1146,7 @@
                 <span class="v2-space-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
                 <div>
                     <h1 id="moi-title">MY TOUCH</h1>
-                    <p>Ma cote, mon crew, mes performances.</p>
+                    <p>Ma cote, mes amis, mes performances.</p>
                 </div>
             </div>
             <div id="moi-action-bar" class="v2-context-action-mount" aria-label="Actions My Vibe depuis My Touch"></div>
@@ -1198,10 +1198,10 @@
             <div style="font-size:16px;color:rgba(0,210,255,0.6);font-weight:300;">›</div>
         </button>
 
-        <!-- Le Crew -->
+        <!-- Mes amis -->
         <div class="hub-card">
             <div class="hub-card-header blue">
-                <span>👥</span> LE CREW
+                <span>👥</span> MES AMIS
             </div>
             <div class="hub-card-body">
                 <div class="trombi-grid" id="trombi-grid">
@@ -1304,7 +1304,7 @@
         <div style="height: 40px"></div>
     </div>
 
-    <!-- Le Crew Lightbox Overlay -->
+    <!-- Mes amis Lightbox Overlay -->
     <div id="trombi-lightbox" onclick="this.classList.add('hidden')" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:12px; padding:20px;">
         <div id="trombi-lightbox-photo" style="width:150px; height:150px; border-radius:20px; overflow:hidden; border:3px solid rgba(0,224,196,0.5); display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.05); font-size:60px;"></div>
         <div id="trombi-lightbox-name" style="font-size:20px; font-weight:900; color:white; text-align:center;"></div>

@@ -219,8 +219,8 @@
         '<button class="bs-vis '+(visibility==='private'?'is-active':'')+'" data-visibility="private"><i>🔒</i>PRIVÉE</button>'+
         '<button class="bs-vis '+(visibility==='friends'?'is-active':'')+'" data-visibility="friends"><i>👥</i>AMIS</button>'+
         '<button class="bs-vis '+(visibility==='public'?'is-active':'')+'" data-visibility="public"><i>🌐</i>PUBLIQUE</button>'+
-      '</div><p class="bs-vis-copy">'+(visibility==='private'?'Chaque nouvelle personne attend ton accord.':visibility==='public'?'Toute personne avec le lien ou le QR code entre directement.':'Ton crew entre directement ; les autres attendent ton accord.')+'</p></section>'+
-      '<section class="bs-card"><h2>👥 LE CREW</h2><p>'+participants.length+' personne'+(participants.length>1?'s':'')+' dans la soirée.</p></section>'+
+      '</div><p class="bs-vis-copy">'+(visibility==='private'?'Chaque nouvelle personne attend ton accord.':visibility==='public'?'Toute personne avec le lien ou le QR code entre directement.':'Tes amis entrent directement ; les autres attendent ton accord.')+'</p></section>'+
+      '<section class="bs-card"><h2>👥 MES AMIS</h2><p>'+participants.length+' personne'+(participants.length>1?'s':'')+' dans la soirée.</p></section>'+
       '<section class="bs-card"><h2>📸 PHOTOS & MOTS</h2><p>'+photos.length+' photos · '+messages.length+' mots</p><div class="bs-items">'+(photoRows+messageRows || '<p>Rien à modérer pour le moment.</p>')+'</div></section>'+
       '<button class="bs-end" id="bs-end-party">TERMINER LA SOIRÉE</button>';
     mount.querySelectorAll('[data-photo-index]').forEach(function(btn){ btn.addEventListener('click', function(){ emitHostCommand('host:deletePhoto',{photoId:btn.dataset.photoId,url:btn.dataset.photoUrl,index:Number(btn.dataset.photoIndex)},function(reply){ if(!reply||reply.ok===false)return toast((reply&&reply.error)||'Suppression impossible'); toast('Photo supprimée'); }); }); });

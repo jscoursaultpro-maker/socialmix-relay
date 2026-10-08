@@ -177,7 +177,7 @@ function updateProfileBadge() {
   }
   // ★ Bug E-4 — Sync aussi un éventuel CTA "Mes amis" dans l'écran profile
   const friendsCta = document.getElementById('profile-friends-cta-count');
-  if (friendsCta) friendsCta.textContent = count > 0 ? `${count} demande${count > 1 ? 's' : ''} en attente` : 'Retrouve ton crew AhOuai';
+  if (friendsCta) friendsCta.textContent = count > 0 ? `${count} demande${count > 1 ? 's' : ''} en attente` : 'Retrouve tes amis AhOuai';
   // ★ Pastille rouge sur l'icône Mes amis (miroir du badge notification top-right)
   const friendsBadge = document.getElementById('profile-friends-cta-badge');
   if (friendsBadge) {
@@ -1795,7 +1795,7 @@ function refreshProfileHub() {
   if (heroName) heroName.textContent = displayName;
   if (completion) {
     const ready = state.guestName && state.guestLastName && state.guestEmail;
-    completion.textContent = ready ? `Signature ${state.guestEmoji || '✨'} · profil prêt pour le crew` : 'Complète ton profil pour être reconnu par le crew.';
+    completion.textContent = ready ? `Signature ${state.guestEmoji || '✨'} · profil prêt pour tes amis` : 'Complète ton profil pour être reconnu par tes amis.';
   }
   const inParty = Boolean(state.partyCode && (state.connected || state.editingFromCockpit || currentScreen === 'cockpit'));
   screen.classList.toggle('is-in-party', inParty);
@@ -5149,7 +5149,7 @@ async function sendFriendRequest(targetUserId, targetName) {
   if (!state._friendStatuses) state._friendStatuses = {};
   state._friendStatuses[targetUserId] = { status: 'pending_sent' };
 
-  // ★ Bug fix — Optimistic UI : swap immediat de tous les boutons "+ CREW"
+  // ★ Bug fix — Optimistic UI : swap immediat de tous les boutons "+ AMI"
   //   pointant sur cet userId en "✓ ENVOYÉ" disabled, pour un retour instantané
   //   même avant la réponse serveur / le refetch REST.
   try {
@@ -5342,7 +5342,7 @@ async function openMyUniversScreen() {
       state._friendsDirectory = friends;
     } catch (_) { friends = []; }
   }
-  grid.innerHTML = friends.length ? friends.map(friend => _universDirectoryCard(friend)).join('') : '<div class="my-univers-empty"><span>✦</span><h3>Le premier univers reste à créer.</h3><p>Ajoute une personne à ton Crew après un moment partagé. Votre histoire commune apparaîtra ici.</p><button onclick="openMyFriendsScreen()">DÉCOUVRIR MES AMIS</button></div>';
+  grid.innerHTML = friends.length ? friends.map(friend => _universDirectoryCard(friend)).join('') : '<div class="my-univers-empty"><span>✦</span><h3>Le premier univers reste à créer.</h3><p>Ajoute une personne à tes amis après un moment partagé. Votre histoire commune apparaîtra ici.</p><button onclick="openMyFriendsScreen()">DÉCOUVRIR MES AMIS</button></div>';
 }
 
 window.openMyUniversScreen = openMyUniversScreen;
@@ -5380,14 +5380,14 @@ function _renderMyFriends(data, highlightUserId) {
 
   pendingList.innerHTML = pending.length ? pending.map(p => {
     const name = escapeHtml(p.fromName || 'Un invité');
-    return `<article class="cercle-person cercle-person--request${highlightUserId === p.fromUserId ? ' is-highlighted' : ''}"><span class="cercle-avatar">${avatar(p.fromPhoto, p.fromEmoji)}</span><span class="cercle-person-copy"><small>VEUT REJOINDRE TON CREW</small><b>${name}</b><em>Un lien né d’un moment partagé.</em></span><span class="cercle-actions"><button class="is-soft" aria-label="Ignorer" onclick="declineFriendRequest('${p.fromUserId || p.id}','${name.replace(/'/g, "\\'")}')">×</button><button class="is-primary" onclick="acceptFriendRequest('${p.fromUserId || p.id}','${name.replace(/'/g, "\\'")}')">ACCEPTER</button></span></article>`;
+    return `<article class="cercle-person cercle-person--request${highlightUserId === p.fromUserId ? ' is-highlighted' : ''}"><span class="cercle-avatar">${avatar(p.fromPhoto, p.fromEmoji)}</span><span class="cercle-person-copy"><small>VEUT DEVENIR TON AMI</small><b>${name}</b><em>Un lien né d’un moment partagé.</em></span><span class="cercle-actions"><button class="is-soft" aria-label="Ignorer" onclick="declineFriendRequest('${p.fromUserId || p.id}','${name.replace(/'/g, "\\'")}')">×</button><button class="is-primary" onclick="acceptFriendRequest('${p.fromUserId || p.id}','${name.replace(/'/g, "\\'")}')">ACCEPTER</button></span></article>`;
   }).join('') : empty('Aucune demande pour le moment.');
 
   friendsList.innerHTML = friends.length ? friends.map(f => {
     const id = f.friendUserId || '';
     const name = escapeHtml(f.friendName || 'Ami AhOuai');
-    return `<button type="button" class="cercle-person cercle-person-button cercle-person--friend" onclick="openUniversModal('${escapeHtml(id)}')"><span class="cercle-avatar">${avatar(f.friendPhoto, f.friendEmoji)}</span><span class="cercle-person-copy"><small>DANS TON CREW</small><b>${name}</b><em>${f.metAt ? `Rencontré à ${escapeHtml(f.metAt)}` : 'Découvrez ce qui vous relie'}</em></span><span class="cercle-univers-tease"><i>〰</i><b>NOS UNIVERS</b></span><span class="cercle-arrow">›</span></button>`;
-  }).join('') : empty('Ton Crew se construit dans les moments partagés.');
+    return `<button type="button" class="cercle-person cercle-person-button cercle-person--friend" onclick="openUniversModal('${escapeHtml(id)}')"><span class="cercle-avatar">${avatar(f.friendPhoto, f.friendEmoji)}</span><span class="cercle-person-copy"><small>PARMI TES AMIS</small><b>${name}</b><em>${f.metAt ? `Rencontré à ${escapeHtml(f.metAt)}` : 'Découvrez ce qui vous relie'}</em></span><span class="cercle-univers-tease"><i>〰</i><b>NOS UNIVERS</b></span><span class="cercle-arrow">›</span></button>`;
+  }).join('') : empty('Tes amitiés se construisent dans les moments partagés.');
 
   const sentSection = $('mf-sent-section');
   sentSection.style.display = sent.length ? '' : 'none';
@@ -5404,7 +5404,7 @@ function _renderMyFriends(data, highlightUserId) {
   if ($('mf-recent-count')) $('mf-recent-count').textContent = recent.length;
   $('mf-recent-list').innerHTML = recent.length ? recent.map(person => {
     const id = String(person.userId || person.id || '');
-    return `<article class="cercle-person cercle-person--recent"><span class="cercle-avatar">${avatar(person.photo || person.avatar, person.emoji)}</span><span class="cercle-person-copy"><small>CROISÉ DANS CE MOMENT</small><b>${escapeHtml(person.name || 'Invité')}</b><em>Et si ce n’était que le début ?</em></span><button class="cercle-add" onclick="sendFriendRequest('${escapeHtml(id)}','${escapeHtml(person.name || 'cet invité').replace(/'/g, "\\'")}')">+ CREW</button></article>`;
+    return `<article class="cercle-person cercle-person--recent"><span class="cercle-avatar">${avatar(person.photo || person.avatar, person.emoji)}</span><span class="cercle-person-copy"><small>CROISÉ DANS CE MOMENT</small><b>${escapeHtml(person.name || 'Invité')}</b><em>Et si ce n’était que le début ?</em></span><button class="cercle-add" onclick="sendFriendRequest('${escapeHtml(id)}','${escapeHtml(person.name || 'cet invité').replace(/'/g, "\\'")}')">+ AMI</button></article>`;
   }).join('') : empty('Les nouvelles rencontres apparaîtront ici.');
 
   document.querySelectorAll('[data-cercle-tab]').forEach(button => button.onclick = () => {
@@ -5415,7 +5415,7 @@ function _renderMyFriends(data, highlightUserId) {
 
 const CERCLE_RELATION_LABELS = {
   none: 'RENCONTRÉ', pending_sent: 'DEMANDE ENVOYÉE', pending_received: 'À RÉPONDRE',
-  accepted: 'DANS TON CREW', declined: 'RENCONTRÉ', blocked: 'INDISPONIBLE'
+  accepted: 'PARMI TES AMIS', declined: 'RENCONTRÉ', blocked: 'INDISPONIBLE'
 };
 
 async function openUniversModal(targetUserId) {
@@ -5486,9 +5486,9 @@ function _renderUnivers(data) {
   const counts = data.counts || {};
   const intensity = Math.min(99, Math.max(12, 18 + Number(counts.commonTracks || 0) * 8 + Number(counts.commonSuggestions || 0) * 5 + Number(counts.commonAfterglows || 0) * 14));
   const relationAction = relationship === 'pending_received'
-    ? `<button class="univers-relation-cta" onclick="acceptFriendRequest('${escapeHtml(data.targetUserId)}','${name.replace(/'/g, "\\'")}');closeUniversModal()">ACCEPTER DANS MON CREW</button>`
+    ? `<button class="univers-relation-cta" onclick="acceptFriendRequest('${escapeHtml(data.targetUserId)}','${name.replace(/'/g, "\\'")}');closeUniversModal()">ACCEPTER EN AMI</button>`
     : ['none','declined'].includes(relationship)
-      ? `<button class="univers-relation-cta" onclick="sendFriendRequest('${escapeHtml(data.targetUserId)}','${name.replace(/'/g, "\\'")}')">+ AJOUTER À MON CREW</button>`
+      ? `<button class="univers-relation-cta" onclick="sendFriendRequest('${escapeHtml(data.targetUserId)}','${name.replace(/'/g, "\\'")}')">+ AJOUTER À MES AMIS</button>`
       : relationship === 'pending_sent' ? '<span class="univers-relation-wait">✓ INVITATION ENVOYÉE</span>' : '';
   content.innerHTML = `
     <header class="univers-hero">
@@ -6652,7 +6652,7 @@ function quitParty() {
       
       ${trombiHTML ? `
         <div class="card" style="width:100%;max-width:340px;margin-bottom:12px">
-          <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">👥 LE CREW</div>
+          <div style="font-size:10px;font-weight:800;color:var(--turquoise);letter-spacing:1px;margin-bottom:10px">👥 MES AMIS</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">${trombiHTML}</div>
           <div style="font-size:9px;color:var(--text-dim);margin-top:8px">Tape un nom pour ajouter à tes contacts</div>
         </div>` : ''}
@@ -8602,7 +8602,7 @@ function openV2Boosts() {
 // d'autres guests, avec bouton Booster. Ne double pas ÇA MONTE : celui-ci
 // n'affiche que les suggestions déjà boostées. Ici on affiche aussi celles
 // à 0 boost pour donner à l'invité un vrai catalogue à soutenir.
-let _myBoostOpen = true; // mes suggestions d'abord, puis celles du crew
+let _myBoostOpen = true; // mes suggestions d'abord, puis celles de mes amis
 function renderAgirBoostList() {
   const container = document.getElementById('agir-live-content');
   if (!container) return;
@@ -9422,13 +9422,13 @@ function renderSouvenirs() {
           : _souvEscape(person.emoji || '✦');
         let action = '';
         if (personId && status === 'accepted') {
-          action = `<button type="button" class="story-friend-btn is-friend" data-story-univers-id="${_souvEscape(personId)}">✓ DANS TON CREW</button>`;
+          action = `<button type="button" class="story-friend-btn is-friend" data-story-univers-id="${_souvEscape(personId)}">✓ PARMI TES AMIS</button>`;
         } else if (personId && status === 'pending_sent') {
           action = '<span class="story-friend-state">DEMANDE ENVOYÉE</span>';
         } else if (personId && status === 'pending_received') {
           action = `<button type="button" class="story-friend-btn is-accept" data-story-friend-action="accept" data-story-friend-id="${_souvEscape(personId)}" data-story-friend-name="${_souvEscape(name)}">ACCEPTER</button>`;
         } else if (personId) {
-          action = `<button type="button" class="story-friend-btn" data-story-friend-action="invite" data-story-friend-id="${_souvEscape(personId)}" data-story-friend-name="${_souvEscape(name)}">+ AJOUTER AU CREW</button>`;
+          action = `<button type="button" class="story-friend-btn" data-story-friend-action="invite" data-story-friend-id="${_souvEscape(personId)}" data-story-friend-name="${_souvEscape(name)}">+ AJOUTER EN AMI</button>`;
         }
         return `<div class="story-guest-row"><span class="story-guest-avatar">${avatar}</span><button type="button" class="story-guest-copy"${personId ? ` data-story-univers-id="${_souvEscape(personId)}"` : ''}><b>${_souvEscape(name)}</b><small>${person.isHost ? 'Hôte de la soirée' : 'Était à la soirée'}</small></button><span class="story-guest-actions">${action}</span></div>`;
       }).join('');

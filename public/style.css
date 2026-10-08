@@ -1479,7 +1479,7 @@ body.founder-program-open { overflow: hidden; }
   width: 100%; height: 100%; object-fit: cover;
 }
 
-/* Le Crew */
+/* Mes amis */
 .trombi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
@@ -5502,7 +5502,7 @@ body.founder-program-open { overflow: hidden; }
 .cercle-avatar { display: grid; place-items: center; width: 44px; height: 44px; overflow: hidden; flex: 0 0 44px; border: 1px solid rgba(129,216,220,.7); border-radius: 50%; background: #19213a; font-size: 20px; }.cercle-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .cercle-person-copy { display: grid; min-width: 0; flex: 1; gap: 3px; }.cercle-person-copy b { overflow: hidden; font: 850 13px var(--font-display); text-overflow: ellipsis; white-space: nowrap; }.cercle-person-copy small { color: #a9aec0; font-size: 9px; }
 .cercle-actions { display: flex; gap: 5px; }.cercle-actions button,.cercle-add { padding: 8px 9px; border: 1px solid rgba(129,216,220,.32); border-radius: 10px; font: 900 8px var(--font-display); }.cercle-actions .is-soft { color: #a9aec0; background: transparent; }.cercle-actions .is-primary,.cercle-add { color: #07131a; background: #81d8dc; }
-/* ★ Bouton "+ CREW" bascule en "✓ ENVOYÉ" après clic (optimistic UI) */
+/* ★ Bouton "+ AMI" bascule en "✓ ENVOYÉ" après clic (optimistic UI) */
 .cercle-add.is-sent { background: rgba(129,216,220,0.18); color: #81d8dc; border-color: rgba(129,216,220,0.35); cursor: default; }
 .cercle-add.is-sent:hover { transform: none; }
 .cercle-status { padding: 6px 8px; border: 1px solid rgba(182,165,232,.28); border-radius: 9px; color: #b6a5e8; font: 900 7px var(--font-display); }.cercle-status.is-friend { color: #77d9b0; border-color: rgba(119,217,176,.3); }.cercle-arrow { color: #81d8dc; font-size: 22px; }
