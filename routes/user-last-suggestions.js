@@ -51,7 +51,7 @@ router.get('/', requireAuth, async (req, res) => {
       return res.json({ suggestions: [] });
     }
 
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 15, 1), 50);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 15, 1), 500);
     const excludeCode = req.query.excludeCode;
 
     const pipeline = [];
@@ -59,6 +59,10 @@ router.get('/', requireAuth, async (req, res) => {
     // Build match condition for parties where this user participated
     // ★ fix(#18): conditionne les clauses email sur hasValidEmail
     const partyMatchOr = [
+      { 'participants.userId': userIdStr },
+      { 'suggestions.guestId': userIdStr },
+      { 'suggestions.userId': userIdStr },
+      { 'suggestions.suggestedByUserId': userIdStr },
       hasValidEmail ? { 'participants.email': userEmail } : null,
       hasValidEmail ? { hostEmail: userEmail }            : null,
       { hostUserId: userIdStr },
@@ -83,6 +87,8 @@ router.get('/', requireAuth, async (req, res) => {
     const suggMatchOr = [
       // Suggestion soumise avec userId exact
       { 'suggestions.guestId': userIdStr },
+      { 'suggestions.userId': userIdStr },
+      { 'suggestions.suggestedByUserId': userIdStr },
       // Host-marked suggestions: guestId='host' OU isHost=true, uniquement si user est l'hôte
       { 'suggestions.isHost': true, $or: [
         { hostUserId: currentUser._id },
@@ -94,9 +100,7 @@ router.get('/', requireAuth, async (req, res) => {
       ]},
     ];
 
-    const validDeezerIdCondition = { 'suggestions.deezerID': { $exists: true, $ne: null, $ne: 0 } };
-    const finalMatchOr = suggMatchOr.map(cond => ({ $and: [cond, validDeezerIdCondition] }));
-    pipeline.push({ $match: { $or: finalMatchOr } });
+    pipeline.push({ $match: { $or: suggMatchOr } });
 
     // UX-2: Exclude fake titles/artists
     pipeline.push({ $match: { 
@@ -130,7 +134,7 @@ router.get('/', requireAuth, async (req, res) => {
       $group: {
         _id: {
           $cond: {
-            if: { $and: [{ $ne: ['$suggestion.deezerID', null] }, { $ne: ['$suggestion.deezerID', 0] }] },
+            if: { $and: [{ $ne: [{ $ifNull: ['$suggestion.deezerID', null] }, null] }, { $ne: ['$suggestion.deezerID', 0] }] },
             then: { $toString: '$suggestion.deezerID' },
             else: { $toLower: { $concat: [{ $trim: { input: "$suggestion.title" } }, "|", { $trim: { input: "$suggestion.artist" } }] } }
           }
@@ -150,30 +154,7 @@ router.get('/', requireAuth, async (req, res) => {
     const results = await Party.aggregate(pipeline);
 
     // Map to response format
-    let suggestions = [];
-    let droppedCount = 0;
-    
-    for (const r of results) {
-      if (!r.suggestion.deezerID || r.suggestion.deezerID === 0) {
-        droppedCount++;
-        continue;
-      }
-      suggestions.push({
-        id: r.suggestion.id || r.suggestion.eventId || (r.suggestion.title + '_' + r.suggestion.artist).replace(/\s+/g, '_').toLowerCase(),
-        title: r.suggestion.title || 'Titre inconnu',
-        artist: r.suggestion.artist || 'Artiste inconnu',
-        deezerID: r.suggestion.deezerID,
-        coverURL: r.suggestion.coverURL || null,
-        partyCode: r.partyCode,
-        partyDate: r.partyDate,
-        status: r.suggestion.status || 'pending',
-        sentAt: r.suggestion.sentAt || null
-      });
-    }
-
-    if (droppedCount > 0) {
-      console.warn(`[UserLastSuggestions] Dropped ${droppedCount} suggestions with missing deezerID (BDD legacy)`);
-    }
+    let suggestions = results.map(suggestionResponse);
 
     // UX-4: Exclude tracks already suggested in the current party
     const activePartyCode = req.query.partyCode || req.query.excludeCode;
@@ -198,12 +179,26 @@ router.get('/', requireAuth, async (req, res) => {
       }
     }
 
-    console.log(`[UserLastSuggestions] user=${userName} email=${userEmail} → ${suggestions.length} results (dropped ${droppedCount} with missing deezerID)`);
+    console.log(`[UserLastSuggestions] user=${userName} email=${userEmail} → ${suggestions.length} results`);
     return res.json({ suggestions });
   } catch (err) {
     console.error('[UserLastSuggestions] ❌ Error:', err.message);
     return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
   }
 });
+
+export function suggestionResponse(r) {
+    return {
+        id: r.suggestion.id || r.suggestion.eventId || (r.suggestion.title + '_' + r.suggestion.artist).replace(/\s+/g, '_').toLowerCase(),
+        title: r.suggestion.title || 'Titre inconnu',
+        artist: r.suggestion.artist || 'Artiste inconnu',
+        deezerID: r.suggestion.deezerID || null,
+        coverURL: r.suggestion.coverURL || null,
+        partyCode: r.partyCode,
+        partyDate: r.partyDate,
+        status: r.suggestion.status || 'pending',
+        sentAt: r.suggestion.sentAt || null
+      };
+}
 
 export default router;
