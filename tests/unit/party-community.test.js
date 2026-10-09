@@ -15,7 +15,7 @@ test('one warning per distinct content, escalation, rate limits and scoped expir
   assert.equal(activeRestriction([{userId:'b',kind:'permanent'}],'a'),null);
   assert.ok(activeRestriction([{userId:'b',kind:'permanent'}],'b'));
   const party={participants:[{userId:'b'},{userId:'h',isHost:true}],messages:[{id:'m',authorUserId:'b'},{id:'h',authorUserId:'h'}]};
-  assert.equal(resolveReportedContent(party,'message','m').author.userId,'b');assert.equal(resolveReportedContent(party,'message','h'),null);
+  assert.equal(resolveReportedContent(party,'message','m').author.userId,'b');assert.equal(resolveReportedContent(party,'message','h').author.userId,'h');
 });
 
 test('private inbox isolation, actual content ownership, host decisions and access revocation',async()=>{
@@ -76,6 +76,21 @@ test('private inbox isolation, actual content ownership, host decisions and acce
     assert.ok(events.find(e=>e.event==='community:alert'&&e.room==='host:ABC123'));
     assert.equal((await request()).body.alerts.length,0);
     assert.equal((await request('',undefined,{'X-Host-Secret':'secret-host'})).body.alerts.length,1);
+    const ownWarnings=(await request('',undefined,{'X-Guest-Session':'token-b'})).body.warnings;
+    assert.equal(ownWarnings.length,2);
+    assert.equal(ownWarnings[0].excerpt,'word');
+    assert.equal(ownWarnings[0].reason,'inappropriate');
+    assert.equal(ownWarnings[0].reporterId,undefined);
+    assert.equal((await request()).body.warnings.length,0);
+    p.photos.push({id:'host-photo',authorUserId:'h',url:'https://example.com/photo.jpg',caption:'Host photo'});
+    const hostPhoto=(await request('/reportable')).body.items.find(x=>x.id==='host-photo');
+    assert.equal(hostPhoto.url,'https://example.com/photo.jpg');
+    assert.equal((await request('/report',{kind:'photo',contentId:'host-photo',reason:'privacy'})).status,200);
+    const hostWarnings=(await request('',undefined,{'X-Host-Secret':'secret-host'})).body.warnings;
+    assert.equal(hostWarnings.length,1);
+    assert.equal(hostWarnings[0].url,hostPhoto.url);
+    assert.equal(hostWarnings[0].reporterId,undefined);
+    p.photos=[];
     assert.equal((await request('/moderation/b')).status,403);
     const dossier=await request('/moderation/b',undefined,{'X-Host-Secret':'secret-host'});
     assert.equal(dossier.status,200);assert.equal(dossier.body.incidents.length,2);

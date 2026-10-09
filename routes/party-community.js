@@ -11,9 +11,10 @@ export function resolveReportedContent(party, kind, contentId) {
   const list = kind === 'photo' ? party.photos : kind === 'message' ? party.messages : kind === 'song' ? party.suggestions : kind === 'private_message' ? party.privateMessages : [];
   const item = (list || []).find(x => String(x.id || x._id || x.publicId || x.url || '') === String(contentId));
   if (!item || item.deletedAt) return null;
-  const authorId = item.authorUserId || item.suggestedByUser?.userId || item.guestId || item.senderId;
-  const author = (party.participants || []).find(x => String(x.userId) === String(authorId));
-  return author && !author.isHost ? { item, author } : null;
+  const authorId = item.authorUserId || item.suggestedByUser?.userId || item.requestedBy?.guestId || item.guestId || item.senderId;
+  if (!authorId) return null;
+  const author = (party.participants || []).find(x => String(x.userId) === String(authorId) || String(x.id) === String(authorId) || (authorId === 'host' && x.isHost));
+  return author ? { item, author } : null;
 }
 export function registerReport(reports, { reporterId, targetId, kind, contentId, reason }, now = Date.now()) {
   // One disputed item creates at most one warning, even when several people flag it.
@@ -52,12 +53,17 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
   router.get('/:code/community',route(async(req,res)=>{
     const {p,me,host}=await context(req);
     const doc=await PartyModel.findOne({code:p.code}).select('communityReports communityRestrictions privateMessages').lean();
-    p.communityReports=doc?.communityReports || [];p.communityRestrictions=doc?.communityRestrictions || [];
+    p.privateMessages=doc?.privateMessages || [];p.communityReports=doc?.communityReports || [];p.communityRestrictions=doc?.communityRestrictions || [];
     if(!host && activeRestriction(p.communityRestrictions,me.userId)) throw Object.assign(new Error('Ton accès à cette soirée est suspendu.'),{status:403});
     const safe=x=>({userId:String(x.userId),name:x.name,photoURL:x.photo || null,isHost:!!x.isHost,departedAt:x.departedAt || null});
     res.json({me:String(me.userId),people:(p.participants||[]).map(safe),
-      warnings:p.communityReports.filter(x=>x.targetId===String(me.userId)).map(x=>({id:x.id,kind:x.kind,warningNumber:x.warningNumber,createdAt:x.createdAt})),
-      alerts:host?p.communityReports.filter(x=>x.status==='needs_review').map(x=>({...x,reporterId:undefined})):[],
+      warnings:p.communityReports.filter(x=>x.targetId===String(me.userId)).map(x=>{
+        const item=resolveReportedContent(p,x.kind,x.contentId)?.item;
+        return {id:x.id,kind:x.kind,warningNumber:x.warningNumber,createdAt:x.createdAt,reason:x.reason,status:x.status,
+          excerpt:item?.message||item?.text||item?.caption||item?.title||null,
+          url:x.kind==='photo'?(item?.url||item?.dataURL||null):null};
+      }),
+      alerts:host?p.communityReports.filter(x=>x.status==='needs_review'&&x.targetId!==String(me.userId)).map(x=>({...x,reporterId:undefined})):[],
       restrictions:host?p.communityRestrictions:[],
       messages:(doc?.privateMessages || []).filter(x=>x.senderId===String(me.userId)||x.targetId===String(me.userId))});
   }));
@@ -102,7 +108,7 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
     const {p,me}=await context(req);const items=[];
     for(const [kind,list] of [['song',p.suggestions],['message',p.messages],['photo',p.photos]])for(const item of list||[]){
       const id=String(item.id||item._id||item.publicId||item.url||'');const content=resolveReportedContent(p,kind,id);
-      if(content&&String(content.author.userId)!==String(me.userId))items.push({id,kind,name:content.author.name,text:item.message||item.caption||item.title||'Photo partagée'});
+      if(content&&String(content.author.userId)!==String(me.userId))items.push({id,kind,name:content.author.name,text:item.message||item.caption||item.title||'Photo partagée',url:kind==='photo'?(item.url||item.dataURL||null):(kind==='song'?(item.artworkURL||item.coverURL||item.coverArtURL||null):null),artist:kind==='song'?item.artist:null});
     }
     res.json({items});
   }));
