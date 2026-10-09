@@ -23,6 +23,7 @@ test('private inbox isolation, actual content ownership, host decisions and acce
   const bob={userId:'b',id:'sb',name:'Bob',sessionToken:'token-b',connected:true};
   const p={leaderboard:[{id:"Bob",name:"Bob",points:12}],code:'ABC123',hostSecret:'secret-host',participants:[alice,bob,{userId:'h',id:'sh',name:'Host',isHost:true}],messages:[{id:'m1',authorUserId:'b',message:'word'},{id:'m2',authorUserId:'b',message:'second'}],photos:[],suggestions:[{id:"s1",guestId:"b",title:"Song",artist:"Artist",status:"queued"}],guestVotes:{sb:{Song:"fire"}},trackHistory:[{id:"played1",title:"Earlier",artist:"Artist",requestedBy:{guestId:"b"}},{title:"Song",artist:"Artist"}]};
   const doc={communityLikes:[],communityReports:[],communityRestrictions:[],privateMessages:[]}; const events=[];
+  const PhotoModel={async updateOne(){}};
   const PartyModel={findOne(){return{select(){return this},async lean(){return structuredClone(doc)}}},async updateOne(q,u){
     for(const [key,value] of Object.entries(u.$push||{}))doc[key].push(structuredClone(value));
     if(u.$addToSet?.communityLikes&&!doc.communityLikes.some(x=>JSON.stringify(x)===JSON.stringify(u.$addToSet.communityLikes)))doc.communityLikes.push(u.$addToSet.communityLikes);
@@ -32,7 +33,7 @@ test('private inbox isolation, actual content ownership, host decisions and acce
     if(u.$pull?.communityRestrictions)doc.communityRestrictions=doc.communityRestrictions.filter(x=>x.userId!==u.$pull.communityRestrictions.userId);
   }};
   const io={to(room){return{emit(event,data){events.push({room,event,data})}}},sockets:{sockets:new Map()}};
-  const app=express();app.use(express.json());app.use('/api/party',communityRouter({parties:new Map([[p.code,p]]),io,PartyModel,buildLightState:()=>({code:p.code}),authenticate:async()=>{throw new Error('bad jwt')}}));
+  const app=express();app.use(express.json());app.use('/api/party',communityRouter({parties:new Map([[p.code,p]]),io,PartyModel,PhotoModel,enrichProfile:async()=>({photoURL:'https://example.com/profile.jpg'}),buildLightState:()=>({code:p.code}),authenticate:async()=>{throw new Error('bad jwt')}}));
   const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
   const url=`http://127.0.0.1:${server.address().port}/api/party/ABC123/community`;
   const request=async(path='',body,headers={'X-Guest-Session':'token-a'})=>{const r=await fetch(url+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',...headers},body:body?JSON.stringify(body):undefined});return {status:r.status,body:await r.json()}};
@@ -45,7 +46,18 @@ test('private inbox isolation, actual content ownership, host decisions and acce
     await request('/like',{kind:'message',contentId:'m1',liked:true});
     let profile=(await request('/touch/b')).body;
     assert.equal(profile.messages[0].likeCount,1);assert.equal(profile.messages[0].liked,true);
-    assert.equal(profile.ranking.position,1);assert.equal(profile.ranking.points,12);assert.ok(profile.songs.some(x=>x.title==='Earlier'&&x.status==='played'));assert.equal(profile.favorites[0].title,'Song');assert.equal(profile.songs[0].status,'played');assert.equal(profile.songs[0].canBoost,false);
+    assert.equal(profile.person.photoURL,'https://example.com/profile.jpg');assert.equal(profile.ranking.position,1);assert.equal(profile.ranking.points,12);assert.ok(profile.songs.some(x=>x.title==='Earlier'&&x.status==='played'));assert.equal(profile.favorites[0].title,'Song');assert.equal(profile.songs[0].status,'played');assert.equal(profile.songs[0].canBoost,false);
+    bob.previousSocketIds=['old-bob'];
+    p.guestVotes['old-bob']={Legacy:'fire'};
+    p.photos.push({id:'legacy-photo',guestId:'old-bob',url:'https://example.com/legacy.jpg'});
+    p.suggestions.push({id:'legacy-song',authorUserId:'obsolete',guestId:'b',title:'Pending',artist:'Artist',status:'pending'});
+    const recovered=(await request('/touch/b')).body;
+    assert.ok(recovered.favorites.some(x=>x.title==='Legacy'));
+    assert.ok(recovered.photos.some(x=>x.id==='legacy-photo'));
+    assert.ok(recovered.songs.some(x=>x.id==='legacy-song'));
+    const other=(await request('/touch/a')).body;
+    assert.equal(other.photos.length,0);assert.equal(other.favorites.length,0);assert.equal(other.songs.length,0);
+    p.photos=[];
     assert.equal((await request('/touch/a')).body.isOwn,true);
     assert.equal((await request('/touch/b',undefined,{'X-Guest-Session':'token-b'})).body.songs[0].canBoost,false);
     const hostTouch=await request('/touch/h',undefined,{'X-Host-Secret':'secret-host'});
@@ -70,6 +82,7 @@ test('private inbox isolation, actual content ownership, host decisions and acce
 
     assert.equal((await request('/report',{kind:'message',contentId:'missing',reason:'inappropriate'})).status,400);
     assert.equal((await request('/report',{kind:'message',contentId:'m1',reason:'inappropriate'})).status,200);
+    assert.match(events.find(e=>e.event==='community:warning').data.message,/Ton message a été signalé/);
     const privateWarning=events.find(e=>e.event==='community:warning');assert.equal(privateWarning.room,'sb');assert.equal(privateWarning.data.reporterId,undefined);
     assert.equal((await request('/report',{kind:'message',contentId:'m1',reason:'inappropriate'})).status,400);
     assert.equal((await request('/report',{kind:'message',contentId:'m2',reason:'inappropriate'})).status,200);
@@ -85,11 +98,25 @@ test('private inbox isolation, actual content ownership, host decisions and acce
     p.photos.push({id:'host-photo',authorUserId:'h',url:'https://example.com/photo.jpg',caption:'Host photo'});
     const hostPhoto=(await request('/reportable')).body.items.find(x=>x.id==='host-photo');
     assert.equal(hostPhoto.url,'https://example.com/photo.jpg');
+    assert.equal(hostPhoto.userId,'h');
     assert.equal((await request('/report',{kind:'photo',contentId:'host-photo',reason:'privacy'})).status,200);
     const hostWarnings=(await request('',undefined,{'X-Host-Secret':'secret-host'})).body.warnings;
     assert.equal(hostWarnings.length,1);
     assert.equal(hostWarnings[0].url,hostPhoto.url);
     assert.equal(hostWarnings[0].reporterId,undefined);
+    assert.equal(hostWarnings[0].canManage,true);
+    assert.equal((await request('/reported-content',{reportId:hostWarnings[0].id,action:'remove'})).status,403);
+    assert.equal((await request('/reported-content',{reportId:hostWarnings[0].id,action:'remove'},{'X-Host-Secret':'secret-host'})).status,200);
+    assert.equal(p.photos.length,0);
+    const bobReport=ownWarnings[0].id;
+    assert.equal((await request('/reported-content',{reportId:bobReport,action:'edit',text:'Changed by stranger'})).status,403);
+    assert.equal((await request('/reported-content',{reportId:bobReport,action:'edit',text:'  '},{'X-Guest-Session':'token-b'})).status,400);
+    assert.equal((await request('/reported-content',{reportId:bobReport,action:'edit',text:'Message corrigé'},{'X-Guest-Session':'token-b'})).status,200);
+    assert.equal(p.messages[0].message,'Message corrigé');
+    assert.ok(events.some(e=>e.event==='messages:update'&&e.room==='guest:ABC123'));
+    assert.equal((await request('/reported-content',{reportId:bobReport,action:'remove'},{'X-Guest-Session':'token-b'})).status,200);
+    assert.equal(p.messages.some(m=>m.id==='m1'),false);
+    assert.equal((await request('',undefined,{'X-Guest-Session':'token-b'})).body.warnings[0].canManage,false);
     p.photos=[];
     assert.equal((await request('/moderation/b')).status,403);
     const dossier=await request('/moderation/b',undefined,{'X-Host-Secret':'secret-host'});

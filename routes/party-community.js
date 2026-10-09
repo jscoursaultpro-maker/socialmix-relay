@@ -2,6 +2,8 @@ import { reconcilePlayedSuggestions } from '../lib/suggestion-playback.js';
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import Party from '../models/Party.js';
+import { Photo } from '../models/Photo.js';
+import { enrichUserInfo } from '../services/enrichUserInfo.js';
 import { verifySupabaseJWT } from '../lib/supabaseAuth.js';
 import { findOrCreateFromSupabase } from '../services/userService.js';
 
@@ -27,7 +29,7 @@ export function registerReport(reports, { reporterId, targetId, kind, contentId,
   reports.push(report); return report;
 }
 
-export default function communityRouter({ parties, io, buildLightState, PartyModel = Party, verify = verifySupabaseJWT, authenticate = async token => findOrCreateFromSupabase(await verify(token)) }) {
+export default function communityRouter({ parties, io, buildLightState, PartyModel = Party, PhotoModel = Photo, enrichProfile = enrichUserInfo, verify = verifySupabaseJWT, authenticate = async token => findOrCreateFromSupabase(await verify(token)) }) {
   const router = Router(); const locks = new Map();
   const route = fn => async (req,res) => { try { await fn(req,res); } catch(e) { res.status(e.status || 400).json({error:e.message || 'Action impossible.'}); } };
   async function context(req, hostOnly = false) {
@@ -60,7 +62,7 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
     res.json({me:String(me.userId),people:(p.participants||[]).map(safe),
       warnings:p.communityReports.filter(x=>x.targetId===String(me.userId)).map(x=>{
         const item=resolveReportedContent(p,x.kind,x.contentId)?.item;
-        return {id:x.id,kind:x.kind,warningNumber:x.warningNumber,createdAt:x.createdAt,reason:x.reason,status:x.status,
+        return {id:x.id,kind:x.kind,warningNumber:x.warningNumber,createdAt:x.createdAt,reason:x.reason,status:x.status,contentId:x.contentId,canManage:!!item&&item.status!=='dismissed'&&['photo','message','song'].includes(x.kind),
           excerpt:item?.message||item?.text||item?.caption||item?.title||null,
           url:x.kind==='photo'?(item?.url||item?.dataURL||null):null};
       }),
@@ -72,8 +74,10 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
     const {p,me}=await context(req);const uid=req.params.userId;
     const person=(p.participants||[]).find(x=>String(x.userId)===uid&&!x.departedAt);
     if(!person)throw new Error('Cette personne n’est plus présente.');
-    const identity=new Set([uid,person.id].filter(Boolean).map(String));if(person.isHost)identity.add('host');
-    const author=x=>identity.has(String(x.authorUserId||x.suggestedByUser?.userId||x.requestedBy?.guestId||x.guestId||''));
+    const profile=await enrichProfile(uid);
+    const photoURL=profile?.photoURL||person.photo||person.photoURL||(person.isHost?(p.hostProfile?.photo||p.hostProfile?.photoURL):null)||null;
+    const identity=new Set((p.participants||[]).filter(x=>String(x.userId)===uid).flatMap(x=>[x.userId,x.id,...(x.previousSocketIds||[])]).filter(Boolean).map(String));if(person.isHost)identity.add('host');
+    const author=x=>[x.authorUserId,x.suggestedByUser?.userId,x.requestedBy?.guestId,x.guestId,x.uploaderUserId,x.socketId].filter(Boolean).some(id=>identity.has(String(id)));
     const doc=await PartyModel.findOne({code:p.code}).select('communityLikes').lean();
     const likes=doc?.communityLikes||[];
     const reaction=(kind,id)=>{const rows=likes.filter(x=>x.kind===kind&&x.contentId===String(id));return {likeCount:rows.length,liked:rows.some(x=>x.userId===String(me.userId))}};
@@ -91,7 +95,7 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
     let rankIndex=leaderboard.findIndex(x=>identity.has(String(x.userId||x.participantId||x.id)));
     if(rankIndex<0&&person.name&&p.participants.filter(x=>x.name===person.name).length===1)rankIndex=leaderboard.findIndex(x=>x.name===person.name);
     const ranking={position:rankIndex<0?null:rankIndex+1,points:rankIndex<0?0:Number(leaderboard[rankIndex].points||leaderboard[rankIndex].score||0)};
-    res.json({ranking,isOwn:uid===String(me.userId),person:{userId:uid,name:person.name,photoURL:person.photo||null},favorites,
+    res.json({ranking,isOwn:uid===String(me.userId),person:{userId:uid,name:person.name,photoURL},favorites,
       songs:[...suggestions,...played.map((x,i)=>({...x,id:String(x.id||`played-${i}`),status:'played'}))].map(x=>({id:x.id,title:x.title,artist:x.artist,coverURL:x.artworkURL||x.coverURL||x.coverArtURL||x.albumArtworkURL||null,fireCount:firesFor(x),status:x.status||'pending',boostCount:x.boostCount||0,canBoost:['pending','queued','next'].includes(x.status)&&uid!==String(me.userId)&&!(x.boostedBy||[]).some(id=>[String(me.userId),me.id].includes(String(id)))})),
       messages:(p.messages||[]).filter(x=>author(x)&&!x.deletedAt).map(x=>({id:x.id,message:x.message,...reaction('message',x.id)})),
       photos:(p.photos||[]).filter(x=>author(x)&&!x.deletedAt).map(x=>{const id=String(x.id||x._id||x.publicId||x.url);return {id,url:x.url||x.dataURL,caption:x.caption,...reaction('photo',id)}})});
@@ -110,7 +114,7 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
     const {p,me}=await context(req);const items=[];
     for(const [kind,list] of [['song',p.suggestions],['message',p.messages],['photo',p.photos]])for(const item of list||[]){
       const id=String(item.id||item._id||item.publicId||item.url||'');const content=resolveReportedContent(p,kind,id);
-      if(content&&String(content.author.userId)!==String(me.userId))items.push({id,kind,name:content.author.name,text:item.message||item.caption||item.title||'Photo partagée',url:kind==='photo'?(item.url||item.dataURL||null):(kind==='song'?(item.artworkURL||item.coverURL||item.coverArtURL||null):null),artist:kind==='song'?item.artist:null});
+      if(content&&String(content.author.userId)!==String(me.userId))items.push({id,kind,userId:String(content.author.userId),photoURL:content.author.photo||null,name:content.author.name,text:item.message||item.caption||item.title||'Photo partagée',url:kind==='photo'?(item.url||item.dataURL||null):(kind==='song'?(item.artworkURL||item.coverURL||item.coverArtURL||null):null),artist:kind==='song'?item.artist:null});
     }
     res.json({items});
   }));
@@ -120,7 +124,7 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
     const person=(p.participants||[]).find(x=>String(x.userId)===uid&&!x.isHost);
     if(!person)throw new Error('Invité introuvable.');
     const doc=await PartyModel.findOne({code:p.code}).select('communityReports communityRestrictions').lean();
-    res.json({person:{userId:uid,name:person.name,photoURL:person.photo||null,departedAt:person.departedAt||null},
+    res.json({person:{userId:uid,name:person.name,photoURL:person.photo||person.photoURL||(person.isHost?(p.hostProfile?.photo||p.hostProfile?.photoURL):null)||null,departedAt:person.departedAt||null},
       incidents:(doc?.communityReports||[]).filter(x=>x.targetId===uid).map(x=>{
         const item=x.kind==='private_message'?null:resolveReportedContent(p,x.kind,x.contentId)?.item;
         return {id:x.id,kind:x.kind,reason:x.reason,warningNumber:x.warningNumber,status:x.status,contentId:x.contentId,
@@ -137,6 +141,44 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
     content.item.deletedAt=deletedAt;p[field]=p[field].filter(x=>x!==content.item);p.isDirty=true;
     event(p,content.author,'community:warning',{id:randomUUID(),message:`L’organisateur a retiré ${kind==='photo'?'ta photo':'ton message'} de la soirée.`});
     broadcast(p);res.json({ok:true});
+  }));
+  // A participant can act only on their own reported public content.
+  router.post('/:code/community/reported-content',route(async(req,res)=>{
+    const {p,me}=await context(req);const {reportId,action,text}=req.body;
+    if(!['remove','edit'].includes(action))throw new Error('Action invalide.');
+    await serial(p.code,async()=>{
+      const doc=await PartyModel.findOne({code:p.code}).select('communityReports').lean();
+      const report=(doc?.communityReports||[]).find(r=>r.id===reportId&&r.targetId===String(me.userId));
+      if(!report||!['photo','message','song'].includes(report.kind))throw Object.assign(new Error('Ce contenu ne t’appartient pas.'),{status:403});
+      const content=resolveReportedContent(p,report.kind,report.contentId);
+      if(!content||String(content.author.userId)!==String(me.userId))throw new Error('Ce contenu n’est plus disponible.');
+      const {item}=content;
+      if(action==='edit'&&(report.kind!=='message'||typeof text!=='string'||!text.trim()||text.trim().length>1000))throw new Error('Écris un message de 1 à 1000 caractères.');
+      const field={photo:'photos',message:'messages',song:'suggestions'}[report.kind];
+      const id=String(item.id||item._id||item.publicId||item.url);
+      const match={$or:[{id},{publicId:id},{url:id},...(item._id?[{_id:item._id}]:[])]};
+      if(action==='edit'){
+        await PartyModel.updateOne({code:p.code},{$set:{[field+'.$[item].message']:text.trim()}},{arrayFilters:[{$or:[{'item.id':id},{'item.publicId':id},{'item.url':id}]}]});
+        item.message=text.trim();
+      }else{
+        if(report.kind==='photo'&&item.url)await PhotoModel.updateOne({partyCode:p.code,url:item.url},{$set:{deletedAt:new Date(),deletedBy:String(me.userId)}});
+        if(report.kind==='song'){
+          await PartyModel.updateOne({code:p.code},{$set:{'suggestions.$[item].status':'dismissed'}},{arrayFilters:[{'item.id':id}]});
+          item.status='dismissed';
+          io.to(`host:${p.code}`).emit('suggestion:status',{id, title:item.title,artist:item.artist,status:'dismissed'});
+          io.to(`guest:${p.code}`).emit('suggestion:status',{id, title:item.title,artist:item.artist,status:'dismissed'});
+        }else{
+          await PartyModel.updateOne({code:p.code},{$pull:{[field]:match}});
+          p[field]=(p[field]||[]).filter(x=>x!==item);
+        }
+      }
+      p.isDirty=true;
+      if(report.kind!=='song'){
+        io.to(`host:${p.code}`).emit(field+':update',p[field]);
+        io.to(`guest:${p.code}`).emit(field+':update',p[field]);
+      }
+      broadcast(p);res.json({ok:true});
+    });
   }));
   router.post('/:code/community/capability',route(async(req,res)=>{
     const {p}=await context(req,true);const {userId,channel,blocked}=req.body;
@@ -160,7 +202,7 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
       const doc=await PartyModel.findOne({code:p.code}).select('communityReports').lean();const reports=doc?.communityReports || [];
       const report=registerReport(reports,{reporterId:String(me.userId),targetId:String(content.author.userId),kind,contentId:String(contentId),reason});
       await PartyModel.updateOne({code:p.code},{$push:{communityReports:report}});p.communityReports=reports;
-      event(p,content.author,'community:warning',{id:report.id,warningNumber:report.warningNumber,kind,message:report.warningNumber===1?'Un contenu que tu as partagé a été signalé. Veille à respecter les autres invités.':'Un nouveau contenu a été signalé. L’organisateur a été averti.'});
+      event(p,content.author,'community:warning',{id:report.id,warningNumber:report.warningNumber,kind,message:`${{photo:'Ta photo a été signalée.',message:'Ton message a été signalé.',song:'Ta suggestion musicale a été signalée.',private_message:'Ton message privé a été signalé.'}[kind]} Retrouve le contenu dans My Touch · Signalé.${report.warningNumber>=2?' L’organisateur a été averti.':''}`});
       if(report.warningNumber>=2)io.to(`host:${p.code}`).emit('community:alert',{targetId:report.targetId});
       res.json({ok:true,message:report.warningNumber===1?'Un avertissement privé a été envoyé.':'L’organisateur a été averti.'});
     });

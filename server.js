@@ -6612,6 +6612,7 @@ io.on('connection', (socket) => {
       : null;
     if (existingParticipant) {
       const reboundToken = existingParticipant.sessionToken || randomUUID();
+      existingParticipant.previousSocketIds = [...new Set([...(existingParticipant.previousSocketIds || []), existingParticipant.id].filter(Boolean))].slice(-50);
       existingParticipant.id = socket.id;
       existingParticipant.connected = true;
       existingParticipant.departedAt = null;
@@ -7142,6 +7143,7 @@ io.on('connection', (socket) => {
     }
 
     // Rebind socket
+    participant.previousSocketIds = [...new Set([...(participant.previousSocketIds || []), participant.id].filter(Boolean))].slice(-50);
     participant.id = socket.id;
     participant.connected = true;
     socket.partyCode = code;
@@ -7449,6 +7451,7 @@ io.on('connection', (socket) => {
     // 3. Enregistrer la suggestion
     const suggestion = {
       ...data,
+      guestId, // Server-resolved identity, never a stale client socket ID.
       id: randomUUID(),       // ★ boost: identifiant pérenne
       status: 'pending',
       sentAt: new Date().toISOString(),
@@ -7615,6 +7618,7 @@ io.on('connection', (socket) => {
     // 3. Enregistrer la suggestion avec marqueur isHost
     const suggestion = {
       ...data,
+      guestId, // Server-resolved identity, never a stale client socket ID.
       id: randomUUID(),       // ★ boost: identifiant pérenne
       guestId:   'host',
       guestName: hostDisplayName,
