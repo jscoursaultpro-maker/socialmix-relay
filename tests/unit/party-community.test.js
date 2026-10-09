@@ -72,7 +72,11 @@ test('private inbox isolation, actual content ownership, host decisions and acce
 
     await request('/like',{kind:'message',contentId:'m1',liked:false});assert.equal((await request('/touch/b')).body.messages[0].likeCount,0);
 
-    assert.equal((await request('/message',{targetId:'b',text:'Private hello'})).status,200);
+    bob.connected=false;
+    assert.equal((await request('/message',{targetId:'b',text:'Private hello'})).status,200,'A temporarily disconnected participant still receives persisted messages');
+    bob.departedAt=new Date().toISOString();
+    assert.equal((await request('/message',{targetId:'b',text:'No longer present'})).status,400);
+    delete bob.departedAt;bob.connected=true;
     assert.equal((await request()).body.messages.length,1);
     assert.equal((await request('',undefined,{'X-Host-Secret':'secret-host'})).body.messages.length,0);
     assert.equal((await request('/message',{targetId:'b',text:'Host hello'},{'X-Host-Secret':'secret-host'})).status,200);

@@ -24,6 +24,17 @@ test('chat badges persist until conversation read; safety precedes exit; partici
  assert.equal(w.document.querySelector('[data-nav="moi"] .community-chat-badge'),null);
  assert.match(w.document.querySelector('.community-messages').textContent,/Salut/);
  assert.match(w.document.querySelector('.community-message.is-own').textContent,/Hello/);
+ const input=w.document.querySelector('dialog textarea');input.value='bon app';
+ const originalFetch=w.fetch;let fail=true;const sent=[];
+ w.fetch=async(path,options)=>{if(options?.method==='POST'){sent.push(JSON.parse(options.body));if(fail)return {ok:false,status:400,json:async()=>({error:'Attends un instant avant d’envoyer un autre message.'})};const message={id:'m3',senderId:'me',targetId:'romeo',text:JSON.parse(options.body).text};data.messages.push(message);return {ok:true,json:async()=>({message})};}return originalFetch(path);};
+ const send=[...w.document.querySelectorAll('dialog button')].find(b=>b.textContent==='Envoyer');send.click();await settle();
+ assert.match(w.document.querySelector('.community-feedback').textContent,/Attends un instant/);
+ assert.equal(input.value,'bon app');assert.equal(send.disabled,false);
+ fail=false;input.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',metaKey:true,bubbles:true,cancelable:true}));await settle();
+ assert.equal(sent.length,2);assert.deepEqual(sent[1],{targetId:'romeo',text:'bon app'});
+ assert.equal(input.value,'');assert.match(w.document.querySelector('.community-messages').textContent,/bon app/);
+ assert.equal(w.document.querySelector('.community-feedback').textContent,'Message envoyé.');
+
  w.document.querySelector('.community-inbox').click();await settle();
  w.document.querySelector('.community-chat-identity button').click();await settle();
  assert.ok(paths.some(path=>path.endsWith('/touch/romeo')));dom.window.close();

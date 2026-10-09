@@ -2,7 +2,11 @@
   const dialog=document.createElement('dialog');dialog.className='preparation-dialog community-dialog';document.body.append(dialog);
   let current=null, busy=false, boundSocket=null, poll=null, activeConversation=null, activeRefresh=null;
   const node=(tag,text)=>{const el=document.createElement(tag);if(text)el.textContent=text;return el;};
-  const toast=e=>showToast(e.message||e,5000);
+  const toast=e=>{
+    const message=e.message||e;
+    if(dialog.open){let feedback=dialog.querySelector('.community-feedback');if(!feedback){feedback=node('p');feedback.className='community-feedback';feedback.setAttribute('role','status');dialog.append(feedback);}feedback.textContent=message;}
+    else showToast(message,5000);
+  };
   const button=(text,fn)=>{const b=node('button',text);b.type='button';b.onclick=fn;return b;};
   async function api(path='',method='GET',body) {
     const s=typeof state!=='undefined'?state:{};const code=s.partyCode;
@@ -13,7 +17,7 @@
     else if(s.sessionToken)headers['X-Guest-Session']=s.sessionToken;
     else {const jwt=await getProfileJwt();if(jwt)headers.Authorization=`Bearer ${jwt}`;}
     const response=await fetch(`/api/party/${encodeURIComponent(code)}/community${path}`,{method,headers,body:body?JSON.stringify(body):undefined});
-    const data=await response.json().catch(()=>null);if(!response.ok||!data)throw new Error(response.status===401?'Ta connexion doit être restaurée. Réessaie dans quelques instants.':'Impossible de charger ce contenu. Réessaie dans quelques instants.');return data;
+    const data=await response.json().catch(()=>null);if(!response.ok||!data)throw new Error(response.status===400&&typeof data?.error==='string'?data.error:response.status===401?'Ta connexion doit être restaurée. Réessaie dans quelques instants.':'Impossible de charger ce contenu. Réessaie dans quelques instants.');return data;
   }
   function header(title){dialog.classList.remove('community-conversation');activeConversation=null;activeRefresh=null;clearInterval(poll);const close=button('× Fermer',()=>{dialog.close();clearInterval(poll);});close.className='community-close';const logo=node('img');logo.src='/assets/brand/ahouai-logo.png';logo.alt='AhOuai';logo.className='community-logo';dialog.replaceChildren(close,logo,node('h1',title));}
   async function action(path,body,after){if(busy)return;busy=true;dialog.querySelectorAll('button').forEach(b=>b.disabled=true);try{const d=await api(path,'POST',body);if(d.message?.text)toast('Message envoyé.');else if(typeof d.message==='string')toast(d.message);if(after)await after();}catch(e){toast(e);}finally{busy=false;dialog.querySelectorAll('button').forEach(b=>b.disabled=false);}}
@@ -54,7 +58,8 @@
   async function openConversation(p){header(`Discuter avec ${p.name}`);dialog.classList.add('community-conversation');dialog.append(button('← Mes chats',()=>inbox.click()));activeConversation=p.userId;if(!dialog.open)dialog.showModal();dialog.append(node('p','Seuls vous deux pouvez lire cet échange.'));
     const messages=node('div');messages.className='community-messages';dialog.append(messages);const input=node('textarea');input.maxLength=1000;input.placeholder='Ton message…';input.setAttribute('aria-label','Ton message');dialog.append(input);
     const refresh=async()=>{if(!dialog.open)return;try{const d=await api();markConversationRead(d,p.userId);messages.replaceChildren();d.messages.filter(m=>(m.senderId===d.me&&m.targetId===p.userId)||(m.targetId===d.me&&m.senderId===p.userId)).forEach(m=>{const row=node('article');row.className=`community-message ${m.senderId===d.me?'is-own':'is-received'}`;row.append(node('small',m.senderId===d.me?'Toi':p.name),node('p',m.text));if(m.sentAt){const date=new Date(m.sentAt);if(!Number.isNaN(date.getTime()))row.append(node('time',date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})));}messages.append(row);if(m.senderId!==d.me)row.append(button('Signaler',()=>{header('Signaler ce message privé');[['inappropriate','Inapproprié'],['harassment','Harcèlement']].forEach(([reason,label])=>dialog.append(button(label,()=>action('/report',{kind:'private_message',contentId:m.id,reason},()=>openConversation(p))))); }));});if(!messages.children.length)messages.append(node('p','Commencez la discussion ici.'));const latest=d.messages.at(-1)?.id;if(messages.dataset.latest!==latest){messages.scrollTop=messages.scrollHeight;messages.dataset.latest=latest||'';}}catch(e){clearInterval(poll);toast(e);}};
-    dialog.append(button('Envoyer',()=>{const text=input.value.trim();if(!text)return;action('/message',{targetId:p.userId,text},async()=>{input.value='';await refresh();});}));clearInterval(poll);activeRefresh=refresh;await refresh();poll=setInterval(refresh,5000);
+    const send=button('Envoyer',async()=>{const text=input.value.trim();if(!text||busy)return;send.textContent='Envoi…';try{await action('/message',{targetId:p.userId,text},async()=>{if(input.value.trim()===text)input.value='';await refresh();});}finally{send.textContent='Envoyer';}});dialog.append(send);
+    input.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)&&!e.isComposing){e.preventDefault();send.click();}});clearInterval(poll);activeRefresh=refresh;await refresh();poll=setInterval(refresh,5000);
   }
   async function moderation(userId){try{const d=await api(`/moderation/${encodeURIComponent(userId)}`);header(`Modération · ${d.person.name}`);
     dialog.append(button('Retour à Backstage',backstage),node('p',d.restriction?`Accès suspendu · ${d.restriction==='temporary'?'15 minutes':'cette soirée'}`:'Gestion des avertissements et de la présence.'));
