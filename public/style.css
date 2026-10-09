@@ -6376,6 +6376,7 @@ body.has-app-banner #toast {
 .guest-choice-soon { border: 1px solid #ed83da66; border-radius: 99px; background: #d962c422; color: #f39dde; padding: 5px 8px; font-size: 9px; font-weight: 900; letter-spacing: .1em; }
 .guest-choice-store p { font-size: 13px; margin: 8px 0 12px; }
 .guest-app-choice .guest-choice-download { margin-top: 0; color: #aebacf; background: #ffffff08; border: 1px solid #ffffff22; cursor: default; opacity: 1; font-size: 14px; }
+.guest-app-choice .guest-choice-store .guest-app-choice-open { margin-top: 18px; padding: 12px; min-height: 44px; font-size: 13px; }
 .guest-choice-footer { display: block; color: #8f9eb7; font-size: 11px; margin-top: 22px; }
 .guest-app-choice :focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
 @media (max-height: 700px) { .guest-app-choice { padding: 20px; } .guest-choice-brand { padding-bottom: 16px; } .guest-choice-brand img { width: 190px; } }

@@ -14,21 +14,24 @@
     <span class="guest-choice-eyebrow">LA SOIRÉE, ENSEMBLE</span>
     <h2 id="guest-app-choice-title">Entre dans<br>le moment.</h2>
     <p>Retrouve tes amis. Propose tes sons.<br>Donne le ton, à ta façon.</p>
-    <button type="button" class="guest-app-choice-web">Rejoindre sur le Web <span aria-hidden="true">→</span></button>
+    <button type="button" class="guest-app-choice-web">AhOuai mais viens kiffer la vibes ! <span aria-hidden="true">→</span></button>
     <span class="guest-choice-hint">Tout est là. Rien à installer.</span>
-    <a class="guest-app-choice-open">J’ai déjà l’app · Ouvrir AhOuai</a>
     <section class="guest-choice-store" aria-label="Application iPhone bientôt disponible">
       <div class="guest-choice-store-heading"><strong>AhOuai sur iPhone</strong><span class="guest-choice-soon">COMING SOON</span></div>
       <p>La soirée tient dans ta poche.</p>
       <button type="button" class="guest-choice-download" disabled>Télécharger sur l’App Store</button>
       <span class="guest-choice-hint">Bientôt disponible</span>
+      <a class="guest-app-choice-open">J’ai déjà l’app · Ouvrir AhOuai</a>
     </section>
     <span class="guest-choice-footer">Tu choisis. La musique vous rassemble.</span>`;
   const remember = () => { try { sessionStorage.setItem(key, 'chosen'); } catch {} };
   const close = () => { remember(); dialog.close(); dialog.remove(); };
   const open = dialog.querySelector('a');
   open.href = `ahouai://join?code=${encodeURIComponent(code.toUpperCase())}`;
-  open.addEventListener('click', () => { remember(); dialog.close(); });
+  // Reveal the existing guest page before the user-activated scheme opens.
+  // If no app handles it (or opening is declined), the web session is already usable.
+  // No delayed redirect: returning from AhOuai must not reload or lose this session.
+  open.addEventListener('click', close);
   dialog.querySelector('button').addEventListener('click', close);
   dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
   document.body.append(dialog);

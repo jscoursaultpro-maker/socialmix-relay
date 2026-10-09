@@ -17,7 +17,7 @@ test('Web arrival presents choice without navigating; refuse stays and suppresse
   assert.equal(w.location.pathname, '/guest');
   assert.equal(w.document.querySelector('.guest-choice-download').disabled, true);
   assert.equal(w.document.querySelector('.guest-choice-soon').textContent, 'COMING SOON');
-  assert.equal(w.document.querySelector('a').href, 'ahouai://join?code=ABC123');
+  assert.equal(w.document.querySelector('.guest-choice-store a').href, 'ahouai://join?code=ABC123');
   w.document.querySelector('button').click();
   assert.equal(w.document.querySelector('dialog'), null);
   assert.equal(w.location.pathname, '/guest');
@@ -30,8 +30,8 @@ test('Escape dismisses without opening app; acceptance is a user-activated link'
   const link = w.document.querySelector('a');
   link.addEventListener('click', e => e.preventDefault()); // Avoid invoking a real app in tests.
   link.click();
-  assert.equal(w.document.querySelector('dialog').open, false);
-  w.document.querySelector('dialog').remove();
+  assert.equal(w.document.querySelector('dialog'), null);
+  assert.equal(w.location.href, 'https://join.ahouai.com/guest?code=ABC123&sb=1');
   assert.equal(w.sessionStorage.getItem('ahouai:app-choice:ABC123'), 'chosen');
   w.sessionStorage.clear(); w.eval(source);
   w.document.querySelector('dialog').dispatchEvent(new w.Event('cancel', { cancelable: true }));
