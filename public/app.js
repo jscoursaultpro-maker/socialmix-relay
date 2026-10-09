@@ -684,7 +684,13 @@ let _supabaseClient = null;
 let _sessionCallbackHandled = false;
 let _currentSupabaseJwt = null;
 
-async function initSupabaseSSO() {
+let _supabaseInitialization = null;
+function initSupabaseSSO() {
+  if (!_supabaseInitialization) _supabaseInitialization = initializeSupabaseSSO();
+  return _supabaseInitialization;
+}
+
+async function initializeSupabaseSSO() {
   try {
     if (typeof window.supabase === 'undefined') {
       console.warn('[SSO] SDK Supabase non chargé (offline ?)');
@@ -842,7 +848,9 @@ async function handleSupabaseSession(session) {
     // puis localStorage (backup), puis state.partyCode.
     let codeToJoin = null;
     try {
-      codeToJoin = new URL(window.location.href).searchParams.get('party');
+      const params = new URL(window.location.href).searchParams;
+      const requestedCode = params.get('code');
+      codeToJoin = /^[A-Z0-9]{4,10}$/i.test(requestedCode || '') ? requestedCode : params.get('party');
     } catch(e) {}
     if (!codeToJoin) {
       try { codeToJoin = localStorage.getItem('ahouai_pending_party'); } catch(e) {}
@@ -855,9 +863,8 @@ async function handleSupabaseSession(session) {
     if (codeToJoin && firstName && email) {
       state.partyCode = codeToJoin.toUpperCase();
       showToast(`✅ Connecté ${firstName}, on te connecte à la soirée...`, 2500);
-      // ★ Fix v29 (rollback) — Route showOnboarding (pré-remplit form OU affiche welcome-back)
-      // Puis attendre socket + emit directement _emitRequestJoin. Pas d'auto-submit qui boucle.
-      if (typeof showOnboarding === 'function') showOnboarding(codeToJoin);
+      // Authenticated: proceed to admission, never redirect back to login.
+      state.chantier5.screen = 'joining';
       if (typeof connectToRelay === 'function' && (!socket || !socket.connected)) {
         try { connectToRelay(); } catch(e) {}
       }
@@ -931,26 +938,44 @@ function saveC5Profile(data) {
 }
 
 // ── Show onboarding screen (called from init routing or landing CTA) ──
-function showOnboarding(code) {
+async function showOnboarding(code) {
   code = (code || state.partyCode || '').toUpperCase();
   state.partyCode = code;
-  state.chantier5.screen = 'onboarding';
   // Guest authentication has one entry point: the current SSO journey.
   // Never expose the retired inline name/email form, including expired sessions.
   if (/^[A-Z0-9]{4,10}$/.test(code)) {
-    const goToSSO = () => {
+    const goToSSO = async () => {
+      await initSupabaseSSO();
+      const jwt = await getProfileJwt();
+      if (jwt || _sessionCallbackHandled) {
+        if (!_sessionCallbackHandled) {
+          const { data: { session } } = await _supabaseClient.auth.getSession();
+          if (session) {
+            _sessionCallbackHandled = true;
+            await handleSupabaseSession(session);
+          }
+        }
+        return;
+      }
+      // A failed cross-domain session handoff must never bounce between the
+      // login page (which already has a session) and this guest page forever.
+      if (new URL(window.location.href).searchParams.get('sb') === '1') {
+        showToast('Ta session n’a pas pu être récupérée. Recharge cette page pour réessayer.', 10000);
+        return;
+      }
       const webGuest = `https://join.ahouai.com/guest?code=${encodeURIComponent(code)}&sb=1`;
       window.location.replace(`https://ahouai.com/login?redirect=${encodeURIComponent(webGuest)}`);
     };
     if (window.ahouaiAppOpening || document.querySelector('.guest-app-choice[open]')) {
       document.addEventListener('guest:web-continue', goToSSO, { once: true });
     } else {
-      goToSSO();
+      await goToSSO();
     }
     return;
   }
 
 
+  state.chantier5.screen = 'onboarding';
   // Update party label
   const label = $('ob-party-label');
   if (label) label.textContent = code ? `REJOINDRE ${code}` : 'Rejoindre la soirée';
@@ -2489,6 +2514,9 @@ function connectToRelay() {
       } catch (e) { console.warn('[connect] host rebind:', e); }
       return;
     }
+    // The authenticated admission poll owns this first join. Do not send a
+    // second request from the socket connect callback.
+    if (state.chantier5.screen === 'joining') return;
     // Try to resume existing session first
     const resumeData = loadResumeSession();
     if (resumeData && resumeData.partyCode === state.partyCode) {
@@ -6918,78 +6946,6 @@ async function init() {
     if (typeof startHostWeb === 'function') { startHostWeb({ provider: hp }); return; }
   }
 
-  if (sbMarker && state.partyCode) {
-    // ★ Task #45 — l'ancienne « Priority 1 » (payload ?sbauth= base64 non signé posé en cookie 1 an)
-    //   est SUPPRIMÉE. L'identité est hydratée par la session Supabase partagée via /api/me/legacy.
-    // Priority 2: fallback cookie /api/me/legacy
-    try {
-      const meRes = await fetch('/api/me/legacy', { credentials: 'include' });
-      if (meRes.ok) {
-        const user = await meRes.json();
-        const oldUserId4 = state.userId;
-        state.userId = user.userId;
-        if (state.userId && state.userId !== oldUserId4) {
-          if (typeof renderGuestSuggestions === 'function') renderGuestSuggestions();
-          if (typeof renderCaMonte === 'function') renderCaMonte();
-        }
-        state.guestName = user.firstName;
-        state.guestLastName = user.lastName || '';
-        state.guestEmail = user.email || '';
-        state.guestEmoji = user.emoji || '🎉';
-        state.guestPhoto = user.photo || null;
-        
-        saveProfile(); // Persist the profile
-        
-        setupSocialHub();
-        setupExitModal();
-        
-        try {
-          const metaRes = await fetch(`/api/party/${state.partyCode}/meta`);
-          if (metaRes.ok) {
-            const m = await metaRes.json();
-            const isInParty = m.guests?.some(g => (g.userId || g.id) === state.userId) || m.hostProfile?.userId === state.userId;
-            
-            if (!isInParty) {
-              console.log('[init] priority 2 edge case: user not in party. Emitting guest:requestJoin');
-              if (typeof connectToRelay === 'function' && (!socket || !socket.connected)) {
-                connectToRelay();
-              }
-              const doJoin = () => {
-                socket.emit('guest:requestJoin', {
-                  partyCode: state.partyCode,
-                  profile: {
-                    userId: state.userId,
-                    firstName: state.guestName,
-                    lastName: state.guestLastName,
-                    email: state.guestEmail,
-                    handle: user.handle || '',
-                    emoji: state.guestEmoji,
-                    photo: state.guestPhoto
-                  }
-                });
-                enterCockpit();
-              };
-              if (socket && socket.connected) {
-                doJoin();
-              } else if (socket) {
-                socket.once('connect', doJoin);
-              }
-              return;
-            }
-          }
-        } catch (err) {
-          console.warn('[init] meta check for priority 2 failed:', err);
-        }
-
-        console.log('[init] sb=1 cookie bypass successful, jumping to cockpit');
-        enterCockpit();
-        return; // Skip normal init sequence completely
-      }
-    } catch (e) {
-      console.warn('[init] sb=1 bypass failed, falling back to normal flow:', e);
-    }
-  }
-
   // Setup all screens (must run before pre-party early return so listeners are attached)
   setupConsent();
   setupProfile();
@@ -7007,6 +6963,11 @@ async function init() {
     state.partyCode = null;
     console.log('[init] ?new=1 → écran de choix (session reprise effacée)');
     showScreen('choice');
+    return;
+  }
+
+  if (sbMarker && state.partyCode) {
+    await showOnboarding(state.partyCode);
     return;
   }
 
