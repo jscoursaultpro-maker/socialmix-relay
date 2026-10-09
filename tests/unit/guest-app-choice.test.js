@@ -15,6 +15,8 @@ test('Web arrival presents choice without navigating; refuse stays and suppresse
   const dom = page(); const w = dom.window;
   assert.ok(w.document.querySelector('dialog').open);
   assert.equal(w.location.pathname, '/guest');
+  assert.equal(w.document.querySelector('.guest-choice-download').disabled, true);
+  assert.equal(w.document.querySelector('.guest-choice-soon').textContent, 'COMING SOON');
   assert.equal(w.document.querySelector('a').href, 'ahouai://join?code=ABC123');
   w.document.querySelector('button').click();
   assert.equal(w.document.querySelector('dialog'), null);
@@ -47,4 +49,5 @@ test('Guest web path cannot match an associated app route', () => {
   const aasa = JSON.parse(readFileSync(new URL('../../public/.well-known/apple-app-site-association', import.meta.url)));
   assert.deepEqual(aasa.applinks.details[0].components[0]['exclude'], true);
   assert.equal(aasa.applinks.details[0].components[0]['/'], '/guest');
+  assert.ok(aasa.applinks.details[0].components.every(route => route.exclude === true));
 });

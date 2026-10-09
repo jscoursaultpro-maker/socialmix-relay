@@ -632,7 +632,7 @@ function injectOgTags(html, { title, description, url }) {
 
 app.use(async (req, res, next) => {
   // Uniquement GET / avec ?code=X
-  const isRoot = req.path === '/' || req.path === '';
+  const isRoot = req.path === '/' || req.path === '' || req.path === '/guest';
   const code   = (req.query && req.query.code) ? String(req.query.code).toUpperCase().slice(0, 10) : null;
 
   if (!isRoot || !code || req.method !== 'GET') return next();
@@ -661,7 +661,7 @@ app.use(async (req, res, next) => {
     }).lean();
 
     let ogTitle, ogDesc, ogUrl;
-    ogUrl = `https://join.ahouai.com/?code=${code}`;
+    ogUrl = `https://join.ahouai.com/guest?code=${code}`;
 
     if (!party) {
       // Fallback : code invalide

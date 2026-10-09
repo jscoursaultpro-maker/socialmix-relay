@@ -6346,25 +6346,39 @@ body.has-app-banner #toast {
 #moi-action-bar + .community-inbox[hidden] { display: none; }
 .community-chat-badge { display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 50%; background: #ff4fac; color: white; font-size: 12px; box-shadow: 0 0 10px #ff4fac66; }
 
-/* Explicit guest choice; no automatic app handoff. */
+/* Branded invitation choice — app handoff requires a guest action. */
 .guest-app-choice {
-  box-sizing: border-box; width: min(480px, calc(100vw - 32px));
-  max-height: calc(100dvh - 48px); overflow-y: auto; padding: 28px;
-  border: 2px solid #2ce3d5; border-radius: 28px; color: #fff;
-  background: linear-gradient(145deg, #102b38, #211333);
-  box-shadow: 0 0 36px #26d8df44; font-family: inherit;
+  box-sizing: border-box; margin: auto; width: min(500px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px); overflow-y: auto; padding: 30px 24px;
+  border: 1px solid #38e8da66; border-radius: 30px; color: #fff;
+  background: radial-gradient(ellipse at 90% 5%, #8523b536, transparent 48%), radial-gradient(ellipse at 0% 35%, #00dbc026, transparent 48%), #090c1b;
+  box-shadow: 0 24px 80px #000a, 0 0 40px #26d8df22;
+  font-family: inherit; text-align: center;
 }
-.guest-app-choice::backdrop { background: #030711c9; backdrop-filter: blur(6px); }
-.guest-app-choice h2 { font-size: 28px; line-height: 1.15; margin: 0 0 18px; }
-.guest-app-choice p { font-size: 18px; line-height: 1.5; color: #e0e6ef; }
+.guest-app-choice::backdrop { background: #030711ed; backdrop-filter: blur(8px); }
+.guest-choice-brand { padding: 8px 0 28px; }
+.guest-choice-brand img { display: block; width: min(250px, 85%); height: auto; margin: auto; filter: drop-shadow(0 8px 22px #9a3fe95c); }
+.guest-choice-eyebrow { color: #2ce3d5; font-size: 11px; font-weight: 900; letter-spacing: .18em; }
+.guest-app-choice h2 { font-size: clamp(32px, 9vw, 44px); font-weight: 900; line-height: 1.08; letter-spacing: -.03em; margin: 16px 0; }
+.guest-app-choice p { font-size: 16px; line-height: 1.5; color: #bac3d5; margin: 12px 0 22px; }
 .guest-app-choice a, .guest-app-choice button {
-  display: block; box-sizing: border-box; width: 100%; padding: 17px 12px;
+  display: block; box-sizing: border-box; width: 100%; padding: 16px 12px;
   margin-top: 14px; text-align: center; border-radius: 16px;
-  line-height: 1.35; font-family: inherit; font-size: 17px; font-weight: 800;
+  line-height: 1.35; font-family: inherit; font-size: 16px; font-weight: 800;
   cursor: pointer; text-decoration: none;
 }
-.guest-app-choice-open { color: #05151b; background: #2ce3d5; border: 2px solid #2ce3d5; }
-.guest-app-choice-web { color: #fff; background: #ffffff10; border: 2px solid #aa7dec; }
+.guest-app-choice-web { color: #05151b; background: linear-gradient(110deg,#13e1cc,#31d6f4); border: 0; box-shadow: 0 8px 24px #00dbcb24; }
+.guest-app-choice-open { color: #ddd0ff; background: #ab77ee12; border: 1px solid #ac79ef88; }
+.guest-choice-hint { display: block; margin-top: 9px; font-size: 12px; color: #a6b3c6; }
+.guest-choice-store { margin-top: 24px; padding: 20px 16px; border: 1px solid #b274dd55; border-radius: 20px; background: linear-gradient(130deg,#172337,#23132f); }
+.guest-choice-store-heading { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; }
+.guest-choice-store-heading strong { font-size: 17px; }
+.guest-choice-soon { border: 1px solid #ed83da66; border-radius: 99px; background: #d962c422; color: #f39dde; padding: 5px 8px; font-size: 9px; font-weight: 900; letter-spacing: .1em; }
+.guest-choice-store p { font-size: 13px; margin: 8px 0 12px; }
+.guest-app-choice .guest-choice-download { margin-top: 0; color: #aebacf; background: #ffffff08; border: 1px solid #ffffff22; cursor: default; opacity: 1; font-size: 14px; }
+.guest-choice-footer { display: block; color: #8f9eb7; font-size: 11px; margin-top: 22px; }
+.guest-app-choice :focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+@media (max-height: 700px) { .guest-app-choice { padding: 20px; } .guest-choice-brand { padding-bottom: 16px; } .guest-choice-brand img { width: 190px; } }
 
 /* One prominent, readable notification treatment across host/guest facets. */
 .ahouai-notice {

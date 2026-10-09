@@ -10,18 +10,20 @@
           {
             "/": "/guest",
             "exclude": true,
-            "comment": "Guest stays on web until explicitly choosing to open the app"
+            "comment": "Guest invitations open on web; app opens only on explicit guest action"
           },
           {
             "/": "/",
             "?": {
               "code": "?*"
             },
-            "comment": "AhOuai party invites via WhatsApp links"
+            "comment": "Guest invitations open on web; app opens only on explicit guest action",
+            "exclude": true
           },
           {
             "/": "/join/*",
-            "comment": "AhOuai party invites legacy path"
+            "comment": "Guest invitations open on web; app opens only on explicit guest action",
+            "exclude": true
           }
         ]
       }

@@ -6744,7 +6744,7 @@ function showPartyQR() {
 }
 
 function partyInviteUrl() {
-  return `${inviteOrigin()}/?code=${state.partyCode}`;
+  return `${inviteOrigin()}/guest?code=${state.partyCode}`;
 }
 
 async function copyPartyLink() {
@@ -7763,7 +7763,7 @@ function showDiapoSlide(index) {
       messageQr.style.display = isQrInvitation ? 'flex' : 'none';
       if (isQrInvitation && typeof QRCode !== 'undefined' && state.partyCode) {
         new QRCode(messageQr, {
-          text: 'https://join.ahouai.com/?code=' + state.partyCode,
+          text: 'https://join.ahouai.com/guest?code=' + state.partyCode,
           width: 176, height: 176,
           colorDark: '#071124', colorLight: '#ffffff',
           correctLevel: QRCode.CorrectLevel.M
@@ -7843,7 +7843,7 @@ function generateDiapoQR() {
   try {
     if (typeof QRCode !== 'undefined') {
       new QRCode(container, {
-        text: 'https://join.ahouai.com/?code=' + state.partyCode,
+        text: 'https://join.ahouai.com/guest?code=' + state.partyCode,
         width: 64, height: 64,
         colorDark: '#000', colorLight: '#fff',
         correctLevel: QRCode.CorrectLevel.M
@@ -9511,7 +9511,7 @@ function renderSouvenirs() {
 window.shareSouvenirs = function() {
   const code = state.partyCode || '';
   const hostName = state.hostProfile?.name || 'la soirée';
-  const url = `${inviteOrigin()}/?code=${code}`;
+  const url = `${inviteOrigin()}/guest?code=${code}`;
   const text = `Souviens-toi de ${hostName} 🎵 sur AhOuai`;
   if (navigator.share) {
     navigator.share({ title: 'AhOuai — Souvenirs', text, url }).catch(() => {});

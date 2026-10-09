@@ -1264,7 +1264,7 @@ async function share() {
 }
 
 function _partyInviteUrl(code = STATE.party?.code) {
-  return `https://join.ahouai.com/?code=${encodeURIComponent(code || '')}`;
+  return `https://join.ahouai.com/guest?code=${encodeURIComponent(code || '')}`;
 }
 
 async function copyLink() {

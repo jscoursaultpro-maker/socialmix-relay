@@ -260,7 +260,7 @@
   // ── QR d'invitation ────────────────────────────────────────────────
   function buildQR(){
     if (!CODE || typeof QRCode === 'undefined') return;
-    const url = 'https://join.ahouai.com/?code=' + encodeURIComponent(CODE);
+    const url = 'https://join.ahouai.com/guest?code=' + encodeURIComponent(CODE);
     $('qr').innerHTML = '';
     try{
       new QRCode($('qr'), { text:url, width:208, height:208, colorDark:'#0b1222', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
