@@ -1,6 +1,13 @@
 // Host provider selection only. Test access continues the existing Spotify OAuth flow.
 (function () {
   let dialog;
+  document.addEventListener('click', event => {
+    const button = event.target.closest?.('[data-host-spotify-vote]');
+    if (!button) return;
+    event.preventDefault();
+    const justplay = typeof _choiceJustPlay !== 'undefined' && _choiceJustPlay;
+    window.AhOuaiHostProviderVote.open(() => _goAuthedHost('spotify', justplay));
+  });
   window.AhOuaiHostProviderVote = {
     open(onTestAccess) {
       if (dialog?.open) return;
@@ -8,7 +15,7 @@
         const style = document.createElement('style');
         style.id = 'host-provider-vote-style';
         style.textContent = `
-          .host-provider-vote{box-sizing:border-box;width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:28px;border:1px solid #33d6c480;border-radius:26px;background:linear-gradient(140deg,#071723,#20103c);color:#fff;font-family:inherit;text-align:center}
+          .host-provider-vote{position:fixed;inset:0;margin:auto;box-sizing:border-box;width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:28px;border:1px solid #33d6c480;border-radius:26px;background:linear-gradient(140deg,#071723,#20103c);color:#fff;font-family:inherit;text-align:center}
           .host-provider-vote::backdrop{background:#020612c9;backdrop-filter:blur(6px)}
           .host-provider-vote img{width:150px;max-width:70%}.host-provider-vote h2{font-size:26px;line-height:1.2}.host-provider-vote p{color:#b9bbce;line-height:1.5}
           .host-provider-vote button{display:block;width:100%;min-height:44px;margin-top:12px;border-radius:14px;padding:12px;border:1px solid #74718d;background:transparent;color:#d2cde0;font:inherit;cursor:pointer}

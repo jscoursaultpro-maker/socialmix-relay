@@ -116,7 +116,7 @@
                     <span class="provider-logo apple-logo">♫</span>
                     <span class="choice-txt"><strong>Apple Music</strong><small>Abonnement requis · titres complets</small></span><span class="choice-arrow">→</span>
                 </button>
-                <button type="button" class="choice-card" onclick="pickProvider('spotify')">
+                <button type="button" class="choice-card" data-host-spotify-vote>
                     <span class="provider-logo spotify-logo">●</span>
                     <span class="choice-txt"><strong>Spotify · Soon</strong><small>Bientôt disponible · Vote pour l’ajouter</small></span><span class="choice-arrow">Voter</span>
                 </button>
@@ -1429,7 +1429,7 @@
     <script src="/guest-app-choice.js?v=20261009" defer></script>
     <script src="app.js?v=20261009-spotify-vote"></script>
     <!-- ★ Mode host (brique 1) — détection + barre de contrôles musique, module autonome -->
-    <script src="/shared/ui/host-provider-vote.js?v=1"></script>
+    <script src="/shared/ui/host-provider-vote.js?v=2"></script>
     <script src="/shared/ui/host-mode.js?v=hostmode-1007"></script>
     <!-- ★ Mode host (brique 2) — moteur musique YouTube dans le guest -->
     <script src="/shared/ui/host-engine.js?v=hostengine-1008-reconnect"></script>
