@@ -77,6 +77,12 @@
   function badgeFor(el,count){el.querySelector('.community-chat-badge')?.remove();if(count){const badge=node('span',String(count));badge.className='community-chat-badge';badge.setAttribute('aria-label',`${count} messages non lus`);el.append(badge);}}
   function updateChatBadge(d){
     chatSnapshot=d;const count=unreadCount(d);
+    const warnings=(d.warnings||[]).filter(w=>!['dismissed','removed','resolved'].includes(w.status));
+    document.querySelectorAll('[data-nav="moi"]').forEach(el=>{
+      el.querySelector('.community-warning-badge')?.remove();
+      if(warnings.length){const badge=node('span','!');badge.className='community-warning-badge';badge.setAttribute('aria-label',`${warnings.length} signalements te concernant`);el.prepend(badge);}
+    });
+    safety.classList.toggle('has-warning',warnings.length>0);
     inbox.replaceChildren(node('span','MES CHATS'),node('span','›'));badgeFor(inbox,count);
     inbox.setAttribute('aria-label',`Mes chats${count?` · ${count} nouveaux messages`:''}`);
     document.querySelectorAll('[data-nav="moi"]').forEach(el=>{badgeFor(el,count);el.setAttribute('aria-label',`My Touch${count?` · ${count} messages non lus`:''}`);});
@@ -102,7 +108,10 @@
     });if(!dialog.open)dialog.showModal();}catch(e){toast(e);}});inbox.className='community-inbox';inbox.hidden=true;document.getElementById('moi-action-bar')?.after(inbox);
   const safety=button('Prévenir l’organisateur',async()=>{
     try {
-      const d=await api('/reportable');header('Prévenir l’organisateur');
+      const [d,community]=await Promise.all([api('/reportable'),api()]);updateChatBadge(community);header('Prévenir l’organisateur');
+      const warnings=(community.warnings||[]).filter(w=>!['dismissed','removed','resolved'].includes(w.status));
+      if(warnings.length){dialog.append(node('h2','⚠ Tes contenus signalés'));warnings.forEach(w=>{const card=node('article');card.className='community-report-content';card.append(node('strong',({photo:'Ta photo',message:'Ton mot',song:'Ton titre',private_message:'Ton message privé'}[w.kind]||'Ton contenu')+' a été signalé'));if(w.excerpt)card.append(node('p',w.excerpt));if(w.url){const img=node('img');img.src=w.url;img.alt='Photo signalée';img.className='community-report-photo';card.append(img);}dialog.append(card);});}
+
       dialog.append(node('p','Choisis une personne, puis le contenu à signaler. Ton identité reste privée.'));
       const people=new Map();
       d.items.forEach(item=>{
@@ -132,7 +141,7 @@
     }catch(e){toast(e);}
   });safety.className='community-safety';safety.hidden=true;document.getElementById('quit-btn')?.before(safety);
   window.bindCommunitySocket=s=>{if(!s||s===boundSocket)return;boundSocket=s;
-    s.on('community:warning',d=>{const key=`ahouai_warning_${state.partyCode}_${d.id}`;if(!localStorage.getItem(key)){localStorage.setItem(key,'seen');toast(d.message);}});s.on('community:alert',()=>toast('Un nouvel avertissement demande ton attention dans Backstage.'));s.on('community:message',async()=>{if(dialog.open&&activeConversation&&activeRefresh)await activeRefresh();await refreshChatBadge();if(chatSnapshot&&unreadCount(chatSnapshot))chatNotice();});
+    s.on('community:warning',d=>{refreshChatBadge();const key=`ahouai_warning_${state.partyCode}_${d.id}`;if(!localStorage.getItem(key)){localStorage.setItem(key,'seen');toast(d.message);}});s.on('community:alert',()=>toast('Un nouvel avertissement demande ton attention dans Backstage.'));s.on('community:message',async()=>{if(dialog.open&&activeConversation&&activeRefresh)await activeRefresh();await refreshChatBadge();if(chatSnapshot&&unreadCount(chatSnapshot))chatNotice();});
     s.on('community:excluded',d=>{clearResumeSession();showScreen('choice');dialog.close();toast(d.message);});
   };
   setInterval(refreshChatBadge,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshChatBadge();});

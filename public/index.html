@@ -1363,7 +1363,7 @@
             <span id="diapo-counter" class="diapo-counter diapo-hideable">1 / 1</span>
             <div class="diapo-controls">
                 <button id="diapo-pause" class="diapo-ctrl-btn diapo-hideable" onclick="toggleDiapoPause()">⏸️</button>
-                <button id="diapo-close" class="diapo-ctrl-btn diapo-back-btn" onclick="closeDiaporama()">← Vers la soirée</button>
+                <button id="diapo-close" class="diapo-ctrl-btn diapo-back-btn" onclick="closeDiaporama()">← Retour</button>
             </div>
         </div>
         <!-- Photo / Message slide container -->
@@ -1376,7 +1376,8 @@
                 <div class="diapo-message-qr" id="diapo-msg-qr"></div>
             </div>
         </div>
-        <!-- Track overlay bottom-left -->
+        <div class="diapo-footer">
+        <!-- Track information outside the slide -->
         <div class="diapo-track-overlay" id="diapo-track-overlay">
             <div class="diapo-track-waveform">♪♪♪</div>
             <div class="diapo-track-title" id="diapo-track-title"></div>
@@ -1386,6 +1387,7 @@
         <div class="diapo-qr-overlay" id="diapo-qr-overlay">
             <div id="diapo-qr-code"></div>
             <div class="diapo-qr-cta" id="diapo-qr-cta">Rejoins cette soirée !</div>
+        </div>
         </div>
         <!-- Nav prev/next -->
         <div class="diapo-nav diapo-hideable">

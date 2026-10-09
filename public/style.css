@@ -6440,3 +6440,50 @@ body.has-app-banner #toast {
 .community-report-content { padding:12px 0; border-top:1px solid #ffffff18; overflow-wrap:anywhere; }
 .community-report-photo { width:100%; max-height:280px; object-fit:contain; border-radius:12px; }
 .community-report-cover { width:64px; height:64px; object-fit:cover; border-radius:10px; }
+
+/* Responsive slideshow: content, identity and QR each have reserved space. */
+#diapo-modal {
+  height:100dvh; box-sizing:border-box; padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
+  display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:40px 48px minmax(0,1fr) auto;
+  grid-template-areas:"controls" "identity" "slide" "footer"; gap:10px;
+  background:radial-gradient(ellipse at 20% 10%,#7223b83d,transparent 55%),radial-gradient(ellipse at 90% 70%,#00d9ca20,transparent 55%),#060915;
+}
+#diapo-modal.hidden { display:none; }
+#diapo-modal .diapo-vignette-top,#diapo-modal .diapo-vignette-bottom { display:none; }
+#diapo-modal .diapo-header { grid-area:controls; position:static; padding:0; min-width:0; }
+#diapo-modal .diapo-identity-row { grid-area:identity; margin:0; padding:0; min-width:0; }
+#diapo-modal .diapo-photo-container { grid-area:slide; width:100%; height:100%; padding:8px; box-sizing:border-box; min-width:0; min-height:0; overflow:hidden; }
+#diapo-modal #diapo-photo { max-width:100%; max-height:100%; width:100%; height:100%; border-radius:18px; filter:drop-shadow(0 0 5px #ff41bb99) drop-shadow(0 0 12px #ff41bb44); }
+#diapo-modal .diapo-message-slide { box-sizing:border-box; min-height:0; padding:clamp(16px,4vw,32px); gap:clamp(12px,3vh,24px); background:transparent; border:1px solid #ff51b85c; border-radius:24px; box-shadow:inset 0 0 26px #ed39b310,0 0 14px #ff41bb33; overflow:auto; }
+#diapo-modal .diapo-message-caption { font-size:clamp(22px,4vw,38px); overflow-wrap:anywhere; max-width:100%; flex-shrink:0; }
+#diapo-modal .diapo-message-emoji { font-size:clamp(36px,7vh,60px); }
+#diapo-modal .diapo-footer { grid-area:footer; display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:0; }
+#diapo-modal .diapo-track-overlay { position:static; min-width:0; max-width:none; flex:1; padding:10px 12px; background:#121427cc; border:1px solid #ff51b844; box-shadow:0 0 12px #ff41bb18; }
+#diapo-modal .diapo-qr-overlay { position:static; flex:none; flex-direction:row; max-width:170px; padding:8px; gap:8px; border-color:#ff51b866; border-radius:16px; box-shadow:0 0 12px #ff41bb22; }
+#diapo-modal .diapo-qr-overlay canvas,#diapo-modal .diapo-qr-overlay img { width:72px !important; height:72px !important; padding:4px; box-sizing:content-box; border-radius:8px; }
+#diapo-modal .diapo-qr-cta { font-size:10px; max-width:68px; }
+#diapo-modal .diapo-author-badge { border-color:#ff51b855; box-shadow:0 0 12px #ff41bb22; }
+@media (orientation:landscape) {
+  #diapo-modal { grid-template-columns:minmax(0,1fr) clamp(160px,23vw,240px); grid-template-rows:46px minmax(0,1fr); grid-template-areas:"identity controls" "slide footer"; gap:10px 18px; }
+  #diapo-modal .diapo-footer { flex-direction:column; justify-content:center; gap:14px; }
+  #diapo-modal .diapo-track-overlay { flex:0; width:100%; box-sizing:border-box; }
+  #diapo-modal .diapo-qr-overlay { max-width:100%; }
+  #diapo-modal .diapo-header { justify-content:flex-end; }
+  #diapo-modal .diapo-counter { margin-right:8px; font-size:11px; }
+  #diapo-modal .diapo-ctrl-btn { padding:8px 10px; font-size:11px; }
+  #diapo-modal .diapo-message-slide { gap:12px; padding:16px; }
+  #diapo-modal .diapo-message-emoji { font-size:32px; }
+  #diapo-modal .diapo-message-caption { font-size:clamp(20px,3vw,32px); }
+  #diapo-modal .diapo-message-qr { margin-top:0; }
+}
+@media (max-width:360px) and (orientation:portrait) {
+  #diapo-modal .diapo-qr-cta { display:none; }
+}
+
+.nav-btn[data-nav="moi"] > .community-warning-badge { position:absolute; top:4px; left:6px; display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:#ffb32c; color:#17101d; font-size:14px; font-weight:900; box-shadow:0 0 12px #ffb32c66; }
+.community-safety.has-warning { border-color:#ffb32c; color:#ffd380; }
+.community-safety.has-warning::before { content:'⚠'; margin-right:8px; }
+
+#diapo-modal .diapo-nav { grid-area:slide; position:relative; inset:auto; min-height:0; padding:0; }
+#diapo-modal .diapo-nav-btn { width:44px; height:44px; padding:0; border-radius:50%; background:#080b1b88; color:#fff; }
+#diapo-modal .diapo-counter,#diapo-modal .diapo-back-btn { white-space:nowrap; }

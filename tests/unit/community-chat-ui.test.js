@@ -29,16 +29,18 @@ test('chat badges persist until conversation read; safety precedes exit; partici
  assert.ok(paths.some(path=>path.endsWith('/touch/romeo')));dom.window.close();
 });
 test('report contents drill down by user ID, with photos, songs and words',async()=>{
- const dom=new JSDOM('<body><div id="moi-action-bar"></div><button id="quit-btn"></button></body>',{url:'https://join.ahouai.com',runScripts:'outside-only'});
+ const dom=new JSDOM('<body><div id="moi-action-bar"></div><button id="quit-btn"></button><button data-nav="moi"></button></body>',{url:'https://join.ahouai.com',runScripts:'outside-only'});
  const w=dom.window;w.state={partyCode:'ABC123',sessionToken:'session'};w.showToast=()=>{};w.setInterval=()=>1;w.clearInterval=()=>{};
  w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
  const items=[{userId:'a',name:'Daphné',id:'song1',kind:'song',text:'Bullit',artist:'Watermät',url:'/cover.jpg'},
  {userId:'a',name:'Daphné',id:'photo1',kind:'photo',text:'Photo partagée',url:'/photo.jpg'},
  {userId:'a',name:'Daphné',id:'word1',kind:'message',text:'Salut tout le monde'},
  {userId:'b',name:'Daphné',id:'word2',kind:'message',text:'Autre personne'}];
- w.fetch=async()=>({ok:true,json:async()=>({items})});w.eval(source);
+ w.fetch=async()=>({ok:true,json:async()=>({items,messages:[],me:"me",warnings:[{id:"warning",kind:"photo",status:"warned",excerpt:"Photo signalée",url:"/photo.jpg"}]})});w.eval(source);
  w.document.querySelector('.community-safety').click();await settle();
  const groups=w.document.querySelectorAll('.community-report-person');assert.equal(groups.length,2);
+ assert.ok(w.document.querySelector('.community-warning-badge'));
+ assert.match(w.document.querySelector('dialog').textContent,/Ta photo a été signalé/);
  assert.equal(groups[0].open,false);groups[0].querySelector('summary').click();assert.equal(groups[0].open,true);
  assert.equal(groups[0].querySelectorAll('.community-report-content').length,3);
  assert.match(groups[0].textContent,/Bullit/);assert.match(groups[0].textContent,/Watermät/);assert.match(groups[0].textContent,/Salut tout le monde/);
