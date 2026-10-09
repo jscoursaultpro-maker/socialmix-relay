@@ -139,7 +139,7 @@
         '<div class="hc-next-h">🚪 Salle d\'attente <span class="n" id="hc-wait-n">0</span></div>' +
         '<div class="hc-wait-toggle">' +
           '<div class="lab"><b>Valider les invités</b><span>ON : chaque invité attend ton feu vert · OFF : entrée libre</span></div>' +
-          '<div class="hc-sw" id="hc-wait-sw"></div>' +
+          '<button type="button" class="hc-sw" id="hc-wait-sw" role="switch" aria-label="Valider les invités" aria-checked="false"></button>' +
         '</div>' +
         '<div class="hc-q" id="hc-wait-list"></div>' +
       '</div>' +
@@ -147,7 +147,7 @@
       '<div class="hc-card hc-auto">' +
         '<span class="inf">∞</span>' +
         '<div class="lab"><b>Enchaînement auto</b><span>ON : les suggestions entrent seules dans la file · OFF : tu les ajoutes à la main</span></div>' +
-        '<div class="hc-sw" id="hc-auto-sw"></div>' +
+        '<button type="button" class="hc-sw" id="hc-auto-sw" role="switch" aria-label="Enchaînement automatique" aria-checked="true"></button>' +
       '</div>' +
       // Carte suggestions — visible uniquement quand l'enchaînement auto est OFF.
       '<div class="hc-card" id="hc-sugg-card" style="display:none">' +
@@ -353,7 +353,7 @@
     var curIdx = Math.max(0, PHASES.findIndex(function (p) { return p.key === phaseKey; }));
     frise.innerHTML = PHASES.map(function (p, i) {
       var cls = i < curIdx ? 'done' : (i === curIdx ? 'cur' : '');
-      return '<div class="hc-step ' + cls + '" data-stage="' + p.key + '" style="cursor:pointer" title="Passer en ' + p.label + '"><div class="hc-dot">' + p.ic + '</div><div class="nm">' + p.label + '</div></div>';
+      return '<button type="button" class="hc-step ' + cls + '" data-stage="' + p.key + '" style="cursor:pointer" title="Passer en ' + p.label + '"><div class="hc-dot">' + p.ic + '</div><div class="nm">' + p.label + '</div></button>';
     }).join('');
     var cur = PHASES[curIdx];
     var nowEl = document.getElementById('hc-phase-now'); if (nowEl) nowEl.textContent = cur.label;
@@ -444,7 +444,7 @@
     //   seul moyen d'activer la validation. Seule la liste des pending reste conditionnelle.
     if (!featureOn) { card.style.display = 'none'; return; }
     card.style.display = '';
-    var sw = document.getElementById('hc-wait-sw'); if (sw) sw.classList.toggle('on', !!waitApproval);
+    var sw = document.getElementById('hc-wait-sw'); if (sw) { sw.classList.toggle('on', !!waitApproval); sw.setAttribute('aria-checked', String(!!waitApproval)); }
     var nEl = document.getElementById('hc-wait-n'); if (nEl) nEl.textContent = pending.length;
     var box = document.getElementById('hc-wait-list'); if (!box) return;
     if (!pending.length) {
@@ -479,8 +479,9 @@
       var av = (p && p.photo)
         ? '<span class="hc-crew-av"><img src="' + esc(p.photo) + '" alt=""></span>'
         : '<span class="hc-crew-av">' + esc((p && p.emoji) || '🎉') + '</span>';
-      return '<div class="hc-crew-chip">' + av + '<span class="hc-crew-nm">' + esc(nm) + badge + '</span></div>';
+      return '<button type="button" class="hc-crew-chip" data-person="' + esc(p.userId || '') + '">' + av + '<span class="hc-crew-nm">' + esc(nm) + badge + '</span></button>';
     }).join('');
+    box.querySelectorAll('[data-person]').forEach(function (b) { b.onclick = function () { if (hostOn() && b.dataset.person) window.openParticipantTouch?.(b.dataset.person); }; });
   }
 
   async function pollState() {
@@ -512,7 +513,7 @@
     var e = eng();
     var sw = document.getElementById('hc-auto-sw');
     var auto = (e && e.getAutoAdvance) ? e.getAutoAdvance() : true;
-    if (sw) sw.classList.toggle('on', auto);
+    if (sw) { sw.classList.toggle('on', auto); sw.setAttribute('aria-checked', String(!!auto)); }
     // Badge mode phase : ● AUTO (cascade) ou ● MANUEL <phase> (décision tenue par l'hôte).
     var badge = document.getElementById('hc-mode-badge');
     if (badge) {

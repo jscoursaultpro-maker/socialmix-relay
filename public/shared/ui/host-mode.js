@@ -148,7 +148,16 @@
       lastHost = host;
       if (host) console.log('[host-mode] On Air host — transport au-dessus des votes');
     }
-    if (host) bindWaitingRoom();
+    if (host) {
+      bindWaitingRoom();
+      if (!document.getElementById('host-experience-script')) {
+        var script = document.createElement('script'); script.id = 'host-experience-script';
+        script.src = '/shared/ui/host-experience.js';
+        script.onerror = function () { script.remove(); };
+        document.head.appendChild(script);
+      }
+    }
+    window.AhOuaiHostExperience?.sync();
   }
 
   function activeSocket() {
@@ -206,6 +215,7 @@
     var messages = Array.isArray(s.liveMessages) ? s.liveMessages : [];
     var visibility = ['private','friends','public'].indexOf(s.visibility) >= 0 ? s.visibility : 'private';
     if (Array.isArray(s.pendingGuests)) pendingGuests = s.pendingGuests.slice();
+    if (window.AhOuaiHostExperience) { window.AhOuaiHostExperience.renderBackstage(mount, Object.assign({}, s, {pendingGuests: pendingGuests})); return; }
     function safe(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
     var photoRows = photos.slice(-4).reverse().map(function(p){ var idx = photos.indexOf(p); return '<div class="bs-item"><span>📷 '+safe(p.guestName || 'Invité')+'</span><button class="bs-delete" data-photo-index="'+idx+'" data-photo-id="'+safe(p.id || p._id || '')+'" data-photo-url="'+safe(p.url || p.dataURL || '')+'">SUPPRIMER</button></div>'; }).join('');
     var messageRows = messages.slice(-4).reverse().map(function(m){ return '<div class="bs-item"><span>💬 '+safe(m.guestName || 'Invité')+' — '+safe(m.message || '')+'</span><button class="bs-delete" data-message-id="'+safe(m.id || '')+'">SUPPRIMER</button></div>'; }).join('');

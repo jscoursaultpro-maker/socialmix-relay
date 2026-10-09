@@ -1,0 +1,65 @@
+/* All selectors are restricted to the active Web Host experience. */
+body.hx-host-experience #cockpit-screen > .soiree-top-header,
+body.hx-host-experience #tab-hub .moi-identity-card,
+body.hx-host-experience #tab-hub .moi-ranking-panel,
+body.hx-host-experience #tab-hub .moi-circle-panel,
+body.hx-host-experience #tab-hub > #quit-btn,
+body.hx-host-experience #tab-hub > .community-safety,
+body.hx-host-experience .community-warning-badge { display:none!important; }
+body.hx-host-experience .hx-header { display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:12px 4px 20px; }
+body.hx-host-experience .hx-header button {display:grid;place-items:center;cursor:pointer;color:#00ddcb;background:#101626;border:1px solid #29dcca55;border-radius:16px;width:48px;height:48px;padding:9px;}
+body.hx-host-experience .hx-header .hx-brand { padding:0;background:transparent;border:0; }
+body.hx-host-experience .hx-brand img { width:48px;height:48px;object-fit:contain; }
+body.hx-host-experience .hx-header-actions {display:flex;align-items:center;justify-content:flex-end;gap:10px;}
+body.hx-host-experience .hx-header .hx-qr {width:56px;height:52px;animation:hx-qr-glow 3s ease-in-out infinite;}
+body.hx-host-experience .hx-qr svg {width:28px;height:28px;fill:currentColor;}
+body.hx-host-experience .hx-door svg {width:27px;height:27px;}
+body.hx-host-experience .hx-header .hx-profile {padding:0;border-radius:50%;overflow:hidden;}
+body.hx-host-experience .hx-avatar {position:relative;display:inline-grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:50%;overflow:hidden;background:#123b48;color:#45e7d9;font-weight:800;}
+body.hx-host-experience .hx-avatar img {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+body.hx-host-experience .hx-touch-heading {display:flex;gap:16px;align-items:center;padding:20px 0;}
+body.hx-host-experience .hx-touch-heading .hx-avatar {width:64px;height:64px;flex-basis:64px;box-shadow:0 0 0 2px #de55d1;}
+body.hx-host-experience .hx-touch-heading h2 {margin:0;font-size:clamp(20px,3vw,30px);color:white;overflow-wrap:anywhere;}
+body.hx-host-experience .hx-touch-heading p {color:#38ddcb;margin:6px 0 0;}
+body.hx-host-experience .hx-card {padding:20px;margin:14px 0;border:1px solid #29dcca55;border-radius:24px;background:linear-gradient(135deg,#092432,#1c1137);color:#fff;min-width:0;}
+body.hx-host-experience .hx-card h2 {font-size:19px;color:#3ae5d6;margin:0 0 14px;}
+body.hx-host-experience .hx-card p {color:#b5bed0;line-height:1.5;}
+body.hx-host-experience .hx-card button,body.hx-host-experience .hx-return,body.hx-host-experience .hx-danger,body.hx-host-experience .hx-dialog button {font:700 14px/1.4 Outfit,system-ui,sans-serif;border:1px solid #51d6cb66;border-radius:14px;padding:12px 16px;min-height:44px;color:#ecffff;background:linear-gradient(120deg,#12383f,#261944);cursor:pointer;}
+body.hx-host-experience .hx-danger {color:#ff7c99!important;border-color:#ff5b8b66!important;background:#55192933!important;}
+body.hx-host-experience .hx-return {color:#32e4d1;position:relative;}
+body.hx-host-experience .hx-touch-actions {display:grid;gap:12px;margin:20px 0;}
+body.hx-host-experience #hx-reports {width:100%;margin-top:12px;}
+body.hx-host-experience .hx-warning {position:absolute;top:1px;left:1px;display:grid;place-items:center;width:23px;height:23px;border-radius:50%;border:2px solid #071124;background:#ffad29;color:#15100b;font:bold 15px system-ui;pointer-events:none;z-index:2;}
+body.hx-host-experience #bottom-nav button,body.hx-host-experience #backstage-nav-btn {position:relative;}
+body.hx-host-experience .hx-person {display:flex!important;align-items:center;gap:10px;width:100%;text-align:left;margin:8px 0;flex-wrap:wrap;}
+body.hx-host-experience .hx-person > span:not(.hx-avatar) {flex:1;min-width:80px;overflow-wrap:anywhere;}
+body.hx-host-experience .hx-person strong {color:#3ae5d6;font-size:13px;}
+body.hx-host-experience .hx-people {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:10px;}
+body.hx-host-experience .hx-visibility {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+body.hx-host-experience .hx-visibility button {padding:12px 4px;}
+body.hx-host-experience .hx-visibility [aria-pressed=true] {background:#2bddcb;color:#06171f;}
+body.hx-host-experience .hx-backstage {display:grid;gap:14px;width:100%;grid-column:1/-1;}
+body.hx-host-experience .hx-backstage .hx-card {margin:0;}
+body.hx-host-experience .hx-card details {border-top:1px solid #ffffff20;padding-top:12px;margin-top:12px;}
+body.hx-host-experience .hx-card summary {cursor:pointer;min-height:44px;color:#b8ece8;}
+body.hx-host-experience .hx-card summary .hx-avatar {vertical-align:middle;margin-right:10px;}
+body.hx-host-experience .hx-content {padding:12px 0;display:grid;gap:12px;}
+body.hx-host-experience .hx-content img {max-width:100%;max-height:240px;object-fit:contain;border-radius:16px;justify-self:center;box-shadow:0 0 18px #ed39a72c;}
+body.hx-host-experience .hx-content p {white-space:pre-wrap;overflow-wrap:anywhere;}
+body.hx-host-experience .hx-dialog {box-sizing:border-box;width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid #43dec077;border-radius:24px;padding:24px;background:linear-gradient(135deg,#071c29,#1a1136);color:#fff;}
+body.hx-host-experience .hx-dialog::backdrop {background:#020612ba;backdrop-filter:blur(6px);}
+body.hx-host-experience .hx-dialog h1 {font-size:26px;clear:both;padding-top:12px;}
+body.hx-host-experience .hx-dialog button {display:block;width:100%;margin:10px 0;}
+body.hx-host-experience .hx-dialog .hx-close {width:auto;float:right;margin:0;}
+body.hx-host-experience .hx-feedback {color:#ffc365;}
+body.hx-host-experience button:focus-visible,body.hx-host-experience summary:focus-visible {outline:3px solid #8deee6;outline-offset:3px;}
+body.hx-host-experience button:disabled {opacity:.5;cursor:wait;}
+@keyframes hx-qr-glow {50%{box-shadow:0 0 18px #24daca55;background:#10423f;}}
+@media(prefers-reduced-motion:reduce){body.hx-host-experience .hx-header .hx-qr {animation:none;}}
+@media(min-width:900px){body.hx-host-experience .hx-backstage {grid-template-columns:repeat(2,minmax(0,1fr));}body.hx-host-experience .hx-backstage>.hx-card:last-of-type {grid-column:1/-1;}}
+body.hx-host-experience #host-cockpit .hc-step {border:0;background:transparent;padding:0;color:inherit;}
+body.hx-host-experience #host-cockpit .hc-sw {border:0;padding:0;}
+body.hx-host-experience #tab-hub > .v2-space-heading {display:none!important;}
+body.hx-host-experience .hx-backstage {align-items:start;}
+
+body.hx-host-experience #cockpit-screen {padding-bottom:130px!important;}
