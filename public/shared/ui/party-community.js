@@ -75,9 +75,11 @@
   const readChatIds=d=>{try{return new Set(JSON.parse(localStorage.getItem(`ahouai_chat_read_${state.partyCode}_${d.me}`)||'[]'));}catch{return new Set();}};
   function unreadCount(d, userId){const read=readChatIds(d);return d.messages.filter(m=>m.targetId===d.me&&(!userId||m.senderId===userId)&&!read.has(String(m.id))).length;}
   function badgeFor(el,count){el.querySelector('.community-chat-badge')?.remove();if(count){const badge=node('span',String(count));badge.className='community-chat-badge';badge.setAttribute('aria-label',`${count} messages non lus`);el.append(badge);}}
+  function readWarningIds(d){try{return new Set(JSON.parse(localStorage.getItem(`ahouai_warning_read_${state.partyCode}_${d.me}`)||'[]'));}catch{return new Set();}}
+  function markWarningsRead(d){const seen=readWarningIds(d);(d.warnings||[]).forEach(w=>seen.add(String(w.id)));try{localStorage.setItem(`ahouai_warning_read_${state.partyCode}_${d.me}`,JSON.stringify([...seen]));}catch{}updateChatBadge(d);}
   function updateChatBadge(d){
     chatSnapshot=d;const count=unreadCount(d);
-    const warnings=(d.warnings||[]).filter(w=>!['dismissed','removed','resolved'].includes(w.status));
+    const seenWarnings=readWarningIds(d);const warnings=(d.warnings||[]).filter(w=>!['dismissed','removed','resolved'].includes(w.status)&&!seenWarnings.has(String(w.id)));
     document.querySelectorAll('[data-nav="moi"]').forEach(el=>{
       el.querySelector('.community-warning-badge')?.remove();
       if(warnings.length){const badge=node('span','!');badge.className='community-warning-badge';badge.setAttribute('aria-label',`${warnings.length} signalements te concernant`);el.prepend(badge);}
@@ -110,8 +112,24 @@
     try {
       const [d,community]=await Promise.all([api('/reportable'),api()]);updateChatBadge(community);header('Prévenir l’organisateur');
       const warnings=(community.warnings||[]).filter(w=>!['dismissed','removed','resolved'].includes(w.status));
-      if(warnings.length){dialog.append(node('h2','⚠ Tes contenus signalés'));warnings.forEach(w=>{const card=node('article');card.className='community-report-content';card.append(node('strong',({photo:'Ta photo',message:'Ton mot',song:'Ton titre',private_message:'Ton message privé'}[w.kind]||'Ton contenu')+' a été signalé'));if(w.excerpt)card.append(node('p',w.excerpt));if(w.url){const img=node('img');img.src=w.url;img.alt='Photo signalée';img.className='community-report-photo';card.append(img);}dialog.append(card);});}
-
+      if(warnings.length){
+        dialog.append(node('h2','⚠ Tes contenus signalés'));
+        warnings.forEach(w=>{
+          const card=node('article');card.className='community-report-content';
+          card.append(node('strong',({photo:'Ta photo a été signalée',message:'Ton mot a été signalé',song:'Ton titre a été signalé',private_message:'Ton message privé a été signalé'}[w.kind]||'Ton contenu a été signalé')));
+          if(w.excerpt)card.append(node('p',w.excerpt));
+          if(w.url){const img=node('img');img.src=w.url;img.alt='Photo signalée';img.className='community-report-photo';card.append(img);}
+          if(w.canManage){
+            if(w.kind==='message')card.append(button('Modifier mon mot',()=>{
+              const editor=node('textarea');editor.value=w.excerpt||'';editor.maxLength=1000;editor.setAttribute('aria-label','Modifier mon mot');
+              const save=button('Enregistrer',()=>{if(editor.value.trim())action('/reported-content',{reportId:w.id,action:'edit',text:editor.value.trim()},()=>safety.click());});
+              card.querySelector('.community-report-editor')?.remove();const form=node('div');form.className='community-report-editor';form.append(editor,save,button('Annuler',()=>form.remove()));card.append(form);editor.focus();
+            }));
+            card.append(button('Supprimer ce contenu',()=>{if(window.confirm('Supprimer ce contenu de la soirée ?'))action('/reported-content',{reportId:w.id,action:'remove'},()=>safety.click());}));
+          }else card.append(node('small','Ce contenu n’est plus modifiable.'));
+          dialog.append(card);
+        });
+      }
       dialog.append(node('p','Choisis une personne, puis le contenu à signaler. Ton identité reste privée.'));
       const people=new Map();
       d.items.forEach(item=>{
@@ -138,6 +156,7 @@
         dialog.append(group);
       }
       if(!dialog.open)dialog.showModal();
+      markWarningsRead(community);
     }catch(e){toast(e);}
   });safety.className='community-safety';safety.hidden=true;document.getElementById('quit-btn')?.before(safety);
   window.bindCommunitySocket=s=>{if(!s||s===boundSocket)return;boundSocket=s;

@@ -39,8 +39,8 @@ test('report contents drill down by user ID, with photos, songs and words',async
  w.fetch=async()=>({ok:true,json:async()=>({items,messages:[],me:"me",warnings:[{id:"warning",kind:"photo",status:"warned",excerpt:"Photo signalée",url:"/photo.jpg"}]})});w.eval(source);
  w.document.querySelector('.community-safety').click();await settle();
  const groups=w.document.querySelectorAll('.community-report-person');assert.equal(groups.length,2);
- assert.ok(w.document.querySelector('.community-warning-badge'));
- assert.match(w.document.querySelector('dialog').textContent,/Ta photo a été signalé/);
+ assert.equal(w.document.querySelector('.community-warning-badge'),null);
+ assert.match(w.document.querySelector('dialog').textContent,/Ta photo a été signalée/);
  assert.equal(groups[0].open,false);groups[0].querySelector('summary').click();assert.equal(groups[0].open,true);
  assert.equal(groups[0].querySelectorAll('.community-report-content').length,3);
  assert.match(groups[0].textContent,/Bullit/);assert.match(groups[0].textContent,/Watermät/);assert.match(groups[0].textContent,/Salut tout le monde/);
