@@ -1,3 +1,4 @@
+import { resolveVoteTrackTitle } from './lib/vote-track.js';
 import { reconcilePlayedSuggestions } from './lib/suggestion-playback.js';
 import preparationRouter from './routes/party-preparation.js';
 import './instrument.js'; // ★ feat(sentry): MUST be first import — instruments Node builtins before any other module loads
@@ -7311,12 +7312,16 @@ io.on('connection', (socket) => {
     if (data.guestName && !party.guestVotes[guestId]._guestName) {
       party.guestVotes[guestId]._guestName = data.guestName;
     }
-    party.guestVotes[guestId][data.trackId || 'current'] = data.type;
+    const voteKey = resolveVoteTrackTitle(party, data);
+    if (!voteKey) return cb({ ok: false, error: 'no_current_track' });
+    party.guestVotes[guestId][voteKey] = data.type;
+    party.isDirty = true;
     
     // ★ Inject founders fields from RAM cache
     const participantCache = party.participants.find(p => p.userId === guestId || p.id === socket.id) || {};
     const safeData = { 
       ...data, 
+      trackId: voteKey,
       guestId,
       foundersRank: participantCache.foundersRank || null,
       foundersIntentSubmitted: participantCache.foundersIntentSubmitted || false,

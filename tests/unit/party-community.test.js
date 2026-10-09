@@ -48,11 +48,12 @@ test('private inbox isolation, actual content ownership, host decisions and acce
     assert.equal(profile.messages[0].likeCount,1);assert.equal(profile.messages[0].liked,true);
     assert.equal(profile.person.photoURL,'https://example.com/profile.jpg');assert.equal(profile.ranking.position,1);assert.equal(profile.ranking.points,12);assert.ok(profile.songs.some(x=>x.title==='Earlier'&&x.status==='played'));assert.equal(profile.favorites[0].title,'Song');assert.equal(profile.songs[0].status,'played');assert.equal(profile.songs[0].canBoost,false);
     bob.previousSocketIds=['old-bob'];
-    p.guestVotes['old-bob']={Legacy:'fire'};
+    p.guestVotes['old-bob']={Legacy:'fire',current:'fire'};
     p.photos.push({id:'legacy-photo',guestId:'old-bob',url:'https://example.com/legacy.jpg'});
     p.suggestions.push({id:'legacy-song',authorUserId:'obsolete',guestId:'b',title:'Pending',artist:'Artist',status:'pending'});
     const recovered=(await request('/touch/b')).body;
     assert.ok(recovered.favorites.some(x=>x.title==='Legacy'));
+    assert.ok(recovered.favorites.every(x=>x.title!=='current'));
     assert.ok(recovered.photos.some(x=>x.id==='legacy-photo'));
     assert.ok(recovered.songs.some(x=>x.id==='legacy-song'));
     const other=(await request('/touch/a')).body;

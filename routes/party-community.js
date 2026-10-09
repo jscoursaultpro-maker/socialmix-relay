@@ -84,7 +84,7 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
     const votes=Object.assign({},...Array.from(identity).map(id=>p.guestVotes?.[id]||{}));
     const tracks=[...(p.trackHistory||[]),p.currentTrack].filter(Boolean);
     const firesFor=x=>Object.values(p.guestVotes||{}).filter(v=>v[x.title]==='fire'||v[String(x.id)]==='fire').length;
-    const favorites=Object.entries(votes).filter(([title,vote])=>vote==='fire').map(([title])=>{
+    const favorites=Object.entries(votes).filter(([title,vote])=>vote==='fire'&&title!=='current'&&!title.startsWith('_')).map(([title])=>{
       const track=tracks.find(x=>x.title===title||String(x.id)===title)||{};
       return {id:String(track.id||title),title:track.title||title,artist:track.artist||'',coverURL:track.artworkURL||track.coverURL||track.coverArtURL||null,fireCount:Object.values(p.guestVotes||{}).filter(v=>v[title]==='fire').length};
     });
