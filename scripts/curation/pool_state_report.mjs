@@ -38,6 +38,24 @@ const ENERGY_RANGES = [
   { label: 'high (7-10)', min: 7, max: 10 },
 ];
 
+// ─── Doctrine phase × energy (patch 2026-10-09) ───────────────────────
+// Certains crans phase × energy sont DOCTRINALEMENT INTERDITS (Doctrine
+// Premium V2 + Dramaturgie Memories) :
+//   - closing low/mid : interdit (closing est strictement un feu d'artifice,
+//     energy ≥ 7 obligatoire — hymnes, chants collectifs)
+//   - party low : interdit (party = peak energy)
+//
+// Si count > 0 dans un cran interdit → c'est une ANOMALIE de classification
+// (track à requalifier), PAS une carence (il ne faut surtout pas en importer plus).
+// Si count = 0 dans un cran interdit → CONFORME à la doctrine (ne pas afficher comme manque).
+const PHASE_ENERGY_FORBIDDEN = {
+  closing: ['low (1-3)', 'mid (4-6)'],
+  party: ['low (1-3)'],
+};
+// Crans où une carence (<30) est une vraie carence stratégique.
+// On exclut les crans doctrinalement interdits de ce calcul.
+const CARENCE_THRESHOLD = 30;
+
 // ─── Main ─────────────────────────────────────────────────────────────
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === new URL(import.meta.url).pathname;
 if (isMain) {
@@ -96,15 +114,23 @@ if (isMain) {
   }
   carences.sort((a, b) => b.gap - a.gap);
 
-  // Carences fines : phase × energy range (<30 = alerte)
+  // Carences fines : phase × energy range (<30 = alerte, hors crans doctrinalement interdits)
+  // Anomalies doctrinales : tracks présentes dans un cran que la doctrine interdit (à requalifier, pas à combler)
   const carencesFines = [];
+  const anomaliesDoctrine = [];
   for (const phase of PHASES) {
     for (const r of ENERGY_RANGES) {
       const count = byPhase[phase].byEnergy[r.label];
-      if (count < 30) carencesFines.push({ phase, energy: r.label, count });
+      const forbidden = (PHASE_ENERGY_FORBIDDEN[phase] || []).includes(r.label);
+      if (forbidden) {
+        if (count > 0) anomaliesDoctrine.push({ phase, energy: r.label, count });
+      } else {
+        if (count < CARENCE_THRESHOLD) carencesFines.push({ phase, energy: r.label, count });
+      }
     }
   }
   carencesFines.sort((a, b) => a.count - b.count);
+  anomaliesDoctrine.sort((a, b) => b.count - a.count);
 
   // ─── Écriture markdown ─────────────────────────────────────────────
   const lines = [];
@@ -179,8 +205,19 @@ if (isMain) {
     lines.push('');
   }
 
+  if (anomaliesDoctrine.length) {
+    lines.push('## 🚨 Anomalies doctrinales (tracks à requalifier)');
+    lines.push('');
+    lines.push(`_Crans phase × energy interdits par doctrine (ex: closing exige energy ≥ 7). Les tracks présentes dans ces crans sont **mal classées** — à requalifier, pas à combler._`);
+    lines.push('');
+    lines.push(`| Phase | Energy (interdit) | Tracks à requalifier |`);
+    lines.push(`|---|---|---|`);
+    for (const a of anomaliesDoctrine) lines.push(`| **${a.phase}** | ${a.energy} | **${a.count}** |`);
+    lines.push('');
+  }
+
   if (carencesFines.length) {
-    lines.push('## 🟠 Carences fines par phase × energy (<30 tracks)');
+    lines.push('## 🟠 Carences fines par phase × energy (<30 tracks, hors crans doctrinalement interdits)');
     lines.push('');
     lines.push(`| Phase | Energy | Tracks |`);
     lines.push(`|---|---|---|`);
@@ -190,6 +227,10 @@ if (isMain) {
 
   lines.push('## 📋 Actions recommandées');
   lines.push('');
+  if (anomaliesDoctrine.length > 0) {
+    const totalAnomalies = anomaliesDoctrine.reduce((s, a) => s + a.count, 0);
+    lines.push(`- **🚨 Requalifier ${totalAnomalies} tracks hors doctrine** avant tout import ciblé (voir section anomalies doctrinales).`);
+  }
   if (carences.length > 0) {
     lines.push(`- **Prioriser les imports sur les ${carences.length} phase(s) en carence** : ${carences.map(c => `${c.phase} (+${c.gap} à combler)`).join(', ')}`);
   }

@@ -141,6 +141,16 @@ export function validateClassification(c) {
   if (typeof c.notes !== 'string' || c.notes.length < 40) errors.push('notes DJ trop courte (<40 car.) — doctrine 3 éléments');
   if (typeof c.justification !== 'string' || c.justification.length < 10) errors.push('justification manquante');
   if (c.confidence === 'low' && c.isBanger === true) errors.push('isBanger=true interdit en confidence=low');
+  // Patch doctrine 2026-10-09 — closing est strictement un feu d'artifice (hymnes, chants collectifs).
+  // Règle mécanique de CLAUDE_CURATION_PROMPT.md §0.7 : phase closing exige energy ≥ 7.
+  // Une ballade émotionnelle, un instrumental contemplatif, une BO douce ne vont jamais en closing.
+  // Même règle sur phaseAlternate: 'closing'.
+  if (c.phase === 'closing' && isInt(c.energy, 1, 10) && c.energy < 7) {
+    errors.push(`phase=closing exige energy ≥ 7 (doctrine Memories) — energy ${c.energy} trop bas, requalifier en arrival ou ambiance`);
+  }
+  if (c.phaseAlternate === 'closing' && isInt(c.energy, 1, 10) && c.energy < 7) {
+    errors.push(`phaseAlternate=closing exige energy ≥ 7 (doctrine Memories) — energy ${c.energy} trop bas`);
+  }
   return errors;
 }
 
