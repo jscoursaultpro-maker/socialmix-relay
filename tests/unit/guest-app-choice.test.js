@@ -63,6 +63,9 @@ test('retired onboarding always routes to SSO with the party code, after web cho
       document:{querySelector:()=>modal,addEventListener:(name,fn)=>{assert.equal(name,'guest:web-continue');continuation=fn;}} };
     runInNewContext(fn + '; showOnboarding("kl64ce");', context);
     if (modal) { assert.equal(destination,undefined); continuation(); }
-    assert.equal(destination,'https://ahouai.com/join/KL64CE/auth');
+    const login = new URL(destination);
+    assert.equal(login.pathname, '/login');
+    assert.equal(login.searchParams.get('redirect'), 'https://join.ahouai.com/guest?code=KL64CE&sb=1');
+    assert.ok(!destination.includes('/join/'));
   }
 });

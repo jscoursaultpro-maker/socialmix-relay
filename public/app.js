@@ -938,7 +938,10 @@ function showOnboarding(code) {
   // Guest authentication has one entry point: the current SSO journey.
   // Never expose the retired inline name/email form, including expired sessions.
   if (/^[A-Z0-9]{4,10}$/.test(code)) {
-    const goToSSO = () => window.location.replace(`https://ahouai.com/join/${encodeURIComponent(code)}/auth`);
+    const goToSSO = () => {
+      const webGuest = `https://join.ahouai.com/guest?code=${encodeURIComponent(code)}&sb=1`;
+      window.location.replace(`https://ahouai.com/login?redirect=${encodeURIComponent(webGuest)}`);
+    };
     if (window.ahouaiAppOpening || document.querySelector('.guest-app-choice[open]')) {
       document.addEventListener('guest:web-continue', goToSSO, { once: true });
     } else {
