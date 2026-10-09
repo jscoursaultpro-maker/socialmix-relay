@@ -18,7 +18,7 @@
   function header(title){dialog.classList.remove('community-conversation');activeConversation=null;activeRefresh=null;clearInterval(poll);const close=button('× Fermer',()=>{dialog.close();clearInterval(poll);});close.className='community-close';const logo=node('img');logo.src='/assets/brand/ahouai-logo.png';logo.alt='AhOuai';logo.className='community-logo';dialog.replaceChildren(close,logo,node('h1',title));}
   async function action(path,body,after){if(busy)return;busy=true;dialog.querySelectorAll('button').forEach(b=>b.disabled=true);try{const d=await api(path,'POST',body);if(d.message?.text)toast('Message envoyé.');else if(typeof d.message==='string')toast(d.message);if(after)await after();}catch(e){toast(e);}finally{busy=false;dialog.querySelectorAll('button').forEach(b=>b.disabled=false);}}
   function section(title,items,renderer){dialog.append(node('h2',title));if(!items.length)dialog.append(node('p','Les premiers moments apparaîtront ici.'));items.forEach(renderer);}
-  function report(kind,id){const row=node('div');row.className='preparation-actions';row.append(button('Signaler ce contenu',()=>{header('Respecter l’ambiance');dialog.append(node('p','Le premier signalement envoie un avertissement privé. Une récidive alerte l’organisateur. Ton identité n’est pas communiquée à l’invité.'));[['inappropriate','Contenu inapproprié'],['harassment','Harcèlement'],['privacy','Photo ou message sans accord']].forEach(([reason,label])=>dialog.append(button(label,()=>action('/report',{kind,contentId:id,reason},()=>{dialog.close();}))));}));dialog.append(row);}
+  function report(kind,id,mount=dialog){const row=node('div');row.className='preparation-actions';row.append(button('Signaler ce contenu',()=>{header('Respecter l’ambiance');dialog.append(node('p','Le premier signalement envoie un avertissement privé. Une récidive alerte l’organisateur. Ton identité n’est pas communiquée à l’invité.'));[['inappropriate','Contenu inapproprié'],['harassment','Harcèlement'],['privacy','Photo ou message sans accord']].forEach(([reason,label])=>dialog.append(button(label,()=>action('/report',{kind,contentId:id,reason},()=>{dialog.close();}))));}));mount.append(row);}
   async function boostTouchSong(song,reload){
     const host=window.AhOuaiHostEngine?._debug?.().party;
     if(host?.code===state.partyCode){
@@ -100,7 +100,37 @@
       const chat=button(`Discuter avec ${p.name}`,()=>openConversation(p));chat.dataset.chatUser=p.userId;badgeFor(chat,unreadCount(d,p.userId));
       actions.append(friend,chat,button(`Voir le My Touch de ${p.name}`,()=>window.openParticipantTouch(p.userId)));card.append(actions);dialog.append(card);
     });if(!dialog.open)dialog.showModal();}catch(e){toast(e);}});inbox.className='community-inbox';inbox.hidden=true;document.getElementById('moi-action-bar')?.after(inbox);
-  const safety=button('Prévenir l’organisateur',async()=>{try{const d=await api('/reportable');header('Prévenir l’organisateur');dialog.append(node('p','Choisis le contenu concerné. Premier incident : avertissement privé. Récidive : alerte dans Backstage.'));d.items.forEach(x=>{dialog.append(node('p',`${x.name} · ${x.text}`));report(x.kind,x.id);});if(!dialog.open)dialog.showModal();}catch(e){toast(e);}});safety.className='community-safety';safety.hidden=true;document.getElementById('quit-btn')?.before(safety);
+  const safety=button('Prévenir l’organisateur',async()=>{
+    try {
+      const d=await api('/reportable');header('Prévenir l’organisateur');
+      dialog.append(node('p','Choisis une personne, puis le contenu à signaler. Ton identité reste privée.'));
+      const people=new Map();
+      d.items.forEach(item=>{
+        const key=item.userId||`${item.kind}:${item.id}`;
+        if(!people.has(key))people.set(key,{name:item.name||'Invité',photoURL:item.photoURL,items:[]});
+        people.get(key).items.push(item);
+      });
+      if(!people.size)dialog.append(node('p','Aucun contenu à signaler pour le moment.'));
+      for(const person of people.values()){
+        const group=node('details');group.className='community-report-person';
+        const summary=node('summary');
+        if(person.photoURL){const photo=node('img');photo.src=person.photoURL;photo.alt='';summary.append(photo);}
+        const identity=node('span');identity.append(node('strong',person.name),node('small',`${person.items.length} contenu${person.items.length>1?'s':''}`));summary.append(identity);group.append(summary);
+        for(const [kind,label] of [['song','Titres'],['photo','Photos'],['message','Mots']]){
+          const items=person.items.filter(item=>item.kind===kind);if(!items.length)continue;
+          group.append(node('h2',`${label} · ${items.length}`));
+          items.forEach(item=>{
+            const card=node('article');card.className='community-report-content';
+            if(item.url){const image=node('img');image.src=item.url;image.alt=kind==='photo'?'Photo partagée':'';image.className=kind==='photo'?'community-report-photo':'community-report-cover';card.append(image);}
+            card.append(node('p',item.text));if(item.artist)card.append(node('small',item.artist));
+            report(item.kind,item.id,card);group.append(card);
+          });
+        }
+        dialog.append(group);
+      }
+      if(!dialog.open)dialog.showModal();
+    }catch(e){toast(e);}
+  });safety.className='community-safety';safety.hidden=true;document.getElementById('quit-btn')?.before(safety);
   window.bindCommunitySocket=s=>{if(!s||s===boundSocket)return;boundSocket=s;
     s.on('community:warning',d=>{const key=`ahouai_warning_${state.partyCode}_${d.id}`;if(!localStorage.getItem(key)){localStorage.setItem(key,'seen');toast(d.message);}});s.on('community:alert',()=>toast('Un nouvel avertissement demande ton attention dans Backstage.'));s.on('community:message',async()=>{if(dialog.open&&activeConversation&&activeRefresh)await activeRefresh();await refreshChatBadge();if(chatSnapshot&&unreadCount(chatSnapshot))chatNotice();});
     s.on('community:excluded',d=>{clearResumeSession();showScreen('choice');dialog.close();toast(d.message);});

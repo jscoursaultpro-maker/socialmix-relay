@@ -6427,3 +6427,16 @@ body.has-app-banner #toast {
 .community-message p { margin:6px 0; white-space:pre-wrap; }
 .community-message small,.community-message time { font-size:12px; color:#a6bbc7; }
 .community-conversation textarea { min-height:72px; max-height:120px; }
+
+.community-report-person { margin:14px 0; padding:16px; border:1px solid #2ce1d266; border-radius:20px; background:linear-gradient(120deg,#12344355,#42205744); }
+.community-report-person > summary { display:flex; align-items:center; gap:12px; cursor:pointer; list-style:none; }
+.community-report-person > summary::-webkit-details-marker { display:none; }
+.community-report-person > summary::after { content:'⌄'; margin-left:auto; color:#2ce1d2; font-size:24px; }
+.community-report-person[open] > summary::after { content:'⌃'; }
+.community-report-person > summary img { width:44px; height:44px; border-radius:50%; object-fit:cover; }
+.community-report-person > summary strong,.community-report-person > summary small { display:block; }
+.community-report-person > summary small { color:#a6bbc7; margin-top:4px; }
+.community-report-person h2 { font-size:16px; color:#2ce1d2; margin:20px 0 10px; }
+.community-report-content { padding:12px 0; border-top:1px solid #ffffff18; overflow-wrap:anywhere; }
+.community-report-photo { width:100%; max-height:280px; object-fit:contain; border-radius:12px; }
+.community-report-cover { width:64px; height:64px; object-fit:cover; border-radius:10px; }
