@@ -1,0 +1,252 @@
+{
+  "_meta": {
+    "file": "2026-10-09-b",
+    "created_at": "2026-10-09T07:04:05.008Z",
+    "mode": "stock",
+    "total": 4,
+    "sidelined": 0,
+    "doctrine": "scripts/curation/DOCTRINE_PREMIUM_V2.md",
+    "instructions": "scripts/curation/CLAUDE_CURATION_PROMPT.md",
+    "output_expected": "outbox/2026-10-09-b.json",
+    "bpm_signal_analysis": {
+      "stats": {
+        "total": 4,
+        "analyzed": 3,
+        "skipped_no_preview": 1,
+        "failed": 0
+      },
+      "run_at": "2026-10-09T07:04:21Z",
+      "method": "librosa.feature.tempo on Deezer 30 s preview"
+    }
+  },
+  "tracks": [
+    {
+      "_id": "6ac7d77b8bda4179c9fd1c7c",
+      "title": "Lion Roar",
+      "artist": "Ludomir & Josiah Nichols",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3627788272,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-08T17:48:43.913Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": 123,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3627788272,
+          "title": "Lion Roar",
+          "artist": "Ludomir",
+          "album": "Lion Roar",
+          "duration": 193,
+          "isrc": "BE8LH2500521",
+          "release_date": "2025-12-19",
+          "bpm": null,
+          "rank": 132232,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3627788272",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/d/b/8/0/db83cd10608857a4a079a67a20c25da8.mp3?hdnea=exp=1791530342~acl=/api/1/1/d/b/8/0/db83cd10608857a4a079a67a20c25da8.mp3*~data=user_id=0,application_id=42~hmac=371a62701c679958a2788372252ea1307a5304893d8a9e0c4bebbb15a854fd03"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": null,
+        "bpm_recommended": 123.0,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6ac7d6c18bda4179c9fd1bd6",
+      "title": "Leh Na Leh",
+      "artist": "Chiara Meloni & Impani",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 3253946521,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-08T17:45:37.914Z",
+      "current": {
+        "genre": "Chill",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 3253946521,
+          "title": "Leh Na Leh",
+          "artist": "Chiara Meloni",
+          "album": "Leh Na Leh",
+          "duration": 198,
+          "isrc": "BE8LH2500097",
+          "release_date": "2025-04-11",
+          "bpm": null,
+          "rank": 301926,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/3253946521",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/e/4/8/0/e480e83b53829a1011b9a3676a55332f.mp3?hdnea=exp=1791530342~acl=/api/1/1/e/4/8/0/e480e83b53829a1011b9a3676a55332f.mp3*~data=user_id=0,application_id=42~hmac=07b6a932b27312bfd1142be9ba9d306ef0d009727ba8155971308d0f35523a32"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 95.7,
+        "bpm_deezer": null,
+        "bpm_recommended": 95.7,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6ac7bada8bda4179c9fd0d4d",
+      "title": "The Sound of Silence",
+      "artist": "Simon & Garfunkel",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 2468570,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-08T15:46:34.415Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": null,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 2468570,
+          "title": "The Sound Of Silence",
+          "artist": "Simon & Garfunkel",
+          "album": "Sounds Of Silence",
+          "duration": 183,
+          "isrc": "USSM16401131",
+          "release_date": "1992-08-26",
+          "bpm": 104.9,
+          "rank": 813149,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/2468570",
+          "preview": null
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": null,
+        "bpm_deezer": 104.9,
+        "bpm_recommended": 104.9,
+        "agreement": "deezer_only"
+      }
+    },
+    {
+      "_id": "6ac7ad708bda4179c9fd0801",
+      "title": "Suavamente (Culo Remix)",
+      "artist": "Numix Latin DJs",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 12045863,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-08T14:49:20.145Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 120,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 12045863,
+          "title": "Suavamente (Culo Remix)",
+          "artist": "Numix Latin DJs",
+          "album": "Latin Remixes",
+          "duration": 229,
+          "isrc": "USFV70710018",
+          "release_date": "2007-08-27",
+          "bpm": null,
+          "rank": 25848,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/12045863",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/3/9/c/0/39c62896181e3b32beab1880b60b6d6a.mp3?hdnea=exp=1791530344~acl=/api/1/1/3/9/c/0/39c62896181e3b32beab1880b60b6d6a.mp3*~data=user_id=0,application_id=42~hmac=f029d80d84f09a4d402450aaf150275bdd05a763ee294b7152593dc54678ab29"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 117.5,
+        "bpm_deezer": null,
+        "bpm_recommended": 117.5,
+        "agreement": "signal_only"
+      }
+    }
+  ]
+}
