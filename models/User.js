@@ -63,7 +63,7 @@ const userSchema = new Schema({
   // === PROVIDER VOTES (V1 gated providers) ===
   votedProviders: [{
     type: String,
-    enum: ['deezer', 'qobuz', 'tidal']
+    enum: ['deezer', 'qobuz', 'tidal', 'spotify']
   }],
   
   // === SOIRÉES (denormalisé pour fast queries) ===

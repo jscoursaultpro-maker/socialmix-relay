@@ -18,7 +18,7 @@ async function requireUser(req, res, next) {
   }
 }
 
-const ALLOWED_PROVIDERS = ['deezer', 'qobuz', 'tidal'];
+const ALLOWED_PROVIDERS = ['deezer', 'qobuz', 'tidal', 'spotify'];
 
 // POST /provider — Vote for a provider (idempotent per user)
 router.post('/provider', requireUser, async (req, res) => {

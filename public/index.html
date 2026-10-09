@@ -112,13 +112,13 @@
                     <span class="provider-logo youtube-logo">▶</span>
                     <span class="choice-txt"><strong>YouTube</strong><small>Gratuit · universel · écran actif pendant la soirée</small></span><span class="choice-arrow">→</span>
                 </button>
-                <button type="button" class="choice-card" onclick="pickProvider('spotify')">
-                    <span class="provider-logo spotify-logo">●</span>
-                    <span class="choice-txt"><strong>Spotify</strong><small>Premium requis · titres complets</small></span><span class="choice-arrow">→</span>
-                </button>
                 <button type="button" class="choice-card" onclick="pickProvider('apple')">
                     <span class="provider-logo apple-logo">♫</span>
                     <span class="choice-txt"><strong>Apple Music</strong><small>Abonnement requis · titres complets</small></span><span class="choice-arrow">→</span>
+                </button>
+                <button type="button" class="choice-card" onclick="pickProvider('spotify')">
+                    <span class="provider-logo spotify-logo">●</span>
+                    <span class="choice-txt"><strong>Spotify · Soon</strong><small>Bientôt disponible · Vote pour l’ajouter</small></span><span class="choice-arrow">Voter</span>
                 </button>
                 <a class="choice-back" href="#" onclick="event.preventDefault(); cancelProviderPick();">← Changer de projet pour ce soir</a>
             </div>
@@ -1427,8 +1427,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <script src="/shared/supabase-cookie.js"></script>
     <script src="/guest-app-choice.js?v=20261009" defer></script>
-    <script src="app.js?v=20261008-ahouai-brand"></script>
+    <script src="app.js?v=20261009-spotify-vote"></script>
     <!-- ★ Mode host (brique 1) — détection + barre de contrôles musique, module autonome -->
+    <script src="/shared/ui/host-provider-vote.js?v=1"></script>
     <script src="/shared/ui/host-mode.js?v=hostmode-1007"></script>
     <!-- ★ Mode host (brique 2) — moteur musique YouTube dans le guest -->
     <script src="/shared/ui/host-engine.js?v=hostengine-1008-reconnect"></script>

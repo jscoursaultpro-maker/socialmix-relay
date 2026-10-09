@@ -1,0 +1,37 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { JSDOM } from 'jsdom';
+const source = readFileSync(new URL('../../public/shared/ui/host-provider-vote.js', import.meta.url), 'utf8');
+test('Spotify voting never starts playback; only explicit test link continues and retains retry on failure', async () => {
+  const dom = new JSDOM('<body></body>', { runScripts: 'outside-only', url: 'https://example.test' });
+  const w = dom.window;
+  w.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  w.HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new w.Event('close')); };
+  let continued = 0, posts = 0;
+  w.getProfileJwt = async () => 'test-session';
+  w.fetch = async (_url, opts) => {
+    if (!opts) return { ok: true, json: async () => ({ spotify: 2 }) };
+    posts++;
+    assert.deepEqual(JSON.parse(opts.body), { provider: 'spotify' });
+    return { ok: posts > 1, json: async () => ({ count: 3 }) };
+  };
+  w.eval(source);
+  assert.equal(w.document.querySelector('dialog'), null);
+  w.AhOuaiHostProviderVote.open(() => continued++);
+  const button = w.document.querySelector('.provider-vote-submit');
+  await button.onclick();
+  assert.equal(button.disabled, false);
+  assert.match(w.document.querySelector('[role=status]').textContent, /non enregistré/);
+  await button.onclick();
+  assert.equal(button.disabled, true);
+  assert.equal(continued, 0);
+  const link = w.document.querySelector('.provider-vote-test');
+  link.click(); link.click();
+  assert.equal(continued, 1);
+  assert.equal(w.document.querySelector('dialog'), null);
+  w.AhOuaiHostProviderVote.open(() => continued++);
+  w.document.querySelector('.provider-vote-close').click();
+  assert.equal(continued, 1);
+  dom.window.close();
+});

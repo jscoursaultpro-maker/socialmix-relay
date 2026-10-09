@@ -7228,7 +7228,14 @@ function cancelProviderPick() {
   if (p) p.style.display = 'none'; if (m) m.style.display = 'flex';
   document.getElementById('choice-screen')?.classList.remove('is-provider-step');
 }
-function pickProvider(provider) { _goAuthedHost(provider || 'youtube', _choiceJustPlay); }
+function pickProvider(provider) {
+  if (provider === 'spotify') {
+    const justplay = _choiceJustPlay;
+    window.AhOuaiHostProviderVote.open(() => _goAuthedHost('spotify', justplay));
+    return;
+  }
+  _goAuthedHost(provider || 'youtube', _choiceJustPlay);
+}
 
 function goCreateParty() { _authenticateBeforeProvider(false); }
 function goJustPlay()    { _authenticateBeforeProvider(true); }
