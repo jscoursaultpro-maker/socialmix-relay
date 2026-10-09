@@ -3,10 +3,26 @@
     "apps": [],
     "details": [
       {
-        "appIDs": ["DQDAY9MA9A.com.ahouai.app"],
+        "appIDs": [
+          "DQDAY9MA9A.com.ahouai.app"
+        ],
         "components": [
-          { "/": "/", "?": { "code": "?*" }, "comment": "AhOuai party invites via WhatsApp links" },
-          { "/": "/join/*", "comment": "AhOuai party invites legacy path" }
+          {
+            "/": "/guest",
+            "exclude": true,
+            "comment": "Guest stays on web until explicitly choosing to open the app"
+          },
+          {
+            "/": "/",
+            "?": {
+              "code": "?*"
+            },
+            "comment": "AhOuai party invites via WhatsApp links"
+          },
+          {
+            "/": "/join/*",
+            "comment": "AhOuai party invites legacy path"
+          }
         ]
       }
     ]

@@ -151,17 +151,21 @@ let state = {
 // ─── DOM Helper ──────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 
-function showToast(message, duration = 3000) {
+function showToast(message, duration = 6000) {
   let toast = document.getElementById('reconnect-toast');
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'reconnect-toast';
+    toast.className = 'ahouai-notice';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
     toast.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 82px);left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#20e5d2,#5dd3ff 48%,#c957ff);color:#07101b;padding:12px 20px;border-radius:16px;font-size:14px;font-weight:900;z-index:99999;opacity:0;transition:opacity 0.3s;pointer-events:none;box-shadow:0 16px 36px rgba(0,0,0,.38);max-width:calc(100vw - 32px);text-align:center;';
     document.body.appendChild(toast);
   }
   toast.textContent = message;
   toast.style.opacity = '1';
-  setTimeout(() => { toast.style.opacity = '0'; }, duration);
+  clearTimeout(toast._dismissTimer);
+  toast._dismissTimer = setTimeout(() => { toast.style.opacity = '0'; }, Math.max(duration, 6000));
 }
 
 // ★ Bug E-4 — Pastille compteur demandes reçues sur avatar cockpit (updateProfileBadge)
@@ -196,6 +200,9 @@ function showFriendActionToast(message, targetUserId, duration = 6000) {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'friend-action-toast';
+    toast.className = 'ahouai-notice';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
     toast.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 82px);left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#ff3b30,#ff6b35);color:#fff;padding:12px 22px;border-radius:14px;font-size:13px;font-weight:800;z-index:99999;opacity:0;transition:opacity 0.3s;cursor:pointer;box-shadow:0 6px 24px rgba(255,59,48,0.35);max-width:90vw;text-align:center;';
     document.body.appendChild(toast);
   }
@@ -212,10 +219,11 @@ function showFriendActionToast(message, targetUserId, duration = 6000) {
       showScreen('hub'); // fallback si Mes amis non chargé
     }
   };
-  setTimeout(() => {
+  clearTimeout(toast._dismissTimer);
+  toast._dismissTimer = setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.pointerEvents = 'none';
-  }, duration);
+  }, Math.max(duration, 6000));
 }
 
 function showSuggestionToast(message, status) {
@@ -233,6 +241,9 @@ function showSuggestionToast(message, status) {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'suggestion-toast';
+    toast.className = 'ahouai-notice';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
     toast.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 82px);left:50%;transform:translateX(-50%) scale(0.9);color:#fff;padding:12px 24px;border-radius:14px;font-size:14px;font-weight:700;z-index:99999;opacity:0;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;text-align:center;max-width:85vw;box-shadow:0 4px 20px rgba(0,0,0,0.4);';
     document.body.appendChild(toast);
   }
@@ -240,11 +251,12 @@ function showSuggestionToast(message, status) {
   toast.style.background = colors[status] || colors.pending;
   toast.style.opacity = '1';
   toast.style.transform = 'translateX(-50%) scale(1)';
-  const duration = (status === 'played' || status === 'next') ? 5000 : 3500;
-  setTimeout(() => {
+  const duration = (status === 'played' || status === 'next') ? 8000 : 6000;
+  clearTimeout(toast._dismissTimer);
+  toast._dismissTimer = setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateX(-50%) scale(0.9)';
-  }, duration);
+  }, Math.max(duration, 6000));
 }
 
 function updateSuggestionBadge(title, status, message) {
@@ -7679,11 +7691,7 @@ function handleDiapoBtnClick() {
   const count = getAllSlidesSorted().length;
   if (count === 0) {
     // Toast
-    const toast = document.createElement('div');
-    toast.textContent = '📸 Ajoute une photo ou un mot pour lancer le diaporama !';
-    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:white;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:10000;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);pointer-events:none;';
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+    showToast('📸 Ajoute une photo ou un mot pour lancer le diaporama !');
     return;
   }
   launchDiaporama();

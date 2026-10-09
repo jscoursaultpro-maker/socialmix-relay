@@ -739,6 +739,12 @@ app.get(['/host', '/host/'], (req, res) => {
   return res.redirect(302, '/' + qs);
 });
 
+// Web-only continuation: this path is not a Universal Link.
+app.get('/guest', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(join(__dirname, 'public', 'index.html'));
+});
+
 app.use(express.static(join(__dirname, 'public'), {
   maxAge: 0,
   etag: false,

@@ -6345,3 +6345,36 @@ body.has-app-banner #toast {
 #moi-action-bar + .community-inbox { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; box-sizing: border-box; margin: 0 0 16px; padding: 14px 18px; border: 1px solid #be78ee88; border-radius: 18px; color: white; background: linear-gradient(110deg,#13435488,#42205788); font-weight: 800; }
 #moi-action-bar + .community-inbox[hidden] { display: none; }
 .community-chat-badge { display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 50%; background: #ff4fac; color: white; font-size: 12px; box-shadow: 0 0 10px #ff4fac66; }
+
+/* Explicit guest choice; no automatic app handoff. */
+.guest-app-choice {
+  box-sizing: border-box; width: min(480px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px); overflow-y: auto; padding: 28px;
+  border: 2px solid #2ce3d5; border-radius: 28px; color: #fff;
+  background: linear-gradient(145deg, #102b38, #211333);
+  box-shadow: 0 0 36px #26d8df44; font-family: inherit;
+}
+.guest-app-choice::backdrop { background: #030711c9; backdrop-filter: blur(6px); }
+.guest-app-choice h2 { font-size: 28px; line-height: 1.15; margin: 0 0 18px; }
+.guest-app-choice p { font-size: 18px; line-height: 1.5; color: #e0e6ef; }
+.guest-app-choice a, .guest-app-choice button {
+  display: block; box-sizing: border-box; width: 100%; padding: 17px 12px;
+  margin-top: 14px; text-align: center; border-radius: 16px;
+  line-height: 1.35; font-family: inherit; font-size: 17px; font-weight: 800;
+  cursor: pointer; text-decoration: none;
+}
+.guest-app-choice-open { color: #05151b; background: #2ce3d5; border: 2px solid #2ce3d5; }
+.guest-app-choice-web { color: #fff; background: #ffffff10; border: 2px solid #aa7dec; }
+
+/* One prominent, readable notification treatment across host/guest facets. */
+.ahouai-notice {
+  box-sizing: border-box; width: min(560px, calc(100vw - 28px));
+  max-width: calc(100vw - 28px) !important; padding: 22px 24px !important;
+  font-size: clamp(18px, 4.6vw, 22px) !important; line-height: 1.45;
+  font-weight: 800 !important; white-space: pre-line; overflow-wrap: anywhere;
+  max-height: 45dvh; overflow-y: auto; border-radius: 22px !important;
+  color: #fff !important; background: linear-gradient(135deg, #123640, #2a1847) !important;
+  border: 2px solid #39e6d6; box-shadow: 0 12px 44px #0009, 0 0 24px #2ce3d544 !important;
+}
+#friend-action-toast { border-color: #ee7cde; }
+#suggestion-toast { border-color: #be98ff; }
