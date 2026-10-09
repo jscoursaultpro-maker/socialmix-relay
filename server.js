@@ -4462,6 +4462,7 @@ function broadcastLeaderboard(party) {
   const lb = Array.from(mergedScoresMap.values())
     .map(d => ({
       id: d.participantId === 'host' ? 'host' : d.name,
+      participantId: d.participantId === 'host' ? String(party.hostUserId || 'host') : d.participantId,
       name: d.participantId === 'host' ? hostDisplayName : d.name,
       points: d.score
     }))
