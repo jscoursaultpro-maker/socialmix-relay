@@ -3145,7 +3145,7 @@ function connectToRelay() {
     if (photoSrc) {
       addDiapoPhoto(photoSrc, photo.guestName);
       // ★ Task #101: track in allPhotos for diaporama
-      state.allPhotos.push({ id: photo.id || photo._id || '', url: photoSrc, guestName: photo.guestName || '', sentAt: photo.sentAt || new Date().toISOString() });
+      state.allPhotos.push({ ...photo, id: photo.id || photo._id || '', url: photoSrc, guestName: photo.guestName || '', sentAt: photo.sentAt || new Date().toISOString() });
       updateDiapoButton();
       // If diaporama is open, update counter realtime
       updateDiapoCounter();
@@ -3155,6 +3155,7 @@ function connectToRelay() {
 
   socket.on('photos:update', (photos) => {
     state.allPhotos = (photos || []).map(photo => ({
+      ...photo,
       id: photo?.id || photo?._id || '',
       url: photo?.url || photo?.dataURL || '',
       guestName: photo?.guestName || '',
@@ -5068,6 +5069,10 @@ function showTrombiContact(idx) {
   const users = window._trombiAllUsers || [];
   const u = users[idx];
   if (!u) return;
+  if (u.userId && window.openParticipantTouch) {
+    $('trombi-lightbox')?.classList.add('hidden');
+    return window.openParticipantTouch(u.userId);
+  }
   const lb = $('trombi-lightbox');
   if (!lb) return;
   const photoEl = $('trombi-lightbox-photo');
@@ -7711,6 +7716,15 @@ function closeDiaporama() {
   clearTimeout(diapoControlsTimer); diapoControlsTimer = null;
 }
 
+function diapoAuthorPhoto(slide) {
+  const id = slide.userId || slide.authorUserId || slide.guestId;
+  const people = state.participants || [];
+  const matches = people.filter(p => p.name === slide.guestName);
+  const person = (id && people.find(p => p.userId === id || p.id === id)) || (matches.length === 1 ? matches[0] : null);
+  return slide.authorPhotoURL || slide.guestPhoto || person?.photoURL || person?.photo ||
+    (id && id === state.userId ? state.guestPhoto : null);
+}
+
 function showDiapoSlide(index) {
   const slides = getAllSlidesSorted();
   if (slides.length === 0) { closeDiaporama(); return; }
@@ -7768,7 +7782,15 @@ function showDiapoSlide(index) {
     if (authorBadge) {
       authorBadge.style.display = '';
       const emoji = findParticipantEmoji(slide.guestName);
-      $('diapo-author-emoji').textContent = emoji;
+      const avatar = $('diapo-author-emoji');
+      avatar.replaceChildren();
+      const photo = diapoAuthorPhoto(slide);
+      if (photo) {
+        const profile = document.createElement('img');
+        profile.src = photo; profile.alt = ''; profile.className = 'diapo-author-photo';
+        profile.onerror = () => { avatar.textContent = emoji; };
+        avatar.append(profile);
+      } else avatar.textContent = emoji;
       $('diapo-author-name').textContent = slide.guestName || '';
     }
   }
