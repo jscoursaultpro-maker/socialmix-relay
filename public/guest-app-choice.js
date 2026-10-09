@@ -14,7 +14,7 @@
     <span class="guest-choice-eyebrow">LA SOIRÉE, ENSEMBLE</span>
     <h2 id="guest-app-choice-title">Entre dans<br>le moment.</h2>
     <p>Retrouve tes amis. Propose tes sons.<br>Donne le ton, à ta façon.</p>
-    <button type="button" class="guest-app-choice-web">AhOuai mais viens kiffer la vibes ! <span aria-hidden="true">→</span></button>
+    <button type="button" class="guest-app-choice-web">AhOuai mais viens kiffer la Vibe ! <span aria-hidden="true">→</span></button>
     <span class="guest-choice-hint">Tout est là. Rien à installer.</span>
     <section class="guest-choice-store" aria-label="Application iPhone bientôt disponible">
       <div class="guest-choice-store-heading"><strong>AhOuai sur iPhone</strong><span class="guest-choice-soon">COMING SOON</span></div>
@@ -31,9 +31,24 @@
   // Reveal the existing guest page before the user-activated scheme opens.
   // If no app handles it (or opening is declined), the web session is already usable.
   // No delayed redirect: returning from AhOuai must not reload or lose this session.
-  open.addEventListener('click', close);
-  dialog.querySelector('button').addEventListener('click', close);
-  dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
+  const continueWeb = () => { close(); document.dispatchEvent(new Event('guest:web-continue')); };
+  open.addEventListener('click', () => {
+    window.ahouaiAppOpening = true;
+    close();
+    // An installed app hides this page. Only fall back when it did not open.
+    let opened = false;
+    const hidden = () => { if (document.hidden) opened = true; };
+    document.addEventListener('visibilitychange', hidden);
+    window.addEventListener('pagehide', hidden);
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', hidden);
+      window.removeEventListener('pagehide', hidden);
+      window.ahouaiAppOpening = false;
+      if (!opened && !document.hidden) document.dispatchEvent(new Event('guest:web-continue'));
+    }, 1600);
+  });
+  dialog.querySelector('button').addEventListener('click', continueWeb);
+  dialog.addEventListener('cancel', event => { event.preventDefault(); continueWeb(); });
   document.body.append(dialog);
   dialog.showModal();
   dialog.querySelector('button').focus();

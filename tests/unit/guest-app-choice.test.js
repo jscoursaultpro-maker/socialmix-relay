@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
+import { runInNewContext } from 'node:vm';
 const source = readFileSync(new URL('../../public/guest-app-choice.js', import.meta.url), 'utf8');
 function page(path = '/guest?code=ABC123&sb=1', ios = true) {
   const dom = new JSDOM('<body></body>', { url: `https://join.ahouai.com${path}`, runScripts: 'outside-only' });
@@ -50,4 +51,18 @@ test('Guest web path cannot match an associated app route', () => {
   assert.deepEqual(aasa.applinks.details[0].components[0]['exclude'], true);
   assert.equal(aasa.applinks.details[0].components[0]['/'], '/guest');
   assert.ok(aasa.applinks.details[0].components.every(route => route.exclude === true));
+});
+
+test('retired onboarding always routes to SSO with the party code, after web choice', () => {
+  const app = readFileSync(new URL('../../public/app.js', import.meta.url), 'utf8');
+  const start = app.indexOf('function showOnboarding(code) {');
+  const fn = app.slice(start, app.indexOf('\n}', start) + 2);
+  for (const modal of [false, true]) {
+    let destination; let continuation;
+    const context = { state:{chantier5:{}}, window:{location:{replace:url=>destination=url}},
+      document:{querySelector:()=>modal,addEventListener:(name,fn)=>{assert.equal(name,'guest:web-continue');continuation=fn;}} };
+    runInNewContext(fn + '; showOnboarding("kl64ce");', context);
+    if (modal) { assert.equal(destination,undefined); continuation(); }
+    assert.equal(destination,'https://ahouai.com/join/KL64CE/auth');
+  }
 });

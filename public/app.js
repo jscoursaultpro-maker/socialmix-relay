@@ -935,6 +935,18 @@ function showOnboarding(code) {
   code = (code || state.partyCode || '').toUpperCase();
   state.partyCode = code;
   state.chantier5.screen = 'onboarding';
+  // Guest authentication has one entry point: the current SSO journey.
+  // Never expose the retired inline name/email form, including expired sessions.
+  if (/^[A-Z0-9]{4,10}$/.test(code)) {
+    const goToSSO = () => window.location.replace(`https://ahouai.com/join/${encodeURIComponent(code)}/auth`);
+    if (window.ahouaiAppOpening || document.querySelector('.guest-app-choice[open]')) {
+      document.addEventListener('guest:web-continue', goToSSO, { once: true });
+    } else {
+      goToSSO();
+    }
+    return;
+  }
+
 
   // Update party label
   const label = $('ob-party-label');
