@@ -1,3 +1,4 @@
+import { reconcilePlayedSuggestions } from './lib/suggestion-playback.js';
 import preparationRouter from './routes/party-preparation.js';
 import './instrument.js'; // ★ feat(sentry): MUST be first import — instruments Node builtins before any other module loads
 import express from 'express';
@@ -1408,6 +1409,7 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
     if (!sugg) return res.status(404).json({ error: 'Suggestion introuvable' });
   }
 
+  reconcilePlayedSuggestions(party);
   if (!['pending', 'queued', 'next'].includes(sugg.status)) {
     return res.status(409).json({ error: 'Suggestion déjà jouée ou rejetée' });
   }
@@ -3054,6 +3056,7 @@ app.post('/api/party/:code/suggestion/:suggId/boost', async (req, res) => {
   }
 
   // Guard 1 : status actif seulement
+  reconcilePlayedSuggestions(party);
   if (!['pending', 'queued', 'next'].includes(sugg.status)) {
     return res.status(409).json({ error: 'Suggestion déjà jouée ou rejetée' });
   }
@@ -4640,6 +4643,7 @@ function stripSecret(obj) {
 // ★ A7-1: isHost=true → send full trackHistory (cap 500, all played tracks)
 //          isHost=false → keep slice(-20) to protect guest network payload
 function buildLightState(party, isHost = false) {
+  reconcilePlayedSuggestions(party);
   // Lightweight participants
   // ★ Bug E-fix-1 — Injecter host si absent des participants (edge case) + fallback userId host
   const rawParticipants = (party.participants || []).filter(p => !p.departedAt && !activeRestriction(party.communityRestrictions,p.userId));
@@ -7564,6 +7568,8 @@ io.on('connection', (socket) => {
     if (!requireApprovedParticipant(party, socket)) return;
     const suggestion = party.suggestions.find(s => s.id === data.suggestionId);
     if (!suggestion) return;
+    reconcilePlayedSuggestions(party);
+    if (!['pending', 'queued', 'next'].includes(suggestion.status)) return;
     if (!suggestion.boostedBy) suggestion.boostedBy = [];
     const guestId = resolveGuestUserId(party, socket);
     if (suggestion.boostedBy.includes(guestId)) return;

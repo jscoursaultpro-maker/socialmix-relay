@@ -1,3 +1,4 @@
+import { reconcilePlayedSuggestions } from '../lib/suggestion-playback.js';
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import Party from '../models/Party.js';
@@ -83,6 +84,7 @@ export default function communityRouter({ parties, io, buildLightState, PartyMod
       const track=tracks.find(x=>x.title===title||String(x.id)===title)||{};
       return {id:String(track.id||title),title:track.title||title,artist:track.artist||'',coverURL:track.artworkURL||track.coverURL||track.coverArtURL||null,fireCount:Object.values(p.guestVotes||{}).filter(v=>v[title]==='fire').length};
     });
+    reconcilePlayedSuggestions(p);
     const suggestions=(p.suggestions||[]).filter(author);
     const played=tracks.filter(x=>author(x)&&!suggestions.some(s=>s.title===x.title&&s.artist===x.artist));
     const leaderboard=p.leaderboard||[];
