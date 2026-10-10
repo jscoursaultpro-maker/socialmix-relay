@@ -1,0 +1,252 @@
+{
+  "_meta": {
+    "file": "2026-10-10-b",
+    "created_at": "2026-10-10T06:35:16.322Z",
+    "mode": "stock",
+    "total": 4,
+    "sidelined": 0,
+    "doctrine": "scripts/curation/DOCTRINE_PREMIUM_V2.md",
+    "instructions": "scripts/curation/CLAUDE_CURATION_PROMPT.md",
+    "output_expected": "outbox/2026-10-10-b.json",
+    "bpm_signal_analysis": {
+      "stats": {
+        "total": 4,
+        "analyzed": 4,
+        "skipped_no_preview": 0,
+        "failed": 0
+      },
+      "run_at": "2026-10-10T06:35:35Z",
+      "method": "librosa.feature.tempo on Deezer 30 s preview"
+    }
+  },
+  "tracks": [
+    {
+      "_id": "6ac962978bda4179c900a7cc",
+      "title": "Diego libre dans sa tête (Acoustique) [Live 1997] (Remasterisé en 2004)",
+      "artist": "France Gall",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 46305981,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-09T21:54:31.627Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 123,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 46305981,
+          "title": "Diego libre dans sa tête (Acoustique) [Live 1997] (Remasterisé en 2004)",
+          "artist": "France Gall",
+          "album": "Concert public / Concert privé (Live 1997)",
+          "duration": 179,
+          "isrc": "FRF950410670",
+          "release_date": "1997-04-24",
+          "bpm": 123.8,
+          "rank": 254928,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/46305981",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/0/1/3/0/013cbf7dd5a449892b642ae22c790327.mp3?hdnea=exp=1791615013~acl=/api/1/1/0/1/3/0/013cbf7dd5a449892b642ae22c790327.mp3*~data=user_id=0,application_id=42~hmac=13b73c70a271ecb8333044aa79b3e89035637177e50c7773beca24388999414f"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": 123.8,
+        "bpm_recommended": 123.0,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6ac9620a8bda4179c900a7aa",
+      "title": "Six roses (Live au Théâtre Gramont, 1965) [Remasterisé en 2020]",
+      "artist": "Annie Cordy",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 991062972,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-09T21:52:10.059Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 104,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 991062972,
+          "title": "Six roses (Live au Théâtre Gramont, 1965) (Remasterisé en 2020)",
+          "artist": "Annie Cordy",
+          "album": "Théâtre Gramont 1965 / Bobino 1968 (Live) (Remasterisé en 2020)",
+          "duration": 182,
+          "isrc": "FRZ042000359",
+          "release_date": "2020-06-12",
+          "bpm": null,
+          "rank": 6071,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/991062972",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/4/0/8/0/408482dbd41949ebd3d752f48a19e2dc.mp3?hdnea=exp=1791615014~acl=/api/1/1/4/0/8/0/408482dbd41949ebd3d752f48a19e2dc.mp3*~data=user_id=0,application_id=42~hmac=6d404868e2280f8936936bf212c4da0230e3a46d32c0d2f322be2f3fc21b3c49"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 107.7,
+        "bpm_deezer": null,
+        "bpm_recommended": 107.7,
+        "agreement": "signal_only"
+      }
+    },
+    {
+      "_id": "6ac95b698bda4179c90091f7",
+      "title": "La danse des canards (Original Radio Edit 1980)",
+      "artist": "Jj Lionel",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 254954,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-09T21:23:53.972Z",
+      "current": {
+        "genre": "Electro",
+        "phase": null,
+        "bpm": 183,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 254954,
+          "title": "La danse des canards (Original Radio Edit 1980)",
+          "artist": "Jj Lionel",
+          "album": "La danse des canards (Original Radio Edit 1980)",
+          "duration": 162,
+          "isrc": "FR6V88000031",
+          "release_date": "2006-06-06",
+          "bpm": 183.8,
+          "rank": 659490,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/254954",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/6/7/2/0/6729e545f9c940e8555c2e9167937991.mp3?hdnea=exp=1791615015~acl=/api/1/1/6/7/2/0/6729e545f9c940e8555c2e9167937991.mp3*~data=user_id=0,application_id=42~hmac=66d5d76737fb59740df8fd5e8b6bb080590280f3279cfa3c3726bf85fb7e93bc"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 1,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 184.6,
+        "bpm_deezer": 183.8,
+        "bpm_recommended": 184.6,
+        "agreement": "match"
+      }
+    },
+    {
+      "_id": "6ac91f8c8bda4179c9fe04e1",
+      "title": "Soul Makossa (Money) [Club Mix]",
+      "artist": "Yolanda Be Cool & DCUP",
+      "album": null,
+      "duration_sec": null,
+      "isrc": null,
+      "deezerTrackId": 108179944,
+      "deezerRank": null,
+      "qualityLevel": "vide",
+      "source": "exploration",
+      "userSignal": null,
+      "createdAt": "2026-10-09T17:08:28.524Z",
+      "current": {
+        "genre": "Afro",
+        "phase": null,
+        "bpm": 122,
+        "bpmSource": null,
+        "energy": null,
+        "uiCategoryPrimary": null,
+        "era": null,
+        "releaseYear": null,
+        "language": null,
+        "mood": null
+      },
+      "appleMusicMetadata": null,
+      "deezer_verification": {
+        "status": "verified",
+        "via": "deezer_id",
+        "match": {
+          "id": 108179944,
+          "title": "Soul Makossa (Money) UK Radio Edit",
+          "artist": "Yolanda Be Cool",
+          "album": "Soul Makossa (Money)",
+          "duration": 156,
+          "isrc": "AUDCB1500576",
+          "release_date": "2015-10-09",
+          "bpm": 121.96,
+          "rank": 271369,
+          "explicit_lyrics": false,
+          "link": "https://www.deezer.com/track/108179944",
+          "preview": "https://cdnt-preview.dzcdn.net/api/1/1/5/f/d/0/5fd2881e244ebe76ebcce7b1d46d6e82.mp3?hdnea=exp=1791615016~acl=/api/1/1/5/f/d/0/5fd2881e244ebe76ebcce7b1d46d6e82.mp3*~data=user_id=0,application_id=42~hmac=823f873f17b6907e6af9be5e3d5a5c725d0d781423e044c24c470ececa537ea1"
+        },
+        "cmp": {
+          "ok": true,
+          "titleSim": 0.5,
+          "artistSim": 1,
+          "durationDelta": null
+        }
+      },
+      "bpm_signal_analysis": {
+        "bpm_signal": 123.0,
+        "bpm_deezer": 121.96,
+        "bpm_recommended": 123.0,
+        "agreement": "match"
+      }
+    }
+  ]
+}
